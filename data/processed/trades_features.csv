@@ -1,0 +1,3 @@
+entry_time,exit_time,side,entry_price,exit_price,stop_loss,take_profit,risk_per_trade,directional_pnl,R,duration_minutes,time_of_day_bucket
+2023-01-01 10:00:00,2023-01-01 10:30:00,LONG,100,102,98,104,2,2.0,1.0,30.0,Other
+2023-01-01 11:00:00,2023-01-01 13:15:00,SHORT,200,195,205,190,5,5.0,1.0,135.0,Other
