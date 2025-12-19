@@ -1,0 +1,5 @@
+{
+    "python.analysis.extraPaths": [
+        "./turtle_analytics"
+    ]
+}

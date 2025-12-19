@@ -52,3 +52,7 @@ turtle-analytics/
 
 
 
+to run: 
+cd/location 
+python scripts/run_pipeline.py data/raw/trades.csv 
+
