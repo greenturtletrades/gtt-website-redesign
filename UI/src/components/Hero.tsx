@@ -1,0 +1,136 @@
+import { motion } from "motion/react";
+import { Sparkles } from "lucide-react";
+
+interface HeroProps {
+  onTraderClick: () => void;
+  onApplyClick: () => void;
+  onScrollToWaitingList: () => void;
+}
+
+export function Hero({ onTraderClick, onApplyClick, onScrollToWaitingList }: HeroProps) {
+  return (
+    <section className="w-full bg-gradient-to-br from-teal-50 via-cyan-50 to-teal-50 py-20 sm:py-28 md:py-36 px-4 sm:px-6 overflow-hidden relative">
+      {/* Subtle background elements */}
+      <div className="absolute inset-0 overflow-hidden opacity-30">
+        <motion.div
+          animate={{
+            opacity: [0.4, 0.6, 0.4],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute -top-1/4 -right-1/4 w-1/2 h-1/2 bg-gradient-to-br from-teal-200 to-cyan-200 rounded-full blur-3xl"
+        />
+        <motion.div
+          animate={{
+            opacity: [0.6, 0.4, 0.6],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 4
+          }}
+          className="absolute -bottom-1/4 -left-1/4 w-1/2 h-1/2 bg-gradient-to-tr from-cyan-200 to-teal-200 rounded-full blur-3xl"
+        />
+      </div>
+
+      {/* Fine grid pattern overlay */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#0d948808_1px,transparent_1px),linear-gradient(to_bottom,#0d948808_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]"></div>
+
+      <div className="max-w-6xl mx-auto text-center relative z-10">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6 }}
+          className="inline-flex items-center gap-2 bg-gradient-to-r from-teal-600 to-cyan-600 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-full mb-4 sm:mb-6 border border-teal-400/30 shadow-lg"
+        >
+          <Sparkles className="w-4 h-4" />
+          <span className="text-sm sm:text-base">Coming Soon</span>
+        </motion.div>
+        
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="text-slate-900 mb-4 sm:mb-6 text-3xl sm:text-4xl md:text-5xl lg:text-6xl leading-tight px-2"
+        >
+          <span className="bg-gradient-to-r from-slate-900 via-teal-700 to-cyan-700 bg-clip-text text-transparent">
+            Real Traders.
+          </span>
+          <br />
+          <span className="bg-gradient-to-r from-teal-700 via-cyan-600 to-teal-700 bg-clip-text text-transparent">
+            Real Capital.
+          </span>
+          <br />
+          <span className="bg-gradient-to-r from-cyan-700 via-teal-700 to-slate-900 bg-clip-text text-transparent">
+            Shared Profits.
+          </span>
+        </motion.h1>
+        
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="text-slate-600 max-w-3xl mx-auto mb-8 sm:mb-12 text-base sm:text-lg md:text-xl leading-relaxed px-4"
+        >
+          Apply to become a verified trader and unlock Turtle Analytics ahead of launch.
+        </motion.p>
+        
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+          className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-stretch sm:items-center max-w-md sm:max-w-none mx-auto px-4"
+        >
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onApplyClick}
+            className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl hover:from-teal-700 hover:to-cyan-700 transition-all sm:min-w-[200px] shadow-xl hover:shadow-2xl text-base sm:text-lg"
+          >
+            Apply to Trade
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={onScrollToWaitingList}
+            className="border border-slate-300 text-slate-700 px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl hover:border-teal-300 hover:text-teal-700 transition-all sm:min-w-[200px] text-base sm:text-lg"
+          >
+            Join Waiting List
+          </motion.button>
+        </motion.div>
+
+        <button
+          onClick={onTraderClick}
+          className="mt-6 text-sm text-slate-600 hover:text-teal-600 transition-colors"
+        >
+          Already approved? Sign in
+        </button>
+
+        {/* Trust indicators */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.8 }}
+          className="mt-12 sm:mt-16 flex flex-wrap justify-center items-center gap-4 sm:gap-8 text-slate-600 text-xs sm:text-sm px-4"
+        >
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-teal-500 rounded-full animate-pulse"></div>
+            <span>Secure Platform</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></div>
+            <span>Verified Traders</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+            <span>Real-Time Data</span>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}

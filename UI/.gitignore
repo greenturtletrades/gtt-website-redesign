@@ -1,0 +1,20 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Env
+.env
+.env.*
+
+# OS
+.DS_Store
+
+# Build
+dist/
+build/
+
+# Prisma
+backend/node_modules/
+backend/.env
+backend/prisma/migrations/dev.db

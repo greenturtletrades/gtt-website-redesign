@@ -1,0 +1,421 @@
+import { useState, useEffect } from "react";
+import { Header } from "./components/Header";
+import { LandingPage } from "./components/LandingPage";
+import { AuthModal } from "./components/AuthModal";
+import { AdminLoginModal } from "./components/AdminLoginModal";
+import { TurtleAnalytics } from "./components/TurtleAnalytics";
+import { TurtleAnalyticsWelcome } from "./components/TurtleAnalyticsWelcome";
+import { EACodePage } from "./components/EACodePage";
+import { SubscriptionModal } from "./components/SubscriptionModal";
+import { PaymentModal } from "./components/PaymentModal";
+import { WelcomeScreen } from "./components/WelcomeScreen";
+import { SettingsPage } from "./components/SettingsPage";
+import { TermsOfService } from "./components/TermsOfService";
+import { PrivacyPolicy } from "./components/PrivacyPolicy";
+import { RiskDisclosure } from "./components/RiskDisclosure";
+import { ContactPage } from "./components/ContactPage";
+import { AdminDashboard } from "./components/AdminDashboard";
+import { TraderApplicationForm } from "./components/onboarding/TraderApplicationForm";
+import { TraderApplicationStatus } from "./components/onboarding/TraderApplicationStatus";
+import { me } from "./api/auth";
+import { type TraderApplicationStatus as ApplicationStatus } from "./api/traderApplication";
+
+export type UserType = "trader" | "admin" | null;
+export type ViewType =
+  | "landing"
+  | "turtle-analytics"
+  | "ea-code"
+  | "settings"
+  | "terms"
+  | "privacy"
+  | "risk-disclosure"
+  | "contact"
+  | "admin-dashboard"
+  | "trader-application"
+  | "trader-application-status";
+
+export default function App() {
+  const [currentView, setCurrentView] = useState<ViewType>("landing");
+  const [userType, setUserType] = useState<UserType>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showAdminLoginModal, setShowAdminLoginModal] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [authMode, setAuthMode] = useState<"signup" | "login">("signup");
+  const [turtleAnalyticsAuthed, setTurtleAnalyticsAuthed] = useState(false);
+  const [pendingUserName, setPendingUserName] = useState<string>("");
+  const [selectedSubscriptionPlan, setSelectedSubscriptionPlan] = useState<"payg" | null>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<"active" | "paused">("active");
+  const [onboardingStage, setOnboardingStage] = useState<"none" | "welcome" | "ea-setup" | "complete">("none");
+  const [applicationEmail, setApplicationEmail] = useState("");
+  const [applicationStatus, setApplicationStatus] = useState<ApplicationStatus | null>(null);
+  const [applicationRejectionReason, setApplicationRejectionReason] = useState<string | null>(null);
+
+  // Set viewport meta tag to enable desktop layout on mobile
+  useEffect(() => {
+    const viewport = document.querySelector('meta[name="viewport"]');
+    if (viewport) {
+      viewport.setAttribute('content', 'width=1280, user-scalable=yes, initial-scale=1.0');
+    } else {
+      const meta = document.createElement('meta');
+      meta.name = 'viewport';
+      meta.content = 'width=1280, user-scalable=yes, initial-scale=1.0';
+      document.head.appendChild(meta);
+    }
+  }, []);
+
+  // Scroll to top whenever the view changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [currentView]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("gtt_token");
+    if (!token) return;
+
+    let cancelled = false;
+
+    const validateSession = async () => {
+      try {
+        const session = await me();
+        if (cancelled) return;
+        if (session.ok && session.user.role === "TRADER") {
+          setUserType("trader");
+          setTurtleAnalyticsAuthed(true);
+        } else if (session.ok && session.user.role === "ADMIN") {
+          setUserType("admin");
+          setTurtleAnalyticsAuthed(false);
+        } else {
+          setUserType(null);
+          setTurtleAnalyticsAuthed(false);
+        }
+      } catch {
+        if (cancelled) return;
+        localStorage.removeItem("gtt_token");
+        setUserType(null);
+        setTurtleAnalyticsAuthed(false);
+      }
+    };
+
+    validateSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Listen for navigation events from Turtle Analytics feature section
+  useEffect(() => {
+    const handleNavigateToTurtleAnalytics = () => {
+      setCurrentView("turtle-analytics");
+    };
+
+    window.addEventListener('navigateToTurtleAnalytics', handleNavigateToTurtleAnalytics);
+    return () => window.removeEventListener('navigateToTurtleAnalytics', handleNavigateToTurtleAnalytics);
+  }, []);
+
+  const handleTraderClick = () => {
+    setAuthMode("login");
+    setShowAuthModal(true);
+  };
+
+  const handleTraderSignUp = () => {
+    setAuthMode("signup");
+    setShowAuthModal(true);
+  };
+
+  const handleAuthComplete = (type: "trader") => {
+    setShowAuthModal(false);
+    
+    // If trader is signing up (not logging in), show subscription modal
+    if (authMode === "signup") {
+      setPendingUserName("John Smith"); // In real app, get from form data
+      setShowSubscriptionModal(true);
+      // Don't set userType or navigate yet - wait for subscription
+    } else {
+      // Login flow - go directly to dashboard
+      // In real app, fetch user's subscription plan from backend
+      // For demo, default to PAYG for returning users
+      setSelectedSubscriptionPlan("payg"); // In real app: fetch from API
+      setUserType("trader");
+      setTurtleAnalyticsAuthed(true);
+      setCurrentView("turtle-analytics");
+    }
+  };
+
+  const handleSubscriptionComplete = (plan: "payg") => {
+    setSelectedSubscriptionPlan(plan);
+    setShowSubscriptionModal(false);
+    
+    // Show payment modal to collect card details
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentComplete = () => {
+    setShowPaymentModal(false);
+    
+    // Start onboarding flow with welcome screen
+    setOnboardingStage("welcome");
+    setUserType("trader");
+    setTurtleAnalyticsAuthed(true);
+    
+    // In a real app, you would:
+    // 1. Send card details to Stripe/payment processor
+    // 2. Create subscription with selected plan
+    // 3. Wait for payment confirmation webhook
+    // 4. Create user account in backend
+    // 5. Send confirmation email
+    // 6. Then grant access to Turtle Analytics
+  };
+
+  const handlePaymentBack = () => {
+    // Go back to subscription plan selection
+    setShowPaymentModal(false);
+    setShowSubscriptionModal(true);
+    // Keep the pendingUserName so user doesn't lose their info
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("gtt_token");
+    setUserType(null);
+    setTurtleAnalyticsAuthed(false);
+    setCurrentView("landing");
+  };
+
+  const handleNavigate = (view: ViewType) => {
+    if (view === "turtle-analytics") {
+      // Allow anyone to view the analytics page (preview for non-authenticated users)
+      setCurrentView("turtle-analytics");
+      // Scroll to top immediately when navigating
+      setTimeout(() => window.scrollTo(0, 0), 0);
+    } else {
+      setCurrentView(view);
+      // Scroll to top immediately when navigating
+      setTimeout(() => window.scrollTo(0, 0), 0);
+    }
+  };
+
+  const handleOpenApplication = () => {
+    setCurrentView("trader-application");
+  };
+
+  const handleApplicationSubmitted = (
+    email: string,
+    status: ApplicationStatus,
+  ) => {
+    setApplicationEmail(email);
+    setApplicationStatus(status);
+    setApplicationRejectionReason(null);
+    setCurrentView("trader-application-status");
+  };
+
+  const handleWelcomeComplete = () => {
+    // Move to EA setup stage
+    setOnboardingStage("ea-setup");
+    setCurrentView("ea-code");
+  };
+
+  const handleEASetupComplete = () => {
+    // Complete onboarding and go to dashboard
+    setOnboardingStage("complete");
+    setCurrentView("turtle-analytics");
+  };
+
+  const handleEASetupSkip = () => {
+    // Skip EA setup and go directly to dashboard
+    setOnboardingStage("complete");
+    setCurrentView("turtle-analytics");
+  };
+
+  const handleOpenSettings = () => {
+    setCurrentView("settings");
+  };
+
+  const handlePauseSubscription = () => {
+    // In real app: Make API call to pause subscription
+    setSubscriptionStatus("paused");
+    alert("✅ Subscription paused!\n\nYour subscription and ML analysis will pause from the next billing cycle (January 27, 2025). You can resume anytime.");
+    // Stay on settings page to see the change
+  };
+
+  const handleResumeSubscription = () => {
+    // In real app: Make API call to resume subscription
+    setSubscriptionStatus("active");
+    alert("✅ Welcome back!\n\nYour subscription has been resumed. ML analysis will restart immediately!");
+    // Stay on settings page to see the change
+  };
+
+  const handleCancelSubscription = (reason: string, feedback: string) => {
+    // In real app: Make API call to cancel subscription with feedback
+    console.log("Cancellation reason:", reason);
+    console.log("Cancellation feedback:", feedback);
+    
+    // Store cancellation data for admin analytics (in real app: send to backend)
+    const cancellationData = {
+      userId: "user123",
+      userName: pendingUserName || "John Smith",
+      plan: selectedSubscriptionPlan,
+      reason,
+      feedback,
+      date: new Date().toISOString()
+    };
+    
+    // In real app: Send to backend API
+    // await fetch('/api/cancellations', { method: 'POST', body: JSON.stringify(cancellationData) });
+    
+    alert("✅ Subscription cancelled.\n\nWe're sorry to see you go. You'll have access until the end of your billing period.\n\nThank you for your feedback!");
+  };
+
+  const handleNavigateLegal = (page: "terms" | "privacy" | "risk-disclosure") => {
+    setCurrentView(page);
+  };
+
+  const handleAdminClick = () => {
+    // Show admin login modal
+    setShowAdminLoginModal(true);
+  };
+
+  const handleAdminLoginSuccess = () => {
+    setShowAdminLoginModal(false);
+    setUserType("admin");
+    setCurrentView("admin-dashboard");
+  };
+
+  return (
+    <div className="min-h-screen bg-white">
+      <Header 
+        userType={userType}
+        onTraderClick={handleTraderClick}
+        onLogout={handleLogout}
+        onNavigate={handleNavigate}
+        currentView={currentView}
+        turtleAnalyticsAuthed={turtleAnalyticsAuthed}
+      />
+      
+      {currentView === "landing" && (
+        <LandingPage 
+          onTraderClick={handleTraderClick}
+          onApplyClick={handleOpenApplication}
+          onAdminClick={handleAdminClick}
+          onNavigateLegal={handleNavigateLegal}
+        />
+      )}
+      
+      {currentView === "turtle-analytics" && (
+        userType === "trader" ? (
+          <TurtleAnalytics 
+            userType={userType} 
+            subscriptionTier={selectedSubscriptionPlan || "payg"}
+            onSignUp={handleTraderClick} 
+            onLogout={handleLogout}
+            onSettings={handleOpenSettings}
+          />
+        ) : (
+          <TurtleAnalyticsWelcome onSignUp={handleTraderSignUp} onSignIn={handleTraderClick} />
+        )
+      )}
+
+      {currentView === "ea-code" && (
+        <EACodePage 
+          isOnboarding={onboardingStage === "ea-setup"}
+          onComplete={handleEASetupComplete}
+          onSkip={handleEASetupSkip}
+        />
+      )}
+
+      {currentView === "settings" && selectedSubscriptionPlan && (
+        <SettingsPage
+          userName={pendingUserName || "John Smith"}
+          userEmail="john.smith@email.com"
+          currentPlan={selectedSubscriptionPlan}
+          subscriptionStatus={subscriptionStatus}
+          onCancelSubscription={handleCancelSubscription}
+          onPauseSubscription={handlePauseSubscription}
+          onResumeSubscription={handleResumeSubscription}
+        />
+      )}
+
+      {/* Legal Pages */}
+      {currentView === "terms" && (
+        <TermsOfService onBack={() => setCurrentView("landing")} />
+      )}
+
+      {currentView === "privacy" && (
+        <PrivacyPolicy onBack={() => setCurrentView("landing")} />
+      )}
+
+      {currentView === "risk-disclosure" && (
+        <RiskDisclosure onBack={() => setCurrentView("landing")} />
+      )}
+
+      {currentView === "contact" && (
+        <ContactPage onBack={() => setCurrentView("landing")} />
+      )}
+
+      {currentView === "trader-application" && (
+        <TraderApplicationForm
+          onBack={() => setCurrentView("landing")}
+          onSubmitted={handleApplicationSubmitted}
+          onCheckStatus={() => setCurrentView("trader-application-status")}
+        />
+      )}
+
+      {currentView === "trader-application-status" && (
+        <TraderApplicationStatus
+          initialEmail={applicationEmail}
+          initialStatus={applicationStatus}
+          initialRejectionReason={applicationRejectionReason}
+          onBack={() => setCurrentView("landing")}
+          onStartNew={() => setCurrentView("trader-application")}
+        />
+      )}
+
+      {/* Onboarding Welcome Screen */}
+      {onboardingStage === "welcome" && selectedSubscriptionPlan && (
+        <WelcomeScreen
+          userName={pendingUserName}
+          selectedPlan={selectedSubscriptionPlan}
+          onContinue={handleWelcomeComplete}
+        />
+      )}
+
+      {showAuthModal && (
+        <AuthModal 
+          type="trader"
+          initialMode={authMode}
+          onClose={() => setShowAuthModal(false)}
+          onComplete={handleAuthComplete}
+        />
+      )}
+
+      {showAdminLoginModal && (
+        <AdminLoginModal
+          onClose={() => setShowAdminLoginModal(false)}
+          onSuccess={handleAdminLoginSuccess}
+        />
+      )}
+
+      {showSubscriptionModal && (
+        <SubscriptionModal
+          onClose={() => setShowSubscriptionModal(false)}
+          userName={pendingUserName}
+          onSelectPlan={handleSubscriptionComplete}
+        />
+      )}
+
+      {showPaymentModal && selectedSubscriptionPlan && (
+        <PaymentModal
+          onClose={() => setShowPaymentModal(false)}
+          onComplete={handlePaymentComplete}
+          onBack={handlePaymentBack}
+          selectedPlan={selectedSubscriptionPlan}
+          userName={pendingUserName}
+        />
+      )}
+
+      {currentView === "admin-dashboard" && (
+        <AdminDashboard onLogout={handleLogout} />
+      )}
+    </div>
+  );
+}

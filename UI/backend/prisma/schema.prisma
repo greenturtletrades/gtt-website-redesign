@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  TRADER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  PENDING
+  DISABLED
+}
+
+enum BrokerPlatform {
+  MT4
+  MT5
+  CTRADER
+}
+
+enum ExperienceLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum TraderApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id             String          @id @default(cuid())
+  email          String          @unique
+  passwordHash   String
+  role           Role            @default(TRADER)
+  status         UserStatus      @default(ACTIVE)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  profile        Profile?
+  brokerAccounts BrokerAccount[]
+  apiKeys        ApiKey[]
+}
+
+model Profile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  firstName String?
+  lastName  String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model BrokerAccount {
+  id            String         @id @default(cuid())
+  userId        String
+  platform      BrokerPlatform
+  brokerName    String?
+  accountNumber String
+  label         String?
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eaEvents      EaEvent[]
+
+  @@index([userId])
+}
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  keyHash   String
+  last4     String
+  createdAt DateTime @default(now())
+  revokedAt DateTime?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model EaEvent {
+  id              String        @id @default(cuid())
+  brokerAccountId String
+  type            String
+  payload         Json
+  receivedAt      DateTime      @default(now())
+  brokerAccount   BrokerAccount @relation(fields: [brokerAccountId], references: [id], onDelete: Cascade)
+
+  @@index([brokerAccountId])
+}
+
+model WaitlistEntry {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  source    String?  // e.g. "landing"
+  createdAt DateTime @default(now())
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String
+  message   String
+  createdAt DateTime @default(now())
+}
+
+model TraderApplication {
+  id              String                 @id @default(cuid())
+  fullName        String
+  email           String                 @unique
+  country         String
+  brokerName      String?
+  platform        BrokerPlatform
+  accountNumber   String
+  experienceLevel ExperienceLevel
+  status          TraderApplicationStatus @default(PENDING)
+  rejectionReason String?
+  submittedAt     DateTime               @default(now())
+  reviewedAt      DateTime?
+
+  @@index([status])
+}
