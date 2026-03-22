@@ -1,0 +1,232 @@
+{
+  "metadata": {
+    "generated_at": "2026-01-15T16:42:44.372640",
+    "pipeline_version": "1.0.0",
+    "n_trades_analyzed": 250,
+    "date_range": [
+      "2024-01-01",
+      "2024-01-26"
+    ]
+  },
+  "summary": {
+    "original_performance": {
+      "avg_r": 0.7674135862088769,
+      "win_rate": 0.564,
+      "total_r": 191.85339655221924,
+      "median_r": 1.31544989537317,
+      "std_r": 1.3684645326730256,
+      "max_win_r": 3.0078740157480466,
+      "max_loss_r": -1.2051282051282004,
+      "n_trades": 250
+    },
+    "best_performance": {
+      "avg_r": 2.454715861555981,
+      "improvement": 1.687302275347104,
+      "improvement_pct": 2.1986869996433045,
+      "win_rate": null,
+      "source": "bayesian_optimization"
+    }
+  },
+  "global_policy": {
+    "best_policy": {
+      "sl_mult": 0.4884535425412867,
+      "tp_mult": 1.5660675592376476,
+      "max_hold_minutes": 240,
+      "trail_pct": 0.0005754583362332995,
+      "risk_fraction": 0.021156569968515372
+    },
+    "performance": {
+      "avg_r": 2.454715861555981,
+      "win_rate": null
+    },
+    "confidence": {
+      "mean_r": null,
+      "std_r": null,
+      "ci_95_lower": null,
+      "ci_95_upper": null
+    }
+  },
+  "optimization_results": {
+    "method": "bayesian_optimization",
+    "n_trials": 100,
+    "objective_metric": "avg_R",
+    "best_trial": {
+      "value": 2.454715861555981
+    },
+    "convergence": {
+      "trials_to_best": 1,
+      "improvement_per_trial": 0.02454715861555981
+    }
+  },
+  "regimes": {
+    "n_regimes": 4,
+    "cluster_quality": {
+      "silhouette_score": 0.360791150366042,
+      "separation": "good"
+    },
+    "regime_details": [
+      {
+        "regime_id": 0,
+        "regime_type": "Ranging Tight",
+        "n_trades": 116,
+        "percentage": 0.464,
+        "characteristics": {
+          "volatility_recent": 0.019674517541710193,
+          "trend_strength": 0.4247944708065555,
+          "avg_mfe_mae_ratio": 4.805827023734227,
+          "win_rate_recent": 0.4849137931034484,
+          "avg_r_recent": 0.5651039690525125,
+          "range_tightness": 0.6264108380804051,
+          "avg_r": 0.4864860555772305,
+          "win_rate": 0.4482758620689655,
+          "n_trades": 116
+        },
+        "performance": {
+          "avg_r": 0.4864860555772305,
+          "win_rate": 0.4482758620689655,
+          "total_r": 56.43238244695874
+        }
+      },
+      {
+        "regime_id": 1,
+        "regime_type": "Trending Low Volatility",
+        "n_trades": 72,
+        "percentage": 0.288,
+        "characteristics": {
+          "volatility_recent": 0.015982324079280005,
+          "trend_strength": 0.7168846142434501,
+          "avg_mfe_mae_ratio": 7.6455749725021525,
+          "win_rate_recent": 0.7038132449574658,
+          "avg_r_recent": 1.118660766413314,
+          "range_tightness": 0.6417659385513345,
+          "avg_r": 1.0727895783353532,
+          "win_rate": 0.6944444444444444,
+          "n_trades": 72
+        },
+        "performance": {
+          "avg_r": 1.0727895783353532,
+          "win_rate": 0.6944444444444444,
+          "total_r": 77.24084964014543
+        }
+      },
+      {
+        "regime_id": 2,
+        "regime_type": "Ranging Tight",
+        "n_trades": 58,
+        "percentage": 0.232,
+        "characteristics": {
+          "volatility_recent": 0.012795466971392737,
+          "trend_strength": 0.549464165115242,
+          "avg_mfe_mae_ratio": 6.13567700224538,
+          "win_rate_recent": 0.5551724137931033,
+          "avg_r_recent": 0.7578966584690828,
+          "range_tightness": 0.6507346895994033,
+          "avg_r": 0.9105817607969989,
+          "win_rate": 0.6206896551724138,
+          "n_trades": 58
+        },
+        "performance": {
+          "avg_r": 0.9105817607969989,
+          "win_rate": 0.6206896551724138,
+          "total_r": 52.81374212622594
+        }
+      },
+      {
+        "regime_id": 3,
+        "regime_type": "Ranging Tight",
+        "n_trades": 4,
+        "percentage": 0.016,
+        "characteristics": {
+          "volatility_recent": 0.01697198558084277,
+          "trend_strength": 0.0,
+          "avg_mfe_mae_ratio": 1.0,
+          "win_rate_recent": 0.5,
+          "avg_r_recent": 0.0,
+          "range_tightness": 1.0,
+          "avg_r": 1.3416055847222845,
+          "win_rate": 0.75,
+          "n_trades": 4
+        },
+        "performance": {
+          "avg_r": 1.3416055847222845,
+          "win_rate": 0.75,
+          "total_r": 5.366422338889138
+        }
+      }
+    ],
+    "recommendations": [
+      "Best performance in Ranging Tight regime (avg R: 1.342)",
+      "Weakest performance in Ranging Tight regime (avg R: 0.486)",
+      "Optimized separate policies for 3 regimes - use adaptive parameter selection based on detected market condition",
+      "Moderate regime separation (silhouette=0.36) - consider adjusting number of clusters"
+    ]
+  },
+  "hold_time_insights": {
+    "optimal_range_minutes": [
+      0,
+      37
+    ],
+    "survival_rate_in_range": 0.930152482027413,
+    "median_survival_time": 177,
+    "time_at_min_survival": 37,
+    "survival_at_key_times": {
+      "15_minutes": {
+        "survival_prob": 0.9544580217734857,
+        "ci_lower": 0.9192553462397386,
+        "ci_upper": 0.9745241178826081
+      },
+      "30_minutes": {
+        "survival_prob": 0.8621523897754821,
+        "ci_lower": 0.8095335836120938,
+        "ci_upper": 0.9011191309105573
+      },
+      "60_minutes": {
+        "survival_prob": 0.7356685407701427,
+        "ci_lower": 0.6692114218838349,
+        "ci_upper": 0.7908759023471975
+      },
+      "120_minutes": {
+        "survival_prob": 0.5805714583625946,
+        "ci_lower": 0.5036913699172243,
+        "ci_upper": 0.6497834653296779
+      },
+      "180_minutes": {
+        "survival_prob": 0.493284066400432,
+        "ci_lower": 0.41264936482035,
+        "ci_upper": 0.5688298058513552
+      },
+      "240_minutes": {
+        "survival_prob": 0.46339275562640275,
+        "ci_lower": 0.3810999540944789,
+        "ci_upper": 0.5415653953845295
+      }
+    },
+    "recommendations": [
+      "Exit trades within 0-37 minutes for 93.0% survival rate (highest probability of staying profitable)",
+      "Avoid holding beyond 37 minutes - survival rate drops significantly after this point",
+      "Current average hold time (115 min) exceeds optimal by 78 minutes - consider earlier exits",
+      "Median survival time is 177 minutes - 50% of trades fail by this point"
+    ],
+    "covariate_effects": {}
+  },
+  "risk_recommendations": {
+    "suggested_risk_fraction": 0.02,
+    "reasoning": "Low variance - slightly more aggressive sizing",
+    "risk_metrics": {
+      "variance_of_r": 1.8726951771840024,
+      "std_of_r": 1.3684645326730256,
+      "max_drawdown_r": -4.462291116075306,
+      "consecutive_losses": 7
+    },
+    "kelly_criterion": {
+      "full_kelly": 0.25,
+      "half_kelly": 0.125,
+      "recommended": 0.02
+    },
+    "recommendations": [
+      "Use 2.0% risk per trade for optimal growth",
+      "Max drawdown with this sizing: ~9% (estimated)",
+      "Warning: 7 consecutive losses observed - consider additional risk controls"
+    ]
+  }
+}

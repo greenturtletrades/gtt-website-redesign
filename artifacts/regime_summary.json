@@ -1,0 +1,143 @@
+{
+  "cluster_quality": {
+    "n_clusters": 4,
+    "silhouette_score": 0.360791150366042,
+    "davies_bouldin_score": 0.8318831170912037
+  },
+  "regimes": {
+    "0": {
+      "regime_id": 0,
+      "regime_type": "Ranging Tight",
+      "n_trades": 116,
+      "characteristics": {
+        "volatility_recent": 0.019674517541710193,
+        "trend_strength": 0.4247944708065555,
+        "avg_mfe_mae_ratio": 4.805827023734227,
+        "win_rate_recent": 0.4849137931034484,
+        "avg_r_recent": 0.5651039690525125,
+        "range_tightness": 0.6264108380804051,
+        "avg_r": 0.4864860555772305,
+        "win_rate": 0.4482758620689655,
+        "n_trades": 116
+      },
+      "performance": {
+        "avg_r": 0.4864860555772305,
+        "win_rate": 0.4482758620689655,
+        "total_r": 56.43238244695874
+      }
+    },
+    "1": {
+      "regime_id": 1,
+      "regime_type": "Trending Low Volatility",
+      "n_trades": 72,
+      "characteristics": {
+        "volatility_recent": 0.015982324079280005,
+        "trend_strength": 0.7168846142434501,
+        "avg_mfe_mae_ratio": 7.6455749725021525,
+        "win_rate_recent": 0.7038132449574658,
+        "avg_r_recent": 1.118660766413314,
+        "range_tightness": 0.6417659385513345,
+        "avg_r": 1.0727895783353532,
+        "win_rate": 0.6944444444444444,
+        "n_trades": 72
+      },
+      "performance": {
+        "avg_r": 1.0727895783353532,
+        "win_rate": 0.6944444444444444,
+        "total_r": 77.24084964014543
+      }
+    },
+    "2": {
+      "regime_id": 2,
+      "regime_type": "Ranging Tight",
+      "n_trades": 58,
+      "characteristics": {
+        "volatility_recent": 0.012795466971392737,
+        "trend_strength": 0.549464165115242,
+        "avg_mfe_mae_ratio": 6.13567700224538,
+        "win_rate_recent": 0.5551724137931033,
+        "avg_r_recent": 0.7578966584690828,
+        "range_tightness": 0.6507346895994033,
+        "avg_r": 0.9105817607969989,
+        "win_rate": 0.6206896551724138,
+        "n_trades": 58
+      },
+      "performance": {
+        "avg_r": 0.9105817607969989,
+        "win_rate": 0.6206896551724138,
+        "total_r": 52.81374212622594
+      }
+    },
+    "3": {
+      "regime_id": 3,
+      "regime_type": "Ranging Tight",
+      "n_trades": 4,
+      "characteristics": {
+        "volatility_recent": 0.01697198558084277,
+        "trend_strength": 0.0,
+        "avg_mfe_mae_ratio": 1.0,
+        "win_rate_recent": 0.5,
+        "avg_r_recent": 0.0,
+        "range_tightness": 1.0,
+        "avg_r": 1.3416055847222845,
+        "win_rate": 0.75,
+        "n_trades": 4
+      },
+      "performance": {
+        "avg_r": 1.3416055847222845,
+        "win_rate": 0.75,
+        "total_r": 5.366422338889138
+      }
+    }
+  },
+  "optimal_policies": {
+    "0": {
+      "policy": {
+        "sl_mult": 0.5020140163007913,
+        "tp_mult": 1.3259833304459534,
+        "max_hold_minutes": 120,
+        "trail_pct": 0.06746050205072916,
+        "risk_fraction": 0.019858769983354514
+      },
+      "metrics": {
+        "avg_R": 1.086149856105558,
+        "n_trials": 20,
+        "n_trades": 116
+      }
+    },
+    "1": {
+      "policy": {
+        "sl_mult": 0.5055714310899408,
+        "tp_mult": 1.0110425001842152,
+        "max_hold_minutes": 120,
+        "trail_pct": 0.03553169871877824,
+        "risk_fraction": 0.005361178687164456
+      },
+      "metrics": {
+        "avg_R": 2.540234680362052,
+        "n_trials": 20,
+        "n_trades": 72
+      }
+    },
+    "2": {
+      "policy": {
+        "sl_mult": 0.5070932262900775,
+        "tp_mult": 1.73500683276018,
+        "max_hold_minutes": 240,
+        "trail_pct": 0.009716989326789143,
+        "risk_fraction": 0.007936940749179812
+      },
+      "metrics": {
+        "avg_R": 1.8066966605574257,
+        "n_trials": 20,
+        "n_trades": 58
+      }
+    }
+  },
+  "recommendations": [
+    "Best performance in Ranging Tight regime (avg R: 1.342)",
+    "Weakest performance in Ranging Tight regime (avg R: 0.486)",
+    "Optimized separate policies for 3 regimes - use adaptive parameter selection based on detected market condition",
+    "Moderate regime separation (silhouette=0.36) - consider adjusting number of clusters"
+  ]
+}

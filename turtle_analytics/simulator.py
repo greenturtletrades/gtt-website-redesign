@@ -15,7 +15,7 @@ import warnings
 import pandas as pd
 import numpy as np
 
-from policies import PolicyParams
+from .policies import PolicyParams
 
 
 def run_simulation(

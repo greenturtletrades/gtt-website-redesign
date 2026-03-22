@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Literal
 
 import pandas as pd
+import numpy as np
 
 
 def add_basic_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -119,7 +120,7 @@ def add_extended_features(df: pd.DataFrame) -> pd.DataFrame:
 
         if "mfe" in df.columns and "R" in df.columns:
             valid = df["mfe"].gt(0) & df["R"].notna()
-            efficiency = pd.Series(pd.NA, index=df.index, dtype="float")
+            efficiency = pd.Series(np.nan, index=df.index, dtype="float")
             efficiency[valid] = df.loc[valid, "R"] / (df.loc[valid, "mfe"] / risk[valid])
             df["R_efficiency"] = efficiency
 
@@ -168,3 +169,4 @@ def add_extended_features(df: pd.DataFrame) -> pd.DataFrame:
             df["volatility_bucket"] = "unknown"
 
     return df
+

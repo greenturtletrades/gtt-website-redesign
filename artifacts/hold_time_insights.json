@@ -1,0 +1,48 @@
+{
+  "optimal_range_minutes": [
+    0,
+    37
+  ],
+  "survival_rate_in_range": 0.930152482027413,
+  "median_survival_time": 177,
+  "time_at_min_survival": 37,
+  "survival_at_key_times": {
+    "15_minutes": {
+      "survival_prob": 0.9544580217734857,
+      "ci_lower": 0.9192553462397386,
+      "ci_upper": 0.9745241178826081
+    },
+    "30_minutes": {
+      "survival_prob": 0.8621523897754821,
+      "ci_lower": 0.8095335836120938,
+      "ci_upper": 0.9011191309105573
+    },
+    "60_minutes": {
+      "survival_prob": 0.7356685407701427,
+      "ci_lower": 0.6692114218838349,
+      "ci_upper": 0.7908759023471975
+    },
+    "120_minutes": {
+      "survival_prob": 0.5805714583625946,
+      "ci_lower": 0.5036913699172243,
+      "ci_upper": 0.6497834653296779
+    },
+    "180_minutes": {
+      "survival_prob": 0.493284066400432,
+      "ci_lower": 0.41264936482035,
+      "ci_upper": 0.5688298058513552
+    },
+    "240_minutes": {
+      "survival_prob": 0.46339275562640275,
+      "ci_lower": 0.3810999540944789,
+      "ci_upper": 0.5415653953845295
+    }
+  },
+  "recommendations": [
+    "Exit trades within 0-37 minutes for 93.0% survival rate (highest probability of staying profitable)",
+    "Avoid holding beyond 37 minutes - survival rate drops significantly after this point",
+    "Current average hold time (115 min) exceeds optimal by 78 minutes - consider earlier exits",
+    "Median survival time is 177 minutes - 50% of trades fail by this point"
+  ],
+  "covariate_effects": {}
+}

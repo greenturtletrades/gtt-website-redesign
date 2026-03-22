@@ -1,0 +1,741 @@
+"""
+Comprehensive reporting for Turtle Analytics.
+
+This module aggregates results from all analysis phases into a single,
+structured JSON report that can be consumed by dashboards, APIs, or
+further analysis tools.
+
+The report includes:
+- Global summary statistics
+- Best policy found (from optimization)
+- Optimization trials history
+- Market regime analysis
+- Hold time insights (from survival analysis)
+- Risk recommendations
+
+JSON Schema
+-----------
+{
+  "metadata": {
+    "generated_at": "2024-12-31T14:30:00",
+    "pipeline_version": "1.0.0",
+    "n_trades_analyzed": 250,
+    "date_range": ["2024-01-01", "2024-06-30"]
+  },
+  
+  "summary": {
+    "original_performance": {
+      "avg_r": 1.23,
+      "win_rate": 0.58,
+      "total_r": 307.5,
+      "median_r": 0.95,
+      "std_r": 2.15,
+      "max_win_r": 5.8,
+      "max_loss_r": -3.2,
+      "n_trades": 250
+    },
+    
+    "best_performance": {
+      "avg_r": 1.89,
+      "improvement": 0.66,
+      "improvement_pct": 0.537,
+      "win_rate": 0.65,
+      "source": "bayesian_optimization"
+    }
+  },
+  
+  "global_policy": {
+    "best_policy": {
+      "sl_mult": 0.78,
+      "tp_mult": 1.92,
+      "trail_pct": 0.023,
+      "max_hold_minutes": 120,
+      "risk_fraction": 0.01
+    },
+    
+    "performance": {
+      "avg_r": 1.89,
+      "win_rate": 0.65,
+      "total_r": 472.5,
+      "sharpe_ratio": null
+    },
+    
+    "confidence": {
+      "mean_r": 1.87,
+      "std_r": 0.15,
+      "ci_95_lower": 1.72,
+      "ci_95_upper": 2.03
+    }
+  },
+  
+  "optimization_results": {
+    "method": "bayesian_optimization",
+    "n_trials": 50,
+    "objective_metric": "avg_R",
+    "best_trial": {
+      "trial_id": 23,
+      "value": 1.89
+    },
+    "convergence": {
+      "trials_to_best": 23,
+      "improvement_per_trial": 0.028
+    }
+  },
+  
+  "regimes": {
+    "n_regimes": 4,
+    "cluster_quality": {
+      "silhouette_score": 0.487,
+      "separation": "good"
+    },
+    
+    "regime_details": [
+      {
+        "regime_id": 0,
+        "regime_type": "Trending High Volatility",
+        "n_trades": 78,
+        "percentage": 0.312,
+        
+        "characteristics": {
+          "volatility_recent": 0.0285,
+          "trend_strength": 0.72,
+          "avg_mfe_mae_ratio": 2.15
+        },
+        
+        "performance": {
+          "avg_r": 2.15,
+          "win_rate": 0.68,
+          "total_r": 167.7
+        },
+        
+        "optimal_policy": {
+          "sl_mult": 0.75,
+          "tp_mult": 2.85,
+          "trail_pct": 0.025,
+          "max_hold_minutes": 120
+        }
+      }
+    ],
+    
+    "recommendations": [
+      "Best performance in Trending High Vol regime (avg R: 2.150)",
+      "Use adaptive parameter selection based on detected regime"
+    ]
+  },
+  
+  "hold_time_insights": {
+    "optimal_range_minutes": [15, 60],
+    "survival_rate_in_range": 0.893,
+    "median_survival_time": 75,
+    
+    "survival_at_key_times": {
+      "15_minutes": {"survival_prob": 0.942, "ci_lower": 0.915, "ci_upper": 0.969},
+      "60_minutes": {"survival_prob": 0.851, "ci_lower": 0.808, "ci_upper": 0.894}
+    },
+    
+    "recommendations": [
+      "Exit trades within 15-60 minutes for 89.3% survival rate",
+      "Avoid holding beyond 60 minutes - survival drops significantly"
+    ],
+    
+    "covariate_effects": {
+      "vol_high": {
+        "hazard_ratio": 1.42,
+        "p_value": 0.002,
+        "interpretation": "High volatility increases failure rate by 42%"
+      }
+    }
+  },
+  
+  "risk_recommendations": {
+    "suggested_risk_fraction": 0.012,
+    "reasoning": "Based on variance of R and drawdown analysis",
+    
+    "risk_metrics": {
+      "variance_of_r": 2.34,
+      "max_drawdown_r": -8.5,
+      "consecutive_losses": 5
+    },
+    
+    "kelly_criterion": {
+      "full_kelly": 0.023,
+      "half_kelly": 0.0115,
+      "recommended": 0.012
+    },
+    
+    "recommendations": [
+      "Use 1.2% risk per trade for optimal growth",
+      "Max drawdown with this sizing: ~15% (estimated)",
+      "Reduce to 0.6% in unfavorable regimes"
+    ]
+  }
+}
+"""
+
+from __future__ import annotations
+
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+import json
+
+import pandas as pd
+import numpy as np
+
+
+def build_report(
+    df: pd.DataFrame,
+    best_policy: dict | None = None,
+    optimization_results: dict | None = None,
+    regime_summary: dict | None = None,
+    hold_time_insights: dict | None = None,
+    pipeline_version: str = "1.0.0",
+) -> dict[str, Any]:
+    """
+    Build comprehensive JSON report from all analysis phases.
+    
+    This is the main aggregation function that combines results from:
+    - Phase 1: Feature engineering (baseline performance)
+    - Phase 2/3: Optimization (best policy, trials)
+    - Phase 4: Survival analysis (hold time insights)
+    - Phase 5: Regime clustering (market regimes)
+    
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Processed trades DataFrame with all features.
+    
+    best_policy : dict, optional
+        Best policy from optimization with performance metrics.
+        Expected keys: 'policy', 'performance', 'confidence'
+    
+    optimization_results : dict, optional
+        Optimization metadata and trials history.
+        Expected keys: 'method', 'n_trials', 'trials_df', 'summary'
+    
+    regime_summary : dict, optional
+        Regime clustering results from create_regime_summary().
+    
+    hold_time_insights : dict, optional
+        Hold time analysis from summarize_hold_time_insights().
+    
+    pipeline_version : str
+        Version identifier for the pipeline.
+    
+    Returns
+    -------
+    dict
+        Comprehensive JSON-serializable report following the schema.
+    
+    Examples
+    --------
+    >>> report = build_report(
+    ...     df=trades_df,
+    ...     best_policy=best_policy_dict,
+    ...     optimization_results=opt_results,
+    ...     regime_summary=regimes,
+    ...     hold_time_insights=survival_insights
+    ... )
+    >>> 
+    >>> # Access sections
+    >>> print(report['summary']['original_performance']['avg_r'])
+    >>> print(report['global_policy']['best_policy'])
+    >>> print(report['regimes']['n_regimes'])
+    
+    Notes
+    -----
+    This implements P6-T3: Implement build_report() function.
+    """
+    # Metadata
+    metadata = {
+        "generated_at": datetime.now().isoformat(),
+        "pipeline_version": pipeline_version,
+        "n_trades_analyzed": len(df),
+    }
+    
+    # Add date range if available
+    if "entry_time" in df.columns:
+        entry_times = pd.to_datetime(df["entry_time"])
+        metadata["date_range"] = [
+            entry_times.min().strftime("%Y-%m-%d"),
+            entry_times.max().strftime("%Y-%m-%d")
+        ]
+    
+    # Summary - Original Performance
+    original_performance = _calculate_original_performance(df)
+    
+    # Summary - Best Performance
+    if best_policy is not None:
+        best_performance = {
+            "avg_r": best_policy.get("performance", {}).get("avg_r", 0.0),
+            "improvement": best_policy.get("performance", {}).get("avg_r", 0.0) - original_performance["avg_r"],
+            "improvement_pct": (
+                (best_policy.get("performance", {}).get("avg_r", 0.0) - original_performance["avg_r"]) 
+                / abs(original_performance["avg_r"]) if original_performance["avg_r"] != 0 else 0
+            ),
+            "win_rate": best_policy.get("performance", {}).get("win_rate", 0.0),
+            "source": optimization_results.get("method", "unknown") if optimization_results else "unknown"
+        }
+    else:
+        best_performance = None
+    
+    summary = {
+        "original_performance": original_performance,
+        "best_performance": best_performance,
+    }
+    
+    # Global Policy (P6-T3)
+    global_policy = None
+    if best_policy is not None:
+        global_policy = {
+            "best_policy": best_policy.get("policy", {}),
+            "performance": best_policy.get("performance", {}),
+            "confidence": best_policy.get("confidence", {}),
+        }
+    
+    # Optimization Results
+    optimization_section = None
+    if optimization_results is not None:
+        optimization_section = _format_optimization_results(optimization_results)
+    
+    # Regimes (P6-T5)
+    regimes_section = None
+    if regime_summary is not None:
+        regimes_section = _format_regime_summary(regime_summary)
+    
+    # Hold Time Insights (P6-T4)
+    hold_time_section = None
+    if hold_time_insights is not None:
+        hold_time_section = hold_time_insights
+    
+    # Risk Recommendations (P6-T6)
+    risk_recommendations = _calculate_risk_recommendations(df, best_policy)
+
+    # Trade Analytics (computed from raw df for dashboard charts)
+    trade_analytics = _compute_trade_analytics(df)
+
+    # Assemble final report
+    report = {
+        "metadata": metadata,
+        "summary": summary,
+        "global_policy": global_policy,
+        "optimization_results": optimization_section,
+        "regimes": regimes_section,
+        "hold_time_insights": hold_time_section,
+        "risk_recommendations": risk_recommendations,
+        "trade_analytics": trade_analytics,
+    }
+
+    return report
+
+
+def _calculate_original_performance(df: pd.DataFrame) -> dict[str, Any]:
+    """Calculate baseline performance metrics."""
+    if "R" not in df.columns:
+        return {
+            "avg_r": 0.0,
+            "win_rate": 0.0,
+            "total_r": 0.0,
+            "median_r": 0.0,
+            "std_r": 0.0,
+            "max_win_r": 0.0,
+            "max_loss_r": 0.0,
+            "n_trades": 0,
+        }
+    
+    r_values = df["R"].dropna()
+    
+    return {
+        "avg_r": float(r_values.mean()),
+        "win_rate": float((r_values > 0).mean()),
+        "total_r": float(r_values.sum()),
+        "median_r": float(r_values.median()),
+        "std_r": float(r_values.std()),
+        "max_win_r": float(r_values.max()),
+        "max_loss_r": float(r_values.min()),
+        "n_trades": int(len(r_values)),
+    }
+
+
+def _format_optimization_results(opt_results: dict) -> dict[str, Any]:
+    """Format optimization results for report."""
+    formatted = {
+        "method": opt_results.get("method", "unknown"),
+        "n_trials": opt_results.get("n_trials", 0),
+        "objective_metric": opt_results.get("objective_metric", "avg_R"),
+    }
+    
+    # Best trial info
+    if "summary" in opt_results:
+        summary = opt_results["summary"]
+        formatted["best_trial"] = {
+            "value": summary.get("best_value", 0.0),
+        }
+    
+    # Convergence info
+    if "trials_df" in opt_results:
+        trials_df = opt_results["trials_df"]
+        if len(trials_df) > 0:
+            # Find trial number where best was found
+            best_idx = trials_df["avg_R"].idxmax()
+            trials_to_best = int(best_idx + 1)
+            
+            formatted["convergence"] = {
+                "trials_to_best": trials_to_best,
+                "improvement_per_trial": float(trials_df["avg_R"].max() / len(trials_df)),
+            }
+    
+    return formatted
+
+
+def _format_regime_summary(regime_summary: dict) -> dict[str, Any]:
+    """
+    Format regime clustering results for report.
+    
+    This implements P6-T5: Integrate clustering output into regimes section.
+    """
+    regimes_section = {
+        "n_regimes": regime_summary.get("cluster_quality", {}).get("n_clusters", 0),
+        "cluster_quality": {
+            "silhouette_score": regime_summary.get("cluster_quality", {}).get("silhouette_score", 0.0),
+            "separation": _classify_separation(
+                regime_summary.get("cluster_quality", {}).get("silhouette_score", 0.0)
+            ),
+        },
+        "regime_details": [],
+        "recommendations": regime_summary.get("recommendations", []),
+    }
+    
+    # Format each regime
+    if "regimes" in regime_summary:
+        for regime_id, regime_info in regime_summary["regimes"].items():
+            regime_detail = {
+                "regime_id": int(regime_id),
+                "regime_type": regime_info.get("regime_type", "Unknown"),
+                "n_trades": regime_info.get("n_trades", 0),
+                "percentage": regime_info.get("n_trades", 0) / max(
+                    sum(r.get("n_trades", 0) for r in regime_summary["regimes"].values()), 1
+                ),
+                "characteristics": regime_info.get("characteristics", {}),
+                "performance": regime_info.get("performance", {}),
+            }
+            
+            # Add optimal policy if available
+            if "optimal_policies" in regime_summary and str(regime_id) in regime_summary["optimal_policies"]:
+                regime_detail["optimal_policy"] = regime_summary["optimal_policies"][str(regime_id)]["policy"]
+            
+            regimes_section["regime_details"].append(regime_detail)
+    
+    return regimes_section
+
+
+def _classify_separation(silhouette: float) -> str:
+    """Classify cluster separation quality."""
+    if silhouette > 0.5:
+        return "excellent"
+    elif silhouette > 0.3:
+        return "good"
+    elif silhouette > 0.2:
+        return "moderate"
+    else:
+        return "weak"
+
+
+def _calculate_risk_recommendations(
+    df: pd.DataFrame,
+    best_policy: dict | None = None
+) -> dict[str, Any]:
+    """
+    Calculate risk recommendations based on variance and drawdown.
+    
+    This implements P6-T6: Add risk_recommendation block based on 
+    drawdown/variance of R.
+    
+    Uses:
+    - Variance of R → Position sizing
+    - Max drawdown → Risk limits
+    - Kelly criterion → Optimal fraction
+    """
+    if "R" not in df.columns or len(df) == 0:
+        return {
+            "suggested_risk_fraction": 0.01,
+            "reasoning": "Insufficient data for analysis",
+            "risk_metrics": {},
+            "recommendations": ["Use conservative 1% risk per trade"],
+        }
+    
+    r_values = df["R"].dropna()
+    
+    # Calculate risk metrics
+    variance_r = float(r_values.var())
+    std_r = float(r_values.std())
+    
+    # Calculate drawdown
+    cumulative_r = r_values.cumsum()
+    running_max = cumulative_r.expanding().max()
+    drawdown = cumulative_r - running_max
+    max_drawdown = float(drawdown.min())
+    
+    # Consecutive losses
+    is_loss = (r_values < 0).astype(int)
+    consecutive_losses = 0
+    current_streak = 0
+    for loss in is_loss:
+        if loss:
+            current_streak += 1
+            consecutive_losses = max(consecutive_losses, current_streak)
+        else:
+            current_streak = 0
+    
+    risk_metrics = {
+        "variance_of_r": variance_r,
+        "std_of_r": std_r,
+        "max_drawdown_r": max_drawdown,
+        "consecutive_losses": int(consecutive_losses),
+    }
+    
+    # Kelly Criterion
+    # Kelly = (win_rate * avg_win - loss_rate * avg_loss) / avg_win
+    winners = r_values[r_values > 0]
+    losers = r_values[r_values < 0]
+    
+    if len(winners) > 0 and len(losers) > 0:
+        win_rate = len(winners) / len(r_values)
+        loss_rate = 1 - win_rate
+        avg_win = winners.mean()
+        avg_loss = abs(losers.mean())
+        
+        if avg_win > 0:
+            full_kelly = (win_rate * avg_win - loss_rate * avg_loss) / avg_win
+            full_kelly = max(0, min(full_kelly, 0.25))  # Cap at 25%
+        else:
+            full_kelly = 0.01
+    else:
+        full_kelly = 0.01
+    
+    half_kelly = full_kelly / 2
+    
+    # Adjust based on variance
+    # Higher variance → reduce risk
+    if std_r > 2.5:
+        suggested_risk = min(half_kelly, 0.008)  # Very conservative
+        reasoning = "High variance detected - using conservative sizing"
+    elif std_r > 1.5:
+        suggested_risk = half_kelly
+        reasoning = "Moderate variance - using half-Kelly for safety"
+    else:
+        suggested_risk = min(half_kelly * 1.2, 0.02)
+        reasoning = "Low variance - slightly more aggressive sizing"
+    
+    kelly_criterion = {
+        "full_kelly": float(full_kelly),
+        "half_kelly": float(half_kelly),
+        "recommended": float(suggested_risk),
+    }
+    
+    # Generate recommendations
+    recommendations = []
+    
+    recommendations.append(
+        f"Use {suggested_risk:.1%} risk per trade for optimal growth"
+    )
+    
+    # Estimate max drawdown with this sizing
+    estimated_max_dd = abs(max_drawdown * suggested_risk * 100)
+    recommendations.append(
+        f"Max drawdown with this sizing: ~{estimated_max_dd:.0f}% (estimated)"
+    )
+    
+    # Regime-based adjustment
+    if best_policy and "regimes" in best_policy:
+        recommendations.append(
+            f"Reduce to {suggested_risk * 0.5:.1%} in unfavorable regimes"
+        )
+    
+    # Consecutive loss warning
+    if consecutive_losses >= 5:
+        recommendations.append(
+            f"Warning: {consecutive_losses} consecutive losses observed - "
+            f"consider additional risk controls"
+        )
+    
+    return {
+        "suggested_risk_fraction": float(suggested_risk),
+        "reasoning": reasoning,
+        "risk_metrics": risk_metrics,
+        "kelly_criterion": kelly_criterion,
+        "recommendations": recommendations,
+    }
+
+
+def _compute_trade_analytics(df: pd.DataFrame) -> dict[str, Any]:
+    """
+    Compute chart/table datasets from raw trade df for the dashboard.
+    Returns r_distribution, equity_curve, session_performance,
+    mfe_mae_analysis, hold_time_distribution, consecutive_loss_analysis.
+    """
+    result: dict[str, Any] = {}
+
+    r_col = df["R"].dropna() if "R" in df.columns else pd.Series([], dtype=float)
+
+    # ── R-multiple distribution histogram ─────────────────────────────────────
+    if len(r_col) > 0:
+        bin_edges = [-np.inf, -3, -2, -1, 0, 1, 2, 3, 4, np.inf]
+        bin_labels = ["-3R+", "-3R to -2R", "-2R to -1R", "-1R to 0R",
+                      "0R to 1R", "1R to 2R", "2R to 3R", "3R to 4R", "4R+"]
+        counts = (
+            pd.cut(r_col, bins=bin_edges, labels=bin_labels)
+            .value_counts()
+            .reindex(bin_labels, fill_value=0)
+        )
+        result["r_distribution"] = [
+            {"range": lbl, "count": int(cnt)} for lbl, cnt in counts.items()
+        ]
+    else:
+        result["r_distribution"] = []
+
+    # ── Equity curve (sampled ~20 points) ─────────────────────────────────────
+    if len(r_col) > 1:
+        cum = r_col.reset_index(drop=True).cumsum()
+        n = len(cum)
+        step = max(1, n // 19)
+        indices = list(range(0, n, step)) + [n - 1]
+        indices = sorted(set(indices))
+        curve = [{"trade": 0, "cumulative_r": 0.0}]
+        for idx in indices:
+            curve.append({"trade": int(idx + 1), "cumulative_r": round(float(cum.iloc[idx]), 3)})
+        result["equity_curve"] = curve
+    else:
+        result["equity_curve"] = []
+
+    # ── Session performance ────────────────────────────────────────────────────
+    if "session" in df.columns and len(r_col) > 0:
+        df2 = df[["session", "R"]].dropna()
+        session_rows = []
+        for session, grp in df2.groupby("session"):
+            r = grp["R"]
+            if len(r) < 3:
+                continue
+            session_rows.append({
+                "session": str(session),
+                "avg_r": round(float(r.mean()), 3),
+                "win_rate": round(float((r > 0).mean()), 3),
+                "trades": int(len(r)),
+            })
+        session_rows.sort(key=lambda x: x["avg_r"], reverse=True)
+        result["session_performance"] = session_rows
+    else:
+        result["session_performance"] = []
+
+    # ── MFE / MAE analysis ─────────────────────────────────────────────────────
+    if len(r_col) > 0:
+        has_mfe = "mfe" in df.columns
+        has_mae = "mae" in df.columns
+        mfe_rows = []
+        wins = df[df["R"] > 0] if "R" in df.columns else df.iloc[0:0]
+        losses = df[df["R"] <= 0] if "R" in df.columns else df.iloc[0:0]
+        for category, grp in [("Hit Target", wins), ("Stopped Out", losses)]:
+            if len(grp) == 0:
+                continue
+            entry: dict[str, Any] = {
+                "category": category,
+                "count": int(len(grp)),
+                "avg_r": round(float(grp["R"].mean()), 3),
+            }
+            if has_mfe:
+                mfe_vals = pd.to_numeric(grp["mfe"], errors="coerce").dropna()
+                entry["avg_mfe"] = round(float(mfe_vals.mean()), 3) if len(mfe_vals) > 0 else None
+            if has_mae:
+                mae_vals = pd.to_numeric(grp["mae"], errors="coerce").dropna()
+                entry["avg_mae"] = round(float(mae_vals.mean()), 3) if len(mae_vals) > 0 else None
+            mfe_rows.append(entry)
+        result["mfe_mae_analysis"] = mfe_rows
+    else:
+        result["mfe_mae_analysis"] = []
+
+    # ── Hold time distribution ─────────────────────────────────────────────────
+    if "duration_minutes" in df.columns and len(r_col) > 0:
+        df3 = df[["R", "duration_minutes"]].dropna()
+        bin_edges = [0, 120, 240, 360, 480, np.inf]
+        bin_labels = ["0-2h", "2-4h", "4-6h", "6-8h", "8h+"]
+        df3 = df3.copy()
+        df3["bucket"] = pd.cut(df3["duration_minutes"], bins=bin_edges, labels=bin_labels)
+        ht_rows = []
+        for lbl in bin_labels:
+            grp = df3[df3["bucket"] == lbl]["R"]
+            if len(grp) > 0:
+                ht_rows.append({
+                    "duration": lbl,
+                    "avg_r": round(float(grp.mean()), 3),
+                    "count": int(len(grp)),
+                })
+        result["hold_time_distribution"] = ht_rows
+    else:
+        result["hold_time_distribution"] = []
+
+    # ── Consecutive loss analysis ──────────────────────────────────────────────
+    if len(r_col) > 0:
+        r_list = r_col.tolist()
+        streaks: dict[int, list] = {}
+        i = 0
+        while i < len(r_list):
+            if r_list[i] < 0:
+                streak = 0
+                while i + streak < len(r_list) and r_list[i + streak] < 0:
+                    streak += 1
+                next_idx = i + streak
+                if next_idx < len(r_list):
+                    key = min(streak, 4)
+                    streaks.setdefault(key, []).append(r_list[next_idx])
+                i = next_idx if next_idx > i else i + 1
+            else:
+                i += 1
+        streak_labels = {1: "1 Loss", 2: "2 Losses", 3: "3 Losses", 4: "4+ Losses"}
+        cl_rows = []
+        for k in sorted(streaks.keys()):
+            next_rs = streaks[k]
+            cl_rows.append({
+                "loss_streak": streak_labels.get(k, f"{k}+ Losses"),
+                "occurrences": len(next_rs),
+                "next_win_rate": round(sum(1 for x in next_rs if x > 0) / len(next_rs), 3),
+                "next_avg_r": round(float(np.mean(next_rs)), 3),
+            })
+        result["consecutive_loss_analysis"] = cl_rows
+    else:
+        result["consecutive_loss_analysis"] = []
+
+    return result
+
+
+def save_report(
+    report: dict[str, Any],
+    output_path: str | Path,
+    verbose: bool = True,
+) -> None:
+    """
+    Save report to JSON file.
+    
+    Parameters
+    ----------
+    report : dict
+        Report from build_report().
+    
+    output_path : str or Path
+        Where to save the JSON file.
+    
+    verbose : bool
+        If True, print confirmation.
+    
+    Notes
+    -----
+    This implements P6-T8: json.dump report to artifacts/report.json.
+    """
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(output_path, "w") as f:
+        json.dump(report, f, indent=2)
+    
+    if verbose:
+        size_kb = output_path.stat().st_size / 1024
+        print(f"✓ Saved comprehensive report: {output_path} ({size_kb:.1f} KB)")

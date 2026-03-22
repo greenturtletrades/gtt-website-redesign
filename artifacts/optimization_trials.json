@@ -1,0 +1,1002 @@
+[
+  {
+    "trial_id": 89,
+    "sl_mult": 0.4884535425412867,
+    "tp_mult": 1.5660675592376476,
+    "trail_pct": 0.0005754583362332995,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.021156569968515372,
+    "avg_R": 2.454715861555981,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 59,
+    "sl_mult": 0.5123035388401197,
+    "tp_mult": 2.1474148064338645,
+    "trail_pct": 2.7788734485926884e-06,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.013218323768614804,
+    "avg_R": 2.4103053406298005,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 84,
+    "sl_mult": 0.4480741260859533,
+    "tp_mult": 1.7051980442996246,
+    "trail_pct": 0.00025517695753639465,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.01988312423450364,
+    "avg_R": 2.294980352463756,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 81,
+    "sl_mult": 0.5354280136545134,
+    "tp_mult": 1.8261097137173974,
+    "trail_pct": 4.783331154437264e-05,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.01581400746889093,
+    "avg_R": 2.283618045709168,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 91,
+    "sl_mult": 0.49668023798597366,
+    "tp_mult": 1.5655369654383002,
+    "trail_pct": 0.002756007920080739,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.021843481374528653,
+    "avg_R": 2.2310245001529028,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 41,
+    "sl_mult": 0.4467219547736749,
+    "tp_mult": 2.3597184180044835,
+    "trail_pct": 0.0008217054257397593,
+    "max_hold_minutes": 120.0,
+    "risk_fraction": 0.007390864522074758,
+    "avg_R": 2.22587044953514,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 42,
+    "sl_mult": 0.5196518535368891,
+    "tp_mult": 2.0098125857705362,
+    "trail_pct": 0.0022348898927995586,
+    "max_hold_minutes": 120.0,
+    "risk_fraction": 0.007654971081015316,
+    "avg_R": 2.1781780602349317,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 4,
+    "sl_mult": 0.507464999236124,
+    "tp_mult": 1.7379422752781755,
+    "trail_pct": 0.0034388521115218396,
+    "max_hold_minutes": null,
+    "risk_fraction": 0.009621361388138176,
+    "avg_R": 2.134976748261447,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 61,
+    "sl_mult": 0.3734781176016637,
+    "tp_mult": 2.2762887437898027,
+    "trail_pct": 0.0007402050003016143,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.011158876239181225,
+    "avg_R": 2.1132165953383453,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 96,
+    "sl_mult": 0.4362382966326501,
+    "tp_mult": 1.6163458819555299,
+    "trail_pct": 0.0022466115248428132,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.021470446611796524,
+    "avg_R": 2.110916735450209,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 95,
+    "sl_mult": 0.4388403176724853,
+    "tp_mult": 1.5992349074278995,
+    "trail_pct": 0.0026324549584875027,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.022174622517883803,
+    "avg_R": 2.0614436796425446,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 71,
+    "sl_mult": 0.49297995524857385,
+    "tp_mult": 1.9090335913985517,
+    "trail_pct": 0.005319548064173996,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.013699751996982965,
+    "avg_R": 2.019898834320882,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 79,
+    "sl_mult": 0.5368913472634667,
+    "tp_mult": 1.907998796895866,
+    "trail_pct": 0.0032807626676926876,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.017973916079347636,
+    "avg_R": 2.0072181234694453,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 72,
+    "sl_mult": 0.44862375294456464,
+    "tp_mult": 1.7640999413045446,
+    "trail_pct": 0.0036766394818563944,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.014272774660470439,
+    "avg_R": 1.9932218968953384,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 73,
+    "sl_mult": 0.520604286543676,
+    "tp_mult": 1.7626895666078306,
+    "trail_pct": 0.004386859518632755,
+    "max_hold_minutes": 180.0,
+    "risk_fraction": 0.014650732397618098,
+    "avg_R": 1.98874495536321,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 82,
+    "sl_mult": 0.4030498828719785,
+    "tp_mult": 1.8388473229766853,
+    "trail_pct": 0.002443388061602843,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.018005487482953327,
+    "avg_R": 1.9384266731641426,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 64,
+    "sl_mult": 0.47568754761847165,
+    "tp_mult": 2.143055793322523,
+    "trail_pct": 0.0051660997386077335,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.011494099837914853,
+    "avg_R": 1.938082398200425,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 63,
+    "sl_mult": 0.4650288121925613,
+    "tp_mult": 2.1303008920610376,
+    "trail_pct": 0.005455632873546855,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.011400978230330745,
+    "avg_R": 1.9168679458362425,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 87,
+    "sl_mult": 0.3531286009705996,
+    "tp_mult": 2.0667258793839536,
+    "trail_pct": 0.0020040207928974595,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.018176421251416563,
+    "avg_R": 1.882278604670752,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 66,
+    "sl_mult": 0.4661419259801395,
+    "tp_mult": 1.9348301796992196,
+    "trail_pct": 0.005902063703505657,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.013592545042067763,
+    "avg_R": 1.8713655033542043,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 44,
+    "sl_mult": 0.6245688590168913,
+    "tp_mult": 2.3857013635987014,
+    "trail_pct": 0.0003926870029623483,
+    "max_hold_minutes": 120.0,
+    "risk_fraction": 0.007399840298087001,
+    "avg_R": 1.8707990546965405,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 45,
+    "sl_mult": 0.6427837788136717,
+    "tp_mult": 2.813591193306728,
+    "trail_pct": 0.0003589236825445408,
+    "max_hold_minutes": 120.0,
+    "risk_fraction": 0.010158792386746815,
+    "avg_R": 1.807776414693409,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 57,
+    "sl_mult": 0.636311773515348,
+    "tp_mult": 2.1054571890273044,
+    "trail_pct": 0.00177867436599454,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.006163285579987185,
+    "avg_R": 1.7309281799955327,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 43,
+    "sl_mult": 0.6392990560712467,
+    "tp_mult": 2.3607086269354496,
+    "trail_pct": 0.0018667525744302848,
+    "max_hold_minutes": 120.0,
+    "risk_fraction": 0.00767227018391001,
+    "avg_R": 1.7146482614652625,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 52,
+    "sl_mult": 0.6162334993131777,
+    "tp_mult": 2.343284448069592,
+    "trail_pct": 0.0036086251449222763,
+    "max_hold_minutes": 120.0,
+    "risk_fraction": 0.0062222731530413525,
+    "avg_R": 1.6688788247607682,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 94,
+    "sl_mult": 0.5680864829443929,
+    "tp_mult": 1.4145405202600556,
+    "trail_pct": 0.005929745107209101,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.023763503510950426,
+    "avg_R": 1.6647557285606513,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 39,
+    "sl_mult": 0.4242392997492719,
+    "tp_mult": 2.3254499468960343,
+    "trail_pct": 0.007579894952717461,
+    "max_hold_minutes": 120.0,
+    "risk_fraction": 0.007241129715921044,
+    "avg_R": 1.6481032006568512,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 15,
+    "sl_mult": 0.5151535652083507,
+    "tp_mult": 2.0075562523354638,
+    "trail_pct": 0.09960165317474354,
+    "max_hold_minutes": null,
+    "risk_fraction": 0.005077929278269656,
+    "avg_R": 1.639214347513272,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 92,
+    "sl_mult": 0.30095786057556745,
+    "tp_mult": 1.2282990006451664,
+    "trail_pct": 0.00027011711688873204,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.02385188121317533,
+    "avg_R": 1.637500363775688,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 23,
+    "sl_mult": 0.48908476228094144,
+    "tp_mult": 1.7735714873646125,
+    "trail_pct": 0.06948675128561713,
+    "max_hold_minutes": null,
+    "risk_fraction": 0.01900712512692069,
+    "avg_R": 1.6082045953395019,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 86,
+    "sl_mult": 0.7185541197001684,
+    "tp_mult": 1.4899679482904729,
+    "trail_pct": 0.00013922707609062494,
+    "max_hold_minutes": 360.0,
+    "risk_fraction": 0.019141444120128973,
+    "avg_R": 1.5848318768161789,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 83,
+    "sl_mult": 0.5393218617337666,
+    "tp_mult": 1.89383105732887,
+    "trail_pct": 0.008369726100261946,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.008955376354465966,
+    "avg_R": 1.5747017752002856,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 85,
+    "sl_mult": 0.593578187728425,
+    "tp_mult": 1.6769815052160604,
+    "trail_pct": 0.006516250493830037,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.0201579812665384,
+    "avg_R": 1.5303986774887919,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 77,
+    "sl_mult": 0.322215913059669,
+    "tp_mult": 1.6050830210933935,
+    "trail_pct": 0.0043023503203026055,
+    "max_hold_minutes": 60.0,
+    "risk_fraction": 0.016389337965699254,
+    "avg_R": 1.5170233605900858,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 51,
+    "sl_mult": 0.6818570079861429,
+    "tp_mult": 2.9969530489927894,
+    "trail_pct": 0.0030099804026809825,
+    "max_hold_minutes": 120.0,
+    "risk_fraction": 0.007832837713834539,
+    "avg_R": 1.505519513769288,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 97,
+    "sl_mult": 0.432989554627327,
+    "tp_mult": 1.6844699566148928,
+    "trail_pct": 0.009344416181905502,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.01954628293440032,
+    "avg_R": 1.4991142642197792,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 30,
+    "sl_mult": 0.44388096125255966,
+    "tp_mult": 2.2414863391030098,
+    "trail_pct": 0.08039015812761506,
+    "max_hold_minutes": null,
+    "risk_fraction": 0.005263325116270362,
+    "avg_R": 1.487655038167823,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 31,
+    "sl_mult": 0.44570752630149063,
+    "tp_mult": 2.1719800327288836,
+    "trail_pct": 0.0782489833323936,
+    "max_hold_minutes": null,
+    "risk_fraction": 0.0052895337307644775,
+    "avg_R": 1.459459895203534,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 93,
+    "sl_mult": 0.48132927408812265,
+    "tp_mult": 1.5561806646956085,
+    "trail_pct": 0.012082393734146445,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.021627848566767825,
+    "avg_R": 1.4248160688201512,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 36,
+    "sl_mult": 0.5575421644593909,
+    "tp_mult": 1.6523424101955237,
+    "trail_pct": 0.07042309677409558,
+    "max_hold_minutes": null,
+    "risk_fraction": 0.015449394858001647,
+    "avg_R": 1.385628601944431,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 68,
+    "sl_mult": 0.549411225624798,
+    "tp_mult": 1.6364584901455714,
+    "trail_pct": 0.010737151486502044,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.011515934426538199,
+    "avg_R": 1.359397568646258,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 34,
+    "sl_mult": 0.410115074380221,
+    "tp_mult": 1.8218582839724842,
+    "trail_pct": 0.0857720659841882,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.005089942081388521,
+    "avg_R": 1.3531196431347197,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 32,
+    "sl_mult": 0.5780231097244645,
+    "tp_mult": 2.207558105173114,
+    "trail_pct": 0.08178827937697089,
+    "max_hold_minutes": null,
+    "risk_fraction": 0.006884952587533794,
+    "avg_R": 1.3405203038578133,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 62,
+    "sl_mult": 0.36976979074457983,
+    "tp_mult": 2.2460841526842708,
+    "trail_pct": 0.009750502650956741,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.009978771149188714,
+    "avg_R": 1.3012769256690822,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 25,
+    "sl_mult": 0.6031948813977414,
+    "tp_mult": 2.547668440586252,
+    "trail_pct": 0.07422855275460649,
+    "max_hold_minutes": null,
+    "risk_fraction": 0.014233785169829826,
+    "avg_R": 1.2525297735386307,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 54,
+    "sl_mult": 0.5652193863086856,
+    "tp_mult": 2.6351507477938174,
+    "trail_pct": 0.01154145698426676,
+    "max_hold_minutes": 120.0,
+    "risk_fraction": 0.009725711010442293,
+    "avg_R": 1.2466207903386304,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 80,
+    "sl_mult": 0.5772432105667857,
+    "tp_mult": 1.959687899713963,
+    "trail_pct": 0.011393568143541798,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.0175961193426623,
+    "avg_R": 1.22283613500998,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 21,
+    "sl_mult": 0.4956843196636311,
+    "tp_mult": 1.4340252558237783,
+    "trail_pct": 0.05708547863440777,
+    "max_hold_minutes": null,
+    "risk_fraction": 0.019423729347241948,
+    "avg_R": 1.2118012782468908,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 88,
+    "sl_mult": 0.6879390790475801,
+    "tp_mult": 1.3442657784134986,
+    "trail_pct": 0.008266422488068473,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.02284248723025311,
+    "avg_R": 1.2024593911320727,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 75,
+    "sl_mult": 0.5208521279555712,
+    "tp_mult": 1.8564276814646954,
+    "trail_pct": 0.014059851727988197,
+    "max_hold_minutes": 180.0,
+    "risk_fraction": 0.014244725097184401,
+    "avg_R": 1.2016193751680535,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 20,
+    "sl_mult": 0.49699209751375095,
+    "tp_mult": 1.5503778219444404,
+    "trail_pct": 0.05693090880573504,
+    "max_hold_minutes": null,
+    "risk_fraction": 0.018976692560495906,
+    "avg_R": 1.1907540946776864,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 58,
+    "sl_mult": 0.7286003539260563,
+    "tp_mult": 1.8584277970208725,
+    "trail_pct": 0.006371265108539097,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.0059207438686053665,
+    "avg_R": 1.1748802949741448,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 37,
+    "sl_mult": 0.7903272868219315,
+    "tp_mult": 1.1518810701712285,
+    "trail_pct": 0.08245390726145385,
+    "max_hold_minutes": null,
+    "risk_fraction": 0.00855947368912022,
+    "avg_R": 1.1669376322469853,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 60,
+    "sl_mult": 0.51956100735121,
+    "tp_mult": 1.9726483498402843,
+    "trail_pct": 0.015214019803896764,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.013554862088829507,
+    "avg_R": 1.1541314062822192,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 56,
+    "sl_mult": 0.8254242779713246,
+    "tp_mult": 2.0070801293004625,
+    "trail_pct": 0.0033742552426881097,
+    "max_hold_minutes": 120.0,
+    "risk_fraction": 0.007887111075573272,
+    "avg_R": 1.148114172379038,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 13,
+    "sl_mult": 0.33478934790570697,
+    "tp_mult": 1.9332274441280728,
+    "trail_pct": 0.0984549330556054,
+    "max_hold_minutes": null,
+    "risk_fraction": 0.010359290889970271,
+    "avg_R": 1.1440967253962937,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 1,
+    "sl_mult": 0.33499364030286416,
+    "tp_mult": 2.9247746304049858,
+    "trail_pct": 0.08324426408004218,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.012280728504951047,
+    "avg_R": 1.0696653465129615,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 98,
+    "sl_mult": 0.5963297897857264,
+    "tp_mult": 1.2825889962653307,
+    "trail_pct": 0.017105960452436265,
+    "max_hold_minutes": 360.0,
+    "risk_fraction": 0.020664047997717355,
+    "avg_R": 1.068402000928195,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 33,
+    "sl_mult": 0.31365951271833037,
+    "tp_mult": 2.3902781898944188,
+    "trail_pct": 0.09184513096116326,
+    "max_hold_minutes": null,
+    "risk_fraction": 0.00670059406174262,
+    "avg_R": 1.0495672581750284,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 53,
+    "sl_mult": 0.38631187673663114,
+    "tp_mult": 2.4681459280969436,
+    "trail_pct": 0.012980207923747383,
+    "max_hold_minutes": 120.0,
+    "risk_fraction": 0.007555619635684905,
+    "avg_R": 1.047208188975832,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 46,
+    "sl_mult": 0.7665564640000428,
+    "tp_mult": 2.934480236233897,
+    "trail_pct": 0.007585191976654279,
+    "max_hold_minutes": 120.0,
+    "risk_fraction": 0.01102870421179821,
+    "avg_R": 1.0243765247449896,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 26,
+    "sl_mult": 0.4189559309733083,
+    "tp_mult": 2.0719788294065467,
+    "trail_pct": 0.06679451294642612,
+    "max_hold_minutes": 120.0,
+    "risk_fraction": 0.024018045779592347,
+    "avg_R": 1.0236257575720031,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 65,
+    "sl_mult": 0.4910182308313492,
+    "tp_mult": 2.1227136789969636,
+    "trail_pct": 0.02042317066872339,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.011117312246096052,
+    "avg_R": 1.0009100205675439,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 9,
+    "sl_mult": 0.5033102180951129,
+    "tp_mult": 2.2831119680574874,
+    "trail_pct": 0.07607850486168975,
+    "max_hold_minutes": 60.0,
+    "risk_fraction": 0.0076972856748326116,
+    "avg_R": 0.9600618821424143,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 28,
+    "sl_mult": 0.7014222238065007,
+    "tp_mult": 1.917810008428832,
+    "trail_pct": 0.09962253844052452,
+    "max_hold_minutes": 180.0,
+    "risk_fraction": 0.009259703110075247,
+    "avg_R": 0.9474472050106862,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 90,
+    "sl_mult": 0.39051938404313974,
+    "tp_mult": 0.6178699767946232,
+    "trail_pct": 0.00031506240199222544,
+    "max_hold_minutes": 60.0,
+    "risk_fraction": 0.02011445098528596,
+    "avg_R": 0.906912877630016,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 67,
+    "sl_mult": 0.3580988078229028,
+    "tp_mult": 2.169081593890674,
+    "trail_pct": 0.015477693430111001,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.015354563523821094,
+    "avg_R": 0.8790130324558202,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 76,
+    "sl_mult": 0.4292094969312959,
+    "tp_mult": 1.464807612412479,
+    "trail_pct": 0.01883990113147346,
+    "max_hold_minutes": 180.0,
+    "risk_fraction": 0.01716017748140776,
+    "avg_R": 0.8780003763350647,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 7,
+    "sl_mult": 1.6128161078043175,
+    "tp_mult": 0.996789203835431,
+    "trail_pct": 0.00055221171236024,
+    "max_hold_minutes": null,
+    "risk_fraction": 0.007896726488128242,
+    "avg_R": 0.8708563695727553,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 6,
+    "sl_mult": 0.9607513924721194,
+    "tp_mult": 1.1783725794347397,
+    "trail_pct": 0.08287375091519295,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.02967217341501293,
+    "avg_R": 0.8577352262862984,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 12,
+    "sl_mult": 0.6836487100031816,
+    "tp_mult": 2.8645242999342835,
+    "trail_pct": 0.06147578245597328,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.011556784470333844,
+    "avg_R": 0.8320278036782881,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 49,
+    "sl_mult": 1.9578964192286776,
+    "tp_mult": 2.797508243981599,
+    "trail_pct": 0.00010287081744879146,
+    "max_hold_minutes": 120.0,
+    "risk_fraction": 0.008784634517155216,
+    "avg_R": 0.8273046569797669,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 40,
+    "sl_mult": 1.4288959755418185,
+    "tp_mult": 2.6702467325766244,
+    "trail_pct": 0.006013017869731822,
+    "max_hold_minutes": 120.0,
+    "risk_fraction": 0.012787227614166934,
+    "avg_R": 0.8117077763732738,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 3,
+    "sl_mult": 1.332826248232445,
+    "tp_mult": 0.9263103092182288,
+    "trail_pct": 0.006505159298527952,
+    "max_hold_minutes": 60.0,
+    "risk_fraction": 0.01600381234349003,
+    "avg_R": 0.7794085028940656,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 17,
+    "sl_mult": 0.57120252712164,
+    "tp_mult": 0.5328507892945211,
+    "trail_pct": 0.015940143559453723,
+    "max_hold_minutes": 360.0,
+    "risk_fraction": 0.0050413712838705315,
+    "avg_R": 0.757129870430164,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 69,
+    "sl_mult": 1.2377581431916598,
+    "tp_mult": 2.0326288837953643,
+    "trail_pct": 0.007830601109958837,
+    "max_hold_minutes": 360.0,
+    "risk_fraction": 0.012625475120388373,
+    "avg_R": 0.7123571800582315,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 99,
+    "sl_mult": 0.33165411723051186,
+    "tp_mult": 1.500090004760492,
+    "trail_pct": 0.05116153762260398,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.021662078929177955,
+    "avg_R": 0.7120356532218362,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 10,
+    "sl_mult": 0.6529520307565801,
+    "tp_mult": 1.6833183036366712,
+    "trail_pct": 0.05180371644945151,
+    "max_hold_minutes": null,
+    "risk_fraction": 0.022879240304919883,
+    "avg_R": 0.7104915272550697,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 78,
+    "sl_mult": 0.4041313730259713,
+    "tp_mult": 1.7603302302996031,
+    "trail_pct": 0.04454339777010631,
+    "max_hold_minutes": 180.0,
+    "risk_fraction": 0.01340033514846431,
+    "avg_R": 0.6967814807122824,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 11,
+    "sl_mult": 0.3533861012088177,
+    "tp_mult": 1.5568783125486858,
+    "trail_pct": 0.0471663532939027,
+    "max_hold_minutes": 180.0,
+    "risk_fraction": 0.011735411852544802,
+    "avg_R": 0.6342294575007593,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 24,
+    "sl_mult": 1.0036852051076832,
+    "tp_mult": 1.7940552531585423,
+    "trail_pct": 0.08975398185611588,
+    "max_hold_minutes": null,
+    "risk_fraction": 0.008319958669972156,
+    "avg_R": 0.6238325192514077,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 50,
+    "sl_mult": 1.0484078918487991,
+    "tp_mult": 2.5421748530160784,
+    "trail_pct": 0.009802938330308734,
+    "max_hold_minutes": 120.0,
+    "risk_fraction": 0.01058358009408686,
+    "avg_R": 0.6112235071051565,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 0,
+    "sl_mult": 0.9367182020405163,
+    "tp_mult": 2.87678576602479,
+    "trail_pct": 0.0731993941811405,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.022701814444901137,
+    "avg_R": 0.6026953188735106,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 29,
+    "sl_mult": 0.9953018208195503,
+    "tp_mult": 2.665201398011979,
+    "trail_pct": 0.0700194686242935,
+    "max_hold_minutes": 360.0,
+    "risk_fraction": 0.021092947797544163,
+    "avg_R": 0.586348233869169,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 14,
+    "sl_mult": 0.7888876913021451,
+    "tp_mult": 1.3642343631206666,
+    "trail_pct": 0.018527336536125427,
+    "max_hold_minutes": null,
+    "risk_fraction": 0.020691073631398747,
+    "avg_R": 0.5836007219569792,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 74,
+    "sl_mult": 1.5818194388249187,
+    "tp_mult": 1.7297260607560723,
+    "trail_pct": 0.00927476359349433,
+    "max_hold_minutes": 180.0,
+    "risk_fraction": 0.015054640442072414,
+    "avg_R": 0.5781128690742499,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 22,
+    "sl_mult": 0.7338848450930957,
+    "tp_mult": 1.3538752373387313,
+    "trail_pct": 0.04061066955450943,
+    "max_hold_minutes": null,
+    "risk_fraction": 0.026765700028798498,
+    "avg_R": 0.5765434421872637,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 47,
+    "sl_mult": 0.8983558599082389,
+    "tp_mult": 2.7288568406948537,
+    "trail_pct": 0.012969378337757433,
+    "max_hold_minutes": 120.0,
+    "risk_fraction": 0.00946255026851479,
+    "avg_R": 0.5527736732188407,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 2,
+    "sl_mult": 1.340149921028045,
+    "tp_mult": 0.8487346516301046,
+    "trail_pct": 0.029214464853521818,
+    "max_hold_minutes": 120.0,
+    "risk_fraction": 0.006161260317999943,
+    "avg_R": 0.5483467264682256,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 48,
+    "sl_mult": 0.6506502025112104,
+    "tp_mult": 2.537553685737664,
+    "trail_pct": 0.024843344751942165,
+    "max_hold_minutes": 120.0,
+    "risk_fraction": 0.012328728033563004,
+    "avg_R": 0.5385533581824075,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 18,
+    "sl_mult": 0.8683713482130189,
+    "tp_mult": 1.8954910627763113,
+    "trail_pct": 0.06429118854913499,
+    "max_hold_minutes": 180.0,
+    "risk_fraction": 0.009656594791968114,
+    "avg_R": 0.5154598026743837,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 70,
+    "sl_mult": 0.35664171201235645,
+    "tp_mult": 2.2712894223129614,
+    "trail_pct": 0.03533287798169597,
+    "max_hold_minutes": 240.0,
+    "risk_fraction": 0.016578593409315435,
+    "avg_R": 0.5105776085157105,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 35,
+    "sl_mult": 1.3778220873753266,
+    "tp_mult": 2.048868392123272,
+    "trail_pct": 0.09512003542216446,
+    "max_hold_minutes": 120.0,
+    "risk_fraction": 0.010441799285848832,
+    "avg_R": 0.43603639125245375,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 27,
+    "sl_mult": 0.8447800181876957,
+    "tp_mult": 1.7031224822283382,
+    "trail_pct": 0.08698435130148713,
+    "max_hold_minutes": 60.0,
+    "risk_fraction": 0.01810201971744836,
+    "avg_R": 0.4001496555474656,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 5,
+    "sl_mult": 1.9482938671997494,
+    "tp_mult": 2.4378320584027864,
+    "trail_pct": 0.09394989415641891,
+    "max_hold_minutes": 120.0,
+    "risk_fraction": 0.013133258269081608,
+    "avg_R": 0.30640684442030736,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 19,
+    "sl_mult": 1.154382035014694,
+    "tp_mult": 2.1544255365432425,
+    "trail_pct": 0.017705977879385167,
+    "max_hold_minutes": null,
+    "risk_fraction": 0.014569859051181248,
+    "avg_R": 0.2960299309798495,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 55,
+    "sl_mult": 1.863483982203235,
+    "tp_mult": 2.785844237945097,
+    "trail_pct": 0.0213470706748612,
+    "max_hold_minutes": 120.0,
+    "risk_fraction": 0.011946612415503299,
+    "avg_R": 0.21629138986577703,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 16,
+    "sl_mult": 1.1523424866061558,
+    "tp_mult": 2.447981545063882,
+    "trail_pct": 0.039458795235290264,
+    "max_hold_minutes": null,
+    "risk_fraction": 0.006301008409795752,
+    "avg_R": 0.18825615886870128,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 38,
+    "sl_mult": 0.3009466525017054,
+    "tp_mult": 1.5354385206267749,
+    "trail_pct": 0.028251379752896832,
+    "max_hold_minutes": 60.0,
+    "risk_fraction": 0.025943398229939435,
+    "avg_R": 0.1759085740149198,
+    "state": "COMPLETE"
+  },
+  {
+    "trial_id": 8,
+    "sl_mult": 1.767275823988509,
+    "tp_mult": 2.058245317068895,
+    "trail_pct": 0.03308980248526492,
+    "max_hold_minutes": 360.0,
+    "risk_fraction": 0.016805373129048732,
+    "avg_R": 0.173066393848951,
+    "state": "COMPLETE"
+  }
+]

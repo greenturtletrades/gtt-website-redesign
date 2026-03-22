@@ -1,0 +1,16 @@
+{
+  "best_policy": {
+    "sl_mult": 0.4884535425412867,
+    "tp_mult": 1.5660675592376476,
+    "max_hold_minutes": 240,
+    "trail_pct": 0.0005754583362332995,
+    "risk_fraction": 0.021156569968515372
+  },
+  "performance": {
+    "objective_metric": "avg_R",
+    "best_value": 2.454715861555981
+  },
+  "optimization_summary": {
+    "n_trials": 100
+  }
+}
