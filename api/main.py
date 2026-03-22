@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Turtle Analytics FastAPI Service
 

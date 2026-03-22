@@ -23,7 +23,7 @@ export function RiskDisclosure({ onBack }: RiskDisclosureProps) {
             </div>
             <div>
               <h1 className="text-slate-900 text-2xl sm:text-3xl">Risk Disclosure</h1>
-              <p className="text-slate-600 text-sm">Last Updated: December 27, 2024</p>
+              <p className="text-slate-600 text-sm">Last Updated: 22 Mar 2026</p>
             </div>
           </div>
         </div>

@@ -195,6 +195,8 @@ app.post("/api/trader/apply", async (req, res, next) => {
       accountNumber,
       experienceLevel,
       riskDisclosureAccepted,
+      yearsTrading,
+      usesMetaTrader,
     } = req.body || {};
 
     if (!fullName || typeof fullName !== "string") {
@@ -209,31 +211,46 @@ app.post("/api/trader/apply", async (req, res, next) => {
       return res.status(400).json({ ok: false, error: "Country is required" });
     }
 
-    if (!platform || typeof platform !== "string" || !brokerPlatforms.has(platform)) {
-      return res.status(400).json({ ok: false, error: "Platform is required" });
+    const hasLegacyFields =
+      typeof platform === "string" &&
+      brokerPlatforms.has(platform) &&
+      typeof accountNumber === "string" &&
+      typeof experienceLevel === "string" &&
+      experienceLevels.has(experienceLevel) &&
+      riskDisclosureAccepted === true;
+
+    const hasSimplifiedFields =
+      typeof yearsTrading === "number" &&
+      Number.isFinite(yearsTrading) &&
+      yearsTrading >= 0 &&
+      typeof usesMetaTrader === "boolean";
+
+    if (!hasLegacyFields && !hasSimplifiedFields) {
+      return res.status(400).json({
+        ok: false,
+        error:
+          "Application requires name, email, country, broker, years trading experience, and MetaTrader usage.",
+      });
     }
 
-    if (!accountNumber || typeof accountNumber !== "string") {
-      return res
-        .status(400)
-        .json({ ok: false, error: "Account number is required" });
-    }
+    const resolvedPlatform = hasLegacyFields
+      ? platform
+      : usesMetaTrader
+        ? "MT5"
+        : "CTRADER";
 
-    if (
-      !experienceLevel ||
-      typeof experienceLevel !== "string" ||
-      !experienceLevels.has(experienceLevel)
-    ) {
-      return res
-        .status(400)
-        .json({ ok: false, error: "Experience level is required" });
-    }
+    const resolvedAccountNumber =
+      hasLegacyFields && typeof accountNumber === "string" && accountNumber.trim()
+        ? accountNumber.trim()
+        : "PENDING";
 
-    if (riskDisclosureAccepted !== true) {
-      return res
-        .status(400)
-        .json({ ok: false, error: "Risk disclosure must be accepted" });
-    }
+    const resolvedExperienceLevel = hasLegacyFields
+      ? experienceLevel
+      : yearsTrading >= 5
+        ? "ADVANCED"
+        : yearsTrading >= 2
+          ? "INTERMEDIATE"
+          : "BEGINNER";
 
     const normalizedEmail = email.trim().toLowerCase();
 
@@ -246,9 +263,9 @@ app.post("/api/trader/apply", async (req, res, next) => {
           typeof brokerName === "string" && brokerName.trim()
             ? brokerName.trim()
             : null,
-        platform,
-        accountNumber: accountNumber.trim(),
-        experienceLevel,
+        platform: resolvedPlatform,
+        accountNumber: resolvedAccountNumber,
+        experienceLevel: resolvedExperienceLevel,
         status: "PENDING",
         rejectionReason: null,
         submittedAt: new Date(),
@@ -262,12 +279,104 @@ app.post("/api/trader/apply", async (req, res, next) => {
           typeof brokerName === "string" && brokerName.trim()
             ? brokerName.trim()
             : null,
-        platform,
-        accountNumber: accountNumber.trim(),
-        experienceLevel,
+        platform: resolvedPlatform,
+        accountNumber: resolvedAccountNumber,
+        experienceLevel: resolvedExperienceLevel,
         status: "PENDING",
       },
     });
+
+    sendEmail({
+      to: normalizedEmail,
+      replyTo: process.env.EMAIL_NOTIFY_TO || process.env.EMAIL_FROM,
+      subject: "Your trader application has been received",
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a; max-width: 640px; margin: 0 auto;">
+          <div style="padding: 24px 0 12px;">
+            <h2 style="margin: 0; color: #0f766e;">Green Turtle Trades</h2>
+          </div>
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px;">
+            <p style="margin-top: 0;">Hi ${fullName.trim()},</p>
+            <p>Thank you for applying to join Green Turtle Trades as a trader.</p>
+            <p>We have received your application and will review it internally.</p>
+            <p>We will reach out to you when the platform is ready, or sooner if we need any additional information.</p>
+            <div style="margin: 24px 0; padding: 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
+              <p style="margin: 0 0 8px;"><strong>Name:</strong> ${fullName.trim()}</p>
+              <p style="margin: 0 0 8px;"><strong>Email:</strong> ${normalizedEmail}</p>
+              <p style="margin: 0 0 8px;"><strong>Country:</strong> ${country.trim()}</p>
+              <p style="margin: 0;"><strong>Broker:</strong> ${
+                typeof brokerName === "string" && brokerName.trim()
+                  ? brokerName.trim()
+                  : "Not provided"
+              }</p>
+            </div>
+            <p style="margin-bottom: 0;">Best regards,<br />Green Turtle Trades</p>
+          </div>
+        </div>
+      `,
+      text: [
+        `Hi ${fullName.trim()},`,
+        "",
+        "Thank you for applying to join Green Turtle Trades as a trader.",
+        "We have received your application and will review it internally.",
+        "We will reach out to you when the platform is ready, or sooner if we need any additional information.",
+        "",
+        "Best regards,",
+        "Green Turtle Trades",
+      ].join("\n"),
+    }).catch((e) => console.error("Trader application confirmation email failed:", e));
+
+    const notifyTo = process.env.EMAIL_NOTIFY_TO;
+
+    if (notifyTo) {
+      sendEmail({
+        to: notifyTo,
+        subject: "New trader application received",
+        replyTo: normalizedEmail,
+        html: `
+          <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a; max-width: 640px; margin: 0 auto;">
+            <div style="padding: 24px 0 12px;">
+              <h2 style="margin: 0; color: #0f766e;">Green Turtle Trades</h2>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px;">
+              <p style="margin-top: 0;">A new trader application has been submitted.</p>
+              <div style="margin: 20px 0; padding: 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
+                <p style="margin: 0 0 8px;"><strong>Name:</strong> ${fullName.trim()}</p>
+                <p style="margin: 0 0 8px;"><strong>Email:</strong> ${normalizedEmail}</p>
+                <p style="margin: 0 0 8px;"><strong>Country:</strong> ${country.trim()}</p>
+                <p style="margin: 0 0 8px;"><strong>Broker:</strong> ${
+                  typeof brokerName === "string" && brokerName.trim()
+                    ? brokerName.trim()
+                    : "Not provided"
+                }</p>
+                <p style="margin: 0 0 8px;"><strong>Years Trading:</strong> ${
+                  hasSimplifiedFields ? yearsTrading : "Not provided"
+                }</p>
+                <p style="margin: 0;"><strong>Uses MetaTrader:</strong> ${
+                  hasSimplifiedFields ? (usesMetaTrader ? "Yes" : "No") : "Not provided"
+                }</p>
+              </div>
+            </div>
+          </div>
+        `,
+        text: [
+          "A new trader application has been submitted.",
+          "",
+          `Name: ${fullName.trim()}`,
+          `Email: ${normalizedEmail}`,
+          `Country: ${country.trim()}`,
+          `Broker: ${
+            typeof brokerName === "string" && brokerName.trim()
+              ? brokerName.trim()
+              : "Not provided"
+          }`,
+          `Years Trading: ${hasSimplifiedFields ? yearsTrading : "Not provided"}`,
+          `Uses MetaTrader: ${
+            hasSimplifiedFields ? (usesMetaTrader ? "Yes" : "No") : "Not provided"
+          }`,
+        ].join("\n"),
+      }).catch((e) => console.error("Trader application notify email failed:", e));
+    }
 
     return res.json({ ok: true, id: application.id, status: application.status });
   } catch (err) {
@@ -526,27 +635,61 @@ app.post("/api/waitlist", async (req, res) => {
 
     sendEmail({
       to: normalizedEmail,
-      subject: "You’re on the Green Turtle waitlist",
+      replyTo: notifyTo || process.env.EMAIL_FROM,
+      subject: "Your early access request has been received",
       html: `
-        <div style="font-family: Arial, sans-serif; line-height: 1.5;">
-          <h2>You're on the waitlist ✅</h2>
-          <p>Thanks for requesting early access. We’ll reach out as soon as your invite is ready.</p>
-          <p style="color:#64748b;font-size:14px;">If you didn’t request this, you can ignore this email.</p>
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a; max-width: 640px; margin: 0 auto;">
+          <div style="padding: 24px 0 12px;">
+            <h2 style="margin: 0; color: #0f766e;">Green Turtle Trades</h2>
+          </div>
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px;">
+            <p style="margin-top: 0;">Thank you for requesting early access to Green Turtle Trades.</p>
+            <p>We have received your request and added you to our investor waitlist.</p>
+            <p>We will reach out to you as soon as access becomes available and the platform is ready.</p>
+            <div style="margin: 24px 0; padding: 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
+              <p style="margin: 0;"><strong>Email:</strong> ${normalizedEmail}</p>
+            </div>
+            <p style="margin-bottom: 0;">Best regards,<br />Green Turtle Trades</p>
+          </div>
         </div>
       `,
+      text: [
+        "Thank you for requesting early access to Green Turtle Trades.",
+        "We have received your request and added you to our investor waitlist.",
+        "We will reach out to you as soon as access becomes available and the platform is ready.",
+        "",
+        `Email: ${normalizedEmail}`,
+        "",
+        "Best regards,",
+        "Green Turtle Trades",
+      ].join("\n"),
     }).catch((e) => console.error("Waitlist confirmation email failed:", e));
 
     if (notifyTo) {
       sendEmail({
         to: notifyTo,
+        replyTo: normalizedEmail,
         subject: "New waitlist signup",
         html: `
-          <div style="font-family: Arial, sans-serif; line-height: 1.5;">
-            <h3>New waitlist signup</h3>
-            <p><b>Email:</b> ${normalizedEmail}</p>
-            <p><b>Source:</b> ${source || "unknown"}</p>
+          <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a; max-width: 640px; margin: 0 auto;">
+            <div style="padding: 24px 0 12px;">
+              <h2 style="margin: 0; color: #0f766e;">Green Turtle Trades</h2>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px;">
+              <p style="margin-top: 0;">A new investor waitlist request has been submitted.</p>
+              <div style="margin: 20px 0; padding: 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
+                <p style="margin: 0 0 8px;"><strong>Email:</strong> ${normalizedEmail}</p>
+                <p style="margin: 0;"><strong>Source:</strong> ${source || "unknown"}</p>
+              </div>
+            </div>
           </div>
         `,
+        text: [
+          "A new investor waitlist request has been submitted.",
+          "",
+          `Email: ${normalizedEmail}`,
+          `Source: ${source || "unknown"}`,
+        ].join("\n"),
       }).catch((e) => console.error("Waitlist notify email failed:", e));
     }
 
@@ -600,6 +743,7 @@ app.post("/api/contact", async (req, res, next) => {
       sendEmail({
         to: notifyTo,
         subject: "New contact message",
+        replyTo: normalizedEmail,
         html: `
           <div style="font-family: Arial, sans-serif; line-height: 1.5;">
             <h3>New contact message</h3>
@@ -612,6 +756,47 @@ app.post("/api/contact", async (req, res, next) => {
         `,
       }).catch((e) => console.error("Contact notify email failed:", e));
     }
+
+    sendEmail({
+      to: normalizedEmail,
+      subject: "We received your message",
+      replyTo: notifyTo || process.env.EMAIL_FROM,
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a; max-width: 640px; margin: 0 auto;">
+          <div style="padding: 24px 0 12px;">
+            <h2 style="margin: 0; color: #0f766e;">Green Turtle Trades</h2>
+          </div>
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px;">
+            <p style="margin-top: 0;">Hi ${normalizedName || "there"},</p>
+            <p>Thank you for contacting Green Turtle Trades. We've received your message and will get back to you as soon as possible.</p>
+            <p>Our usual response time is within 24 hours during business days.</p>
+            <div style="margin: 24px 0; padding: 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
+              <p style="margin: 0 0 8px;"><strong>Subject:</strong> ${normalizedSubject || "General enquiry"}</p>
+              <p style="margin: 0 0 8px;"><strong>Email:</strong> ${normalizedEmail}</p>
+              <p style="margin: 0;"><strong>Message received:</strong></p>
+              <pre style="white-space: pre-wrap; margin: 12px 0 0; font-family: Arial, sans-serif; background: #f8fafc; padding: 12px; border-radius: 8px;">${normalizedMessage}</pre>
+            </div>
+            <p style="margin-bottom: 0;">Best regards,<br />Green Turtle Trades Support</p>
+          </div>
+        </div>
+      `,
+      text: [
+        `Hi ${normalizedName || "there"},`,
+        "",
+        "Thank you for contacting Green Turtle Trades.",
+        "We've received your message and will get back to you as soon as possible.",
+        "Our usual response time is within 24 hours during business days.",
+        "",
+        `Subject: ${normalizedSubject || "General enquiry"}`,
+        `Email: ${normalizedEmail}`,
+        "",
+        "Message received:",
+        normalizedMessage,
+        "",
+        "Best regards,",
+        "Green Turtle Trades Support",
+      ].join("\n"),
+    }).catch((e) => console.error("Contact confirmation email failed:", e));
 
     return res.json({ ok: true });
   } catch (err) {

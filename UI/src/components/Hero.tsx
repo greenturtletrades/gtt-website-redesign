@@ -76,7 +76,7 @@ export function Hero({ onTraderClick, onApplyClick, onScrollToWaitingList }: Her
           transition={{ delay: 0.2 }}
           className="text-slate-600 max-w-3xl mx-auto mb-8 sm:mb-12 text-base sm:text-lg md:text-xl leading-relaxed px-4"
         >
-          Apply to become a verified trader and unlock Turtle Analytics ahead of launch.
+          Join us and get access to the future of finance.
         </motion.p>
         
         <motion.div
@@ -91,7 +91,7 @@ export function Hero({ onTraderClick, onApplyClick, onScrollToWaitingList }: Her
             onClick={onApplyClick}
             className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl hover:from-teal-700 hover:to-cyan-700 transition-all sm:min-w-[200px] shadow-xl hover:shadow-2xl text-base sm:text-lg"
           >
-            Apply to Trade
+            Apply as a Trader
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.02 }}
@@ -99,16 +99,9 @@ export function Hero({ onTraderClick, onApplyClick, onScrollToWaitingList }: Her
             onClick={onScrollToWaitingList}
             className="border border-slate-300 text-slate-700 px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl hover:border-teal-300 hover:text-teal-700 transition-all sm:min-w-[200px] text-base sm:text-lg"
           >
-            Join Waiting List
+            Investor Waitlist
           </motion.button>
         </motion.div>
-
-        <button
-          onClick={onTraderClick}
-          className="mt-6 text-sm text-slate-600 hover:text-teal-600 transition-colors"
-        >
-          Already approved? Sign in
-        </button>
 
         {/* Trust indicators */}
         <motion.div

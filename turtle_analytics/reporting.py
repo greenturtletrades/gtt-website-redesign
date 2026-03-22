@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Comprehensive reporting for Turtle Analytics.
 
@@ -172,8 +174,6 @@ JSON Schema
 }
 """
 
-from __future__ import annotations
-
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -313,6 +313,7 @@ def build_report(
 
     # Trade Analytics (computed from raw df for dashboard charts)
     trade_analytics = _compute_trade_analytics(df)
+    trade_analytics["journal_entries"] = _build_journal_entries(df)
 
     # Assemble final report
     report = {
@@ -705,6 +706,76 @@ def _compute_trade_analytics(df: pd.DataFrame) -> dict[str, Any]:
         result["consecutive_loss_analysis"] = []
 
     return result
+
+
+def _infer_exit_type(row: pd.Series) -> str:
+    exit_price = row.get("exit_price")
+    take_profit = row.get("take_profit")
+    stop_loss = row.get("stop_loss")
+
+    try:
+        exit_price = float(exit_price)
+    except Exception:
+        return "Manual"
+
+    if pd.notna(take_profit) and abs(exit_price - float(take_profit)) < 1e-9:
+        return "TP"
+    if pd.notna(stop_loss) and abs(exit_price - float(stop_loss)) < 1e-9:
+        return "SL"
+    return "Manual"
+
+
+def _format_market_conditions(row: pd.Series) -> str:
+    parts: list[str] = []
+
+    session = row.get("session")
+    if pd.notna(session) and str(session).strip():
+        parts.append(str(session).strip())
+    else:
+        bucket = row.get("time_of_day_bucket")
+        if pd.notna(bucket) and str(bucket).strip():
+            parts.append(str(bucket).replace("_", " ").strip())
+
+    vol_bucket = row.get("volatility_bucket")
+    if pd.notna(vol_bucket) and str(vol_bucket).strip() and str(vol_bucket).lower() != "unknown":
+        parts.append(f"{str(vol_bucket).strip()} volatility")
+
+    return ", ".join(parts) if parts else "Imported from analysed trade data"
+
+
+def _build_journal_entries(df: pd.DataFrame) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
+    if len(df) == 0:
+        return entries
+
+    for idx, row in df.sort_values("entry_time", ascending=False).iterrows():
+        entry_time = pd.to_datetime(row.get("entry_time"), errors="coerce")
+        exit_time = pd.to_datetime(row.get("exit_time"), errors="coerce")
+        symbol = row.get("symbol")
+        pair = str(symbol).strip() if pd.notna(symbol) and str(symbol).strip() else "Trade"
+
+        entries.append({
+            "id": f"trade-{idx + 1}",
+            "date": entry_time.strftime("%Y-%m-%d") if pd.notna(entry_time) else "",
+            "pair": pair,
+            "direction": "long" if str(row.get("side", "")).upper() == "LONG" else "short",
+            "entryPrice": round(float(row.get("entry_price", 0.0)), 5),
+            "exitPrice": round(float(row.get("exit_price", 0.0)), 5),
+            "stopLoss": round(float(row.get("stop_loss", 0.0)), 5) if pd.notna(row.get("stop_loss")) else 0.0,
+            "takeProfit": round(float(row.get("take_profit", 0.0)), 5) if pd.notna(row.get("take_profit")) else 0.0,
+            "entryTime": entry_time.strftime("%H:%M") if pd.notna(entry_time) else "",
+            "exitTime": exit_time.strftime("%H:%M") if pd.notna(exit_time) else "",
+            "duration": int(round(float(row.get("duration_minutes", 0.0)))) if pd.notna(row.get("duration_minutes")) else 0,
+            "exitType": _infer_exit_type(row),
+            "result": round(float(row.get("directional_pnl", 0.0)), 5) if pd.notna(row.get("directional_pnl")) else 0.0,
+            "rMultiple": round(float(row.get("R", 0.0)), 3) if pd.notna(row.get("R")) else 0.0,
+            "notes": "",
+            "emotions": "",
+            "lessonsLearned": "",
+            "marketConditions": _format_market_conditions(row),
+        })
+
+    return entries
 
 
 def save_report(

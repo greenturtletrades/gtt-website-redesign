@@ -11,14 +11,12 @@ import { WaitingListSignup } from "./WaitingListSignup";
 interface LandingPageProps {
   onTraderClick: () => void;
   onApplyClick: () => void;
-  onAdminClick: () => void;
   onNavigateLegal?: (page: "terms" | "privacy" | "risk-disclosure" | "contact") => void;
 }
 
 export function LandingPage({
   onTraderClick,
   onApplyClick,
-  onAdminClick,
   onNavigateLegal,
 }: LandingPageProps) {
   const waitingListRef = useRef<HTMLDivElement>(null);
@@ -42,7 +40,7 @@ export function LandingPage({
       <div ref={waitingListRef}>
         <WaitingListSignup />
       </div>
-      <Footer onAdminClick={onAdminClick} onNavigateLegal={onNavigateLegal} />
+      <Footer onNavigateLegal={onNavigateLegal} />
     </>
   );
 }

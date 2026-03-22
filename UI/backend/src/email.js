@@ -6,7 +6,7 @@ function getResend() {
   return new Resend(key);
 }
 
-async function sendEmail({ to, subject, html, text }) {
+async function sendEmail({ to, subject, html, text, replyTo }) {
   const resend = getResend();
   if (!resend) {
     console.warn("RESEND_API_KEY missing; skipping email send.");
@@ -20,6 +20,7 @@ async function sendEmail({ to, subject, html, text }) {
     from,
     to,
     subject,
+    ...(replyTo ? { replyTo } : {}),
     ...(html ? { html } : {}),
     ...(text ? { text } : {}),
   });

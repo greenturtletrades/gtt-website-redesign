@@ -23,7 +23,7 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
             </div>
             <div>
               <h1 className="text-slate-900 text-2xl sm:text-3xl">Privacy Policy</h1>
-              <p className="text-slate-600 text-sm">Last Updated: December 27, 2024</p>
+              <p className="text-slate-600 text-sm">Last Updated: 22 Mar 2026</p>
             </div>
           </div>
         </div>
@@ -389,7 +389,7 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
                 </div>
               </div>
               <p className="text-xs text-slate-600 mt-3">
-                To exercise any of these rights, contact us at <a href="mailto:privacy@greenturtletraders.co.uk" className="text-teal-600 hover:text-teal-700">privacy@greenturtletraders.co.uk</a>. 
+                To exercise any of these rights, contact us at <a href="mailto:contact@greenturtletraders.co.uk" className="text-teal-600 hover:text-teal-700">contact@greenturtletraders.co.uk</a>. 
                 We'll respond within 30 days.
               </p>
             </div>
@@ -413,7 +413,7 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
               <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 mt-3">
                 <p className="text-xs text-slate-700">
                   <strong>GDPR (EU Users):</strong> If you are in the European Union, you have additional rights under GDPR, including the right to object to processing, 
-                  the right to lodge a complaint with a supervisory authority, and the right to data portability. Contact us at privacy@greenturtletraders.co.uk for GDPR requests.
+                  the right to lodge a complaint with a supervisory authority, and the right to data portability. Contact us at contact@greenturtletraders.co.uk for GDPR requests.
                 </p>
               </div>
             </div>
@@ -431,7 +431,7 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
                 If we discover that we have inadvertently collected information from a child under 18, we will delete it immediately.
               </p>
               <p className="text-xs">
-                If you believe we have collected information from a minor, please contact us at privacy@greenturtletraders.co.uk.
+                If you believe we have collected information from a minor, please contact us at contact@greenturtletraders.co.uk.
               </p>
             </div>
           </section>
@@ -485,20 +485,14 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
               </p>
               <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-2">
                 <div className="text-xs">
-                  <strong>Privacy Inquiries:</strong> <a href="mailto:privacy@greenturtletraders.co.uk" className="text-teal-600 hover:text-teal-700">privacy@greenturtletraders.co.uk</a>
-                </div>
-                <div className="text-xs">
-                  <strong>Data Protection Officer:</strong> <a href="mailto:dpo@greenturtletraders.co.uk" className="text-teal-600 hover:text-teal-700">dpo@greenturtletraders.co.uk</a>
-                </div>
-                <div className="text-xs">
                   <strong>General Support:</strong> <a href="mailto:contact@greenturtletraders.co.uk" className="text-teal-600 hover:text-teal-700">contact@greenturtletraders.co.uk</a>
                 </div>
                 <div className="text-xs mt-3">
                   <strong>Mail:</strong><br />
-                  Green Turtle Trades Ltd<br />
+                  GREEN TURTLE TRADES LIMITED<br />
                   Attn: Privacy Department<br />
-                  123 Canary Wharf<br />
-                  London E14 5AB<br />
+                  5 South Charlotte Street<br />
+                  Edinburgh EH2 4AN<br />
                   United Kingdom
                 </div>
               </div>

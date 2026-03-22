@@ -73,7 +73,7 @@ interface PaymentModalProps {
 ### Legal Compliance
 - **Jurisdiction**: England and Wales
 - **Regulatory Bodies**: FCA (Financial Conduct Authority), FSCS (Financial Services Compensation Scheme)
-- **Company**: Green Turtle Trades Ltd (UK entity)
+- **Company**: GREEN TURTLE TRADES LIMITED (UK entity)
 - **Legal Pages**: Risk Disclosure, Contact Us, Privacy Policy, Terms of Service
 - All legal pages updated with proper header padding and UK-specific regulations
 
@@ -82,7 +82,7 @@ interface PaymentModalProps {
 ### Latest Changes (January 2026)
 1. ✅ Fixed header visibility issues across all legal pages with proper top padding
 2. ✅ Updated all legal documents to UK regulations and jurisdiction (removed US law references)
-3. ✅ Updated company references to Green Turtle Trades Ltd with UK address
+3. ✅ Updated company references to GREEN TURTLE TRADES LIMITED with UK address
 4. ✅ Removed 7-day free trial from payment flow
 5. ✅ Implemented referral code discount system (20% off for first 2 months)
 6. ✅ Updated PaymentModal component with conditional referral discount logic
@@ -139,11 +139,13 @@ interface PaymentModalProps {
 
 ## Company Information
 
-**Green Turtle Trades Ltd**  
+**GREEN TURTLE TRADES LIMITED**  
+5 South Charlotte Street  
+Edinburgh EH2 4AN  
 United Kingdom  
 Regulated by: FCA  
 Protected by: FSCS  
 
 ---
 
-*Last Updated: 16 January 2026*
+*Last Updated: 22 Mar 2026*

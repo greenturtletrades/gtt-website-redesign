@@ -86,18 +86,6 @@ export function ContactPage({ onBack }: ContactPageProps) {
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Phone className="w-5 h-5 text-cyan-600" />
-                  </div>
-                  <div>
-                    <div className="text-slate-900 text-sm mb-1">Phone</div>
-                    <a href="tel:+442079460123" className="text-cyan-600 hover:text-cyan-700 text-sm">
-                      +44 20 7946 0123
-                    </a>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
                   <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
                     <Clock className="w-5 h-5 text-slate-600" />
                   </div>
@@ -117,9 +105,9 @@ export function ContactPage({ onBack }: ContactPageProps) {
                   <div>
                     <div className="text-slate-900 text-sm mb-1">Address</div>
                     <div className="text-slate-600 text-xs">
-                      Green Turtle Trades Ltd<br />
-                      123 Canary Wharf<br />
-                      London E14 5AB<br />
+                      GREEN TURTLE TRADES LIMITED<br />
+                      5 South Charlotte Street<br />
+                      Edinburgh EH2 4AN<br />
                       United Kingdom
                     </div>
                   </div>

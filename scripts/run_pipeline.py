@@ -21,6 +21,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 import typer
 import pandas as pd
 from datetime import datetime
+from typing import Optional
 
 # Now import from turtle_analytics package
 from turtle_analytics.policies import PolicyParams
@@ -63,11 +64,11 @@ app = typer.Typer(help="Turtle Analytics - Trade Analysis Pipeline")
 
 @app.command()
 def process(
-    input_path: Path | None = typer.Argument(
+    input_path: Optional[Path] = typer.Argument(
         None,
         help="Path to the input trades CSV file (not required if using --source mt5).",
     ),
-    output_path: Path | None = typer.Option(
+    output_path: Optional[Path] = typer.Option(
         None,
         "--output",
         "-o",
@@ -100,27 +101,27 @@ def process(
         "-cl",
         help="Run market regime clustering (Phase 5) for adaptive parameters.",
     ),
-    n_clusters: int | None = typer.Option(
+    n_clusters: Optional[int] = typer.Option(
         4,
         "--n-clusters",
         help="Number of market regimes to identify (default: 4).",
     ),
-    config_path: Path | None = typer.Option(
+    config_path: Optional[Path] = typer.Option(
         None,
         "--config",
         help="Path to configuration YAML file (default: configs/default.yaml).",
     ),
-    counterfactual_output: Path | None = typer.Option(
+    counterfactual_output: Optional[Path] = typer.Option(
         None,
         "--counterfactual-output",
         help="Path for counterfactual results (default: artifacts/counterfactuals.csv)",
     ),
-    n_random: int | None = typer.Option(
+    n_random: Optional[int] = typer.Option(
         None,
         "--n-random",
         help="Use random search instead of grid search with N samples.",
     ),
-    top_n: int | None = typer.Option(
+    top_n: Optional[int] = typer.Option(
         20,
         "--top-n",
         help="Only save top N best policies (default: 20).",
@@ -131,22 +132,22 @@ def process(
         "--source",
         help="Data source: 'csv' or 'mt5' (MetaTrader 5).",
     ),
-    mt5_login: int | None = typer.Option(
+    mt5_login: Optional[int] = typer.Option(
         None,
         "--mt5-login",
         help="MT5 account number (if not provided, uses current account).",
     ),
-    mt5_password: str | None = typer.Option(
+    mt5_password: Optional[str] = typer.Option(
         None,
         "--mt5-password",
         help="MT5 account password.",
     ),
-    mt5_server: str | None = typer.Option(
+    mt5_server: Optional[str] = typer.Option(
         None,
         "--mt5-server",
         help="MT5 broker server name.",
     ),
-    mt5_symbol: str | None = typer.Option(
+    mt5_symbol: Optional[str] = typer.Option(
         None,
         "--mt5-symbol",
         help="Filter trades by symbol (e.g., EURUSD).",

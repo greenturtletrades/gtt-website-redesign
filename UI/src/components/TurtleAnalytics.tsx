@@ -16,6 +16,7 @@ interface TurtleAnalyticsProps {
 }
 
 export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSignUp, onLogout }: TurtleAnalyticsProps) {
+  const API_BASE = (import.meta.env.VITE_API_BASE as string) || "";
   const [activeTab, setActiveTab] = useState<"analytics" | "journal" | "history" | "settings" | "guide">("analytics");
   const [isRunningModel, setIsRunningModel] = useState(false);
   const [lastRunTime, setLastRunTime] = useState<Date | null>(new Date(Date.now() - 2 * 60 * 60 * 1000)); // 2 hours ago
@@ -26,9 +27,10 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [statsData, setStatsData] = useState({ tradesAnalysed: 565, simulationsRun: 6780, regimesFound: 5, avgRMultiple: 0.72 });
   const [reportData, setReportData] = useState<any>(null);
+  const [modelRunError, setModelRunError] = useState<string | null>(null);
 
   const derived = useMemo(() => {
-    const R = 100; // £100 risk per trade
+    const R = 100; // Used only for fallback demo figures before a real analysis run.
 
     // ── Hardcoded fallbacks (shown before first analysis run) ──────────────
     const FALLBACK_REGIMES = [
@@ -437,6 +439,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   }, [activeTab]);
   
   const handleRunModel = async () => {
+    setModelRunError(null);
     setShowRunModelModal(false);
     setIsRunningModel(true);
 
@@ -461,6 +464,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
     };
 
     setModelRunHistory(prev => [newLogEntry, ...prev]);
+    let completed = false;
 
     try {
       const token = localStorage.getItem("gtt_token");
@@ -472,9 +476,9 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       if (analysisMode === "csv" && csvFile) {
         const formData = new FormData();
         formData.append("file", csvFile);
-        startRes = await fetch("/api/analyse/csv", { method: "POST", headers: authHeader, body: formData });
+        startRes = await fetch(`${API_BASE}/api/analyse/csv`, { method: "POST", headers: authHeader, body: formData });
       } else {
-        startRes = await fetch("/api/analyse", {
+        startRes = await fetch(`${API_BASE}/api/analyse`, {
           method: "POST",
           headers: { ...authHeader, "Content-Type": "application/json" },
           body: JSON.stringify({ mode: analysisMode, tradeCount: selectedTradeCount, months: selectedMonths }),
@@ -483,7 +487,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
 
       if (!startRes.ok) {
         const body = await startRes.json().catch(() => ({}));
-        throw new Error((body as any).error || "Failed to start analysis");
+        throw new Error((body as any).error || (body as any).detail || "Failed to start analysis");
       }
 
       const { jobId } = await startRes.json();
@@ -493,24 +497,44 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       while (Date.now() - started < 10 * 60 * 1000) {
         await new Promise(resolve => setTimeout(resolve, 3000));
 
-        const pollRes = await fetch(`/api/analyse/${jobId}`, { headers: authHeader });
+        const pollRes = await fetch(`${API_BASE}/api/analyse/${jobId}`, { headers: authHeader });
         if (!pollRes.ok) continue;
 
         const result = await pollRes.json();
 
         if (result.status === "complete") {
+          const tradesAnalysed = result.tradesAnalysed ?? result.trades_analysed;
+          const simulationsRun = result.simulationsRun ?? result.simulations_run;
+          const regimesFound = result.regimesFound ?? result.regimes_found;
+          const avgRMultiple = result.avgRMultiple ?? result.avg_r_multiple;
+          const dateRange = result.report?.metadata?.date_range;
+          const actualStartDate = Array.isArray(dateRange) && dateRange[0] ? new Date(`${dateRange[0]}T00:00:00`) : null;
+          const actualEndDate = Array.isArray(dateRange) && dateRange[1] ? new Date(`${dateRange[1]}T00:00:00`) : null;
+          const actualPeriodDescription =
+            actualStartDate && actualEndDate
+              ? `${actualStartDate.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} → ${actualEndDate.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`
+              : newLogEntry.periodDescription;
+
           setModelRunHistory(prev => prev.map(entry =>
             entry.id === newLogEntry.id
-              ? { ...entry, status: "completed" as const, tradesAnalysed: result.tradesAnalysed ?? entry.tradesAnalysed }
+              ? {
+                  ...entry,
+                  status: "completed" as const,
+                  tradesAnalysed: tradesAnalysed ?? entry.tradesAnalysed,
+                  periodDescription: actualPeriodDescription,
+                  dateRangeStart: actualStartDate ?? entry.dateRangeStart,
+                  dateRangeEnd: actualEndDate ?? entry.dateRangeEnd,
+                }
               : entry
           ));
-          setStatsData({
-            tradesAnalysed: result.tradesAnalysed ?? statsData.tradesAnalysed,
-            simulationsRun: result.simulationsRun ?? statsData.simulationsRun,
-            regimesFound:   result.regimesFound   ?? statsData.regimesFound,
-            avgRMultiple:   result.avgRMultiple    ?? statsData.avgRMultiple,
-          });
+          setStatsData((prev) => ({
+            tradesAnalysed: tradesAnalysed ?? prev.tradesAnalysed,
+            simulationsRun: simulationsRun ?? prev.simulationsRun,
+            regimesFound:   regimesFound   ?? prev.regimesFound,
+            avgRMultiple:   avgRMultiple   ?? prev.avgRMultiple,
+          }));
           if (result.report) setReportData(result.report);
+          completed = true;
           break;
         }
 
@@ -520,6 +544,14 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       }
     } catch (err) {
       console.error("Model run failed:", err);
+      setModelRunError(err instanceof Error ? err.message : "Model run failed.");
+      setModelRunHistory(prev => prev.map(entry =>
+        entry.id === newLogEntry.id ? { ...entry, status: "failed" as const } : entry
+      ));
+    }
+
+    if (!completed) {
+      setModelRunError((prev) => prev ?? "Analysis timed out before the UI received a completed result.");
       setModelRunHistory(prev => prev.map(entry =>
         entry.id === newLogEntry.id ? { ...entry, status: "failed" as const } : entry
       ));
@@ -609,6 +641,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   const rMultipleData = derived.rMultipleData;
   const equityCurveComparison = derived.equityCurveData;
   const consecutiveLossData = derived.consecutiveLossData;
+  const journalEntries = reportData?.trade_analytics?.journal_entries ?? [];
 
   // Trailing stop table stays static (not returned by pipeline)
   const trailingStopResults = [
@@ -804,7 +837,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
 
       {/* Conditional Content Based on Active Tab */}
       {activeTab === "journal" ? (
-        <TraderJournal />
+        <TraderJournal entries={journalEntries} />
       ) : activeTab === "settings" ? (
         <SettingsPage
           userName="John Smith"
@@ -2039,6 +2072,12 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                 </div>
               )}
 
+              {modelRunError && (
+                <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {modelRunError}
+                </div>
+              )}
+
               {/* Trade Count Slider */}
               {analysisMode === "trades" && (
                 <div className="mb-6">
@@ -2243,7 +2282,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                           : 'text-amber-900 font-semibold'
                       }`}>
                         {overlapInfo.overlapPercentage >= 80 
-                          ? '⛔ Cannot Run - Already Analysed'
+                          ? '⚠️ Existing Analysis Overlap'
                           : overlapInfo.overlapPercentage >= 50
                           ? '⚠️ High Overlap Detected'
                           : '⚠️ Partial Overlap Detected'
@@ -2254,7 +2293,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                       }`}>
                         This period overlaps with {overlapInfo.overlappingRuns.length} previous run{overlapInfo.overlappingRuns.length > 1 ? 's' : ''} 
                         ({overlapInfo.overlapPercentage}% overlap, ~{overlapInfo.totalOverlappingTrades} trades already analysed).
-                        {overlapInfo.overlapPercentage >= 80 && ' The ML model prevents duplicate analysis to ensure non-overlapping periods.'}
+                        {overlapInfo.overlapPercentage >= 80 && ' This is a comparison with previous local runs shown in the dashboard history.'}
                       </p>
                       
                       {/* Show overlapping runs */}

@@ -23,7 +23,7 @@ export function TermsOfService({ onBack }: TermsOfServiceProps) {
             </div>
             <div>
               <h1 className="text-slate-900 text-2xl sm:text-3xl">Terms of Service</h1>
-              <p className="text-slate-600 text-sm">Last Updated: December 27, 2024</p>
+              <p className="text-slate-600 text-sm">Last Updated: 22 Mar 2026</p>
             </div>
           </div>
         </div>
@@ -366,10 +366,10 @@ export function TermsOfService({ onBack }: TermsOfServiceProps) {
                 </div>
                 <div className="text-xs">
                   <strong>Mail:</strong><br />
-                  Green Turtle Trades Ltd<br />
+                  GREEN TURTLE TRADES LIMITED<br />
                   Legal Department<br />
-                  123 Canary Wharf<br />
-                  London E14 5AB<br />
+                  5 South Charlotte Street<br />
+                  Edinburgh EH2 4AN<br />
                   United Kingdom
                 </div>
               </div>

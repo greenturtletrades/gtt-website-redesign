@@ -10,6 +10,8 @@ interface JournalEntry {
   direction: "long" | "short";
   entryPrice: number;
   exitPrice: number;
+  stopLoss: number;
+  takeProfit: number;
   entryTime: string;
   exitTime: string;
   duration: number; // in minutes
@@ -22,7 +24,59 @@ interface JournalEntry {
   marketConditions: string;
 }
 
-export function TraderJournal() {
+interface TraderJournalProps {
+  entries?: JournalEntry[];
+}
+
+function toSafeNumber(value: unknown, fallback = 0): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function toSafeString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function cleanImportedText(value: unknown): string {
+  const text = toSafeString(value).trim();
+  if (
+    text === "Imported from analysed trade data." ||
+    text === "Not captured in uploaded trade data." ||
+    text === "Review this trade inside the analytics dashboard for pattern insights."
+  ) {
+    return "";
+  }
+  return text;
+}
+
+function normalizeJournalEntry(entry: Partial<JournalEntry>): JournalEntry {
+  return {
+    id: toSafeString(entry.id, Date.now().toString()),
+    date: toSafeString(entry.date),
+    pair: toSafeString(entry.pair, "Trade"),
+    direction: entry.direction === "short" ? "short" : "long",
+    entryPrice: toSafeNumber(entry.entryPrice),
+    exitPrice: toSafeNumber(entry.exitPrice),
+    stopLoss: toSafeNumber(entry.stopLoss),
+    takeProfit: toSafeNumber(entry.takeProfit),
+    entryTime: toSafeString(entry.entryTime),
+    exitTime: toSafeString(entry.exitTime),
+    duration: Math.max(0, Math.round(toSafeNumber(entry.duration))),
+    exitType: entry.exitType === "TP" || entry.exitType === "SL" ? entry.exitType : "Manual",
+    result: toSafeNumber(entry.result),
+    rMultiple: toSafeNumber(entry.rMultiple),
+    notes: cleanImportedText(entry.notes),
+    emotions: cleanImportedText(entry.emotions),
+    lessonsLearned: cleanImportedText(entry.lessonsLearned),
+    marketConditions: toSafeString(entry.marketConditions),
+  };
+}
+
+export function TraderJournal({ entries: liveEntries = [] }: TraderJournalProps) {
+  const currencyFormatter = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 2,
+  });
   const [entries, setEntries] = useState<JournalEntry[]>([
     {
       id: "1",
@@ -31,6 +85,8 @@ export function TraderJournal() {
       direction: "long",
       entryPrice: 1.0850,
       exitPrice: 1.0920,
+      stopLoss: 1.0810,
+      takeProfit: 1.0920,
       entryTime: "14:30",
       exitTime: "15:45",
       duration: 75,
@@ -49,6 +105,8 @@ export function TraderJournal() {
       direction: "short",
       entryPrice: 192.45,
       exitPrice: 192.80,
+      stopLoss: 192.80,
+      takeProfit: 191.75,
       entryTime: "10:15",
       exitTime: "10:30",
       duration: 15,
@@ -67,6 +125,8 @@ export function TraderJournal() {
       direction: "long",
       entryPrice: 149.20,
       exitPrice: 149.95,
+      stopLoss: 148.90,
+      takeProfit: 149.95,
       entryTime: "09:00",
       exitTime: "09:45",
       duration: 45,
@@ -79,6 +139,11 @@ export function TraderJournal() {
       marketConditions: "Trending bullish, NFP week"
     }
   ]);
+  const [liveOverrides, setLiveOverrides] = useState<Record<string, JournalEntry>>({});
+  const hasLiveEntries = liveEntries.length > 0;
+  const activeEntries = hasLiveEntries
+    ? liveEntries.map((entry) => normalizeJournalEntry(liveOverrides[entry.id] ?? entry))
+    : entries;
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
@@ -91,6 +156,8 @@ export function TraderJournal() {
     direction: "long" as "long" | "short",
     entryPrice: "",
     exitPrice: "",
+    stopLoss: "",
+    takeProfit: "",
     entryTime: "",
     exitTime: "",
     duration: "",
@@ -109,13 +176,15 @@ export function TraderJournal() {
       return;
     }
 
-    const newEntry: JournalEntry = {
+    const newEntry: JournalEntry = normalizeJournalEntry({
       id: editingEntry ? editingEntry.id : Date.now().toString(),
       date: formData.date,
       pair: formData.pair,
       direction: formData.direction,
       entryPrice: parseFloat(formData.entryPrice),
       exitPrice: parseFloat(formData.exitPrice),
+      stopLoss: parseFloat(formData.stopLoss),
+      takeProfit: parseFloat(formData.takeProfit),
       entryTime: formData.entryTime,
       exitTime: formData.exitTime,
       duration: parseInt(formData.duration),
@@ -126,9 +195,11 @@ export function TraderJournal() {
       emotions: formData.emotions,
       lessonsLearned: formData.lessonsLearned,
       marketConditions: formData.marketConditions
-    };
+    });
 
-    if (editingEntry) {
+    if (editingEntry && hasLiveEntries) {
+      setLiveOverrides((prev) => ({ ...prev, [editingEntry.id]: newEntry }));
+    } else if (editingEntry) {
       setEntries(entries.map(e => e.id === editingEntry.id ? newEntry : e));
     } else {
       setEntries([newEntry, ...entries]);
@@ -144,6 +215,8 @@ export function TraderJournal() {
       direction: "long",
       entryPrice: "",
       exitPrice: "",
+      stopLoss: "",
+      takeProfit: "",
       entryTime: "",
       exitTime: "",
       duration: "",
@@ -160,23 +233,26 @@ export function TraderJournal() {
   };
 
   const handleEdit = (entry: JournalEntry) => {
-    setEditingEntry(entry);
+    const normalizedEntry = normalizeJournalEntry(entry);
+    setEditingEntry(normalizedEntry);
     setFormData({
-      date: entry.date,
-      pair: entry.pair,
-      direction: entry.direction,
-      entryPrice: entry.entryPrice.toString(),
-      exitPrice: entry.exitPrice.toString(),
-      entryTime: entry.entryTime,
-      exitTime: entry.exitTime,
-      duration: entry.duration.toString(),
-      exitType: entry.exitType,
-      result: entry.result.toString(),
-      rMultiple: entry.rMultiple.toString(),
-      notes: entry.notes,
-      emotions: entry.emotions,
-      lessonsLearned: entry.lessonsLearned,
-      marketConditions: entry.marketConditions
+      date: normalizedEntry.date,
+      pair: normalizedEntry.pair,
+      direction: normalizedEntry.direction,
+      entryPrice: normalizedEntry.entryPrice.toString(),
+      exitPrice: normalizedEntry.exitPrice.toString(),
+      stopLoss: normalizedEntry.stopLoss.toString(),
+      takeProfit: normalizedEntry.takeProfit.toString(),
+      entryTime: normalizedEntry.entryTime,
+      exitTime: normalizedEntry.exitTime,
+      duration: normalizedEntry.duration.toString(),
+      exitType: normalizedEntry.exitType,
+      result: normalizedEntry.result.toString(),
+      rMultiple: normalizedEntry.rMultiple.toString(),
+      notes: normalizedEntry.notes,
+      emotions: normalizedEntry.emotions,
+      lessonsLearned: normalizedEntry.lessonsLearned,
+      marketConditions: normalizedEntry.marketConditions
     });
     setShowAddModal(true);
   };
@@ -187,20 +263,20 @@ export function TraderJournal() {
     }
   };
 
-  const filteredEntries = entries.filter(entry =>
+  const filteredEntries = activeEntries.filter(entry =>
     entry.pair.toLowerCase().includes(searchTerm.toLowerCase()) ||
     entry.notes.toLowerCase().includes(searchTerm.toLowerCase()) ||
     entry.lessonsLearned.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const totalTrades = entries.length;
-  const winningTrades = entries.filter(e => e.result > 0).length;
-  const losingTrades = entries.filter(e => e.result < 0).length;
-  const totalPnL = entries.reduce((sum, e) => sum + e.result, 0);
-  const avgR = entries.length > 0 ? entries.reduce((sum, e) => sum + e.rMultiple, 0) / entries.length : 0;
+  const totalTrades = activeEntries.length;
+  const winningTrades = activeEntries.filter(e => e.result > 0).length;
+  const losingTrades = activeEntries.filter(e => e.result < 0).length;
+  const totalPnL = activeEntries.reduce((sum, e) => sum + e.result, 0);
+  const avgR = activeEntries.length > 0 ? activeEntries.reduce((sum, e) => sum + e.rMultiple, 0) / activeEntries.length : 0;
 
   // Calculate monthly PnL
-  const monthlyPnL = entries.reduce((acc, entry) => {
+  const monthlyPnL = activeEntries.reduce((acc, entry) => {
     const monthKey = entry.date.substring(0, 7); // YYYY-MM format
     if (!acc[monthKey]) {
       acc[monthKey] = {
@@ -229,6 +305,14 @@ export function TraderJournal() {
       winRate: m.trades > 0 ? (m.winners / m.trades) * 100 : 0
     }))
     .sort((a, b) => b.month.localeCompare(a.month)); // Sort by most recent first
+  const recentEntries = filteredEntries
+    .slice()
+    .sort((a, b) => {
+      const aTime = new Date(`${a.date}T${a.entryTime || "00:00"}`).getTime();
+      const bTime = new Date(`${b.date}T${b.entryTime || "00:00"}`).getTime();
+      return bTime - aTime;
+    })
+    .slice(0, 5);
 
   return (
     <>
@@ -238,14 +322,20 @@ export function TraderJournal() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-slate-900 mb-2 text-2xl sm:text-3xl">Trading Journal</h2>
-              <p className="text-slate-600 text-base">Trades are automatically imported from MetaTrader when closed. Add your notes and reflections.</p>
+              <p className="text-slate-600 text-base">
+                {hasLiveEntries
+                  ? "Journal rows are generated from your latest processed trade analysis."
+                  : "Trades are automatically imported from MetaTrader when closed. Add your notes and reflections."}
+              </p>
             </div>
             <div className="bg-teal-50 border border-teal-200 rounded-lg px-4 py-3">
               <div className="flex items-center gap-2">
                 <Activity className="w-5 h-5 text-teal-600" />
                 <div>
-                  <div className="text-xs text-teal-700">Live Sync Active</div>
-                  <div className="text-xs text-slate-600">Auto-importing trades from MT4/MT5</div>
+                  <div className="text-xs text-teal-700">{hasLiveEntries ? "Analysis Sync Active" : "Live Sync Active"}</div>
+                  <div className="text-xs text-slate-600">
+                    {hasLiveEntries ? "Showing trades from the latest Python analysis run" : "Auto-importing trades from MT4/MT5"}
+                  </div>
                 </div>
               </div>
             </div>
@@ -268,7 +358,7 @@ export function TraderJournal() {
             <div className="bg-white border border-teal-200 rounded-lg p-4 shadow-sm">
               <div className="text-slate-600 text-sm mb-1">Total P&L</div>
               <div className={`text-2xl ${totalPnL >= 0 ? "text-teal-600" : "text-red-600"}`}>
-                ${totalPnL.toFixed(0)}
+                {currencyFormatter.format(totalPnL)}
               </div>
             </div>
             <div className="bg-white border border-teal-200 rounded-lg p-4 shadow-sm">
@@ -278,6 +368,87 @@ export function TraderJournal() {
               </div>
             </div>
           </div>
+
+          {recentEntries.length > 0 && (
+            <div className="mt-8">
+              <h3 className="text-slate-900 mb-4 text-xl flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-teal-600" />
+                Recent Trades
+              </h3>
+              <div className="space-y-3">
+                {recentEntries.map((entry) => (
+                  <button
+                    key={`recent-${entry.id}`}
+                    onClick={() => handleEdit(entry)}
+                    className="w-full bg-white border border-slate-200 rounded-lg p-4 shadow-sm text-left hover:border-teal-300 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                          entry.result > 0 ? "bg-teal-100" : "bg-red-100"
+                        }`}>
+                          {entry.result > 0 ? (
+                            <TrendingUp className="w-5 h-5 text-teal-600" />
+                          ) : (
+                            <TrendingDown className="w-5 h-5 text-red-600" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-900">{entry.pair}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded ${
+                              entry.direction === "long"
+                                ? "bg-teal-100 text-teal-700"
+                                : "bg-red-100 text-red-700"
+                            }`}>
+                              {entry.direction.toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="text-slate-600 text-xs">
+                            {new Date(entry.date).toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })} • {entry.entryTime} to {entry.exitTime}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-sm ${entry.result >= 0 ? "text-teal-600" : "text-red-600"}`}>
+                          PnL {currencyFormatter.format(entry.result)}
+                        </div>
+                        <div className={`text-xs ${entry.rMultiple >= 0 ? "text-teal-600" : "text-red-600"}`}>
+                          {entry.rMultiple.toFixed(2)}R
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
+                      <div>
+                        <div className="text-slate-500">Entry</div>
+                        <div className="text-slate-800">{entry.entryPrice.toFixed(4)}</div>
+                      </div>
+                      <div>
+                        <div className="text-slate-500">Exit</div>
+                        <div className="text-slate-800">{entry.exitPrice.toFixed(4)}</div>
+                      </div>
+                      <div>
+                        <div className="text-slate-500">SL</div>
+                        <div className="text-slate-800">{entry.stopLoss.toFixed(4)}</div>
+                      </div>
+                      <div>
+                        <div className="text-slate-500">TP</div>
+                        <div className="text-slate-800">{entry.takeProfit.toFixed(4)}</div>
+                      </div>
+                      <div>
+                        <div className="text-slate-500">Duration</div>
+                        <div className="text-slate-800">{entry.duration}m</div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Monthly PnL Table */}
           {monthlyData.length > 0 && (
@@ -302,7 +473,7 @@ export function TraderJournal() {
                     </thead>
                     <tbody>
                       {monthlyData.map((monthData, idx) => {
-                        const monthTrades = entries.filter(e => e.date.substring(0, 7) === monthData.month);
+                        const monthTrades = activeEntries.filter(e => e.date.substring(0, 7) === monthData.month);
                         const isExpanded = selectedMonth === monthData.month;
                         
                         // Determine predominant market conditions for this month
@@ -343,7 +514,7 @@ export function TraderJournal() {
                                 <span className={`font-semibold ${
                                   monthData.pnl > 0 ? "text-teal-600" : monthData.pnl < 0 ? "text-red-600" : "text-slate-600"
                                 }`}>
-                                  ${monthData.pnl.toFixed(2)}
+                                  {currencyFormatter.format(monthData.pnl)}
                                 </span>
                               </td>
                               <td className="py-3 px-4 text-sm">
@@ -483,7 +654,7 @@ export function TraderJournal() {
                                                   <div className={`text-sm ${
                                                     trade.result >= 0 ? "text-teal-600" : "text-red-600"
                                                   }`}>
-                                                    ${trade.result.toFixed(2)}
+                                                    {currencyFormatter.format(trade.result)}
                                                   </div>
                                                   <div className={`text-xs ${
                                                     trade.rMultiple >= 0 ? "text-teal-600" : "text-red-600"
@@ -491,15 +662,17 @@ export function TraderJournal() {
                                                     {trade.rMultiple.toFixed(2)}R
                                                   </div>
                                                 </div>
-                                                <button
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleEdit(trade);
-                                                  }}
-                                                  className="p-1.5 text-slate-600 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
-                                                >
-                                                  <Edit2 className="w-4 h-4" />
-                                                </button>
+                                                {!hasLiveEntries && (
+                                                  <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      handleEdit(trade);
+                                                    }}
+                                                    className="p-1.5 text-slate-600 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
+                                                  >
+                                                    <Edit2 className="w-4 h-4" />
+                                                  </button>
+                                                )}
                                               </div>
                                             </div>
                                             {trade.notes && (
@@ -537,142 +710,6 @@ export function TraderJournal() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="min-h-screen bg-slate-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-          <h3 className="text-slate-900 mb-6 text-xl flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-teal-600" />
-            Recent Trades
-          </h3>
-        <div className="space-y-6">
-          {filteredEntries.map((entry) => (
-            <div key={entry.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                    entry.result > 0 ? "bg-teal-100" : "bg-red-100"
-                  }`}>
-                    {entry.result > 0 ? (
-                      <TrendingUp className={`w-6 h-6 text-teal-600`} />
-                    ) : (
-                      <TrendingDown className={`w-6 h-6 text-red-600`} />
-                    )}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-slate-900 text-xl">{entry.pair}</h3>
-                      <span className={`px-3 py-1 rounded-full text-sm ${
-                        entry.direction === "long" 
-                          ? "bg-teal-100 text-teal-700 border border-teal-200"
-                          : "bg-red-100 text-red-700 border border-red-200"
-                      }`}>
-                        {entry.direction.toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-600 text-sm mt-1">
-                      <Calendar className="w-4 h-4" />
-                      {new Date(entry.date).toLocaleDateString('en-US', { 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                      })}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleEdit(entry)}
-                    className="p-2 text-slate-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
-                  >
-                    <Edit2 className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(entry.id)}
-                    className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 pb-6 border-b border-slate-200">
-                <div>
-                  <div className="text-slate-600 text-sm mb-1">Entry Price</div>
-                  <div className="text-slate-900">{entry.entryPrice.toFixed(4)}</div>
-                  <div className="text-slate-500 text-xs mt-1">{entry.entryTime}</div>
-                </div>
-                <div>
-                  <div className="text-slate-600 text-sm mb-1">Exit Price</div>
-                  <div className="text-slate-900">{entry.exitPrice.toFixed(4)}</div>
-                  <div className="text-slate-500 text-xs mt-1">{entry.exitTime}</div>
-                </div>
-                <div>
-                  <div className="text-slate-600 text-sm mb-1">Result</div>
-                  <div className={entry.result >= 0 ? "text-teal-600" : "text-red-600"}>
-                    ${entry.result.toFixed(2)}
-                  </div>
-                  <div className={`text-xs mt-1 px-2 py-0.5 rounded inline-block ${
-                    entry.exitType === "TP" ? "bg-teal-100 text-teal-700" :
-                    entry.exitType === "SL" ? "bg-red-100 text-red-700" :
-                    "bg-slate-100 text-slate-700"
-                  }`}>
-                    {entry.exitType === "TP" ? "Take Profit" : entry.exitType === "SL" ? "Stop Loss" : "Manual"}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-slate-600 text-sm mb-1">R-Multiple</div>
-                  <div className={entry.rMultiple >= 0 ? "text-teal-600" : "text-red-600"}>
-                    {entry.rMultiple.toFixed(2)}R
-                  </div>
-                  <div className="text-slate-500 text-xs mt-1">
-                    {Math.floor(entry.duration / 60)}h {entry.duration % 60}m
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <div className="text-slate-700 mb-2 flex items-center gap-2">
-                    <BookOpen className="w-4 h-4" />
-                    Trade Notes
-                  </div>
-                  <p className="text-slate-600 text-sm">{entry.notes}</p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <div className="text-slate-700 mb-2 text-sm">Emotions</div>
-                    <p className="text-slate-600 text-sm">{entry.emotions}</p>
-                  </div>
-                  <div>
-                    <div className="text-slate-700 mb-2 text-sm">Market Conditions</div>
-                    <p className="text-slate-600 text-sm">{entry.marketConditions}</p>
-                  </div>
-                  <div>
-                    <div className="text-slate-700 mb-2 text-sm">Lessons Learned</div>
-                    <p className="text-slate-600 text-sm">{entry.lessonsLearned}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {filteredEntries.length === 0 && (
-            <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
-              <BookOpen className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-              <p className="text-slate-600">No journal entries found</p>
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="mt-4 px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
-              >
-                Add Your First Entry
-              </button>
-            </div>
-          )}
-        </div>
-        </div>
-      </div>
-
       {/* Add/Edit Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -691,7 +728,7 @@ export function TraderJournal() {
                 <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 mb-2">
                   <p className="text-teal-900 text-sm flex items-center gap-2">
                     <Activity className="w-4 h-4" />
-                    <strong>Trade data is auto-imported from MetaTrader.</strong> You can edit any field if needed (e.g., to add missing data or make corrections).
+                    <strong>Trade data is auto-imported from your latest analysis.</strong> You can add notes and adjust any field if needed.
                   </p>
                 </div>
               )}
@@ -762,6 +799,31 @@ export function TraderJournal() {
                     placeholder="e.g., 1.0920"
                     value={formData.exitPrice}
                     onChange={(e) => setFormData({...formData, exitPrice: e.target.value})}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-slate-700 mb-2 text-sm">SL</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="e.g., 1.0810"
+                    value={formData.stopLoss}
+                    onChange={(e) => setFormData({...formData, stopLoss: e.target.value})}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-700 mb-2 text-sm">TP</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="e.g., 1.0920"
+                    value={formData.takeProfit}
+                    onChange={(e) => setFormData({...formData, takeProfit: e.target.value})}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>

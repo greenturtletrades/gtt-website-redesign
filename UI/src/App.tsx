@@ -35,6 +35,7 @@ export type ViewType =
   | "trader-application-status";
 
 export default function App() {
+  const [isAdminRoute, setIsAdminRoute] = useState(() => window.location.pathname === "/admin");
   const [currentView, setCurrentView] = useState<ViewType>("landing");
   const [userType, setUserType] = useState<UserType>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -103,6 +104,33 @@ export default function App() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const adminRoute = window.location.pathname === "/admin";
+      setIsAdminRoute(adminRoute);
+      if (!adminRoute) {
+        setShowAdminLoginModal(false);
+        if (currentView === "admin-dashboard") {
+          setCurrentView("landing");
+        }
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [currentView]);
+
+  useEffect(() => {
+    if (!isAdminRoute) return;
+
+    if (userType === "admin") {
+      setCurrentView("admin-dashboard");
+      setShowAdminLoginModal(false);
+    } else {
+      setShowAdminLoginModal(true);
+    }
+  }, [isAdminRoute, userType]);
 
   // Listen for navigation events from Turtle Analytics feature section
   useEffect(() => {
@@ -179,6 +207,10 @@ export default function App() {
     localStorage.removeItem("gtt_token");
     setUserType(null);
     setTurtleAnalyticsAuthed(false);
+    if (isAdminRoute) {
+      window.history.pushState({}, "", "/");
+      setIsAdminRoute(false);
+    }
     setCurrentView("landing");
   };
 
@@ -206,7 +238,7 @@ export default function App() {
     setApplicationEmail(email);
     setApplicationStatus(status);
     setApplicationRejectionReason(null);
-    setCurrentView("trader-application-status");
+    setCurrentView("landing");
   };
 
   const handleWelcomeComplete = () => {
@@ -271,37 +303,43 @@ export default function App() {
   };
 
   const handleAdminClick = () => {
-    // Show admin login modal
+    window.history.pushState({}, "", "/admin");
+    setIsAdminRoute(true);
     setShowAdminLoginModal(true);
   };
 
   const handleAdminLoginSuccess = () => {
     setShowAdminLoginModal(false);
     setUserType("admin");
+    if (!isAdminRoute) {
+      window.history.pushState({}, "", "/admin");
+      setIsAdminRoute(true);
+    }
     setCurrentView("admin-dashboard");
   };
 
   return (
     <div className="min-h-screen bg-white">
-      <Header 
-        userType={userType}
-        onTraderClick={handleTraderClick}
-        onLogout={handleLogout}
-        onNavigate={handleNavigate}
-        currentView={currentView}
-        turtleAnalyticsAuthed={turtleAnalyticsAuthed}
-      />
+      {!isAdminRoute && (
+        <Header 
+          userType={userType}
+          onTraderClick={handleTraderClick}
+          onLogout={handleLogout}
+          onNavigate={handleNavigate}
+          currentView={currentView}
+          turtleAnalyticsAuthed={turtleAnalyticsAuthed}
+        />
+      )}
       
-      {currentView === "landing" && (
+      {!isAdminRoute && currentView === "landing" && (
         <LandingPage 
           onTraderClick={handleTraderClick}
           onApplyClick={handleOpenApplication}
-          onAdminClick={handleAdminClick}
           onNavigateLegal={handleNavigateLegal}
         />
       )}
       
-      {currentView === "turtle-analytics" && (
+      {!isAdminRoute && currentView === "turtle-analytics" && (
         userType === "trader" ? (
           <TurtleAnalytics 
             userType={userType} 
@@ -315,7 +353,7 @@ export default function App() {
         )
       )}
 
-      {currentView === "ea-code" && (
+      {!isAdminRoute && currentView === "ea-code" && (
         <EACodePage 
           isOnboarding={onboardingStage === "ea-setup"}
           onComplete={handleEASetupComplete}
@@ -323,7 +361,7 @@ export default function App() {
         />
       )}
 
-      {currentView === "settings" && selectedSubscriptionPlan && (
+      {!isAdminRoute && currentView === "settings" && selectedSubscriptionPlan && (
         <SettingsPage
           userName={pendingUserName || "John Smith"}
           userEmail="john.smith@email.com"
@@ -336,31 +374,30 @@ export default function App() {
       )}
 
       {/* Legal Pages */}
-      {currentView === "terms" && (
+      {!isAdminRoute && currentView === "terms" && (
         <TermsOfService onBack={() => setCurrentView("landing")} />
       )}
 
-      {currentView === "privacy" && (
+      {!isAdminRoute && currentView === "privacy" && (
         <PrivacyPolicy onBack={() => setCurrentView("landing")} />
       )}
 
-      {currentView === "risk-disclosure" && (
+      {!isAdminRoute && currentView === "risk-disclosure" && (
         <RiskDisclosure onBack={() => setCurrentView("landing")} />
       )}
 
-      {currentView === "contact" && (
+      {!isAdminRoute && currentView === "contact" && (
         <ContactPage onBack={() => setCurrentView("landing")} />
       )}
 
-      {currentView === "trader-application" && (
+      {!isAdminRoute && currentView === "trader-application" && (
         <TraderApplicationForm
           onBack={() => setCurrentView("landing")}
           onSubmitted={handleApplicationSubmitted}
-          onCheckStatus={() => setCurrentView("trader-application-status")}
         />
       )}
 
-      {currentView === "trader-application-status" && (
+      {!isAdminRoute && currentView === "trader-application-status" && (
         <TraderApplicationStatus
           initialEmail={applicationEmail}
           initialStatus={applicationStatus}
@@ -371,7 +408,7 @@ export default function App() {
       )}
 
       {/* Onboarding Welcome Screen */}
-      {onboardingStage === "welcome" && selectedSubscriptionPlan && (
+      {!isAdminRoute && onboardingStage === "welcome" && selectedSubscriptionPlan && (
         <WelcomeScreen
           userName={pendingUserName}
           selectedPlan={selectedSubscriptionPlan}
@@ -390,12 +427,19 @@ export default function App() {
 
       {showAdminLoginModal && (
         <AdminLoginModal
-          onClose={() => setShowAdminLoginModal(false)}
+          onClose={() => {
+            setShowAdminLoginModal(false);
+            if (isAdminRoute) {
+              window.history.pushState({}, "", "/");
+              setIsAdminRoute(false);
+              setCurrentView("landing");
+            }
+          }}
           onSuccess={handleAdminLoginSuccess}
         />
       )}
 
-      {showSubscriptionModal && (
+      {!isAdminRoute && showSubscriptionModal && (
         <SubscriptionModal
           onClose={() => setShowSubscriptionModal(false)}
           userName={pendingUserName}
@@ -403,7 +447,7 @@ export default function App() {
         />
       )}
 
-      {showPaymentModal && selectedSubscriptionPlan && (
+      {!isAdminRoute && showPaymentModal && selectedSubscriptionPlan && (
         <PaymentModal
           onClose={() => setShowPaymentModal(false)}
           onComplete={handlePaymentComplete}
@@ -413,8 +457,20 @@ export default function App() {
         />
       )}
 
-      {currentView === "admin-dashboard" && (
+      {isAdminRoute && currentView === "admin-dashboard" && (
         <AdminDashboard onLogout={handleLogout} />
+      )}
+
+      {isAdminRoute && currentView !== "admin-dashboard" && (
+        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center px-4">
+          <div className="text-center text-white max-w-lg">
+            <p className="text-teal-300 text-sm tracking-[0.25em] uppercase mb-4">Admin Portal</p>
+            <h1 className="text-4xl md:text-5xl mb-4">Green Turtle Trades</h1>
+            <p className="text-slate-300 text-base md:text-lg">
+              Secure access for authorised administrators.
+            </p>
+          </div>
+        </div>
       )}
     </div>
   );

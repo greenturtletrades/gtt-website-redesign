@@ -1,8 +1,8 @@
 import { motion, useInView } from "motion/react";
 import { useRef } from "react";
 import splashScreen from "figma:asset/37c1056c539b133077eab0bb8ff89c374d821376.png";
-import marketplace from "figma:asset/d58f8c8e9234864c560408b94aeea4e0a8ddb08a.png";
-import portfolio from "figma:asset/428b6f5c1cfd8d0a25ef455d53076097a058dba9.png";
+import marketplace from "../assets/IMG_0159.jpeg";
+import portfolio from "../assets/IMG_0158.jpeg";
 
 export function PlatformPreview() {
   const ref = useRef(null);
@@ -88,7 +88,7 @@ export function PlatformPreview() {
                       <img
                         src={feature.image}
                         alt={feature.title}
-                        className="w-full h-auto"
+                        className="block w-full h-auto contrast-[1.04] saturate-[1.03] brightness-[1.01]"
                       />
                     </div>
                   </div>

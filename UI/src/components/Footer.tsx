@@ -1,12 +1,11 @@
-import { MapPin, Mail, Phone, Shield } from "lucide-react";
+import { MapPin, Mail } from "lucide-react";
 import logo from "figma:asset/6f4515e0be3e9f42f43c7a32bab7fda8514f9833.png";
 
 interface FooterProps {
-  onAdminClick?: () => void;
   onNavigateLegal?: (page: "terms" | "privacy" | "risk-disclosure" | "contact") => void;
 }
 
-export function Footer({ onAdminClick, onNavigateLegal }: FooterProps) {
+export function Footer({ onNavigateLegal }: FooterProps) {
   return (
     <footer className="w-full bg-slate-900 text-white py-12 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto">
@@ -29,12 +28,6 @@ export function Footer({ onAdminClick, onNavigateLegal }: FooterProps) {
                   contact@greenturtletraders.co.uk
                 </a>
               </div>
-              <div className="flex items-center gap-2 text-slate-400">
-                <Phone className="w-4 h-4" />
-                <a href="tel:+442079460123" className="hover:text-teal-400 transition-colors">
-                  +44 20 7946 0123
-                </a>
-              </div>
             </div>
           </div>
 
@@ -45,12 +38,12 @@ export function Footer({ onAdminClick, onNavigateLegal }: FooterProps) {
               <div className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p>Green Turtle Trades Ltd</p>
-                  <p>123 Canary Wharf</p>
-                  <p>London E14 5AB</p>
+                  <p>GREEN TURTLE TRADES LIMITED</p>
+                  <p>5 South Charlotte Street</p>
+                  <p>Edinburgh EH2 4AN</p>
                 </div>
               </div>
-              <p>Company No: 12345678</p>
+              <p>Company No: 878660</p>
             </div>
           </div>
 
@@ -82,15 +75,6 @@ export function Footer({ onAdminClick, onNavigateLegal }: FooterProps) {
               >
                 Risk Disclosure
               </button>
-              {onAdminClick && (
-                <button
-                  onClick={onAdminClick}
-                  className="flex items-center gap-2 text-slate-500 hover:text-teal-400 transition-colors text-xs mt-4"
-                >
-                  <Shield className="w-3 h-3" />
-                  Admin Access
-                </button>
-              )}
             </div>
           </div>
         </div>

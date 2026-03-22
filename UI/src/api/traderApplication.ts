@@ -7,10 +7,8 @@ export interface TraderApplicationPayload {
   email: string;
   country: string;
   brokerName?: string;
-  platform: "MT4" | "MT5" | "CTRADER";
-  accountNumber: string;
-  experienceLevel: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
-  riskDisclosureAccepted: boolean;
+  yearsTrading: number;
+  usesMetaTrader: boolean;
 }
 
 export interface TraderApplicationResponse {

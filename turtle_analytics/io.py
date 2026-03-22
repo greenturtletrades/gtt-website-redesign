@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 I/O utilities for Turtle Analytics.
 
@@ -230,5 +232,3 @@ def validate_trades(df: pd.DataFrame) -> pd.DataFrame:
     df = df.reset_index(drop=True)
 
     return df
-
-
