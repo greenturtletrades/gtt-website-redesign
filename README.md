@@ -142,6 +142,15 @@ python scripts/run_pipeline.py \
 
 ---
 
+## Recent Updates
+
+- Added the integrated UI application under `UI/` for the public site, analytics dashboard, admin route, and onboarding flows.
+- Added a live Trader Journal feed sourced from processed trade output so analysed runs can populate journal entries in the frontend.
+- Added separate frontend/backend support for trader applications, investor waitlist signups, and contact submissions.
+- Added transactional email handling in the app backend for contact submissions, trader applications, and investor waitlist confirmations.
+
+---
+
 ## Project Layout
 
 ```

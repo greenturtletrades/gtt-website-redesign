@@ -66,4 +66,12 @@ curl -X POST http://localhost:3001/v1/ea/history/export \
 - `GET /health`
 - `POST /api/waitlist`
 - `POST /api/contact`
+- `POST /api/trader-applications`
 - `GET /api/admin/metrics` (ADMIN only)
+
+## Recent updates
+
+- Added email notifications and sender confirmations for contact submissions.
+- Added email notifications and applicant confirmations for trader application submissions.
+- Improved investor waitlist emails so submissions notify the team and confirm signup to the sender.
+- Kept the backend wired to the same app API surface used by the frontend site.
