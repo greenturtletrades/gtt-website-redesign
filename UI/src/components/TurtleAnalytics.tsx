@@ -6,6 +6,7 @@ import { TraderJournal } from "./TraderJournal";
 import { motion } from "motion/react";
 import { ProfileDropdown } from "./ProfileDropdown";
 import { SettingsPage } from "./SettingsPage";
+import { me } from "../api/auth";
 
 interface TurtleAnalyticsProps {
   userType: UserType;
@@ -19,99 +20,46 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   const API_BASE = (import.meta.env.VITE_API_BASE as string) || "";
   const [activeTab, setActiveTab] = useState<"analytics" | "journal" | "history" | "settings" | "guide">("analytics");
   const [isRunningModel, setIsRunningModel] = useState(false);
-  const [lastRunTime, setLastRunTime] = useState<Date | null>(new Date(Date.now() - 2 * 60 * 60 * 1000)); // 2 hours ago
+  const [lastRunTime, setLastRunTime] = useState<Date | null>(null);
   const [showRunModelModal, setShowRunModelModal] = useState(false);
   const [selectedTradeCount, setSelectedTradeCount] = useState(565);
   const [selectedMonths, setSelectedMonths] = useState(12);
   const [analysisMode, setAnalysisMode] = useState<"trades" | "months" | "csv">("trades");
   const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [statsData, setStatsData] = useState({ tradesAnalysed: 565, simulationsRun: 6780, regimesFound: 5, avgRMultiple: 0.72 });
+  const [statsData, setStatsData] = useState({ tradesAnalysed: 0, simulationsRun: 0, regimesFound: 0, avgRMultiple: 0 });
   const [reportData, setReportData] = useState<any>(null);
   const [modelRunError, setModelRunError] = useState<string | null>(null);
+  const [currentUserName, setCurrentUserName] = useState("Trader");
+  const [currentUserEmail, setCurrentUserEmail] = useState("");
 
   const derived = useMemo(() => {
-    const R = 100; // Used only for fallback demo figures before a real analysis run.
-
-    // ── Hardcoded fallbacks (shown before first analysis run) ──────────────
-    const FALLBACK_REGIMES = [
-      { regime: "Trending Bull", avgR: "1.24", winRate: "74.6%", trades: 142, features: "Low spread, rising volatility, London/NY", bestSL: "1.0R", bestTP: "2.8R", confidence: "±0.08", color: "bg-emerald-50 border-emerald-300 text-emerald-700" },
-      { regime: "Trending Bear", avgR: "1.18", winRate: "71.9%", trades: 128, features: "Low spread, rising volatility, London/NY", bestSL: "0.9R", bestTP: "2.6R", confidence: "±0.09", color: "bg-teal-50 border-teal-300 text-teal-700" },
-      { regime: "Choppy Range",  avgR: "0.31", winRate: "54.3%", trades: 186, features: "High spread, flat volatility, all sessions", bestSL: "—", bestTP: "—", confidence: "±0.06", color: "bg-slate-100 border-slate-300 text-slate-700" },
-      { regime: "High Volatility", avgR: "0.86", winRate: "62.8%", trades: 78, features: "Wide spread, spiking volatility, news", bestSL: "1.5R", bestTP: "3.0R", confidence: "±0.12", color: "bg-cyan-50 border-cyan-300 text-cyan-700" },
-      { regime: "Low Liquidity", avgR: "-0.18", winRate: "41.9%", trades: 31, features: "Wide spread, low volatility, Asian session", bestSL: "—", bestTP: "—", confidence: "±0.15", color: "bg-red-50 border-red-300 text-red-700" },
-    ];
-    const FALLBACK_R_DIST = [
-      { range: "-3R to -2R", count: 8 }, { range: "-2R to -1R", count: 42 },
-      { range: "-1R to 0R", count: 101 }, { range: "0R to 1R", count: 89 },
-      { range: "1R to 2R", count: 156 }, { range: "2R to 3R", count: 98 },
-      { range: "3R to 4R", count: 45 }, { range: "4R+", count: 26 },
-    ];
-    const FALLBACK_EQUITY = [
-      { trade: 0, actual: 0, optimised: 0 }, { trade: 50, actual: 2100, optimised: 3400 },
-      { trade: 100, actual: 4500, optimised: 7800 }, { trade: 200, actual: 7900, optimised: 15600 },
-      { trade: 300, actual: 11400, optimised: 25100 }, { trade: 400, actual: 15200, optimised: 36600 },
-      { trade: 565, actual: 40700, optimised: 50285 },
-    ];
-    const FALLBACK_SESSIONS = [
-      { session: "Asian (00-07 UTC)", avgR: "-0.18", trades: 25, winRate: "42%", spread: "High", status: "Avoid", isBest: false },
-      { session: "London Open (07-09)", avgR: "0.88", trades: 120, winRate: "69%", spread: "Low", status: "Good", isBest: false },
-      { session: "London/NY Overlap (13-17)", avgR: "1.12", trades: 150, winRate: "72%", spread: "Lowest", status: "Best", isBest: true },
-      { session: "NY Close (20-23)", avgR: "0.52", trades: 70, winRate: "58%", spread: "Med", status: "Mediocre", isBest: false },
-    ];
-    const FALLBACK_HOLD_TIME = [
-      { duration: "0-2h", avgR: "0.54", count: 133, status: "Exiting too early" },
-      { duration: "2-4h", avgR: "0.68", count: 157, status: "Better" },
-      { duration: "4-6h", avgR: "0.82", count: 180, status: "Good" },
-      { duration: "6-8h", avgR: "0.94", count: 78, status: "Optimal", isOptimal: true },
-      { duration: "8h+", avgR: "0.71", count: 17, status: "Holding too long" },
-    ];
-    const FALLBACK_RISK = [
-      { riskPct: "0.5%", avgR: "0.72", sharpe: "1.84", maxDD: "-4.2%", status: "Too conservative", isCurrent: false },
-      { riskPct: "1.0%", avgR: "0.72", sharpe: "2.31", maxDD: "-8.4%", status: "Current", isCurrent: true },
-      { riskPct: "1.5%", avgR: "0.72", sharpe: "2.18", maxDD: "-12.8%", status: "Acceptable", isCurrent: false },
-      { riskPct: "2.0%", avgR: "0.72", sharpe: "1.92", maxDD: "-16.9%", status: "Too aggressive", isCurrent: false },
-    ];
-    const FALLBACK_LOSS_STREAKS = [
-      { lossStreak: "1 Loss", occurrences: 78, nextWinRate: "68%", nextAvgR: "0.82" },
-      { lossStreak: "2 Losses", occurrences: 31, nextWinRate: "52%", nextAvgR: "0.34" },
-      { lossStreak: "3 Losses", occurrences: 12, nextWinRate: "41%", nextAvgR: "-0.12" },
-      { lossStreak: "4+ Losses", occurrences: 3, nextWinRate: "33%", nextAvgR: "-0.28" },
-    ];
-    const FALLBACK_MFE = [
-      { category: "Stopped Out", avgMFE: "0.8R", avgMAE: "-1.0R", count: 203, insight: "Trade moved 0.8R in your favor before hitting -1R stop" },
-      { category: "Hit Target", avgMFE: "2.1R", avgMAE: "-0.4R", count: 362, insight: "Winners went to 2.1R with only -0.4R pullback" },
-    ];
-    const FALLBACK_CFACTUAL = [
-      { sl: "0.5R", tp: "1.0R", avgR: "0.28", winRate: "72%", confidence: "±0.04", trades: 565, status: "Exits profitable trades prematurely", isCurrent: false, isRecommended: false },
-      { sl: "0.75R", tp: "1.5R", avgR: "0.48", winRate: "68%", confidence: "±0.06", trades: 565, status: "Improved but suboptimal", isCurrent: false, isRecommended: false },
-      { sl: "1.0R", tp: "2.0R", avgR: "0.72", winRate: "64%", confidence: "±0.05", trades: 565, status: "Active configuration", isCurrent: true, isRecommended: false },
-      { sl: "1.0R", tp: "2.5R", avgR: "0.89", winRate: "58%", confidence: "±0.08", trades: 565, status: "Optimal (Bayesian analysis)", isCurrent: false, isRecommended: true },
-      { sl: "1.25R", tp: "2.5R", avgR: "0.64", winRate: "61%", confidence: "±0.07", trades: 565, status: "Stop loss threshold excessive", isCurrent: false, isRecommended: false },
-      { sl: "1.5R", tp: "3.0R", avgR: "0.52", winRate: "55%", confidence: "±0.09", trades: 565, status: "Parameters insufficiently restrictive", isCurrent: false, isRecommended: false },
-    ];
-
+    const R = 100;
     if (!reportData) {
       return {
-        currentPnl: "£40,700", optimisedPnl: "£50,285", gainPnl: "£9,585",
-        avgR: "0.72", winRate: "64", bestAvgR: "0.89", improvementPct: "23.6",
-        avgPerTrade: "72", bestAvgPerTrade: "89", ci: "0.08",
-        slMult: "1.0", tpMult: "2.5",
-        recs: [
-          { bold: "Widen your TP to 2.5R", rest: " — Bayesian optimisation shows a +£9,585 potential gain" },
-          { bold: "Add trailing stop at 1.2R", rest: " — Survival analysis shows a +30% improvement" },
-          { bold: "Avoid Asian session", rest: " — Low liquidity regime averaging -0.18R per trade" },
-        ],
-        bestRegimeAvgR: "1.2",
-        topActionLabel: "Use 1.0R/2.5R TP",
-        marketRegimes: FALLBACK_REGIMES,
-        rMultipleData: FALLBACK_R_DIST,
-        equityCurveData: FALLBACK_EQUITY,
-        sessionPerformance: FALLBACK_SESSIONS,
-        holdTimeResults: FALLBACK_HOLD_TIME,
-        riskFractionResults: FALLBACK_RISK,
-        consecutiveLossData: FALLBACK_LOSS_STREAKS,
-        mfeAnalysis: FALLBACK_MFE,
-        counterfactualResults: FALLBACK_CFACTUAL,
+        currentPnl: "Not available",
+        optimisedPnl: "Not available",
+        gainPnl: "Not available",
+        avgR: "0.00",
+        winRate: "0",
+        bestAvgR: "0.00",
+        improvementPct: "0.0",
+        avgPerTrade: "0",
+        bestAvgPerTrade: "0",
+        ci: "0.00",
+        slMult: "0.0",
+        tpMult: "0.0",
+        recs: [],
+        bestRegimeAvgR: "0.00",
+        topActionLabel: "Run analysis to generate recommendations",
+        marketRegimes: [],
+        rMultipleData: [],
+        equityCurveData: [],
+        sessionPerformance: [],
+        holdTimeResults: [],
+        riskFractionResults: [],
+        consecutiveLossData: [],
+        mfeAnalysis: [],
+        counterfactualResults: [],
       };
     }
 
@@ -177,12 +125,12 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
             color: regimeColors[colorIdx] ?? regimeColors[i % regimeColors.length],
           };
         })
-      : FALLBACK_REGIMES;
+      : [];
 
     // ── R-multiple distribution ────────────────────────────────────────────────
     const rMultipleData = reportData.trade_analytics?.r_distribution?.length
       ? reportData.trade_analytics.r_distribution
-      : FALLBACK_R_DIST;
+      : [];
 
     // ── Equity curve ───────────────────────────────────────────────────────────
     const equityCurveData = reportData.trade_analytics?.equity_curve?.length
@@ -194,7 +142,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
             optimised: Math.round(pt.cumulative_r * R * ratio),
           }));
         })()
-      : FALLBACK_EQUITY;
+      : [];
 
     // ── Session performance ────────────────────────────────────────────────────
     const sessionPerformance = reportData.trade_analytics?.session_performance?.length
@@ -211,7 +159,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
             isBest: s.avg_r === bestAvgRVal,
           }));
         })()
-      : FALLBACK_SESSIONS;
+      : [];
 
     // ── Hold time distribution ─────────────────────────────────────────────────
     const holdTimeResults = reportData.trade_analytics?.hold_time_distribution?.length
@@ -226,13 +174,13 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
             isOptimal: r.avg_r === maxR,
           }));
         })()
-      : FALLBACK_HOLD_TIME;
+      : [];
 
     // ── Risk fraction results ──────────────────────────────────────────────────
     const riskFractionResults = (() => {
       const kelly = reportData.risk_recommendations?.kelly_criterion;
       const suggestedPct = reportData.risk_recommendations?.suggested_risk_fraction ?? 0.01;
-      if (!kelly) return FALLBACK_RISK;
+      if (!kelly) return [];
       const avgR = orig.avg_r ?? 0;
       const fractions = [suggestedPct * 0.5, suggestedPct, suggestedPct * 1.5, suggestedPct * 2];
       return fractions.map((f, i) => ({
@@ -253,7 +201,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
           nextWinRate: `${Math.round(r.next_win_rate * 100)}%`,
           nextAvgR: r.next_avg_r.toFixed(2),
         }))
-      : FALLBACK_LOSS_STREAKS;
+      : [];
 
     // ── MFE / MAE analysis ─────────────────────────────────────────────────────
     const mfeAnalysis = reportData.trade_analytics?.mfe_mae_analysis?.length
@@ -266,11 +214,11 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
             ? `Winners averaged ${r.avg_r.toFixed(2)}R with ${r.avg_mae != null ? Math.abs(r.avg_mae).toFixed(2) + "R" : "minimal"} pullback`
             : `Losers averaged ${r.avg_r.toFixed(2)}R before stopping out`,
         }))
-      : FALLBACK_MFE;
+      : [];
 
     // ── Counterfactual summary ─────────────────────────────────────────────────
     const counterfactualResults = (() => {
-      if (!policy.sl_mult || !policy.tp_mult) return FALLBACK_CFACTUAL;
+      if (!policy.sl_mult || !policy.tp_mult) return [];
       const avgRNum = orig.avg_r ?? 0;
       const n_trades = n;
       return [
@@ -346,97 +294,40 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
     status: "completed" | "running" | "failed";
   }
   
-  const [modelRunHistory, setModelRunHistory] = useState<ModelRunLog[]>(
-    subscriptionTier === "premium" 
-      ? [
-          // Premium: Auto-updates
-          {
-            id: "auto-4",
-            timestamp: new Date(Date.now() - 30 * 60 * 1000),
-            mode: "auto",
-            tradesAnalysed: 3,
-            periodDescription: "Auto-update (3 new trades)",
-            dateRangeStart: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-            dateRangeEnd: new Date(),
-            cost: 0,
-            status: "completed"
-          },
-          {
-            id: "auto-3",
-            timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-            mode: "auto",
-            tradesAnalysed: 5,
-            periodDescription: "Auto-update (5 new trades)",
-            dateRangeStart: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-            dateRangeEnd: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-            cost: 0,
-            status: "completed"
-          },
-          {
-            id: "auto-2",
-            timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-            mode: "auto",
-            tradesAnalysed: 8,
-            periodDescription: "Auto-update (8 new trades)",
-            dateRangeStart: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-            dateRangeEnd: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-            cost: 0,
-            status: "completed"
-          },
-          {
-            id: "auto-1",
-            timestamp: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-            mode: "auto",
-            tradesAnalysed: 549,
-            periodDescription: "Initial full analysis",
-            dateRangeStart: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000),
-            dateRangeEnd: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-            cost: 0,
-            status: "completed"
-          }
-        ]
-      : [
-          // PAYG: Manual runs
-          {
-            id: "run-3",
-            timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-            mode: "months",
-            tradesAnalysed: 94,
-            periodDescription: "Last 2 months",
-            dateRangeStart: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
-            dateRangeEnd: new Date(),
-            cost: 18.80,
-            status: "completed"
-          },
-          {
-            id: "run-2",
-            timestamp: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000),
-            mode: "months",
-            tradesAnalysed: 188,
-            periodDescription: "4 months prior",
-            dateRangeStart: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
-            dateRangeEnd: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
-            cost: 37.60,
-            status: "completed"
-          },
-          {
-            id: "run-1",
-            timestamp: new Date(Date.now() - 70 * 24 * 60 * 60 * 1000),
-            mode: "months",
-            tradesAnalysed: 283,
-            periodDescription: "6 months baseline",
-            dateRangeStart: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000),
-            dateRangeEnd: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
-            cost: 56.60,
-            status: "completed"
-          }
-        ]
-  );
+  const [modelRunHistory, setModelRunHistory] = useState<ModelRunLog[]>([]);
   
   // Scroll to top whenever tab changes
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [activeTab]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadSessionUser = async () => {
+      try {
+        const session = await me();
+        if (!cancelled && session.ok) {
+          const firstName = (session.user.profile as { firstName?: string } | null)?.firstName?.trim() || "";
+          const lastName = (session.user.profile as { lastName?: string } | null)?.lastName?.trim() || "";
+          const fullName = `${firstName} ${lastName}`.trim();
+          setCurrentUserName(fullName || session.user.email.split("@")[0]);
+          setCurrentUserEmail(session.user.email);
+        }
+      } catch {
+        if (!cancelled) {
+          setCurrentUserName("Trader");
+          setCurrentUserEmail("");
+        }
+      }
+    };
+
+    loadSessionUser();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   
   const handleRunModel = async () => {
     setModelRunError(null);
@@ -610,6 +501,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   };
   
   const overlapInfo = checkOverlap();
+  const hasAnalysisReport = Boolean(reportData);
   
   const getTimeSinceLastRun = () => {
     if (!lastRunTime) return "Never";
@@ -631,7 +523,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
     return (r * riskPerTrade).toFixed(0);
   };
   
-  // All chart/table data comes from derived (real pipeline output, or fallback)
+  // All chart/table data comes from the latest completed analysis report.
   const counterfactualResults = derived.counterfactualResults;
   const mfeAnalysis = derived.mfeAnalysis;
   const marketRegimes = derived.marketRegimes;
@@ -643,7 +535,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   const consecutiveLossData = derived.consecutiveLossData;
   const journalEntries = reportData?.trade_analytics?.journal_entries ?? [];
 
-  // Trailing stop table stays static (not returned by pipeline)
+  // Trailing stop table is derived from the latest completed analysis inputs.
   const trailingStopResults = [
     { threshold: "No Trailing", avgR: derived.avgR, winRate: `${derived.winRate}%`, avgHold: "4.2h", status: "Current", isCurrent: true, isRecommended: false },
     { threshold: `Trail at ${derived.tpMult}R`, avgR: derived.bestAvgR, winRate: "62%", avgHold: "5.8h", status: "Recommended", isCurrent: false, isRecommended: true },
@@ -685,9 +577,9 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         {/* Profile Dropdown - Top Right */}
         <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20">
           <ProfileDropdown
-            userName="John Smith"
-            userEmail="john@example.com"
-            subscriptionTier="premium"
+            userName={currentUserName}
+            userEmail={currentUserEmail}
+            subscriptionTier={subscriptionTier}
             onLogout={() => onLogout && onLogout()}
             onSettings={() => setActiveTab("settings")}
           />
@@ -840,11 +732,10 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         <TraderJournal entries={journalEntries} />
       ) : activeTab === "settings" ? (
         <SettingsPage
-          userName="John Smith"
-          userEmail="john@example.com"
-          currentPlan="premium"
-          onPlanChange={(newPlan) => alert(`Plan changed to ${newPlan}`)}
-          onCancelSubscription={() => alert("Subscription cancelled")}
+          userName={currentUserName}
+          userEmail={currentUserEmail}
+          currentPlan={subscriptionTier}
+          onCancelSubscription={() => {}}
         />
       ) : activeTab === "guide" ? (
         <section className="max-w-5xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
@@ -1058,6 +949,17 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
 
               <div className="p-6">
                 {/* Timeline of runs */}
+                {modelRunHistory.length === 0 ? (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-8 text-center">
+                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-200">
+                      <BookOpen className="h-6 w-6 text-slate-600" />
+                    </div>
+                    <h3 className="text-lg text-slate-900">No analysis runs yet</h3>
+                    <p className="mt-2 text-sm text-slate-600">
+                      Completed ML runs will appear here after you run the model or upload a trade-history CSV.
+                    </p>
+                  </div>
+                ) : (
                 <div className="space-y-4">
                   {modelRunHistory.map((run, index) => (
                     <div 
@@ -1162,8 +1064,10 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                     </div>
                   ))}
                 </div>
+                )}
 
                 {/* Summary Info */}
+                {modelRunHistory.length > 0 && (
                 <div className={`mt-6 p-4 rounded-lg border ${
                   subscriptionTier === "premium" 
                     ? "bg-emerald-50 border-emerald-200" 
@@ -1192,12 +1096,44 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                     </div>
                   </div>
                 </div>
+                )}
               </div>
             </div>
           </section>
         </>
       ) : (
         <>
+          {!hasAnalysisReport && (
+            <section className="max-w-5xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
+              <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
+                <div className="mx-auto max-w-2xl text-center">
+                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-teal-100">
+                    <Brain className="h-7 w-7 text-teal-700" />
+                  </div>
+                  <h1 className="text-3xl text-slate-900">No analysis data yet</h1>
+                  <p className="mt-3 text-slate-600">
+                    This analytics view now only shows completed ML output from your own account. Run the model once, or upload a CSV, and the dashboard will populate with your real trading data.
+                  </p>
+                  <div className="mt-6 flex justify-center">
+                    <button
+                      onClick={() => setShowRunModelModal(true)}
+                      disabled={isRunningModel}
+                      className={`rounded-lg px-6 py-3 text-white transition-all ${
+                        isRunningModel
+                          ? "cursor-not-allowed bg-slate-400"
+                          : "bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700"
+                      }`}
+                    >
+                      {isRunningModel ? "Running Analysis..." : "Run First Analysis"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {hasAnalysisReport && (
+          <>
           {/* Dashboard Overview */}
           <section className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
             <div className="mb-8">
@@ -1959,7 +1895,8 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
               </div>
             )}
           </section>
-
+          </>
+          )}
 
         </>
       )}

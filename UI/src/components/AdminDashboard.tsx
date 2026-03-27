@@ -1,275 +1,199 @@
-import { Users, TrendingUp, DollarSign, Activity, Shield, UserPlus, Trash2, Search, BarChart3, Brain, CreditCard, Eye, Filter, Calendar, UserX, BookOpen } from "lucide-react";
+import { Users, TrendingUp, Activity, Shield, Search, BarChart3, Brain, Eye, Filter, Calendar, UserX, BookOpen, UserPlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { TraderDetailsModal } from "./TraderDetailsModal";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
-import { fetchAdminMetrics, type AdminMetrics } from "../api/admin";
+import {
+  fetchAdminChurnFeedback,
+  fetchAdminSignups,
+  fetchAdminStaff,
+  fetchAdminTraders,
+  inviteAdmin,
+  type AdminChurnFeedbackItem,
+  type AdminChurnFeedbackSummary,
+  type AdminStaffMember,
+  type AdminSignupItem,
+  type AdminTrader,
+  type GroupedAdminSignupItem,
+} from "../api/admin";
 
 interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-interface TraderData {
-  id: string;
-  name: string;
-  email: string;
-  status: "active" | "inactive";
-  plan: "payg" | "premium";
-  joinDate: string;
-  totalTrades: number;
-  mlAnalyses: number;
-  revenue: number;
-  winRate: number;
-}
-
-interface StaffMember {
-  id: string;
-  name: string;
-  email: string;
-  role: "admin" | "support" | "analyst";
-  status: "active" | "inactive";
-  joinDate: string;
-  lastActive: string;
-}
-
 export function AdminDashboard({ onLogout }: AdminDashboardProps) {
-  const [activeSection, setActiveSection] = useState<"overview" | "staff" | "churn" | "guide">("overview");
+  const [activeSection, setActiveSection] = useState<"overview" | "signups" | "staff" | "churn" | "guide">("overview");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTrader, setSelectedTrader] = useState<TraderData | null>(null);
-  const [traderFilter, setTraderFilter] = useState<"all" | "most-ml" | "best-performance" | "worst-performance">("all");
+  const [selectedTrader, setSelectedTrader] = useState<AdminTrader | null>(null);
+  const [traderFilter, setTraderFilter] = useState<"all" | "most-exports" | "most-trades" | "needs-analysis">("all");
   const [timePeriod, setTimePeriod] = useState<"7d" | "30d" | "3m" | "6m" | "1y" | "all">("30d");
-  const [adminMetrics, setAdminMetrics] = useState<AdminMetrics | null>(null);
-
-  // Mock trader data with win rates
-  const mockTraders: TraderData[] = [
-    {
-      id: "1",
-      name: "John Smith",
-      email: "john.smith@email.com",
-      status: "active",
-      plan: "premium",
-      joinDate: "2025-01-01",
-      totalTrades: 234,
-      mlAnalyses: 156,
-      revenue: 35.00,
-      winRate: 68.5
-    },
-    {
-      id: "2",
-      name: "Sarah Johnson",
-      email: "sarah.j@email.com",
-      status: "active",
-      plan: "payg",
-      joinDate: "2025-01-02",
-      totalTrades: 89,
-      mlAnalyses: 34,
-      revenue: 16.80,
-      winRate: 71.2
-    },
-    {
-      id: "3",
-      name: "Michael Brown",
-      email: "m.brown@email.com",
-      status: "active",
-      plan: "payg",
-      joinDate: "2024-12-28",
-      totalTrades: 156,
-      mlAnalyses: 67,
-      revenue: 23.40,
-      winRate: 64.8
-    },
-    {
-      id: "4",
-      name: "Emily Davis",
-      email: "emily.davis@email.com",
-      status: "inactive",
-      plan: "premium",
-      joinDate: "2024-12-15",
-      totalTrades: 0,
-      mlAnalyses: 0,
-      revenue: 0,
-      winRate: 0
-    },
-    {
-      id: "5",
-      name: "David Wilson",
-      email: "d.wilson@email.com",
-      status: "active",
-      plan: "premium",
-      joinDate: "2024-12-10",
-      totalTrades: 456,
-      mlAnalyses: 298,
-      revenue: 35.00,
-      winRate: 72.1
-    }
-  ];
-
-  // Mock staff data
-  const [staffMembers, setStaffMembers] = useState<StaffMember[]>([
-    {
-      id: "1",
-      name: "Admin User",
-      email: "admin@greenturtletrades.com",
-      role: "admin",
-      status: "active",
-      joinDate: "2024-01-01",
-      lastActive: "2 min ago"
-    },
-    {
-      id: "2",
-      name: "Jane Support",
-      email: "jane.support@greenturtletrades.com",
-      role: "support",
-      status: "active",
-      joinDate: "2024-06-15",
-      lastActive: "1 hour ago"
-    },
-    {
-      id: "3",
-      name: "Mark Analyst",
-      email: "mark.analyst@greenturtletrades.com",
-      role: "analyst",
-      status: "active",
-      joinDate: "2024-08-20",
-      lastActive: "3 hours ago"
-    }
-  ]);
-
-  const [showAddStaff, setShowAddStaff] = useState(false);
-  const [newStaff, setNewStaff] = useState({
-    name: "",
-    email: "",
-    role: "support" as "admin" | "support" | "analyst"
-  });
+  const [traders, setTraders] = useState<AdminTrader[]>([]);
+  const [tradersLoading, setTradersLoading] = useState(true);
+  const [tradersError, setTradersError] = useState<string | null>(null);
+  const [staffMembers, setStaffMembers] = useState<AdminStaffMember[]>([]);
+  const [staffError, setStaffError] = useState<string | null>(null);
+  const [churnItems, setChurnItems] = useState<AdminChurnFeedbackItem[]>([]);
+  const [churnSummary, setChurnSummary] = useState<AdminChurnFeedbackSummary[]>([]);
+  const [churnError, setChurnError] = useState<string | null>(null);
+  const [signupItems, setSignupItems] = useState<AdminSignupItem[]>([]);
+  const [signupError, setSignupError] = useState<string | null>(null);
+  const [signupSearchQuery, setSignupSearchQuery] = useState("");
+  const [signupFilter, setSignupFilter] = useState<"all" | AdminSignupItem["sourceType"]>("all");
+  const [showInviteStaff, setShowInviteStaff] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
+  const [inviteMessage, setInviteMessage] = useState<string | null>(null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteSubmitting, setInviteSubmitting] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
-    fetchAdminMetrics()
-      .then((metrics) => {
+    const loadAdminData = async () => {
+      try {
+        const [traderResponse, staffResponse, churnResponse, signupResponse] = await Promise.all([
+          fetchAdminTraders(),
+          fetchAdminStaff(),
+          fetchAdminChurnFeedback(),
+          fetchAdminSignups(),
+        ]);
+        if (!isMounted) return;
+        setTraders(traderResponse.items);
+        setStaffMembers(staffResponse.items);
+        setChurnItems(churnResponse.items);
+        setChurnSummary(churnResponse.summary);
+        setSignupItems(signupResponse.items);
+        setTradersError(null);
+        setStaffError(null);
+        setChurnError(null);
+        setSignupError(null);
+      } catch (error) {
+        if (!isMounted) return;
+        setTraders([]);
+        setStaffMembers([]);
+        setChurnItems([]);
+        setChurnSummary([]);
+        setSignupItems([]);
+        setTradersError(error instanceof Error ? error.message : "Unable to load trader accounts.");
+        setStaffError(error instanceof Error ? error.message : "Unable to load staff members.");
+        setChurnError(error instanceof Error ? error.message : "Unable to load churn feedback.");
+        setSignupError(error instanceof Error ? error.message : "Unable to load signups.");
+      } finally {
         if (isMounted) {
-          setAdminMetrics(metrics);
+          setTradersLoading(false);
         }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setAdminMetrics(null);
-        }
-      });
+      }
+    };
+
+    loadAdminData();
     return () => {
       isMounted = false;
     };
   }, []);
 
   // Calculate stats
-  const totalRevenue = mockTraders.reduce((sum, t) => sum + t.revenue, 0);
-  const monthlyRevenue = 12450;
-  const totalMLAnalyses = mockTraders.reduce((sum, t) => sum + t.mlAnalyses, 0);
-  const totalTraders = mockTraders.length;
-  const activeTraders = mockTraders.filter(t => t.status === "active").length;
-  const premiumCount = mockTraders.filter(t => t.plan === "premium").length;
-  const paygCount = mockTraders.filter(t => t.plan === "payg").length;
-  const displayTotalUsers = adminMetrics?.waitlistCount ?? totalTraders;
-  const displayActiveUsers = adminMetrics
-    ? Math.min(activeTraders, displayTotalUsers)
-    : activeTraders;
+  const totalMLAnalyses = traders.reduce((sum, trader) => sum + trader.historyExportCount, 0);
+  const totalTraders = traders.length;
+  const activeTraders = traders.filter((trader) => trader.accountStatus === "ACTIVE").length;
+  const premiumCount = traders.filter((trader) => trader.plan === "premium").length;
+  const paygCount = traders.filter((trader) => trader.plan === "payg").length;
+  const activeEaConnections = traders.filter((trader) => trader.lastEaSyncAt !== null).length;
+  const displayTotalUsers = totalTraders;
+  const displayActiveUsers = activeTraders;
   const displayInactiveUsers = Math.max(displayTotalUsers - displayActiveUsers, 0);
-  const displayNewUsers = adminMetrics?.createdTodayWaitlistCount ?? 2;
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  const displayNewUsers = traders.filter((trader) => {
+    const joinedAt = new Date(trader.joinedAt);
+    return joinedAt.getMonth() === currentMonth && joinedAt.getFullYear() === currentYear;
+  }).length;
+  const disabledTraders = traders.filter((trader) => trader.accountStatus === "DISABLED").length;
+  const tradersWithApiKeys = traders.filter((trader) => trader.apiKeysCount > 0).length;
+  const userGrowthTrend = Array.from({ length: 5 }, (_, index) => {
+    const monthDate = new Date(currentYear, currentMonth - (4 - index), 1);
+    const label = monthDate.toLocaleDateString(undefined, { month: "short" });
+    const users = traders.filter((trader) => {
+      const joinedAt = new Date(trader.joinedAt);
+      return (
+        joinedAt.getFullYear() < monthDate.getFullYear() ||
+        (joinedAt.getFullYear() === monthDate.getFullYear() &&
+          joinedAt.getMonth() <= monthDate.getMonth())
+      );
+    }).length;
+    return { month: label, users };
+  });
 
-  // Chart data for Revenue
-  const revenueChartData = [
-    { month: "Sep", revenue: 8200 },
-    { month: "Oct", revenue: 9400 },
-    { month: "Nov", revenue: 10800 },
-    { month: "Dec", revenue: 11200 },
-    { month: "Jan", revenue: 12450 }
-  ];
+  const activityChartData = Array.from({ length: 5 }, (_, index) => {
+    const monthDate = new Date(currentYear, currentMonth - (4 - index), 1);
+    const nextMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 1);
+    const label = monthDate.toLocaleDateString(undefined, { month: "short" });
+    const newAccounts = traders.filter((trader) => {
+      if (!trader.hasAccount) return false;
+      const joinedAt = new Date(trader.joinedAt);
+      return joinedAt >= monthDate && joinedAt < nextMonth;
+    }).length;
+    return { month: label, accounts: newAccounts };
+  });
 
-  // Chart data for ML Usage
-  const mlUsageChartData = [
-    { month: "Sep", analyses: 380 },
-    { month: "Oct", analyses: 425 },
-    { month: "Nov", analyses: 490 },
-    { month: "Dec", analyses: 520 },
-    { month: "Jan", analyses: 555 }
-  ];
+  const churnTrendData = Array.from({ length: 5 }, (_, index) => {
+    const monthDate = new Date(currentYear, currentMonth - (4 - index), 1);
+    const nextMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 1);
+    const label = monthDate.toLocaleDateString(undefined, { month: "short" });
+    const count = churnItems.filter((item) => {
+      const createdAt = new Date(item.createdAt);
+      return createdAt >= monthDate && createdAt < nextMonth;
+    }).length;
+    return { month: label, count };
+  });
 
-  // Pie chart data for subscription split
-  const subscriptionPieData = [
-    { name: "Premium", value: premiumCount, color: "#0d9488" },
-    { name: "PAYG", value: paygCount, color: "#64748b" }
-  ];
-
-  // Mock churn/cancellation data
-  const churnData = [
-    { reason: "too-expensive", label: "Too expensive", count: 12, percentage: 35.3 },
-    { reason: "not-using", label: "Not using enough", count: 8, percentage: 23.5 },
-    { reason: "missing-features", label: "Missing features", count: 5, percentage: 14.7 },
-    { reason: "technical-issues", label: "Technical issues", count: 4, percentage: 11.8 },
-    { reason: "found-alternative", label: "Found alternative", count: 3, percentage: 8.8 },
-    { reason: "results-not-helpful", label: "Results not helpful", count: 2, percentage: 5.9 }
-  ];
-
-  const totalCancellations = churnData.reduce((sum, item) => sum + item.count, 0);
-  const churnRate = ((totalCancellations / (totalTraders + totalCancellations)) * 100).toFixed(1);
-
-  // Detailed cancellation records
-  const cancellationRecords = [
-    { id: "1", userName: "Alex Turner", email: "alex.t@email.com", plan: "payg", date: "2025-01-15", reason: "too-expensive", feedback: "Love the platform but can't justify the cost right now. Might come back later." },
-    { id: "2", userName: "Maria Garcia", email: "maria.g@email.com", plan: "premium", date: "2025-01-14", reason: "not-using", feedback: "Taking a break from trading for a few months." },
-    { id: "3", userName: "James Wilson", email: "j.wilson@email.com", plan: "payg", date: "2025-01-12", reason: "missing-features", feedback: "Would love to see more advanced risk management features." },
-    { id: "4", userName: "Sophie Martin", email: "sophie.m@email.com", plan: "premium", date: "2025-01-10", reason: "technical-issues", feedback: "Had issues with MT4 connection. Support couldn't resolve it." },
-    { id: "5", userName: "David Lee", email: "d.lee@email.com", plan: "payg", date: "2025-01-08", reason: "found-alternative", feedback: "" },
-  ];
-
-  // Churn trend data
-  const churnTrendData = [
-    { month: "Sep", cancellations: 4, signups: 28 },
-    { month: "Oct", cancellations: 5, signups: 32 },
-    { month: "Nov", cancellations: 6, signups: 35 },
-    { month: "Dec", cancellations: 8, signups: 30 },
-    { month: "Jan", cancellations: 11, signups: 38 }
-  ];
+  const totalCancellations = churnItems.length;
+  const churnRate = displayTotalUsers > 0
+    ? ((totalCancellations / displayTotalUsers) * 100).toFixed(1)
+    : "0.0";
+  const recentRecords = churnItems.slice(0, 8);
+  const landingSignupCount = new Set(signupItems.filter((item) => item.sourceType === "landing_waitlist").map((item) => item.email.toLowerCase())).size;
+  const investorSignupCount = new Set(signupItems.filter((item) => item.sourceType === "investor_waitlist").map((item) => item.email.toLowerCase())).size;
+  const traderApplicationSignupCount = new Set(signupItems.filter((item) => item.sourceType === "trader_application").map((item) => item.email.toLowerCase())).size;
+  const traderAccountSignupCount = new Set(signupItems.filter((item) => item.sourceType === "trader_account").map((item) => item.email.toLowerCase())).size;
+  const uniqueSignupCount = new Set(signupItems.map((item) => item.email.toLowerCase())).size;
 
   // Filter and sort traders
-  let filteredTraders = mockTraders.filter(trader => 
+  let filteredTraders = traders.filter(trader => 
     trader.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    trader.email.toLowerCase().includes(searchQuery.toLowerCase())
+    trader.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (trader.country || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Apply sorting based on filter
-  if (traderFilter === "most-ml") {
-    filteredTraders = [...filteredTraders].sort((a, b) => b.mlAnalyses - a.mlAnalyses);
-  } else if (traderFilter === "best-performance") {
-    filteredTraders = [...filteredTraders].sort((a, b) => b.winRate - a.winRate);
-  } else if (traderFilter === "worst-performance") {
-    filteredTraders = [...filteredTraders].sort((a, b) => a.winRate - b.winRate);
+  if (traderFilter === "most-exports") {
+    filteredTraders = [...filteredTraders].sort((a, b) => b.historyExportCount - a.historyExportCount);
+  } else if (traderFilter === "most-trades") {
+    filteredTraders = [...filteredTraders].sort((a, b) => b.tradeEventCount - a.tradeEventCount);
+  } else if (traderFilter === "needs-analysis") {
+    filteredTraders = [...filteredTraders].sort((a, b) => {
+      const priority = {
+        NEEDS_ANALYSIS: 0,
+        NO_TRADE_DATA: 1,
+        ANALYSIS_READY: 2,
+      } as const;
+
+      if (priority[a.analysisStatus] === priority[b.analysisStatus]) {
+        return b.tradeEventCount - a.tradeEventCount;
+      }
+
+      return priority[a.analysisStatus] - priority[b.analysisStatus];
+    });
   }
 
-  const handleAddStaff = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newMember: StaffMember = {
-      id: String(staffMembers.length + 1),
-      name: newStaff.name,
-      email: newStaff.email,
-      role: newStaff.role,
-      status: "active",
-      joinDate: new Date().toISOString().split('T')[0],
-      lastActive: "Just now"
-    };
-    setStaffMembers([...staffMembers, newMember]);
-    setNewStaff({ name: "", email: "", role: "support" });
-    setShowAddStaff(false);
-  };
-
-  const handleRemoveStaff = (id: string) => {
-    if (confirm("Are you sure you want to remove this staff member?")) {
-      setStaffMembers(staffMembers.filter(s => s.id !== id));
-    }
-  };
-
   const getStatusBadge = (status: string) => {
-    return status === "active"
-      ? <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">Active</span>
-      : <span className="px-2 py-1 text-xs rounded-full bg-slate-100 text-slate-600">Inactive</span>;
+    if (status === "ACTIVE" || status === "active") {
+      return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">Active</span>;
+    }
+    if (status === "PENDING") {
+      return <span className="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-700">Pending</span>;
+    }
+    if (status === "DISABLED" || status === "inactive") {
+      return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-700">Disabled</span>;
+    }
+    return <span className="px-2 py-1 text-xs rounded-full bg-slate-100 text-slate-600">No account</span>;
   };
 
   const getPlanBadge = (plan: string) => {
@@ -278,13 +202,134 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       : <span className="px-2 py-1 text-xs rounded-full bg-slate-100 text-slate-700">PAYG</span>;
   };
 
+  const formatDate = (value: string | null) => {
+    if (!value) return "Never";
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return value;
+    return parsed.toLocaleDateString();
+  };
+
   const getRoleBadge = (role: string) => {
     const roleColors = {
       admin: "bg-red-100 text-red-700",
-      support: "bg-blue-100 text-blue-700",
-      analyst: "bg-purple-100 text-purple-700"
     };
     return <span className={`px-2 py-1 text-xs rounded-full ${roleColors[role as keyof typeof roleColors]}`}>{role.charAt(0).toUpperCase() + role.slice(1)}</span>;
+  };
+
+  const getSignupSourceLabel = (sourceType: AdminSignupItem["sourceType"]) => {
+    if (sourceType === "landing_waitlist") return "Landing Page";
+    if (sourceType === "investor_waitlist") return "Investor Signup";
+    if (sourceType === "trader_application") return "Trader Application";
+    return "Trader Account";
+  };
+
+  const getSignupSourceBadge = (sourceType: AdminSignupItem["sourceType"]) => {
+    const tones = {
+      landing_waitlist: "bg-blue-100 text-blue-700",
+      investor_waitlist: "bg-cyan-100 text-cyan-700",
+      trader_application: "bg-amber-100 text-amber-700",
+      trader_account: "bg-teal-100 text-teal-700",
+    };
+    return (
+      <span className={`px-2 py-1 text-xs rounded-full ${tones[sourceType]}`}>
+        {getSignupSourceLabel(sourceType)}
+      </span>
+    );
+  };
+
+  const getAnalysisStatusBadge = (status: AdminTrader["analysisStatus"]) => {
+    if (status === "ANALYSIS_READY") {
+      return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">Analysis Ready</span>;
+    }
+    if (status === "NEEDS_ANALYSIS") {
+      return <span className="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-700">Needs Analysis</span>;
+    }
+    return <span className="px-2 py-1 text-xs rounded-full bg-slate-100 text-slate-600">No Trade Data</span>;
+  };
+
+  const groupedSignupItems: GroupedAdminSignupItem[] = Array.from(
+    signupItems.reduce((map, item) => {
+      const emailKey = item.email.trim().toLowerCase();
+      const existing = map.get(emailKey);
+      const normalizedDetail = item.detail?.trim() || "";
+      const normalizedStatus = item.status.trim();
+      const normalizedName = item.name?.trim() || null;
+
+      if (!existing) {
+        map.set(emailKey, {
+          id: item.id,
+          email: emailKey,
+          name: normalizedName,
+          sourceTypes: [item.sourceType],
+          statuses: [normalizedStatus],
+          details: normalizedDetail ? [normalizedDetail] : [],
+          submittedAt: item.submittedAt,
+          entryCount: 1,
+        });
+        return map;
+      }
+
+      existing.entryCount += 1;
+      if (normalizedName && !existing.name) {
+        existing.name = normalizedName;
+      }
+      if (!existing.sourceTypes.includes(item.sourceType)) {
+        existing.sourceTypes.push(item.sourceType);
+      }
+      if (!existing.statuses.includes(normalizedStatus)) {
+        existing.statuses.push(normalizedStatus);
+      }
+      if (normalizedDetail && !existing.details.includes(normalizedDetail)) {
+        existing.details.push(normalizedDetail);
+      }
+      if (new Date(item.submittedAt).getTime() > new Date(existing.submittedAt).getTime()) {
+        existing.submittedAt = item.submittedAt;
+        existing.id = item.id;
+      }
+
+      return map;
+    }, new Map<string, GroupedAdminSignupItem>()).values()
+  ).sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+
+  const filteredSignupItems = groupedSignupItems.filter((item) => {
+    const matchesFilter = signupFilter === "all" || item.sourceTypes.includes(signupFilter);
+    const query = signupSearchQuery.trim().toLowerCase();
+    const matchesSearch =
+      !query ||
+      item.email.toLowerCase().includes(query) ||
+      (item.name || "").toLowerCase().includes(query) ||
+      item.details.some((detail) => detail.toLowerCase().includes(query)) ||
+      item.sourceTypes.some((sourceType) => getSignupSourceLabel(sourceType).toLowerCase().includes(query));
+
+    return matchesFilter && matchesSearch;
+  });
+
+  const reloadStaff = async () => {
+    const staffResponse = await fetchAdminStaff();
+    setStaffMembers(staffResponse.items);
+    setStaffError(null);
+  };
+
+  const handleInviteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (inviteSubmitting) return;
+
+    setInviteSubmitting(true);
+    setInviteMessage(null);
+    setInviteError(null);
+
+    try {
+      await inviteAdmin(inviteEmail, inviteCode);
+      await reloadStaff();
+      setInviteMessage(`Invite sent for ${inviteEmail.trim().toLowerCase()}. The one-time code will require a password change on first login.`);
+      setInviteEmail("");
+      setInviteCode("");
+      setShowInviteStaff(false);
+    } catch (error) {
+      setInviteError(error instanceof Error ? error.message : "Unable to invite admin.");
+    } finally {
+      setInviteSubmitting(false);
+    }
   };
 
   return (
@@ -309,12 +354,12 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
           </div>
         </div>
 
-        {/* Navigation - 2 Main Buttons */}
+        {/* Navigation */}
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 mb-6 p-2">
-          <div className="grid grid-cols-4 gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-1">
             <button
               onClick={() => setActiveSection("overview")}
-              className={`py-4 px-6 rounded-lg transition-all flex items-center justify-center gap-2 ${
+              className={`min-w-max py-4 px-6 rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
                 activeSection === "overview"
                   ? "bg-teal-600 text-white shadow-md"
                   : "text-slate-600 hover:bg-slate-50"
@@ -324,8 +369,30 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               <span>Overview</span>
             </button>
             <button
+              onClick={() => setActiveSection("churn")}
+              className={`min-w-max py-4 px-6 rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
+                activeSection === "churn"
+                  ? "bg-teal-600 text-white shadow-md"
+                  : "text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              <UserX className="w-5 h-5" />
+              <span>Account Health</span>
+            </button>
+            <button
+              onClick={() => setActiveSection("signups")}
+              className={`min-w-max py-4 px-6 rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
+                activeSection === "signups"
+                  ? "bg-teal-600 text-white shadow-md"
+                  : "text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              <Users className="w-5 h-5" />
+              <span>Signups</span>
+            </button>
+            <button
               onClick={() => setActiveSection("staff")}
-              className={`py-4 px-6 rounded-lg transition-all flex items-center justify-center gap-2 ${
+              className={`min-w-max py-4 px-6 rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
                 activeSection === "staff"
                   ? "bg-teal-600 text-white shadow-md"
                   : "text-slate-600 hover:bg-slate-50"
@@ -335,19 +402,8 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               <span>Staff Management</span>
             </button>
             <button
-              onClick={() => setActiveSection("churn")}
-              className={`py-4 px-6 rounded-lg transition-all flex items-center justify-center gap-2 ${
-                activeSection === "churn"
-                  ? "bg-teal-600 text-white shadow-md"
-                  : "text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              <UserX className="w-5 h-5" />
-              <span>Churn Analysis</span>
-            </button>
-            <button
               onClick={() => setActiveSection("guide")}
-              className={`py-4 px-6 rounded-lg transition-all flex items-center justify-center gap-2 ${
+              className={`min-w-max py-4 px-6 rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
                 activeSection === "guide"
                   ? "bg-teal-600 text-white shadow-md"
                   : "text-slate-600 hover:bg-slate-50"
@@ -410,20 +466,20 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
                     <div className="text-slate-600 text-sm mb-1">New This Month</div>
                     <div className="text-3xl text-slate-900 mb-1">{displayNewUsers}</div>
-                    <div className="text-xs text-blue-600">Jan 2026</div>
+                    <div className="text-xs text-blue-600">Trader accounts created this month</div>
                   </div>
                   <div className="bg-gradient-to-br from-red-50 to-rose-50 border border-red-200 rounded-lg p-4">
                     <div className="text-slate-600 text-sm mb-1 flex items-center gap-1">
                       <UserX className="w-3.5 h-3.5" />
-                      Cancelled Plans
+                      Feedback Entries
                     </div>
-                    <div className="text-3xl text-slate-900 mb-1">3</div>
-                    <div className="text-xs text-red-600">6% churn rate</div>
+                    <div className="text-3xl text-slate-900 mb-1">{churnItems.length}</div>
+                    <div className="text-xs text-red-600">Cancellation feedback submitted</div>
                   </div>
                   <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-4">
-                    <div className="text-slate-600 text-sm mb-1">Inactive Users</div>
-                    <div className="text-3xl text-slate-900 mb-1">{displayInactiveUsers}</div>
-                    <div className="text-xs text-amber-600">Not trading</div>
+                    <div className="text-slate-600 text-sm mb-1">Connected EA Accounts</div>
+                    <div className="text-3xl text-slate-900 mb-1">{activeEaConnections}</div>
+                    <div className="text-xs text-amber-600">Records with EA activity</div>
                   </div>
                 </div>
 
@@ -432,13 +488,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <div className="lg:col-span-2">
                     <h3 className="text-sm text-slate-700 mb-3">User Growth Trend</h3>
                     <ResponsiveContainer width="100%" height={250}>
-                      <LineChart data={[
-                        { month: "Sep", users: 3 },
-                        { month: "Oct", users: 3 },
-                        { month: "Nov", users: 4 },
-                        { month: "Dec", users: 4 },
-                        { month: "Jan", users: 5 }
-                      ]}>
+                      <LineChart data={userGrowthTrend}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                         <XAxis dataKey="month" stroke="#64748b" style={{ fontSize: '12px' }} />
                         <YAxis stroke="#64748b" style={{ fontSize: '12px' }} />
@@ -455,19 +505,19 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     <div className="space-y-4">
                       <div className="bg-slate-50 rounded-lg p-3">
                         <div className="text-xs text-slate-600 mb-1">Avg. Trades per User</div>
-                        <div className="text-xl text-slate-900">{(mockTraders.reduce((sum, t) => sum + t.totalTrades, 0) / totalTraders).toFixed(0)}</div>
+                        <div className="text-xl text-slate-900">{totalTraders > 0 ? (traders.reduce((sum, trader) => sum + trader.tradeEventCount, 0) / totalTraders).toFixed(0) : "0"}</div>
                       </div>
                       <div className="bg-slate-50 rounded-lg p-3">
                         <div className="text-xs text-slate-600 mb-1">Avg. ML Uses per User</div>
-                        <div className="text-xl text-slate-900">{(totalMLAnalyses / totalTraders).toFixed(0)}</div>
+                        <div className="text-xl text-slate-900">{totalTraders > 0 ? (totalMLAnalyses / totalTraders).toFixed(0) : "0"}</div>
                       </div>
                       <div className="bg-slate-50 rounded-lg p-3">
-                        <div className="text-xs text-slate-600 mb-1">Premium Conversion</div>
-                        <div className="text-xl text-teal-600">{((premiumCount / totalTraders) * 100).toFixed(0)}%</div>
+                        <div className="text-xs text-slate-600 mb-1">Premium Traders</div>
+                        <div className="text-xl text-teal-600">{totalTraders > 0 ? ((premiumCount / totalTraders) * 100).toFixed(0) : "0"}%</div>
                       </div>
                       <div className="bg-slate-50 rounded-lg p-3">
                         <div className="text-xs text-slate-600 mb-1">Retention Rate</div>
-                        <div className="text-xl text-green-600">{((activeTraders / totalTraders) * 100).toFixed(0)}%</div>
+                        <div className="text-xl text-green-600">{totalTraders > 0 ? ((activeTraders / totalTraders) * 100).toFixed(0) : "0"}%</div>
                       </div>
                     </div>
                   </div>
@@ -475,133 +525,59 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               </div>
             </div>
 
-            {/* Subsection 1: Revenue with Chart */}
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200">
-              <div className="border-b border-slate-200 bg-slate-50 p-4">
-                <h2 className="text-lg text-slate-900 flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-green-600" />
-                  Company Revenue
-                </h2>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
-                    <div className="text-slate-600 text-sm mb-1">Monthly Revenue</div>
-                    <div className="text-3xl text-slate-900 mb-1">£{monthlyRevenue.toLocaleString()}</div>
-                    <div className="text-xs text-green-600">↑ 15% from last month</div>
-                  </div>
-                  <div className="bg-gradient-to-br from-teal-50 to-cyan-50 border border-teal-200 rounded-lg p-4">
-                    <div className="text-slate-600 text-sm mb-1">Premium Revenue</div>
-                    <div className="text-3xl text-slate-900 mb-1">£{(premiumCount * 35).toLocaleString()}</div>
-                    <div className="text-xs text-slate-600">{premiumCount} subscribers @ £35/mo</div>
-                  </div>
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
-                    <div className="text-slate-600 text-sm mb-1">PAYG Revenue</div>
-                    <div className="text-3xl text-slate-900 mb-1">£{(paygCount * 10 + 45).toFixed(0)}</div>
-                    <div className="text-xs text-slate-600">{paygCount} subscribers + usage</div>
-                  </div>
-                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4">
-                    <div className="text-slate-600 text-sm mb-1">Avg. Revenue/Trader</div>
-                    <div className="text-3xl text-slate-900 mb-1">£{(totalRevenue / totalTraders).toFixed(2)}</div>
-                    <div className="text-xs text-slate-600">Per active trader</div>
-                  </div>
-                </div>
-
-                {/* Revenue Chart */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2">
-                    <h3 className="text-sm text-slate-700 mb-3">Revenue Trend</h3>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <LineChart data={revenueChartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                        <XAxis dataKey="month" stroke="#64748b" style={{ fontSize: '12px' }} />
-                        <YAxis stroke="#64748b" style={{ fontSize: '12px' }} />
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
-                          formatter={(value: number) => [`£${value}`, 'Revenue']}
-                        />
-                        <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} dot={{ fill: '#10b981', r: 4 }} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div>
-                    <h3 className="text-sm text-slate-700 mb-3">Plan Distribution</h3>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <PieChart>
-                        <Pie
-                          data={subscriptionPieData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {subscriptionPieData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Subsection 2: ML Model Usage with Chart */}
+            {/* Subsection 1: ML Model Usage with Chart */}
             <div className="bg-white rounded-lg shadow-sm border border-slate-200">
               <div className="border-b border-slate-200 bg-slate-50 p-4">
                 <h2 className="text-lg text-slate-900 flex items-center gap-2">
                   <Brain className="w-5 h-5 text-purple-600" />
-                  ML Model Usage
+                  Account And EA Activity
                 </h2>
               </div>
               <div className="p-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                   <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 border border-purple-200 rounded-lg p-4">
-                    <div className="text-slate-600 text-sm mb-1">Total Analyses</div>
+                    <div className="text-slate-600 text-sm mb-1">History Exports</div>
                     <div className="text-3xl text-slate-900 mb-1">{totalMLAnalyses.toLocaleString()}</div>
-                    <div className="text-xs text-purple-600">Turtle Analytics runs</div>
+                    <div className="text-xs text-purple-600">Real HISTORY_EXPORT events</div>
                   </div>
                   <div className="bg-gradient-to-br from-pink-50 to-rose-50 border border-pink-200 rounded-lg p-4">
-                    <div className="text-slate-600 text-sm mb-1">Avg. per Trader</div>
-                    <div className="text-3xl text-slate-900 mb-1">{(totalMLAnalyses / totalTraders).toFixed(0)}</div>
-                    <div className="text-xs text-slate-600">Analyses per account</div>
+                    <div className="text-slate-600 text-sm mb-1">Avg. Exports per Trader</div>
+                    <div className="text-3xl text-slate-900 mb-1">{totalTraders > 0 ? (totalMLAnalyses / totalTraders).toFixed(0) : "0"}</div>
+                    <div className="text-xs text-slate-600">Across tracked trader records</div>
                   </div>
                   <div className="bg-gradient-to-br from-cyan-50 to-sky-50 border border-cyan-200 rounded-lg p-4">
-                    <div className="text-slate-600 text-sm mb-1">Success Rate</div>
-                    <div className="text-3xl text-slate-900 mb-1">94.8%</div>
-                    <div className="text-xs text-cyan-600">Model accuracy</div>
+                    <div className="text-slate-600 text-sm mb-1">API Key Coverage</div>
+                    <div className="text-3xl text-slate-900 mb-1">{tradersWithApiKeys}</div>
+                    <div className="text-xs text-cyan-600">Traders with API keys configured</div>
                   </div>
                   <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-4">
-                    <div className="text-slate-600 text-sm mb-1">Avg. Processing Time</div>
-                    <div className="text-3xl text-slate-900 mb-1">1.2s</div>
-                    <div className="text-xs text-slate-600">Per analysis</div>
+                    <div className="text-slate-600 text-sm mb-1">Connected EA Traders</div>
+                    <div className="text-3xl text-slate-900 mb-1">{activeEaConnections}</div>
+                    <div className="text-xs text-slate-600">Have at least one synced EA event</div>
                   </div>
                 </div>
 
                 {/* ML Usage Chart */}
                 <div>
-                  <h3 className="text-sm text-slate-700 mb-3">ML Analysis Trend</h3>
+                  <h3 className="text-sm text-slate-700 mb-3">Trader Account Signup Trend</h3>
                   <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={mlUsageChartData}>
+                    <BarChart data={activityChartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                       <XAxis dataKey="month" stroke="#64748b" style={{ fontSize: '12px' }} />
                       <YAxis stroke="#64748b" style={{ fontSize: '12px' }} />
                       <Tooltip 
                         contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
-                        formatter={(value: number) => [`${value}`, 'Analyses']}
+                        formatter={(value: number) => [`${value}`, 'Records']}
                       />
-                      <Bar dataKey="analyses" fill="#a855f7" radius={[8, 8, 0, 0]} />
+                      <Legend />
+                      <Bar dataKey="accounts" fill="#a855f7" radius={[8, 8, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
               </div>
             </div>
 
-            {/* Subsection 3: Trader Accounts with Filter */}
+            {/* Subsection 2: Trader Accounts with Filter */}
             <div className="bg-white rounded-lg shadow-sm border border-slate-200">
               <div className="border-b border-slate-200 bg-slate-50 p-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -628,9 +604,9 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         className="w-full sm:w-48 pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm appearance-none bg-white"
                       >
                         <option value="all">All Traders</option>
-                        <option value="most-ml">Most ML Usage</option>
-                        <option value="best-performance">Best Performance</option>
-                        <option value="worst-performance">Worst Performance</option>
+                        <option value="most-exports">Most Exports</option>
+                        <option value="most-trades">Most Trade Events</option>
+                        <option value="needs-analysis">Needs Analysis</option>
                       </select>
                     </div>
                   </div>
@@ -665,12 +641,14 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <thead className="bg-slate-50">
                     <tr>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Trader</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Status</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Account</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Plan</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Win Rate</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Total Trades</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">ML Analyses</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Revenue</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Analysis Status</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Country</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Broker Accounts</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Trade Events</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Exports</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Last EA Sync</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Actions</th>
                     </tr>
                   </thead>
@@ -683,20 +661,14 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             <div className="text-slate-600 text-xs">{trader.email}</div>
                           </div>
                         </td>
-                        <td className="py-4 px-4">{getStatusBadge(trader.status)}</td>
+                        <td className="py-4 px-4">{getStatusBadge(trader.accountStatus)}</td>
                         <td className="py-4 px-4">{getPlanBadge(trader.plan)}</td>
-                        <td className="py-4 px-4">
-                          <span className={`${
-                            trader.winRate > 70 ? 'text-green-600' : 
-                            trader.winRate > 60 ? 'text-slate-900' : 
-                            trader.winRate > 0 ? 'text-amber-600' : 'text-slate-400'
-                          }`}>
-                            {trader.winRate > 0 ? `${trader.winRate}%` : '-'}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 text-slate-900">{trader.totalTrades}</td>
-                        <td className="py-4 px-4 text-slate-900">{trader.mlAnalyses}</td>
-                        <td className="py-4 px-4 text-slate-900">£{trader.revenue.toFixed(2)}</td>
+                        <td className="py-4 px-4">{getAnalysisStatusBadge(trader.analysisStatus)}</td>
+                        <td className="py-4 px-4 text-slate-900">{trader.country || "-"}</td>
+                        <td className="py-4 px-4 text-slate-900">{trader.brokerAccountsCount}</td>
+                        <td className="py-4 px-4 text-slate-900">{trader.tradeEventCount}</td>
+                        <td className="py-4 px-4 text-slate-900">{trader.historyExportCount}</td>
+                        <td className="py-4 px-4 text-slate-900">{formatDate(trader.lastEaSyncAt)}</td>
                         <td className="py-4 px-4">
                           <button
                             onClick={() => setSelectedTrader(trader)}
@@ -715,7 +687,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               {filteredTraders.length === 0 && (
                 <div className="text-center py-12">
                   <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-600">No traders found</p>
+                  <p className="text-slate-600">{tradersLoading ? "Loading trader accounts..." : tradersError || "No traders found"}</p>
                 </div>
               )}
             </div>
@@ -727,73 +699,66 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
           <div className="bg-white rounded-lg shadow-sm border border-slate-200">
             <div className="border-b border-slate-200 bg-slate-50 p-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg text-slate-900">Staff Members</h2>
+                <h2 className="text-lg text-slate-900">Admin Staff</h2>
                 <button
-                  onClick={() => setShowAddStaff(!showAddStaff)}
-                  className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors text-sm"
+                  onClick={() => {
+                    setShowInviteStaff((current) => !current);
+                    setInviteMessage(null);
+                    setInviteError(null);
+                  }}
+                  className="flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm text-white transition-colors hover:bg-teal-700"
                 >
-                  <UserPlus className="w-4 h-4" />
-                  Add Staff
+                  <UserPlus className="h-4 w-4" />
+                  Invite Admin
                 </button>
               </div>
             </div>
 
-            {/* Add Staff Form */}
-            {showAddStaff && (
+            {showInviteStaff && (
               <div className="border-b border-slate-200 bg-slate-50 p-4">
-                <form onSubmit={handleAddStaff} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-slate-700 mb-2 text-sm">Name</label>
-                      <input
-                        type="text"
-                        value={newStaff.name}
-                        onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
-                        placeholder="John Doe"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-slate-700 mb-2 text-sm">Email</label>
-                      <input
-                        type="email"
-                        value={newStaff.email}
-                        onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
-                        placeholder="john@greenturtletrades.com"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-slate-700 mb-2 text-sm">Role</label>
-                      <select
-                        value={newStaff.role}
-                        onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value as any })}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
-                      >
-                        <option value="support">Support</option>
-                        <option value="analyst">Analyst</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                    </div>
+                <form onSubmit={handleInviteSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div>
+                    <label className="mb-2 block text-sm text-slate-700">Invite Email</label>
+                    <input
+                      type="email"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-teal-500"
+                      placeholder="new.admin@greenturtletrades.com"
+                      required
+                    />
                   </div>
-                  <div className="flex gap-2">
+                  <div>
+                    <label className="mb-2 block text-sm text-slate-700">One-Time Code</label>
+                    <input
+                      type="text"
+                      value={inviteCode}
+                      onChange={(e) => setInviteCode(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-teal-500"
+                      placeholder="TempCode123!"
+                      minLength={8}
+                      required
+                    />
+                  </div>
+                  <div className="flex items-end gap-2">
                     <button
                       type="submit"
-                      className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors text-sm"
+                      disabled={inviteSubmitting}
+                      className="rounded-lg bg-teal-600 px-4 py-2 text-sm text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
                     >
-                      Add Staff Member
+                      {inviteSubmitting ? "Sending..." : "Send Invite"}
                     </button>
                     <button
                       type="button"
-                      onClick={() => setShowAddStaff(false)}
-                      className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm"
+                      onClick={() => setShowInviteStaff(false)}
+                      className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-100"
                     >
                       Cancel
                     </button>
                   </div>
                 </form>
+                {inviteMessage && <p className="mt-3 text-sm text-green-700">{inviteMessage}</p>}
+                {inviteError && <p className="mt-3 text-sm text-red-700">{inviteError}</p>}
               </div>
             )}
 
@@ -821,17 +786,12 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       </td>
                       <td className="py-4 px-4">{getRoleBadge(staff.role)}</td>
                       <td className="py-4 px-4">{getStatusBadge(staff.status)}</td>
-                      <td className="py-4 px-4 text-slate-900 text-sm">{staff.joinDate}</td>
-                      <td className="py-4 px-4 text-slate-600 text-sm">{staff.lastActive}</td>
+                      <td className="py-4 px-4 text-slate-900 text-sm">{formatDate(staff.joinDate)}</td>
+                      <td className="py-4 px-4 text-slate-600 text-sm">{formatDate(staff.lastActive)}</td>
                       <td className="py-4 px-4">
-                        <button
-                          onClick={() => handleRemoveStaff(staff.id)}
-                          className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-                          title="Remove Staff"
-                          disabled={staff.role === "admin" && staff.id === "1"}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <span className="text-xs text-slate-500">
+                          {staff.source === "environment" ? "Env admin" : "Database admin"}
+                        </span>
                       </td>
                     </tr>
                   ))}
@@ -841,16 +801,137 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
             <div className="bg-amber-50 border-t border-amber-200 p-3">
               <p className="text-amber-800 text-xs">
-                <strong>Note:</strong> Staff members will receive an email invitation to set their password and configure 2FA.
+                <strong>Note:</strong> Invited admins are real `ADMIN` users with a one-time code. They must change it on first login.
               </p>
+            </div>
+            {staffMembers.length === 0 && (
+              <div className="p-6 text-sm text-slate-600">{staffError || "No admin staff records found."}</div>
+            )}
+          </div>
+        )}
+
+        {/* SIGNUPS SECTION */}
+        {activeSection === "signups" && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <div className="text-sm text-slate-600">Unique Emails</div>
+                  <div className="mt-1 text-3xl text-slate-900">{uniqueSignupCount}</div>
+                  <div className="text-xs text-slate-600">Grouped people across all signup sources</div>
+                </div>
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                  <div className="text-sm text-slate-600">Landing Page Signups</div>
+                  <div className="mt-1 text-3xl text-slate-900">{landingSignupCount}</div>
+                  <div className="text-xs text-blue-700">Unique emails from landing page</div>
+                </div>
+                <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-4">
+                  <div className="text-sm text-slate-600">Investor Signups</div>
+                  <div className="mt-1 text-3xl text-slate-900">{investorSignupCount}</div>
+                  <div className="text-xs text-cyan-700">Unique investor emails</div>
+                </div>
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                  <div className="text-sm text-slate-600">Trader Applications</div>
+                  <div className="mt-1 text-3xl text-slate-900">{traderApplicationSignupCount}</div>
+                  <div className="text-xs text-amber-700">Unique applicant emails</div>
+                </div>
+                <div className="rounded-lg border border-teal-200 bg-teal-50 p-4">
+                  <div className="text-sm text-slate-600">Trader Accounts</div>
+                  <div className="mt-1 text-3xl text-slate-900">{traderAccountSignupCount}</div>
+                  <div className="text-xs text-teal-700">Unique trader account emails</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200">
+              <div className="border-b border-slate-200 bg-slate-50 p-4">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <h2 className="text-lg text-slate-900">Grouped Signups</h2>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={signupSearchQuery}
+                        onChange={(e) => setSignupSearchQuery(e.target.value)}
+                        placeholder="Search email, name, source, or detail..."
+                        className="w-full rounded-lg border border-slate-300 py-2 pl-10 pr-4 text-sm focus:border-transparent focus:ring-2 focus:ring-teal-500 sm:w-72"
+                      />
+                    </div>
+                    <div className="relative">
+                      <Filter className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <select
+                        value={signupFilter}
+                        onChange={(e) => setSignupFilter(e.target.value as typeof signupFilter)}
+                        className="w-full appearance-none rounded-lg border border-slate-300 py-2 pl-10 pr-4 text-sm focus:border-transparent focus:ring-2 focus:ring-teal-500 sm:w-56"
+                      >
+                        <option value="all">All Signup Types</option>
+                        <option value="landing_waitlist">Landing Page</option>
+                        <option value="investor_waitlist">Investor Signup</option>
+                        <option value="trader_application">Trader Application</option>
+                        <option value="trader_account">Trader Account</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Sources</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Name</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Email</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Entries</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Statuses</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Details</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Latest Signup</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredSignupItems.map((item) => (
+                      <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td className="py-4 px-4">
+                          <div className="flex flex-wrap gap-2">
+                            {item.sourceTypes.map((sourceType) => (
+                              <span key={`${item.id}-${sourceType}`}>{getSignupSourceBadge(sourceType)}</span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="py-4 px-4 text-slate-900">{item.name || "-"}</td>
+                        <td className="py-4 px-4 text-slate-600 text-sm">{item.email}</td>
+                        <td className="py-4 px-4 text-slate-900 text-sm">{item.entryCount}</td>
+                        <td className="py-4 px-4">
+                          <div className="flex flex-wrap gap-2">
+                            {item.statuses.map((status) => (
+                              <span key={`${item.id}-${status}`} className="px-2 py-1 text-xs rounded-full bg-slate-100 text-slate-700">
+                                {status}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="py-4 px-4 text-slate-600 text-sm">
+                          {item.details.length > 0 ? item.details.join(" | ") : "-"}
+                        </td>
+                        <td className="py-4 px-4 text-slate-900 text-sm">{formatDate(item.submittedAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {filteredSignupItems.length === 0 && (
+                <div className="p-6 text-sm text-slate-600">
+                  {signupError || "No signup records match the current filters."}
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* CHURN ANALYSIS SECTION */}
+        {/* FEEDBACK AND CHURN SECTION */}
         {activeSection === "churn" && (
           <div className="space-y-6">
-            {/* Churn Overview Cards */}
+            {/* Churn Overview */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
                 <div className="flex items-center justify-between mb-2">
@@ -858,7 +939,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <UserX className="w-5 h-5 text-red-600" />
                 </div>
                 <div className="text-slate-900 text-3xl mb-1">{totalCancellations}</div>
-                <div className="text-slate-500 text-xs">This month</div>
+                <div className="text-slate-500 text-xs">Live cancellation submissions</div>
               </div>
 
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
@@ -867,7 +948,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <TrendingUp className="w-5 h-5 text-amber-600" />
                 </div>
                 <div className="text-slate-900 text-3xl mb-1">{churnRate}%</div>
-                <div className="text-slate-500 text-xs">Overall rate</div>
+                <div className="text-slate-500 text-xs">Cancellations vs current tracked users</div>
               </div>
 
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
@@ -875,8 +956,12 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <span className="text-slate-600 text-sm">Top Reason</span>
                   <DollarSign className="w-5 h-5 text-orange-600" />
                 </div>
-                <div className="text-slate-900 text-xl mb-1">Too Expensive</div>
-                <div className="text-slate-500 text-xs">{churnData[0].percentage}% of cancellations</div>
+                <div className="text-slate-900 text-xl mb-1">
+                  {churnSummary[0]?.reason?.replaceAll("-", " ") || "No data yet"}
+                </div>
+                <div className="text-slate-500 text-xs">
+                  {churnSummary[0] ? `${churnSummary[0].count} submissions` : "Awaiting cancellation feedback"}
+                </div>
               </div>
             </div>
 
@@ -884,13 +969,13 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
               <h3 className="text-slate-900 text-lg mb-4">Cancellation Reasons Distribution</h3>
               <ResponsiveContainer width="100%" height={350}>
-                <BarChart data={churnData}>
+                <BarChart data={churnSummary.map((item) => ({ label: item.reason.replaceAll("-", " "), count: item.count }))}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                   <YAxis />
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
-                    formatter={(value: number) => [`${value} cancellations`, 'Count']}
+                    formatter={(value: number) => [`${value} cancellations`, "Count"]}
                   />
                   <Bar dataKey="count" fill="#ef4444" radius={[8, 8, 0, 0]} />
                 </BarChart>
@@ -899,7 +984,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
             {/* Churn Trend */}
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
-              <h3 className="text-slate-900 text-lg mb-4">Churn vs Signups Trend</h3>
+              <h3 className="text-slate-900 text-lg mb-4">Cancellation Trend</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={churnTrendData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -908,17 +993,15 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
                   />
-                  <Legend />
-                  <Line type="monotone" dataKey="signups" stroke="#0d9488" strokeWidth={2} name="New Signups" />
-                  <Line type="monotone" dataKey="cancellations" stroke="#ef4444" strokeWidth={2} name="Cancellations" />
+                  <Line type="monotone" dataKey="count" stroke="#ef4444" strokeWidth={2} name="Cancellations" />
                 </LineChart>
               </ResponsiveContainer>
             </div>
 
-            {/* Detailed Cancellation Records */}
+            {/* Recent Feedback */}
             <div className="bg-white rounded-lg shadow-sm border border-slate-200">
               <div className="border-b border-slate-200 bg-slate-50 p-4">
-                <h3 className="text-slate-900 text-lg">Recent Cancellations</h3>
+                <h3 className="text-slate-900 text-lg">Recent Cancellation Feedback</h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -926,13 +1009,13 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     <tr>
                       <th className="text-left py-3 px-4 text-slate-600 text-sm">User</th>
                       <th className="text-left py-3 px-4 text-slate-600 text-sm">Plan</th>
-                      <th className="text-left py-3 px-4 text-slate-600 text-sm">Date</th>
                       <th className="text-left py-3 px-4 text-slate-600 text-sm">Reason</th>
+                      <th className="text-left py-3 px-4 text-slate-600 text-sm">Date</th>
                       <th className="text-left py-3 px-4 text-slate-600 text-sm">Feedback</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {cancellationRecords.map((record) => (
+                    {recentRecords.map((record) => (
                       <tr key={record.id} className="border-b border-slate-100 hover:bg-slate-50">
                         <td className="py-4 px-4">
                           <div>
@@ -946,40 +1029,35 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                               ? "bg-teal-100 text-teal-700"
                               : "bg-slate-100 text-slate-700"
                           }`}>
-                            {record.plan === "premium" ? "Premium" : "PAYG"}
+                            {record.plan === "premium" ? "Premium" : String(record.plan).toUpperCase()}
                           </span>
                         </td>
-                        <td className="py-4 px-4 text-slate-900 text-sm">{record.date}</td>
-                        <td className="py-4 px-4">
-                          <span className="text-slate-900 text-sm">
-                            {churnData.find(d => d.reason === record.reason)?.label || record.reason}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="text-slate-600 text-sm max-w-md truncate">
-                            {record.feedback || <span className="text-slate-400 italic">No feedback provided</span>}
-                          </div>
-                        </td>
+                        <td className="py-4 px-4 text-slate-900 text-sm">{record.reason.replaceAll("-", " ")}</td>
+                        <td className="py-4 px-4 text-slate-900 text-sm">{formatDate(record.createdAt)}</td>
+                        <td className="py-4 px-4 text-slate-600 text-sm">{record.feedback || "No additional feedback"}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+              {recentRecords.length === 0 && (
+                <div className="p-6 text-sm text-slate-600">{churnError || "No cancellation feedback has been submitted yet."}</div>
+              )}
             </div>
 
-            {/* Actionable Insights */}
+            {/* Live Observations */}
             <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-lg p-6">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
                   <Activity className="w-5 h-5 text-orange-600" />
                 </div>
                 <div>
-                  <h3 className="text-orange-900 mb-2">Actionable Insights</h3>
+                  <h3 className="text-orange-900 mb-2">Live Observations</h3>
                   <ul className="text-orange-800 text-sm space-y-2">
-                    <li>• <strong>35.3% cite pricing as the main issue</strong> - Consider offering a mid-tier plan or promotional pricing for traders with lower volumes</li>
-                    <li>• <strong>23.5% not using the platform enough</strong> - Improve onboarding and send engagement emails with tips on maximising value</li>
-                    <li>• <strong>11.8% experiencing technical issues</strong> - Prioritize support response times and create detailed troubleshooting guides</li>
-                    <li>• <strong>Churn trending upward</strong> - January saw {churnTrendData[4].cancellations} cancellations vs {churnTrendData[0].cancellations} in September. Immediate action needed.</li>
+                    <li>• <strong>{totalCancellations} cancellation entries have been recorded.</strong> This section is now driven by platform-user feedback rather than trader applications.</li>
+                    <li>• <strong>{churnSummary[0]?.count ?? 0} users selected the top reason.</strong> Use the reason chart to see which churn pattern is emerging most often.</li>
+                    <li>• <strong>Free-text feedback is now stored live.</strong> The recent feedback table shows the written comments users submitted when cancelling.</li>
+                    <li>• <strong>The trend chart is month-based.</strong> As more users submit cancellation feedback, this section will become useful for retention analysis.</li>
                   </ul>
                 </div>
               </div>

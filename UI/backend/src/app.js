@@ -13,6 +13,8 @@ const app = express();
 const brokerPlatforms = new Set(["MT4", "MT5", "CTRADER"]);
 const experienceLevels = new Set(["BEGINNER", "INTERMEDIATE", "ADVANCED"]);
 const applicationStatuses = new Set(["PENDING", "APPROVED", "REJECTED"]);
+const staffPortalRoles = new Set(["ADMIN"]);
+const staffWriteRoles = new Set(["ADMIN"]);
 
 function getJwtSecret() {
   const secret = process.env.JWT_SECRET;
@@ -45,7 +47,14 @@ function authRequired(req, res, next) {
 }
 
 function adminRequired(req, res, next) {
-  if (!req.user || req.user.role !== "ADMIN") {
+  if (!req.user || !staffPortalRoles.has(req.user.role)) {
+    return res.status(403).json({ ok: false, error: "Forbidden" });
+  }
+  return next();
+}
+
+function staffWriteRequired(req, res, next) {
+  if (!req.user || !staffWriteRoles.has(req.user.role)) {
     return res.status(403).json({ ok: false, error: "Forbidden" });
   }
   return next();
@@ -59,6 +68,34 @@ function getHeaderValue(value) {
     return value;
   }
   return null;
+}
+
+function buildAdminStaffMember(user) {
+  const firstName = user.profile?.firstName?.trim() || "";
+  const lastName = user.profile?.lastName?.trim() || "";
+  const profileName = `${firstName} ${lastName}`.trim();
+  const derivedName = profileName || user.email.split("@")[0];
+
+  return {
+    id: user.id,
+    name: derivedName,
+    email: user.email,
+    role: "admin",
+    status: user.status,
+    joinDate: user.createdAt.toISOString(),
+    lastActive: user.updatedAt ? user.updatedAt.toISOString() : null,
+    source: "database",
+  };
+}
+
+function getTraderAnalysisStatus({ latestSnapshot, tradeEventCount, historyExportCount }) {
+  if (latestSnapshot) {
+    return "ANALYSIS_READY";
+  }
+  if (tradeEventCount > 0 || historyExportCount > 0) {
+    return "NEEDS_ANALYSIS";
+  }
+  return "NO_TRADE_DATA";
 }
 
 async function apiKeyRequired(req, res, next) {
@@ -417,7 +454,7 @@ app.get("/api/trader/application", async (req, res, next) => {
 // Auth
 app.post("/api/auth/register", async (req, res) => {
   try {
-    const { email, password } = req.body || {};
+    const { email, password, name, metaTraderUsername, brokerName } = req.body || {};
 
     if (!email || typeof email !== "string") {
       return res.status(400).json({ ok: false, error: "Email is required" });
@@ -440,10 +477,41 @@ app.post("/api/auth/register", async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
+    const trimmedName = typeof name === "string" ? name.trim() : "";
+    const [firstName, ...restName] = trimmedName ? trimmedName.split(/\s+/) : [];
+    const lastName = restName.join(" ");
+    const normalizedMetaTraderUsername =
+      typeof metaTraderUsername === "string" && metaTraderUsername.trim()
+        ? metaTraderUsername.trim()
+        : null;
+    const normalizedBrokerName =
+      typeof brokerName === "string" && brokerName.trim()
+        ? brokerName.trim()
+        : null;
+
     const user = await prisma.user.create({
       data: {
         email: normalizedEmail,
         passwordHash,
+        profile: trimmedName
+          ? {
+              create: {
+                firstName: firstName || null,
+                lastName: lastName || null,
+              },
+            }
+          : undefined,
+        brokerAccounts: normalizedMetaTraderUsername
+          ? {
+              create: {
+                platform: "MT5",
+                brokerName: normalizedBrokerName,
+                accountNumber: normalizedMetaTraderUsername,
+                label: "Primary MetaTrader",
+                isActive: true,
+              },
+            }
+          : undefined,
       },
     });
 
@@ -553,7 +621,12 @@ app.post("/api/admin/login", async (req, res) => {
     }
 
     const adminUser = await prisma.user.findFirst({
-      where: { email: normalizedEmail, role: "ADMIN" },
+      where: {
+        email: normalizedEmail,
+        role: {
+          in: Array.from(staffPortalRoles),
+        },
+      },
     });
 
     if (adminUser) {
@@ -563,7 +636,7 @@ app.post("/api/admin/login", async (req, res) => {
         return res.status(401).json({ ok: false, error: "Invalid credentials" });
       }
 
-      if (adminUser.status !== "ACTIVE") {
+      if (adminUser.status === "DISABLED") {
         return res.status(403).json({ ok: false, error: "Account disabled" });
       }
 
@@ -572,6 +645,7 @@ app.post("/api/admin/login", async (req, res) => {
       return res.json({
         ok: true,
         token,
+        mustChangePassword: adminUser.status === "PENDING",
         user: {
           id: adminUser.id,
           email: adminUser.email,
@@ -585,6 +659,73 @@ app.post("/api/admin/login", async (req, res) => {
   } catch (err) {
     console.error("Admin login error:", err);
     return res.status(500).json({ ok: false, error: "Internal server error" });
+  }
+});
+
+app.post("/api/admin/change-password", authRequired, adminRequired, async (req, res, next) => {
+  try {
+    if (!req.user || req.user.id === "env-admin") {
+      return res.status(400).json({ ok: false, error: "Environment admin password cannot be changed here" });
+    }
+
+    const { currentPassword, newPassword } = req.body || {};
+
+    if (!currentPassword || typeof currentPassword !== "string") {
+      return res.status(400).json({ ok: false, error: "Current password is required" });
+    }
+
+    if (!newPassword || typeof newPassword !== "string" || newPassword.trim().length < 8) {
+      return res.status(400).json({ ok: false, error: "New password must be at least 8 characters" });
+    }
+
+    const adminUser = await prisma.user.findUnique({
+      where: { id: req.user.id },
+    });
+
+    if (!adminUser || !staffPortalRoles.has(adminUser.role)) {
+      return res.status(404).json({ ok: false, error: "Staff user not found" });
+    }
+
+    const passwordValid = await bcrypt.compare(currentPassword, adminUser.passwordHash);
+    if (!passwordValid) {
+      return res.status(401).json({ ok: false, error: "Current password is incorrect" });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword.trim(), 10);
+    await prisma.user.update({
+      where: { id: adminUser.id },
+      data: {
+        passwordHash,
+        status: "ACTIVE",
+      },
+    });
+
+    return res.json({ ok: true });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.post("/api/subscription/churn-feedback", authRequired, async (req, res, next) => {
+  try {
+    const { reason, feedback, plan } = req.body || {};
+
+    if (!reason || typeof reason !== "string" || !reason.trim()) {
+      return res.status(400).json({ ok: false, error: "Cancellation reason is required" });
+    }
+
+    const entry = await prisma.churnFeedback.create({
+      data: {
+        userId: req.user.id,
+        reason: reason.trim(),
+        feedback: typeof feedback === "string" && feedback.trim() ? feedback.trim() : null,
+        plan: typeof plan === "string" && plan.trim() ? plan.trim() : null,
+      },
+    });
+
+    return res.json({ ok: true, id: entry.id });
+  } catch (err) {
+    return next(err);
   }
 });
 
@@ -609,6 +750,141 @@ app.get("/api/me", authRequired, async (req, res, next) => {
         profile: user.profile,
       },
     });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.patch("/api/me/profile", authRequired, async (req, res, next) => {
+  try {
+    const { fullName, email } = req.body || {};
+
+    if (fullName !== undefined && typeof fullName !== "string") {
+      return res.status(400).json({ ok: false, error: "Full name must be a string" });
+    }
+
+    if (email !== undefined && typeof email !== "string") {
+      return res.status(400).json({ ok: false, error: "Email must be a string" });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: { profile: true },
+    });
+
+    if (!user) {
+      return res.status(404).json({ ok: false, error: "User not found" });
+    }
+
+    const data = {};
+    if (email !== undefined) {
+      const normalizedEmail = email.trim().toLowerCase();
+      if (!normalizedEmail) {
+        return res.status(400).json({ ok: false, error: "Email cannot be empty" });
+      }
+
+      if (normalizedEmail !== user.email) {
+        const existing = await prisma.user.findUnique({
+          where: { email: normalizedEmail },
+          select: { id: true },
+        });
+        if (existing && existing.id !== user.id) {
+          return res.status(409).json({ ok: false, error: "Email already exists" });
+        }
+        data.email = normalizedEmail;
+      }
+    }
+
+    const trimmedName = fullName !== undefined ? fullName.trim() : null;
+    const [firstName, ...restName] = trimmedName ? trimmedName.split(/\s+/) : [];
+    const lastName = restName.join(" ");
+
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        ...data,
+        ...(fullName !== undefined
+          ? user.profile
+            ? {
+                profile: {
+                  update: {
+                    firstName: firstName || null,
+                    lastName: lastName || null,
+                  },
+                },
+              }
+            : {
+                profile: {
+                  create: {
+                    firstName: firstName || null,
+                    lastName: lastName || null,
+                  },
+                },
+              }
+          : {}),
+      },
+      include: { profile: true },
+    });
+
+    return res.json({
+      ok: true,
+      user: {
+        id: updated.id,
+        email: updated.email,
+        role: updated.role,
+        status: updated.status,
+        profile: updated.profile,
+      },
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.post("/api/me/change-password", authRequired, async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body || {};
+
+    if (!currentPassword || typeof currentPassword !== "string") {
+      return res.status(400).json({ ok: false, error: "Current password is required" });
+    }
+
+    if (!newPassword || typeof newPassword !== "string" || newPassword.trim().length < 8) {
+      return res.status(400).json({ ok: false, error: "New password must be at least 8 characters" });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+    });
+
+    if (!user) {
+      return res.status(404).json({ ok: false, error: "User not found" });
+    }
+
+    const passwordValid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!passwordValid) {
+      return res.status(401).json({ ok: false, error: "Current password is incorrect" });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword.trim(), 10);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash },
+    });
+
+    return res.json({ ok: true });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.delete("/api/me", authRequired, async (req, res, next) => {
+  try {
+    await prisma.user.delete({
+      where: { id: req.user.id },
+    });
+
+    return res.json({ ok: true });
   } catch (err) {
     return next(err);
   }
@@ -875,6 +1151,352 @@ app.post("/api/admin/trader-applications/:id/reject", authRequired, adminRequire
     });
 
     return res.json({ ok: true, status: updated.status });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.get("/api/admin/traders", authRequired, adminRequired, async (req, res, next) => {
+  try {
+    const [users, applications] = await Promise.all([
+      prisma.user.findMany({
+        where: { role: "TRADER" },
+        orderBy: { createdAt: "desc" },
+        include: {
+          profile: true,
+          analysisSnapshots: {
+            orderBy: { updatedAt: "desc" },
+            take: 1,
+          },
+          brokerAccounts: {
+            select: {
+              id: true,
+              isActive: true,
+              eaEvents: {
+                select: {
+                  type: true,
+                  receivedAt: true,
+                },
+              },
+            },
+          },
+          _count: {
+            select: {
+              apiKeys: true,
+            },
+          },
+        },
+      }),
+      prisma.traderApplication.findMany({
+        orderBy: { submittedAt: "desc" },
+      }),
+    ]);
+
+    const usersByEmail = new Map(
+      users.map((user) => [user.email.trim().toLowerCase(), user])
+    );
+    const applicationsByEmail = new Map(
+      applications.map((application) => [application.email.trim().toLowerCase(), application])
+    );
+
+    const emails = Array.from(
+      new Set([...usersByEmail.keys(), ...applicationsByEmail.keys()])
+    );
+
+    const items = emails
+      .map((email) => {
+        const user = usersByEmail.get(email) || null;
+        const application = applicationsByEmail.get(email) || null;
+        const brokerAccounts = user?.brokerAccounts || [];
+        const latestSnapshot = user?.analysisSnapshots?.[0] || null;
+        const eaEvents = brokerAccounts.flatMap((account) => account.eaEvents);
+        const tradeEventCount = eaEvents.filter((event) => event.type === "TRADE_EVENT").length;
+        const historyExportCount = eaEvents.filter((event) => event.type === "HISTORY_EXPORT").length;
+        const lastEaSyncAt = eaEvents.reduce((latest, event) => {
+          if (!latest || event.receivedAt > latest) {
+            return event.receivedAt;
+          }
+          return latest;
+        }, null);
+
+        const firstName = user?.profile?.firstName?.trim() || "";
+        const lastName = user?.profile?.lastName?.trim() || "";
+        const profileName = `${firstName} ${lastName}`.trim();
+        const applicationName = application?.fullName?.trim() || "";
+        const derivedName =
+          profileName ||
+          applicationName ||
+          email.split("@")[0];
+
+        return {
+          id: user?.id || application?.id,
+          name: derivedName,
+          email,
+          accountStatus: user ? user.status : "NO_ACCOUNT",
+          applicationStatus: application ? application.status : "NONE",
+          plan: user?.stripeSubscriptionId ? "premium" : "payg",
+          joinedAt: (user?.createdAt || application?.submittedAt || new Date()).toISOString(),
+          country: application?.country || null,
+          platform: application?.platform || null,
+          experienceLevel: application?.experienceLevel || null,
+          brokerAccountsCount: brokerAccounts.length,
+          activeBrokerAccountsCount: brokerAccounts.filter((account) => account.isActive).length,
+          apiKeysCount: user?._count?.apiKeys || 0,
+          tradeEventCount,
+          historyExportCount,
+          lastEaSyncAt: lastEaSyncAt ? lastEaSyncAt.toISOString() : null,
+          hasAccount: Boolean(user),
+          hasApplication: Boolean(application),
+          analysisStatus: getTraderAnalysisStatus({
+            latestSnapshot,
+            tradeEventCount,
+            historyExportCount,
+          }),
+          latestAnalysisAt: latestSnapshot ? latestSnapshot.updatedAt.toISOString() : null,
+          latestAnalysisReport: latestSnapshot ? latestSnapshot.report : null,
+          metrics: {
+            tradesAnalysed: latestSnapshot?.tradesAnalysed ?? null,
+            avgRMultiple: latestSnapshot?.avgRMultiple ?? null,
+            winRate: latestSnapshot?.winRate ?? null,
+            sharpeRatio: latestSnapshot?.sharpeRatio ?? null,
+            maxDrawdownR: latestSnapshot?.maxDrawdownR ?? null,
+            totalR: latestSnapshot?.totalR ?? null,
+          },
+        };
+      })
+      .sort((a, b) => new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime());
+
+    return res.json({ ok: true, items });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.get("/api/admin/staff", authRequired, adminRequired, async (req, res, next) => {
+  try {
+    const adminUsers = await prisma.user.findMany({
+      where: {
+        role: {
+          in: Array.from(staffPortalRoles),
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      include: {
+        profile: true,
+      },
+    });
+
+    const items = adminUsers.map(buildAdminStaffMember);
+
+    const envEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+    if (envEmail && !items.some((item) => item.email === envEmail)) {
+      items.unshift({
+        id: "env-admin",
+        name: envEmail.split("@")[0],
+        email: envEmail,
+        role: "admin",
+        status: "ACTIVE",
+        joinDate: new Date(0).toISOString(),
+        lastActive: null,
+        source: "environment",
+      });
+    }
+
+    return res.json({ ok: true, items });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.get("/api/admin/churn-feedback", authRequired, adminRequired, async (req, res, next) => {
+  try {
+    const items = await prisma.churnFeedback.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        user: {
+          include: {
+            profile: true,
+          },
+        },
+      },
+    });
+
+    const normalizedReasons = new Map();
+    for (const item of items) {
+      const key = item.reason;
+      const current = normalizedReasons.get(key) || 0;
+      normalizedReasons.set(key, current + 1);
+    }
+
+    const reasonSummary = Array.from(normalizedReasons.entries())
+      .map(([reason, count]) => ({ reason, count }))
+      .sort((a, b) => b.count - a.count);
+
+    const payload = items.map((item) => {
+      const firstName = item.user.profile?.firstName?.trim() || "";
+      const lastName = item.user.profile?.lastName?.trim() || "";
+      const profileName = `${firstName} ${lastName}`.trim();
+
+      return {
+        id: item.id,
+        userId: item.userId,
+        userName: profileName || item.user.email.split("@")[0],
+        email: item.user.email,
+        plan: item.plan || "unknown",
+        reason: item.reason,
+        feedback: item.feedback,
+        createdAt: item.createdAt.toISOString(),
+      };
+    });
+
+    return res.json({
+      ok: true,
+      items: payload,
+      summary: reasonSummary,
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.post("/api/admin/staff/invite", authRequired, staffWriteRequired, async (req, res, next) => {
+  try {
+    const { email, temporaryCode } = req.body || {};
+
+    if (!email || typeof email !== "string") {
+      return res.status(400).json({ ok: false, error: "Email is required" });
+    }
+
+    if (
+      !temporaryCode ||
+      typeof temporaryCode !== "string" ||
+      temporaryCode.trim().length < 8
+    ) {
+      return res.status(400).json({ ok: false, error: "Temporary code must be at least 8 characters" });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const existing = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+      include: { profile: true },
+    });
+
+    if (existing && existing.role !== "ADMIN") {
+      return res.status(409).json({ ok: false, error: "A non-admin user already exists with that email" });
+    }
+
+    const passwordHash = await bcrypt.hash(temporaryCode.trim(), 10);
+
+    const adminUser = existing
+      ? await prisma.user.update({
+          where: { id: existing.id },
+          data: {
+            passwordHash,
+            role: "ADMIN",
+            status: "PENDING",
+          },
+          include: { profile: true },
+        })
+      : await prisma.user.create({
+          data: {
+            email: normalizedEmail,
+            passwordHash,
+            role: "ADMIN",
+            status: "PENDING",
+          },
+          include: { profile: true },
+        });
+
+    const appUrl = process.env.APP_URL || "http://localhost:5173";
+
+    sendEmail({
+      to: normalizedEmail,
+      subject: "Green Turtle Trades admin invite",
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a; max-width: 640px; margin: 0 auto;">
+          <div style="padding: 24px 0 12px;">
+            <h2 style="margin: 0; color: #0f766e;">Green Turtle Trades</h2>
+          </div>
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px;">
+            <p style="margin-top: 0;">You have been invited to the Green Turtle Trades admin portal.</p>
+            <p>Use the email below and the one-time code to sign in. You will be asked to change it after login.</p>
+            <div style="margin: 24px 0; padding: 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
+              <p style="margin: 0 0 8px;"><strong>Email:</strong> ${normalizedEmail}</p>
+              <p style="margin: 0;"><strong>One-time code:</strong> ${temporaryCode.trim()}</p>
+            </div>
+            <p style="margin: 0 0 8px;"><strong>Admin portal:</strong> ${appUrl}/admin</p>
+            <p style="margin-bottom: 0;">If you were not expecting this invite, please ignore this email.</p>
+          </div>
+        </div>
+      `,
+      text: [
+        "You have been invited to the Green Turtle Trades admin portal.",
+        "Use the details below to sign in, then change your password immediately.",
+        "",
+        `Email: ${normalizedEmail}`,
+        `One-time code: ${temporaryCode.trim()}`,
+        `Admin portal: ${appUrl}/admin`,
+      ].join("\n"),
+    }).catch((e) => console.error("Admin invite email failed:", e));
+
+    return res.json({ ok: true, staffMember: buildAdminStaffMember(adminUser) });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.get("/api/admin/signups", authRequired, adminRequired, async (req, res, next) => {
+  try {
+    const [waitlistEntries, traderApplications, traderUsers] = await Promise.all([
+      prisma.waitlistEntry.findMany({
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.traderApplication.findMany({
+        orderBy: { submittedAt: "desc" },
+      }),
+      prisma.user.findMany({
+        where: { role: "TRADER" },
+        orderBy: { createdAt: "desc" },
+        include: { profile: true },
+      }),
+    ]);
+
+    const items = [
+      ...waitlistEntries.map((entry) => ({
+        id: `waitlist-${entry.id}`,
+        email: entry.email,
+        sourceType: entry.source === "landing" ? "landing_waitlist" : "investor_waitlist",
+        status: "SUBMITTED",
+        submittedAt: entry.createdAt.toISOString(),
+        name: null,
+        detail: entry.source || "unknown",
+      })),
+      ...traderApplications.map((application) => ({
+        id: `application-${application.id}`,
+        email: application.email,
+        sourceType: "trader_application",
+        status: application.status,
+        submittedAt: application.submittedAt.toISOString(),
+        name: application.fullName,
+        detail: `${application.country} · ${application.platform}`,
+      })),
+      ...traderUsers.map((user) => {
+        const firstName = user.profile?.firstName?.trim() || "";
+        const lastName = user.profile?.lastName?.trim() || "";
+        const profileName = `${firstName} ${lastName}`.trim();
+        return {
+          id: `user-${user.id}`,
+          email: user.email,
+          sourceType: "trader_account",
+          status: user.status,
+          submittedAt: user.createdAt.toISOString(),
+          name: profileName || null,
+          detail: user.stripeSubscriptionId ? "Premium" : "PAYG",
+        };
+      }),
+    ].sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+
+    return res.json({ ok: true, items });
   } catch (err) {
     return next(err);
   }
@@ -1309,6 +1931,24 @@ app.get("/api/analyse/:jobId", authRequired, async (req, res, next) => {
     }
 
     const data = await pythonRes.json();
+
+    if (data.status === "complete" && data.report) {
+      const originalPerformance = data.report.summary?.original_performance ?? {};
+      const riskMetrics = data.report.risk_recommendations?.risk_metrics ?? {};
+
+      await prisma.analysisSnapshot.create({
+        data: {
+          userId: req.user.id,
+          report: data.report,
+          tradesAnalysed: data.trades_analysed ?? originalPerformance.n_trades ?? null,
+          avgRMultiple: data.avg_r_multiple ?? originalPerformance.avg_r ?? null,
+          winRate: originalPerformance.win_rate ?? null,
+          sharpeRatio: originalPerformance.sharpe_ratio ?? null,
+          maxDrawdownR: riskMetrics.max_drawdown_r ?? null,
+          totalR: originalPerformance.total_r ?? null,
+        },
+      });
+    }
 
     return res.json({
       ok: true,

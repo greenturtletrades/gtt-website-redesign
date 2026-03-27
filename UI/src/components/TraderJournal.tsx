@@ -77,68 +77,7 @@ export function TraderJournal({ entries: liveEntries = [] }: TraderJournalProps)
     currency: "USD",
     maximumFractionDigits: 2,
   });
-  const [entries, setEntries] = useState<JournalEntry[]>([
-    {
-      id: "1",
-      date: "2024-12-01",
-      pair: "EUR/USD",
-      direction: "long",
-      entryPrice: 1.0850,
-      exitPrice: 1.0920,
-      stopLoss: 1.0810,
-      takeProfit: 1.0920,
-      entryTime: "14:30",
-      exitTime: "15:45",
-      duration: 75,
-      exitType: "TP",
-      result: 420,
-      rMultiple: 2.1,
-      notes: "Clean breakout above daily resistance. Entered on retest with confluence from 4H trend.",
-      emotions: "Confident and patient. Waited for my setup.",
-      lessonsLearned: "Trailing stop worked perfectly. Captured 70% of the move.",
-      marketConditions: "Trending bullish, low volatility"
-    },
-    {
-      id: "2",
-      date: "2024-11-30",
-      pair: "GBP/JPY",
-      direction: "short",
-      entryPrice: 192.45,
-      exitPrice: 192.80,
-      stopLoss: 192.80,
-      takeProfit: 191.75,
-      entryTime: "10:15",
-      exitTime: "10:30",
-      duration: 15,
-      exitType: "SL",
-      result: -180,
-      rMultiple: -1.0,
-      notes: "Entered too early on what looked like resistance. Market pushed higher before reversing.",
-      emotions: "Frustrated but disciplined. Took the stop loss without hesitation.",
-      lessonsLearned: "Need to wait for price action confirmation before entering counter-trend. Structure wasn't clear enough.",
-      marketConditions: "Choppy range-bound"
-    },
-    {
-      id: "3",
-      date: "2024-11-29",
-      pair: "USD/JPY",
-      direction: "long",
-      entryPrice: 149.20,
-      exitPrice: 149.95,
-      stopLoss: 148.90,
-      takeProfit: 149.95,
-      entryTime: "09:00",
-      exitTime: "09:45",
-      duration: 45,
-      exitType: "TP",
-      result: 625,
-      rMultiple: 2.5,
-      notes: "Perfect setup at daily support with bullish divergence on RSI. High probability trade.",
-      emotions: "Calm and focused. Everything lined up.",
-      lessonsLearned: "Patience paid off. Waited 3 days for this setup to develop.",
-      marketConditions: "Trending bullish, NFP week"
-    }
-  ]);
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [liveOverrides, setLiveOverrides] = useState<Record<string, JournalEntry>>({});
   const hasLiveEntries = liveEntries.length > 0;
   const activeEntries = hasLiveEntries
@@ -325,16 +264,16 @@ export function TraderJournal({ entries: liveEntries = [] }: TraderJournalProps)
               <p className="text-slate-600 text-base">
                 {hasLiveEntries
                   ? "Journal rows are generated from your latest processed trade analysis."
-                  : "Trades are automatically imported from MetaTrader when closed. Add your notes and reflections."}
+                  : "No imported trades yet. Run the analytics model or add your own journal notes to start building your record."}
               </p>
             </div>
             <div className="bg-teal-50 border border-teal-200 rounded-lg px-4 py-3">
               <div className="flex items-center gap-2">
                 <Activity className="w-5 h-5 text-teal-600" />
                 <div>
-                  <div className="text-xs text-teal-700">{hasLiveEntries ? "Analysis Sync Active" : "Live Sync Active"}</div>
+                  <div className="text-xs text-teal-700">{hasLiveEntries ? "Analysis Sync Active" : "Waiting For Trade Data"}</div>
                   <div className="text-xs text-slate-600">
-                    {hasLiveEntries ? "Showing trades from the latest Python analysis run" : "Auto-importing trades from MT4/MT5"}
+                    {hasLiveEntries ? "Showing trades from the latest Python analysis run" : "This journal will populate after a completed analysis import"}
                   </div>
                 </div>
               </div>
@@ -693,6 +632,18 @@ export function TraderJournal({ entries: liveEntries = [] }: TraderJournalProps)
                   </table>
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeEntries.length === 0 && (
+            <div className="mt-8 rounded-lg border border-slate-200 bg-white p-8 text-center shadow-sm">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100">
+                <BookOpen className="h-6 w-6 text-slate-600" />
+              </div>
+              <h3 className="text-lg text-slate-900">No journal trades yet</h3>
+              <p className="mt-2 text-sm text-slate-600">
+                Completed trade imports from your latest ML analysis will appear here. You can also add a manual journal entry whenever you want to capture notes before import.
+              </p>
             </div>
           )}
 

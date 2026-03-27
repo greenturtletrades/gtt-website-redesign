@@ -1,432 +1,214 @@
-import { X, Brain, TrendingUp, Calendar, BarChart3, Activity, Target, Percent } from "lucide-react";
+import { X, Activity, User, KeyRound, Database, Clock, CreditCard, BarChart3 } from "lucide-react";
 import { useState } from "react";
+import type { AdminTrader } from "../api/admin";
 
 interface TraderDetailsModalProps {
-  trader: {
-    id: string;
-    name: string;
-    email: string;
-    status: "active" | "inactive";
-    plan: "payg" | "premium";
-    joinDate: string;
-    totalTrades: number;
-    mlAnalyses: number;
-    revenue: number;
-  };
+  trader: AdminTrader;
   onClose: () => void;
 }
 
+function formatDate(value: string | null) {
+  if (!value) return "Not available";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleString();
+}
+
+function formatLabel(value: string | null) {
+  if (!value) return "Not provided";
+  return value.replaceAll("_", " ");
+}
+
+function formatMetric(value: number | null, digits = 2) {
+  if (value === null || Number.isNaN(value)) return "Not available";
+  return value.toFixed(digits);
+}
+
 export function TraderDetailsModal({ trader, onClose }: TraderDetailsModalProps) {
-  const [activeView, setActiveView] = useState<"ml" | "trading">("ml");
+  const [showTradingStats, setShowTradingStats] = useState(false);
+  const accountStatusTone =
+    trader.accountStatus === "ACTIVE"
+      ? "bg-green-100 text-green-700"
+      : trader.accountStatus === "PENDING"
+        ? "bg-amber-100 text-amber-700"
+        : trader.accountStatus === "DISABLED"
+          ? "bg-red-100 text-red-700"
+          : "bg-slate-100 text-slate-700";
 
-  // Mock ML usage data
-  const mlData = {
-    totalAnalyses: trader.mlAnalyses,
-    lastAnalysis: "2 hours ago",
-    avgProcessingTime: "1.3s",
-    successRate: 96.2,
-    analysisTypes: [
-      { type: "Counterfactual Simulation", count: 45, percentage: 28.8 },
-      { type: "Bayesian Optimisation", count: 38, percentage: 24.4 },
-      { type: "Survival Analysis", count: 35, percentage: 22.4 },
-      { type: "Clustering Analysis", count: 38, percentage: 24.4 }
-    ],
-    recentAnalyses: [
-      { date: "2026-01-02 14:30", type: "Counterfactual", status: "Completed", duration: "1.2s" },
-      { date: "2026-01-02 10:15", type: "Bayesian", status: "Completed", duration: "1.4s" },
-      { date: "2026-01-01 16:45", type: "Survival", status: "Completed", duration: "1.1s" },
-      { date: "2026-01-01 09:20", type: "Clustering", status: "Completed", duration: "1.5s" },
-      { date: "2025-12-31 18:00", type: "Counterfactual", status: "Completed", duration: "1.3s" }
-    ],
-    monthlyUsage: [
-      { month: "Dec 2025", analyses: 89 },
-      { month: "Jan 2026", analyses: 67 }
-    ]
-  };
-
-  // Mock trading performance data
-  const tradingData = {
-    totalTrades: trader.totalTrades,
-    winRate: 68.5,
-    avgReturn: 2.4,
-    profitFactor: 1.85,
-    sharpeRatio: 1.42,
-    maxDrawdown: 12.3,
-    avgWinSize: 3.2,
-    avgLossSize: -1.8,
-    bestTrade: 12.5,
-    worstTrade: -5.2,
-    avgTradeDuration: "2.5 hours",
-    totalProfit: 5420.50,
-    totalLoss: -2930.20,
-    recentTrades: [
-      { date: "2026-01-02", pair: "EUR/USD", type: "Long", result: "Win", return: 2.3, profit: 145.20 },
-      { date: "2026-01-02", pair: "GBP/USD", type: "Short", result: "Loss", return: -1.5, profit: -95.50 },
-      { date: "2026-01-01", pair: "USD/JPY", type: "Long", result: "Win", return: 3.1, profit: 210.30 },
-      { date: "2026-01-01", pair: "EUR/GBP", type: "Long", result: "Win", return: 1.8, profit: 120.00 },
-      { date: "2025-12-31", pair: "AUD/USD", type: "Short", result: "Loss", return: -2.2, profit: -140.00 }
-    ],
-    performance30d: { trades: 45, winRate: 71.1, avgReturn: 2.6 },
-    performance90d: { trades: 132, winRate: 67.4, avgReturn: 2.3 },
-    performanceAllTime: { trades: trader.totalTrades, winRate: 68.5, avgReturn: 2.4 }
-  };
+  const tradingReadiness =
+    trader.metrics.tradesAnalysed
+      ? "Latest ML analysis metrics available"
+      : trader.tradeEventCount > 0
+        ? "Live trading data available, but no completed ML analysis saved yet"
+        : trader.historyExportCount > 0
+          ? "History imported, waiting for a completed ML analysis run"
+        : "No trading data connected yet";
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="relative bg-gradient-to-r from-slate-900 to-slate-800 text-white p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-white shadow-2xl">
+        <div className="relative border-b border-slate-200 bg-slate-900 px-6 py-5 text-white">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
+            className="absolute right-4 top-4 text-white/80 transition-colors hover:text-white"
           >
-            <X className="w-6 h-6" />
+            <X className="h-6 w-6" />
           </button>
-          <div>
-            <h2 className="text-2xl mb-1">{trader.name}</h2>
-            <p className="text-slate-300 text-sm">{trader.email}</p>
-            <div className="flex items-center gap-3 mt-3">
-              <span className={`px-3 py-1 text-xs rounded-full ${
-                trader.status === "active" ? "bg-green-500/20 text-green-300" : "bg-slate-500/20 text-slate-300"
-              }`}>
-                {trader.status === "active" ? "Active" : "Inactive"}
-              </span>
-              <span className={`px-3 py-1 text-xs rounded-full ${
-                trader.plan === "premium" ? "bg-teal-500/20 text-teal-300" : "bg-slate-500/20 text-slate-300"
-              }`}>
-                {trader.plan === "premium" ? "Premium" : "Pay-As-You-Go"}
-              </span>
-              <span className="text-slate-400 text-xs">Joined {trader.joinDate}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Two Button Navigation */}
-        <div className="bg-slate-100 border-b border-slate-200 p-3">
-          <div className="grid grid-cols-2 gap-3">
+          <h2 className="text-2xl">{trader.name}</h2>
+          <p className="mt-1 text-sm text-slate-300">{trader.email}</p>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs">
+            <span className={`rounded-full px-3 py-1 ${accountStatusTone}`}>
+              Account: {formatLabel(trader.accountStatus)}
+            </span>
+            <span className="rounded-full bg-teal-500/20 px-3 py-1 text-teal-200">
+              Plan: {trader.plan === "premium" ? "Premium" : "PAYG"}
+            </span>
             <button
-              onClick={() => setActiveView("ml")}
-              className={`py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2 ${
-                activeView === "ml"
-                  ? "bg-purple-600 text-white shadow-md"
-                  : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
-              }`}
+              onClick={() => setShowTradingStats((current) => !current)}
+              className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-teal-100 transition-colors hover:bg-white/20"
             >
-              <Brain className="w-5 h-5" />
-              <span>ML Usage & Analysis</span>
-            </button>
-            <button
-              onClick={() => setActiveView("trading")}
-              className={`py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2 ${
-                activeView === "trading"
-                  ? "bg-teal-600 text-white shadow-md"
-                  : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
-              }`}
-            >
-              <TrendingUp className="w-5 h-5" />
-              <span>Trading Performance</span>
+              Trading Stats
             </button>
           </div>
         </div>
 
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {/* ML USAGE & ANALYSIS VIEW */}
-          {activeView === "ml" && (
-            <div className="space-y-6">
-              {/* ML Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 border border-purple-200 rounded-lg p-4">
-                  <div className="text-slate-600 text-xs mb-1">Total Analyses</div>
-                  <div className="text-2xl text-slate-900">{mlData.totalAnalyses}</div>
-                  <div className="text-xs text-purple-600 mt-1">All-time</div>
-                </div>
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
-                  <div className="text-slate-600 text-xs mb-1">Success Rate</div>
-                  <div className="text-2xl text-slate-900">{mlData.successRate}%</div>
-                  <div className="text-xs text-green-600 mt-1">High accuracy</div>
-                </div>
-                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-4">
-                  <div className="text-slate-600 text-xs mb-1">Avg. Processing</div>
-                  <div className="text-2xl text-slate-900">{mlData.avgProcessingTime}</div>
-                  <div className="text-xs text-slate-600 mt-1">Per analysis</div>
-                </div>
-                <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-4">
-                  <div className="text-slate-600 text-xs mb-1">Last Analysis</div>
-                  <div className="text-xl text-slate-900">{mlData.lastAnalysis}</div>
-                  <div className="text-xs text-slate-600 mt-1">Most recent</div>
-                </div>
+        <div className="space-y-6 p-6">
+          {showTradingStats && (
+            <div className="rounded-lg border border-teal-200 bg-teal-50 p-5">
+              <div className="mb-4 flex items-center gap-2 text-slate-900">
+                <BarChart3 className="h-5 w-5 text-teal-700" />
+                <h3>Trading Stats Overview</h3>
               </div>
-
-              {/* Analysis Type Breakdown */}
-              <div className="bg-white border border-slate-200 rounded-lg">
-                <div className="border-b border-slate-200 p-4">
-                  <h3 className="text-slate-900">Analysis Type Breakdown</h3>
-                </div>
-                <div className="p-4 space-y-3">
-                  {mlData.analysisTypes.map((type, idx) => (
-                    <div key={idx}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-slate-700">{type.type}</span>
-                        <span className="text-sm text-slate-900">{type.count} ({type.percentage}%)</span>
-                      </div>
-                      <div className="w-full bg-slate-200 rounded-full h-2">
-                        <div 
-                          className="bg-purple-600 h-2 rounded-full transition-all" 
-                          style={{ width: `${type.percentage}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Recent Analyses */}
-              <div className="bg-white border border-slate-200 rounded-lg">
-                <div className="border-b border-slate-200 p-4">
-                  <h3 className="text-slate-900">Recent Analyses</h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-slate-50">
-                      <tr>
-                        <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Date & Time</th>
-                        <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Type</th>
-                        <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Status</th>
-                        <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Duration</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {mlData.recentAnalyses.map((analysis, idx) => (
-                        <tr key={idx} className="border-b border-slate-100">
-                          <td className="py-3 px-4 text-sm text-slate-900">{analysis.date}</td>
-                          <td className="py-3 px-4">
-                            <span className="px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-700">
-                              {analysis.type}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">
-                              {analysis.status}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-sm text-slate-600">{analysis.duration}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Monthly Usage */}
-              <div className="bg-white border border-slate-200 rounded-lg">
-                <div className="border-b border-slate-200 p-4">
-                  <h3 className="text-slate-900">Monthly Usage Trend</h3>
-                </div>
-                <div className="p-4">
-                  <div className="space-y-3">
-                    {mlData.monthlyUsage.map((month, idx) => (
-                      <div key={idx} className="flex items-center justify-between">
-                        <span className="text-sm text-slate-700">{month.month}</span>
-                        <span className="text-sm text-slate-900">{month.analyses} analyses</span>
-                      </div>
-                    ))}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                <div className="rounded-lg border border-teal-100 bg-white p-4">
+                  <div className="text-xs text-slate-500">Trades Analysed</div>
+                  <div className="mt-1 text-2xl text-slate-900">
+                    {trader.metrics.tradesAnalysed ?? trader.tradeEventCount}
                   </div>
                 </div>
+                <div className="rounded-lg border border-teal-100 bg-white p-4">
+                  <div className="text-xs text-slate-500">Win Rate</div>
+                  <div className="mt-1 text-2xl text-slate-900">
+                    {trader.metrics.winRate !== null ? `${Math.round(trader.metrics.winRate * 100)}%` : "Not available"}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-teal-100 bg-white p-4">
+                  <div className="text-xs text-slate-500">Avg R Multiple</div>
+                  <div className="mt-1 text-2xl text-slate-900">{formatMetric(trader.metrics.avgRMultiple)}</div>
+                </div>
+                <div className="rounded-lg border border-teal-100 bg-white p-4">
+                  <div className="text-xs text-slate-500">Sharpe Ratio</div>
+                  <div className="mt-1 text-2xl text-slate-900">{formatMetric(trader.metrics.sharpeRatio)}</div>
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="rounded-lg border border-teal-100 bg-white p-4">
+                  <div className="text-xs text-slate-500">Total R</div>
+                  <div className="mt-1 text-xl text-slate-900">{formatMetric(trader.metrics.totalR)}</div>
+                </div>
+                <div className="rounded-lg border border-teal-100 bg-white p-4">
+                  <div className="text-xs text-slate-500">Max Drawdown (R)</div>
+                  <div className="mt-1 text-xl text-slate-900">{formatMetric(trader.metrics.maxDrawdownR)}</div>
+                </div>
+                <div className="rounded-lg border border-teal-100 bg-white p-4">
+                  <div className="text-xs text-slate-500">Latest Analysis</div>
+                  <div className="mt-1 text-sm text-slate-900">{formatDate(trader.latestAnalysisAt)}</div>
+                </div>
+              </div>
+              <div className="mt-4 rounded-lg border border-teal-100 bg-white p-4 text-sm text-slate-700">
+                <span className="font-medium text-slate-900">Status:</span> {tradingReadiness}
               </div>
             </div>
           )}
 
-          {/* TRADING PERFORMANCE VIEW */}
-          {activeView === "trading" && (
-            <div className="space-y-6">
-              {/* Performance Stats Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-teal-50 to-cyan-50 border border-teal-200 rounded-lg p-4">
-                  <div className="text-slate-600 text-xs mb-1">Win Rate</div>
-                  <div className="text-2xl text-slate-900">{tradingData.winRate}%</div>
-                  <div className="text-xs text-teal-600 mt-1">Success ratio</div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="mb-1 flex items-center gap-2 text-xs text-slate-500">
+                <User className="h-4 w-4" />
+                Account Created
+              </div>
+              <div className="text-sm text-slate-900">{formatDate(trader.joinedAt)}</div>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="mb-1 flex items-center gap-2 text-xs text-slate-500">
+                <Database className="h-4 w-4" />
+                Broker Accounts
+              </div>
+              <div className="text-2xl text-slate-900">{trader.brokerAccountsCount}</div>
+              <div className="text-xs text-slate-500">{trader.activeBrokerAccountsCount} active</div>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="mb-1 flex items-center gap-2 text-xs text-slate-500">
+                <KeyRound className="h-4 w-4" />
+                API Keys
+              </div>
+              <div className="text-2xl text-slate-900">{trader.apiKeysCount}</div>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="mb-1 flex items-center gap-2 text-xs text-slate-500">
+                <Clock className="h-4 w-4" />
+                Last EA Sync
+              </div>
+              <div className="text-sm text-slate-900">{formatDate(trader.lastEaSyncAt)}</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="rounded-lg border border-slate-200">
+              <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+                <h3 className="text-slate-900">Account Profile</h3>
+              </div>
+              <div className="space-y-3 p-4 text-sm">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-slate-500">Country</span>
+                  <span className="text-right text-slate-900">{trader.country || "Not provided"}</span>
                 </div>
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
-                  <div className="text-slate-600 text-xs mb-1">Avg Return</div>
-                  <div className="text-2xl text-slate-900">{tradingData.avgReturn}%</div>
-                  <div className="text-xs text-green-600 mt-1">Per trade</div>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-slate-500">Platform</span>
+                  <span className="text-right text-slate-900">{formatLabel(trader.platform)}</span>
                 </div>
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
-                  <div className="text-slate-600 text-xs mb-1">Profit Factor</div>
-                  <div className="text-2xl text-slate-900">{tradingData.profitFactor}</div>
-                  <div className="text-xs text-blue-600 mt-1">Risk/reward</div>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-slate-500">Experience</span>
+                  <span className="text-right text-slate-900">{formatLabel(trader.experienceLevel)}</span>
                 </div>
-                <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4">
-                  <div className="text-slate-600 text-xs mb-1">Sharpe Ratio</div>
-                  <div className="text-2xl text-slate-900">{tradingData.sharpeRatio}</div>
-                  <div className="text-xs text-purple-600 mt-1">Risk-adjusted</div>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-slate-500">Account status</span>
+                  <span className="text-right text-slate-900">{formatLabel(trader.accountStatus)}</span>
                 </div>
               </div>
+            </div>
 
-              {/* Additional Metrics */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div className="bg-white border border-slate-200 rounded-lg p-4">
-                  <div className="flex items-center gap-2 text-slate-600 text-xs mb-1">
-                    <Target className="w-3 h-3" />
-                    Max Drawdown
-                  </div>
-                  <div className="text-xl text-red-600">{tradingData.maxDrawdown}%</div>
-                </div>
-                <div className="bg-white border border-slate-200 rounded-lg p-4">
-                  <div className="flex items-center gap-2 text-slate-600 text-xs mb-1">
-                    <TrendingUp className="w-3 h-3" />
-                    Avg Win Size
-                  </div>
-                  <div className="text-xl text-green-600">+{tradingData.avgWinSize}%</div>
-                </div>
-                <div className="bg-white border border-slate-200 rounded-lg p-4">
-                  <div className="flex items-center gap-2 text-slate-600 text-xs mb-1">
-                    <Activity className="w-3 h-3" />
-                    Avg Loss Size
-                  </div>
-                  <div className="text-xl text-red-600">{tradingData.avgLossSize}%</div>
-                </div>
-                <div className="bg-white border border-slate-200 rounded-lg p-4">
-                  <div className="flex items-center gap-2 text-slate-600 text-xs mb-1">
-                    <BarChart3 className="w-3 h-3" />
-                    Best Trade
-                  </div>
-                  <div className="text-xl text-green-600">+{tradingData.bestTrade}%</div>
-                </div>
-                <div className="bg-white border border-slate-200 rounded-lg p-4">
-                  <div className="flex items-center gap-2 text-slate-600 text-xs mb-1">
-                    <BarChart3 className="w-3 h-3" />
-                    Worst Trade
-                  </div>
-                  <div className="text-xl text-red-600">{tradingData.worstTrade}%</div>
-                </div>
-                <div className="bg-white border border-slate-200 rounded-lg p-4">
-                  <div className="flex items-center gap-2 text-slate-600 text-xs mb-1">
-                    <Calendar className="w-3 h-3" />
-                    Avg Duration
-                  </div>
-                  <div className="text-xl text-slate-900">{tradingData.avgTradeDuration}</div>
-                </div>
+            <div className="rounded-lg border border-slate-200">
+              <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+                <h3 className="text-slate-900">Platform Activity</h3>
               </div>
-
-              {/* Performance Over Time */}
-              <div className="bg-white border border-slate-200 rounded-lg">
-                <div className="border-b border-slate-200 p-4">
-                  <h3 className="text-slate-900">Performance Over Time</h3>
-                </div>
-                <div className="p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-slate-50 rounded-lg p-4">
-                      <div className="text-slate-600 text-xs mb-2">Last 30 Days</div>
-                      <div className="text-sm text-slate-900 mb-1">{tradingData.performance30d.trades} trades</div>
-                      <div className="text-xs text-slate-600">
-                        Win Rate: <span className="text-teal-600">{tradingData.performance30d.winRate}%</span>
-                      </div>
-                      <div className="text-xs text-slate-600">
-                        Avg Return: <span className="text-green-600">{tradingData.performance30d.avgReturn}%</span>
-                      </div>
-                    </div>
-                    <div className="bg-slate-50 rounded-lg p-4">
-                      <div className="text-slate-600 text-xs mb-2">Last 90 Days</div>
-                      <div className="text-sm text-slate-900 mb-1">{tradingData.performance90d.trades} trades</div>
-                      <div className="text-xs text-slate-600">
-                        Win Rate: <span className="text-teal-600">{tradingData.performance90d.winRate}%</span>
-                      </div>
-                      <div className="text-xs text-slate-600">
-                        Avg Return: <span className="text-green-600">{tradingData.performance90d.avgReturn}%</span>
-                      </div>
-                    </div>
-                    <div className="bg-slate-50 rounded-lg p-4">
-                      <div className="text-slate-600 text-xs mb-2">All Time</div>
-                      <div className="text-sm text-slate-900 mb-1">{tradingData.performanceAllTime.trades} trades</div>
-                      <div className="text-xs text-slate-600">
-                        Win Rate: <span className="text-teal-600">{tradingData.performanceAllTime.winRate}%</span>
-                      </div>
-                      <div className="text-xs text-slate-600">
-                        Avg Return: <span className="text-green-600">{tradingData.performanceAllTime.avgReturn}%</span>
-                      </div>
-                    </div>
+              <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-3">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <div className="mb-1 flex items-center gap-2 text-xs text-slate-500">
+                    <Activity className="h-4 w-4" />
+                    Trade Events
                   </div>
+                  <div className="text-2xl text-slate-900">{trader.tradeEventCount}</div>
                 </div>
-              </div>
-
-              {/* Recent Trades */}
-              <div className="bg-white border border-slate-200 rounded-lg">
-                <div className="border-b border-slate-200 p-4">
-                  <h3 className="text-slate-900">Recent Trades</h3>
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <div className="mb-1 flex items-center gap-2 text-xs text-slate-500">
+                    <Activity className="h-4 w-4" />
+                    History Exports
+                  </div>
+                  <div className="text-2xl text-slate-900">{trader.historyExportCount}</div>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-slate-50">
-                      <tr>
-                        <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Date</th>
-                        <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Pair</th>
-                        <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Type</th>
-                        <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Result</th>
-                        <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Return</th>
-                        <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Profit/Loss</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {tradingData.recentTrades.map((trade, idx) => (
-                        <tr key={idx} className="border-b border-slate-100">
-                          <td className="py-3 px-4 text-sm text-slate-900">{trade.date}</td>
-                          <td className="py-3 px-4 text-sm text-slate-900">{trade.pair}</td>
-                          <td className="py-3 px-4">
-                            <span className={`px-2 py-1 text-xs rounded-full ${
-                              trade.type === "Long" 
-                                ? "bg-blue-100 text-blue-700" 
-                                : "bg-orange-100 text-orange-700"
-                            }`}>
-                              {trade.type}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className={`px-2 py-1 text-xs rounded-full ${
-                              trade.result === "Win" 
-                                ? "bg-green-100 text-green-700" 
-                                : "bg-red-100 text-red-700"
-                            }`}>
-                              {trade.result}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className={trade.return > 0 ? "text-green-600" : "text-red-600"}>
-                              {trade.return > 0 ? "+" : ""}{trade.return}%
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className={trade.profit > 0 ? "text-green-600" : "text-red-600"}>
-                              £{trade.profit.toFixed(2)}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* P&L Summary */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="text-slate-600 text-xs mb-1">Total Profit</div>
-                  <div className="text-2xl text-green-600">£{tradingData.totalProfit.toFixed(2)}</div>
-                </div>
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <div className="text-slate-600 text-xs mb-1">Total Loss</div>
-                  <div className="text-2xl text-red-600">£{tradingData.totalLoss.toFixed(2)}</div>
-                </div>
-                <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
-                  <div className="text-slate-600 text-xs mb-1">Net P&L</div>
-                  <div className="text-2xl text-teal-600">
-                    £{(tradingData.totalProfit + tradingData.totalLoss).toFixed(2)}
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <div className="mb-1 flex items-center gap-2 text-xs text-slate-500">
+                    <CreditCard className="h-4 w-4" />
+                    Billing
+                  </div>
+                  <div className="text-sm text-slate-900">
+                    {trader.plan === "premium" ? "Stripe subscription active" : "No premium subscription"}
                   </div>
                 </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

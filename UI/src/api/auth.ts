@@ -1,11 +1,15 @@
 import { apiGet, apiPost } from "./client";
 
-interface AuthUser {
+export interface AuthUser {
   id: string;
   email: string;
   role: "TRADER" | "ADMIN";
   status: "ACTIVE" | "PENDING" | "DISABLED";
-  profile?: unknown | null;
+  profile?: {
+    firstName?: string | null;
+    lastName?: string | null;
+    phone?: string | null;
+  } | null;
 }
 
 interface AuthResponse {
@@ -19,8 +23,14 @@ interface MeResponse {
   user: AuthUser;
 }
 
-export function register(email: string, password: string) {
-  return apiPost<AuthResponse>("/api/auth/register", { email, password });
+export function register(input: {
+  email: string;
+  password: string;
+  name?: string;
+  metaTraderUsername?: string;
+  brokerName?: string;
+}) {
+  return apiPost<AuthResponse>("/api/auth/register", input);
 }
 
 export function login(email: string, password: string) {

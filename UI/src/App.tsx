@@ -18,6 +18,7 @@ import { AdminDashboard } from "./components/AdminDashboard";
 import { TraderApplicationForm } from "./components/onboarding/TraderApplicationForm";
 import { TraderApplicationStatus } from "./components/onboarding/TraderApplicationStatus";
 import { me } from "./api/auth";
+import { submitChurnFeedback } from "./api/subscription";
 import { type TraderApplicationStatus as ApplicationStatus } from "./api/traderApplication";
 
 export type UserType = "trader" | "admin" | null;
@@ -51,6 +52,8 @@ export default function App() {
   const [applicationEmail, setApplicationEmail] = useState("");
   const [applicationStatus, setApplicationStatus] = useState<ApplicationStatus | null>(null);
   const [applicationRejectionReason, setApplicationRejectionReason] = useState<string | null>(null);
+  const [currentUserName, setCurrentUserName] = useState("");
+  const [currentUserEmail, setCurrentUserEmail] = useState("");
 
   // Set viewport meta tag to enable desktop layout on mobile
   useEffect(() => {
@@ -81,9 +84,12 @@ export default function App() {
         const session = await me();
         if (cancelled) return;
         if (session.ok && session.user.role === "TRADER") {
+          const fullName = `${session.user.profile?.firstName || ""} ${session.user.profile?.lastName || ""}`.trim();
+          setCurrentUserName(fullName || pendingUserName || session.user.email.split("@")[0]);
+          setCurrentUserEmail(session.user.email);
           setUserType("trader");
           setTurtleAnalyticsAuthed(true);
-        } else if (session.ok && session.user.role === "ADMIN") {
+        } else if (session.ok && session.user.role === "ADMIN" && session.user.status === "ACTIVE") {
           setUserType("admin");
           setTurtleAnalyticsAuthed(false);
         } else {
@@ -95,6 +101,8 @@ export default function App() {
         localStorage.removeItem("gtt_token");
         setUserType(null);
         setTurtleAnalyticsAuthed(false);
+        setCurrentUserName("");
+        setCurrentUserEmail("");
       }
     };
 
@@ -152,12 +160,14 @@ export default function App() {
     setShowAuthModal(true);
   };
 
-  const handleAuthComplete = (type: "trader") => {
+  const handleAuthComplete = (type: "trader", details?: { name?: string; email?: string }) => {
     setShowAuthModal(false);
     
     // If trader is signing up (not logging in), show subscription modal
     if (authMode === "signup") {
-      setPendingUserName("John Smith"); // In real app, get from form data
+      setPendingUserName(details?.name?.trim() || "Trader");
+      setCurrentUserName(details?.name?.trim() || "Trader");
+      setCurrentUserEmail(details?.email?.trim() || "");
       setShowSubscriptionModal(true);
       // Don't set userType or navigate yet - wait for subscription
     } else {
@@ -165,6 +175,8 @@ export default function App() {
       // In real app, fetch user's subscription plan from backend
       // For demo, default to PAYG for returning users
       setSelectedSubscriptionPlan("payg"); // In real app: fetch from API
+      setCurrentUserName(details?.name?.trim() || currentUserName);
+      setCurrentUserEmail(details?.email?.trim() || currentUserEmail);
       setUserType("trader");
       setTurtleAnalyticsAuthed(true);
       setCurrentView("turtle-analytics");
@@ -207,6 +219,8 @@ export default function App() {
     localStorage.removeItem("gtt_token");
     setUserType(null);
     setTurtleAnalyticsAuthed(false);
+    setCurrentUserName("");
+    setCurrentUserEmail("");
     if (isAdminRoute) {
       window.history.pushState({}, "", "/");
       setIsAdminRoute(false);
@@ -277,25 +291,14 @@ export default function App() {
     // Stay on settings page to see the change
   };
 
-  const handleCancelSubscription = (reason: string, feedback: string) => {
-    // In real app: Make API call to cancel subscription with feedback
-    console.log("Cancellation reason:", reason);
-    console.log("Cancellation feedback:", feedback);
-    
-    // Store cancellation data for admin analytics (in real app: send to backend)
-    const cancellationData = {
-      userId: "user123",
-      userName: pendingUserName || "John Smith",
-      plan: selectedSubscriptionPlan,
-      reason,
-      feedback,
-      date: new Date().toISOString()
-    };
-    
-    // In real app: Send to backend API
-    // await fetch('/api/cancellations', { method: 'POST', body: JSON.stringify(cancellationData) });
-    
-    alert("✅ Subscription cancelled.\n\nWe're sorry to see you go. You'll have access until the end of your billing period.\n\nThank you for your feedback!");
+  const handleCancelSubscription = async (reason: string, feedback: string) => {
+    try {
+      await submitChurnFeedback(reason, feedback, selectedSubscriptionPlan);
+      alert("✅ Subscription cancelled.\n\nWe're sorry to see you go. You'll have access until the end of your billing period.\n\nThank you for your feedback!");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to store cancellation feedback.";
+      alert(`Unable to cancel subscription right now.\n\n${message}`);
+    }
   };
 
   const handleNavigateLegal = (page: "terms" | "privacy" | "risk-disclosure") => {
@@ -363,8 +366,8 @@ export default function App() {
 
       {!isAdminRoute && currentView === "settings" && selectedSubscriptionPlan && (
         <SettingsPage
-          userName={pendingUserName || "John Smith"}
-          userEmail="john.smith@email.com"
+          userName={currentUserName || pendingUserName || "Trader"}
+          userEmail={currentUserEmail}
           currentPlan={selectedSubscriptionPlan}
           subscriptionStatus={subscriptionStatus}
           onCancelSubscription={handleCancelSubscription}

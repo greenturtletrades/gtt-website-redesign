@@ -5,7 +5,7 @@ import { login, register } from "../api/auth";
 interface AuthModalProps {
   type: "trader" | "admin";
   onClose: () => void;
-  onComplete: (type: "trader" | "admin") => void;
+  onComplete: (type: "trader" | "admin", details?: { name?: string; email?: string }) => void;
   initialMode?: "signup" | "login";
 }
 
@@ -33,8 +33,17 @@ export function AuthModal({ type, onClose, onComplete, initialMode = "signup" }:
     setErrorMessage("");
 
     try {
+      if (isSignUp && formData.password !== formData.confirmPassword) {
+        throw new Error("Passwords do not match");
+      }
+
       const authResponse = isSignUp
-        ? await register(formData.email, formData.password)
+        ? await register({
+            email: formData.email,
+            password: formData.password,
+            name: formData.name,
+            metaTraderUsername: formData.metaTraderUsername,
+          })
         : await login(formData.email, formData.password);
 
       if (!authResponse?.ok || !authResponse?.token) {
@@ -42,7 +51,10 @@ export function AuthModal({ type, onClose, onComplete, initialMode = "signup" }:
       }
 
       localStorage.setItem("gtt_token", authResponse.token);
-      onComplete(type);
+      onComplete(type, {
+        name: formData.name,
+        email: formData.email,
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Authentication failed";
       setErrorMessage(message);
