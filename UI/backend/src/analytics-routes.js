@@ -528,6 +528,92 @@ function registerAnalyticsRoutes(app, {
     }
   });
 
+  app.post("/api/analyse/mt5", authRequired, async (req, res, next) => {
+    let analysisRun = null;
+    try {
+      await assertMlAnalysisAccess(req.user.id);
+
+      const { login, password, server, days = 90, symbol } = req.body || {};
+      const parsedDays = Number.parseInt(String(days), 10);
+      const lookbackDays = Number.isFinite(parsedDays) && parsedDays > 0 ? parsedDays : 90;
+
+      analysisRun = await prisma.analysisRun.create({
+        data: {
+          userId: req.user.id,
+          status: "RUNNING",
+          mode: "mt5",
+          requestedTrades: null,
+          tradesAnalysed: null,
+          cost: 0,
+          periodDescription: `MetaTrader import (${lookbackDays} day${lookbackDays === 1 ? "" : "s"})`,
+          dateRangeStart: new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000),
+          dateRangeEnd: new Date(),
+        },
+      });
+
+      const pythonRes = await fetch(`${pythonServiceUrl}/analyse/mt5`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          login: login ? Number.parseInt(String(login), 10) : null,
+          password: password || null,
+          server: server || null,
+          days: lookbackDays,
+          symbol: symbol || null,
+        }),
+      });
+
+      const data = await pythonRes.json().catch(() => ({}));
+
+      if (!pythonRes.ok) {
+        await prisma.analysisRun.update({
+          where: { id: analysisRun.id },
+          data: {
+            status: "FAILED",
+            error: data.detail || data.error || "Analysis service error",
+            completedAt: new Date(),
+          },
+        });
+        return res.status(502).json({ ok: false, error: data.detail || data.error || "Analysis service error" });
+      }
+
+      const jobId = data.job_id;
+      const jobContext = {
+        userId: req.user.id,
+        analysisRunId: analysisRun.id,
+        tradeFingerprint: null,
+        allTradeIdentities: [],
+        tradeIdentities: [],
+        requestedTradeCount: null,
+        uniqueTradeCount: null,
+        availableTradeCount: null,
+        duplicateTradeCount: 0,
+        mode: "mt5",
+      };
+      analysisJobContext.set(jobId, jobContext);
+      await persistAnalysisJobContext(jobId, jobContext);
+
+      return res.json({
+        ok: true,
+        jobId,
+        analysisRunId: analysisRun.id,
+        estimatedCost: 0,
+      });
+    } catch (err) {
+      if (analysisRun?.id) {
+        await prisma.analysisRun.update({
+          where: { id: analysisRun.id },
+          data: {
+            status: "FAILED",
+            error: err instanceof Error ? err.message : "Analysis failed to start",
+            completedAt: new Date(),
+          },
+        }).catch(() => {});
+      }
+      return next(err);
+    }
+  });
+
   app.post("/api/analyse", authRequired, async (req, res, next) => {
     let analysisRun = null;
     try {

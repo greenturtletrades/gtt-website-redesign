@@ -18,6 +18,7 @@ From the repo root:
 import sys
 import uuid
 import logging
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 from concurrent.futures import ThreadPoolExecutor
@@ -66,6 +67,12 @@ try:
     HAS_CLUSTERING = True
 except ImportError:
     HAS_CLUSTERING = False
+
+try:
+    from turtle_analytics.metatrader import load_trades_from_mt5
+    HAS_MT5 = True
+except ImportError:
+    HAS_MT5 = False
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -120,6 +127,18 @@ class AnalyseRequest(BaseModel):
     n_clusters: int = 4
 
 
+class MT5Request(BaseModel):
+    login: Optional[int] = None
+    password: Optional[str] = None
+    server: Optional[str] = None
+    days: int = 90
+    symbol: Optional[str] = None
+    run_optimisation: bool = True
+    run_survival: bool = True
+    run_clustering: bool = True
+    n_clusters: int = 4
+
+
 class JobStatus(BaseModel):
     job_id: str
     status: str             # "queued" | "running" | "complete" | "error"
@@ -136,13 +155,19 @@ class JobStatus(BaseModel):
 # Background pipeline runner
 # ---------------------------------------------------------------------------
 
-def _run_pipeline(job_id: str, request: AnalyseRequest) -> None:
+def _run_pipeline_from_df(
+    job_id: str,
+    df_raw: pd.DataFrame,
+    run_optimisation: bool = True,
+    run_survival: bool = True,
+    run_clustering: bool = True,
+    n_clusters: int = 4,
+) -> None:
+    """Shared pipeline phases 1–6. Accepts a raw DataFrame (pre-validated schema)."""
     try:
         jobs[job_id]["status"] = "running"
-        logger.info(f"[{job_id}] Pipeline started with {len(request.trades)} trades")
 
         # --- Phase 1: Feature Engineering ---
-        df_raw = pd.DataFrame([t.model_dump() for t in request.trades])
         df_clean = tio.validate_trades(df_raw)
 
         if len(df_clean) == 0:
@@ -168,7 +193,7 @@ def _run_pipeline(job_id: str, request: AnalyseRequest) -> None:
             logger.info(f"[{job_id}] Counterfactuals: {simulations_run} policies tested")
 
         # --- Phase 3: Bayesian Optimisation ---
-        if request.run_optimisation and HAS_OPTIMIZATION:
+        if run_optimisation and HAS_OPTIMIZATION:
             opt_config = {
                 "objective_metric": "avg_R",
                 "n_trials": 50,
@@ -196,7 +221,7 @@ def _run_pipeline(job_id: str, request: AnalyseRequest) -> None:
             logger.info(f"[{job_id}] Optimisation complete")
 
         # --- Phase 4: Survival Analysis ---
-        if request.run_survival and HAS_SURVIVAL:
+        if run_survival and HAS_SURVIVAL:
             survival_df = prepare_survival_data(df_features, event_definition="negative_r")
             kmf, survival_table = fit_kaplan_meier(survival_df)
             cph, hazard_ratios = fit_cox_model(survival_df)
@@ -211,10 +236,10 @@ def _run_pipeline(job_id: str, request: AnalyseRequest) -> None:
 
         # --- Phase 5: Clustering ---
         regimes_found = 0
-        if request.run_clustering and HAS_CLUSTERING:
+        if run_clustering and HAS_CLUSTERING:
             regime_df = extract_regime_features(df_features)
             model, df_labeled, cluster_summary = fit_clustering_model(
-                regime_df, n_clusters=request.n_clusters
+                regime_df, n_clusters=n_clusters
             )
             regime_policies = optimize_policies_per_regime(df_labeled, n_trials_per_regime=15)
             regime_summary = create_regime_summary(df_labeled, cluster_summary, regime_policies)
@@ -261,6 +286,46 @@ def _run_pipeline(job_id: str, request: AnalyseRequest) -> None:
 
     except Exception as e:
         logger.exception(f"[{job_id}] Pipeline failed")
+        jobs[job_id].update({"status": "error", "error": str(e)})
+
+
+def _run_pipeline(job_id: str, request: AnalyseRequest) -> None:
+    logger.info(f"[{job_id}] Pipeline started with {len(request.trades)} trades")
+    df_raw = pd.DataFrame([t.model_dump() for t in request.trades])
+    _run_pipeline_from_df(
+        job_id, df_raw,
+        run_optimisation=request.run_optimisation,
+        run_survival=request.run_survival,
+        run_clustering=request.run_clustering,
+        n_clusters=request.n_clusters,
+    )
+
+
+def _run_pipeline_mt5(job_id: str, body: MT5Request) -> None:
+    try:
+        jobs[job_id]["status"] = "running"
+        logger.info(f"[{job_id}] MT5 pipeline started (days={body.days}, symbol={body.symbol})")
+        date_from = datetime.now() - timedelta(days=body.days)
+        df_raw = load_trades_from_mt5(
+            login=body.login,
+            password=body.password,
+            server=body.server,
+            date_from=date_from,
+            symbol=body.symbol,
+        )
+        if len(df_raw) == 0:
+            jobs[job_id].update({"status": "error", "error": "No closed trades found in MetaTrader 5 for the specified period"})
+            return
+        logger.info(f"[{job_id}] Loaded {len(df_raw)} trades from MT5")
+        _run_pipeline_from_df(
+            job_id, df_raw,
+            run_optimisation=body.run_optimisation,
+            run_survival=body.run_survival,
+            run_clustering=body.run_clustering,
+            n_clusters=body.n_clusters,
+        )
+    except Exception as e:
+        logger.exception(f"[{job_id}] MT5 pipeline failed")
         jobs[job_id].update({"status": "error", "error": str(e)})
 
 
@@ -520,6 +585,16 @@ def get_results(job_id: str):
     return JobStatus(job_id=job_id, **job)
 
 
+@app.post("/analyse/mt5", response_model=JobStatus)
+def start_analysis_mt5(body: MT5Request):
+    if not HAS_MT5:
+        raise HTTPException(status_code=503, detail="MetaTrader5 library is not installed on this server. Install with: pip install MetaTrader5")
+    job_id = str(uuid.uuid4())
+    jobs[job_id] = {"status": "queued"}
+    executor.submit(_run_pipeline_mt5, job_id, body)
+    return JobStatus(job_id=job_id, status="queued")
+
+
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "mt5_available": HAS_MT5}

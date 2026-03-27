@@ -57,6 +57,16 @@ export function startAnalysis(input: { mode: "trades" | "months" | "csv"; tradeC
   return apiPost<StartAnalysisResponse>("/api/analyse", input);
 }
 
+export function startMt5Analysis(input: {
+  login?: string | null;
+  password?: string | null;
+  server?: string | null;
+  days: number;
+  symbol?: string | null;
+}) {
+  return apiPost<StartAnalysisResponse>("/api/analyse/mt5", input);
+}
+
 export async function startCsvAnalysis(file: File, replaceDataset = false) {
   const formData = new FormData();
   formData.append("file", file);
