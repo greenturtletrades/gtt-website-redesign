@@ -4,6 +4,7 @@ const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
+const Stripe = require("stripe");
 const { prisma } = require("./prisma");
 const { sendEmail } = require("./email");
 
@@ -1319,6 +1320,75 @@ app.get("/api/analyse/:jobId", authRequired, async (req, res, next) => {
       avgRMultiple: data.avg_r_multiple,
       report: data.report || null,
     });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Stripe Checkout
+// ---------------------------------------------------------------------------
+
+app.post("/api/create-checkout-session", authRequired, async (req, res, next) => {
+  try {
+    if (process.env.PAYMENTS_ACTIVE !== "true") {
+      return res.status(403).json({ ok: false, error: "Payments not active" });
+    }
+
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeSecretKey) {
+      return res.status(500).json({ ok: false, error: "Stripe not configured" });
+    }
+
+    const monthlyPriceId = process.env.STRIPE_PRICE_MONTHLY;
+    const perTradePriceId = process.env.STRIPE_PRICE_PER_TRADE;
+
+    if (!monthlyPriceId || !perTradePriceId) {
+      return res.status(500).json({ ok: false, error: "Stripe prices not configured" });
+    }
+
+    const stripe = Stripe(stripeSecretKey);
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { id: true, email: true, stripeCustomerId: true },
+    });
+
+    if (!user) {
+      return res.status(404).json({ ok: false, error: "User not found" });
+    }
+
+    // Reuse existing Stripe customer or create a new one
+    let stripeCustomerId = user.stripeCustomerId;
+    if (!stripeCustomerId) {
+      const customer = await stripe.customers.create({ email: user.email });
+      stripeCustomerId = customer.id;
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { stripeCustomerId },
+      });
+    }
+
+    const appUrl = process.env.APP_URL || "http://localhost:5173";
+
+    const session = await stripe.checkout.sessions.create({
+      customer: stripeCustomerId,
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price: monthlyPriceId,
+          quantity: 1,
+        },
+        {
+          price: perTradePriceId,
+        },
+      ],
+      mode: "subscription",
+      success_url: `${appUrl}?checkout=success`,
+      cancel_url: `${appUrl}?checkout=cancelled`,
+    });
+
+    return res.json({ ok: true, url: session.url });
   } catch (err) {
     return next(err);
   }
