@@ -15,6 +15,7 @@ const experienceLevels = new Set(["BEGINNER", "INTERMEDIATE", "ADVANCED"]);
 const applicationStatuses = new Set(["PENDING", "APPROVED", "REJECTED"]);
 const staffPortalRoles = new Set(["ADMIN"]);
 const staffWriteRoles = new Set(["ADMIN"]);
+const rateLimitStore = new Map();
 
 function getJwtSecret() {
   const secret = process.env.JWT_SECRET;
@@ -70,6 +71,37 @@ function getHeaderValue(value) {
   return null;
 }
 
+function getClientIp(req) {
+  const forwarded = getHeaderValue(req.headers["x-forwarded-for"]);
+  if (forwarded && typeof forwarded === "string") {
+    return forwarded.split(",")[0].trim();
+  }
+  return req.ip || req.socket?.remoteAddress || "unknown";
+}
+
+function rateLimit({ windowMs, max, keyPrefix, message }) {
+  return (req, res, next) => {
+    const now = Date.now();
+    const key = `${keyPrefix}:${getClientIp(req)}`;
+    const entry = rateLimitStore.get(key);
+
+    if (!entry || entry.expiresAt <= now) {
+      rateLimitStore.set(key, { count: 1, expiresAt: now + windowMs });
+      return next();
+    }
+
+    if (entry.count >= max) {
+      const retryAfter = Math.max(1, Math.ceil((entry.expiresAt - now) / 1000));
+      res.set("Retry-After", String(retryAfter));
+      return res.status(429).json({ ok: false, error: message });
+    }
+
+    entry.count += 1;
+    rateLimitStore.set(key, entry);
+    return next();
+  };
+}
+
 function buildAdminStaffMember(user) {
   const firstName = user.profile?.firstName?.trim() || "";
   const lastName = user.profile?.lastName?.trim() || "";
@@ -96,6 +128,664 @@ function getTraderAnalysisStatus({ latestSnapshot, tradeEventCount, historyExpor
     return "NEEDS_ANALYSIS";
   }
   return "NO_TRADE_DATA";
+}
+
+function getPublicApiBaseUrl(req) {
+  const configured =
+    process.env.PUBLIC_API_BASE_URL ||
+    process.env.PUBLIC_API_URL ||
+    process.env.BACKEND_PUBLIC_URL;
+
+  if (configured && typeof configured === "string") {
+    return configured.replace(/\/+$/, "");
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("PUBLIC_API_BASE_URL must be configured in production");
+  }
+
+  const proto = req.protocol || "http";
+  const host = req.get("host") || `localhost:${process.env.PORT || 3001}`;
+
+  return `${proto}://${host}`.replace(/\/+$/, "");
+}
+
+async function getOrCreateEaBrokerAccount(userId, platform) {
+  let brokerAccount = await prisma.brokerAccount.findFirst({
+    where: { userId, isActive: true, platform },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (!brokerAccount) {
+    brokerAccount = await prisma.brokerAccount.findFirst({
+      where: { userId, isActive: true, platform: { in: ["MT4", "MT5"] } },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  if (!brokerAccount) {
+    brokerAccount = await prisma.brokerAccount.findFirst({
+      where: { userId, isActive: true },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  if (!brokerAccount) {
+    brokerAccount = await prisma.brokerAccount.create({
+      data: {
+        userId,
+        platform,
+        accountNumber: "PENDING",
+        label: "Primary MetaTrader",
+        isActive: true,
+      },
+    });
+  }
+
+  return brokerAccount;
+}
+
+async function issueManagedEaApiKey(userId) {
+  await prisma.apiKey.updateMany({
+    where: {
+      userId,
+      name: "MetaTrader EA",
+      revokedAt: null,
+    },
+    data: { revokedAt: new Date() },
+  });
+
+  const rawKey = `gt_${crypto.randomBytes(24).toString("hex")}`;
+  const keyHash = await bcrypt.hash(rawKey, 10);
+
+  const apiKey = await prisma.apiKey.create({
+    data: {
+      userId,
+      name: "MetaTrader EA",
+      keyHash,
+      last4: rawKey.slice(-4),
+    },
+  });
+
+  return { apiKey, rawKey };
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function toIsoOrNull(dateLike) {
+  if (!dateLike) return null;
+  const value = new Date(dateLike);
+  if (Number.isNaN(value.getTime())) return null;
+  return value.toISOString();
+}
+
+function buildEaConnectionStatus(events) {
+  const latestHeartbeat = events.find((event) => event.type === "HEARTBEAT") || null;
+  const latestHistoryExport = events.find((event) => event.type === "HISTORY_EXPORT") || null;
+  const latestSeenEvent = latestHeartbeat || latestHistoryExport || null;
+  const onlineWindowMinutes = 15;
+  const latestSeenAt = latestSeenEvent?.receivedAt || null;
+  const latestSeenTs = latestSeenAt ? new Date(latestSeenAt).getTime() : 0;
+  const eaConnected =
+    latestSeenTs > 0 && Date.now() - latestSeenTs <= onlineWindowMinutes * 60 * 1000;
+
+  return {
+    eaConnected,
+    eaLastSeenAt: toIsoOrNull(latestSeenAt),
+    eaLastHeartbeatAt: toIsoOrNull(latestHeartbeat?.receivedAt || null),
+    eaLastExportAt: toIsoOrNull(latestHistoryExport?.receivedAt || null),
+    onlineWindowMinutes,
+  };
+}
+
+async function createHistoryExportRequests(brokerAccountIds) {
+  const requestedAt = new Date();
+
+  if (!Array.isArray(brokerAccountIds) || brokerAccountIds.length === 0) {
+    return requestedAt;
+  }
+
+  await prisma.eaEvent.createMany({
+    data: brokerAccountIds.map((brokerAccountId) => ({
+      brokerAccountId,
+      type: "EXPORT_REQUEST",
+      payload: { requestedAt: requestedAt.toISOString() },
+      receivedAt: requestedAt,
+    })),
+  });
+
+  return requestedAt;
+}
+
+async function getLatestHistoryExports(brokerAccountIds, { since } = {}) {
+  if (!Array.isArray(brokerAccountIds) || brokerAccountIds.length === 0) {
+    return [];
+  }
+
+  const where = {
+    brokerAccountId: { in: brokerAccountIds },
+    type: "HISTORY_EXPORT",
+  };
+
+  if (typeof since?.requestToken === "string" && since.requestToken.trim()) {
+    where.payload = {
+      path: ["requestToken"],
+      equals: since.requestToken.trim(),
+    };
+  }
+
+  if (since instanceof Date) {
+    where.receivedAt = { gte: since };
+  } else if (since && since.receivedAt instanceof Date) {
+    where.receivedAt = { gte: since.receivedAt };
+  }
+
+  const rows = await prisma.eaEvent.findMany({
+    where,
+    orderBy: [{ brokerAccountId: "asc" }, { receivedAt: "desc" }],
+    take: Math.max(20, brokerAccountIds.length * 10),
+  });
+
+  const latestByAccount = new Map();
+  for (const row of rows) {
+    if (!latestByAccount.has(row.brokerAccountId)) {
+      latestByAccount.set(row.brokerAccountId, row);
+    }
+  }
+
+  return Array.from(latestByAccount.values());
+}
+
+async function waitForFreshHistoryExports(brokerAccountIds, requestedAt, timeoutMs = 15000) {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const freshEvents = await getLatestHistoryExports(brokerAccountIds, {
+      since: {
+        receivedAt: requestedAt.receivedAt,
+        requestToken: requestedAt.requestToken,
+      },
+    });
+    if (freshEvents.length === brokerAccountIds.length) {
+      return freshEvents;
+    }
+    await sleep(1500);
+  }
+
+  return [];
+}
+
+function buildMt4EaSource({ apiBaseUrl, apiKey, brokerAccountId }) {
+  return `//+------------------------------------------------------------------+
+//|                          GreenTurtleTradesEA.mq4                 |
+//+------------------------------------------------------------------+
+#property strict
+
+input string API_BASE_URL = "${apiBaseUrl}";
+input string API_KEY = "${apiKey}";
+input string BROKER_ACCOUNT_ID = "${brokerAccountId}";
+input int EXPORT_POLL_SECONDS = 10;
+input int HEARTBEAT_SECONDS = 60;
+input int HISTORY_LOOKBACK_DAYS = 3650;
+input int MAX_TRADES_PER_EXPORT = 5000;
+
+datetime lastPollTime = 0;
+datetime lastHeartbeatTime = 0;
+string lastRequestToken = "";
+
+int OnInit()
+{
+   if(StringLen(API_KEY) < 12 || StringLen(BROKER_ACCOUNT_ID) < 6)
+   {
+      Alert("Green Turtle Trades EA is missing account credentials.");
+      return(INIT_FAILED);
+   }
+
+   if(!TestConnection())
+   {
+      Alert("Unable to reach the Green Turtle Trades API.");
+      return(INIT_FAILED);
+   }
+
+   EventSetTimer(MathMax(5, EXPORT_POLL_SECONDS));
+   Print("Green Turtle Trades EA connected. Historical exports will run when requested from Turtle Analytics.");
+   return(INIT_SUCCEEDED);
+}
+
+void OnDeinit(const int reason)
+{
+   EventKillTimer();
+}
+
+bool TestConnection()
+{
+   string url = API_BASE_URL + "/health";
+   string headers = "Content-Type: application/json\\r\\n";
+   char post[];
+   char result[];
+   string responseHeaders;
+   int status = WebRequest("GET", url, headers, 5000, post, result, responseHeaders);
+   return(status == 200);
+}
+
+void SendHeartbeat()
+{
+   if(lastHeartbeatTime != 0 && TimeCurrent() - lastHeartbeatTime < MathMax(15, HEARTBEAT_SECONDS))
+   {
+      return;
+   }
+
+   string body = "{";
+   body += "\\"source\\":\\"mt4_ea\\",";
+   body += "\\"heartbeatAt\\":\\"" + TimeToString(TimeCurrent(), TIME_DATE|TIME_SECONDS) + "\\"";
+   body += "}";
+
+   if(SendJson("/v1/ea/heartbeat", body))
+   {
+      lastHeartbeatTime = TimeCurrent();
+   }
+}
+
+bool FetchPendingExportToken(string &requestToken)
+{
+   string url = API_BASE_URL + "/v1/ea/export-request";
+   string headers = "Content-Type: application/json\\r\\n";
+   headers += "x-api-key: " + API_KEY + "\\r\\n";
+   headers += "x-broker-account-id: " + BROKER_ACCOUNT_ID + "\\r\\n";
+
+   char post[];
+   char result[];
+   string responseHeaders;
+   int status = WebRequest("GET", url, headers, 5000, post, result, responseHeaders);
+   if(status != 200)
+   {
+      return(false);
+   }
+
+   string body = CharArrayToString(result, 0, -1);
+   if(StringFind(body, "\\"pending\\":true") == -1)
+   {
+      return(false);
+   }
+
+   int tokenKey = StringFind(body, "\\"requestToken\\":\\"");
+   if(tokenKey == -1)
+   {
+      return(false);
+   }
+
+   int start = tokenKey + StringLen("\\"requestToken\\":\\"");
+   int end = StringFind(body, "\\"", start);
+   if(end == -1)
+   {
+      return(false);
+   }
+
+   requestToken = StringSubstr(body, start, end - start);
+   return(StringLen(requestToken) > 0);
+}
+
+void ExportClosedTrades(string requestToken)
+{
+   int totalOrders = OrdersHistoryTotal();
+   int exported = 0;
+   string body = "{\\"trades\\":[";
+   datetime minCloseTime = TimeCurrent() - (HISTORY_LOOKBACK_DAYS * 24 * 60 * 60);
+
+   for(int i = totalOrders - 1; i >= 0 && exported < MAX_TRADES_PER_EXPORT; i--)
+   {
+      if(!OrderSelect(i, SELECT_BY_POS, MODE_HISTORY)) continue;
+      if(OrderType() != OP_BUY && OrderType() != OP_SELL) continue;
+      if(OrderCloseTime() <= 0) continue;
+      if(HISTORY_LOOKBACK_DAYS > 0 && OrderCloseTime() < minCloseTime) continue;
+
+      if(exported > 0) body += ",";
+
+      int digits = (int)MarketInfo(OrderSymbol(), MODE_DIGITS);
+      body += "{";
+      body += "\\"trade_id\\":\\"" + IntegerToString(OrderTicket()) + "\\",";
+      body += "\\"entry_time\\":\\"" + TimeToString(OrderOpenTime(), TIME_DATE|TIME_SECONDS) + "\\",";
+      body += "\\"exit_time\\":\\"" + TimeToString(OrderCloseTime(), TIME_DATE|TIME_SECONDS) + "\\",";
+      body += "\\"side\\":\\"" + (OrderType() == OP_BUY ? "LONG" : "SHORT") + "\\",";
+      body += "\\"entry_price\\":" + DoubleToString(OrderOpenPrice(), digits) + ",";
+      body += "\\"exit_price\\":" + DoubleToString(OrderClosePrice(), digits) + ",";
+      body += "\\"stop_loss\\":" + DoubleToString(OrderStopLoss(), digits) + ",";
+      body += "\\"take_profit\\":" + DoubleToString(OrderTakeProfit(), digits) + ",";
+      body += "\\"symbol\\":\\"" + OrderSymbol() + "\\",";
+      body += "\\"volume\\":" + DoubleToString(OrderLots(), 2) + ",";
+      body += "\\"profit\\":" + DoubleToString(OrderProfit(), 2) + ",";
+      body += "\\"commission\\":" + DoubleToString(OrderCommission(), 2) + ",";
+      body += "\\"swap\\":" + DoubleToString(OrderSwap(), 2);
+      body += "}";
+      exported++;
+   }
+
+   body += "],";
+   body += "\\"requestToken\\":\\"" + requestToken + "\\",";
+   body += "\\"source\\":\\"mt4_ea_history\\"";
+   body += "}";
+
+   if(exported == 0) return;
+   if(SendJson("/v1/ea/history/export", body))
+   {
+      Print("Green Turtle Trades EA exported ", exported, " historical trades.");
+   }
+}
+
+bool SendJson(string path, string jsonBody)
+{
+   string url = API_BASE_URL + path;
+   string headers = "Content-Type: application/json\\r\\n";
+   headers += "x-api-key: " + API_KEY + "\\r\\n";
+   headers += "x-broker-account-id: " + BROKER_ACCOUNT_ID + "\\r\\n";
+
+   char post[];
+   char result[];
+   string responseHeaders;
+   StringToCharArray(jsonBody, post, 0, StringLen(jsonBody));
+   int status = WebRequest("POST", url, headers, 10000, post, result, responseHeaders);
+   if(status != 200)
+   {
+      Print("Green Turtle Trades EA request failed: ", status);
+      return(false);
+   }
+   return(true);
+}
+
+void CheckForRequestedExport()
+{
+   string requestToken = "";
+   if(!FetchPendingExportToken(requestToken))
+   {
+      return;
+   }
+
+   if(StringLen(requestToken) == 0 || requestToken == lastRequestToken)
+   {
+      return;
+   }
+
+   lastRequestToken = requestToken;
+   ExportClosedTrades(requestToken);
+}
+
+void OnTimer()
+{
+   SendHeartbeat();
+   CheckForRequestedExport();
+}
+
+void OnTick()
+{
+   SendHeartbeat();
+   if(TimeCurrent() - lastPollTime < MathMax(5, EXPORT_POLL_SECONDS))
+   {
+      return;
+   }
+
+   lastPollTime = TimeCurrent();
+   CheckForRequestedExport();
+}
+//+------------------------------------------------------------------+`;
+}
+
+function buildMt5EaSource({ apiBaseUrl, apiKey, brokerAccountId }) {
+  return `//+------------------------------------------------------------------+
+//|                          GreenTurtleTradesEA.mq5                 |
+//+------------------------------------------------------------------+
+#property version   "1.00"
+
+input string API_BASE_URL = "${apiBaseUrl}";
+input string API_KEY = "${apiKey}";
+input string BROKER_ACCOUNT_ID = "${brokerAccountId}";
+input int EXPORT_POLL_SECONDS = 10;
+input int HEARTBEAT_SECONDS = 60;
+input int HISTORY_LOOKBACK_DAYS = 3650;
+input int MAX_TRADES_PER_EXPORT = 5000;
+
+datetime lastPollTime = 0;
+datetime lastHeartbeatTime = 0;
+string lastRequestToken = "";
+
+int OnInit()
+{
+   if(StringLen(API_KEY) < 12 || StringLen(BROKER_ACCOUNT_ID) < 6)
+   {
+      Alert("Green Turtle Trades EA is missing account credentials.");
+      return(INIT_FAILED);
+   }
+
+   if(!TestConnection())
+   {
+      Alert("Unable to reach the Green Turtle Trades API.");
+      return(INIT_FAILED);
+   }
+
+   EventSetTimer(MathMax(5, EXPORT_POLL_SECONDS));
+   Print("Green Turtle Trades EA connected. Historical exports will run when requested from Turtle Analytics.");
+   return(INIT_SUCCEEDED);
+}
+
+void OnDeinit(const int reason)
+{
+   EventKillTimer();
+}
+
+bool TestConnection()
+{
+   string url = API_BASE_URL + "/health";
+   string headers = "Content-Type: application/json\\r\\n";
+   char post[];
+   char result[];
+   string responseHeaders;
+   int status = WebRequest("GET", url, headers, 5000, post, result, responseHeaders);
+   return(status == 200);
+}
+
+void SendHeartbeat()
+{
+   if(lastHeartbeatTime != 0 && TimeCurrent() - lastHeartbeatTime < MathMax(15, HEARTBEAT_SECONDS))
+   {
+      return;
+   }
+
+   string body = "{";
+   body += "\\"source\\":\\"mt5_ea\\",";
+   body += "\\"heartbeatAt\\":\\"" + TimeToString(TimeCurrent(), TIME_DATE|TIME_SECONDS) + "\\"";
+   body += "}";
+
+   if(SendJson("/v1/ea/heartbeat", body))
+   {
+      lastHeartbeatTime = TimeCurrent();
+   }
+}
+
+bool FetchPendingExportToken(string &requestToken)
+{
+   string url = API_BASE_URL + "/v1/ea/export-request";
+   string headers = "Content-Type: application/json\\r\\n";
+   headers += "x-api-key: " + API_KEY + "\\r\\n";
+   headers += "x-broker-account-id: " + BROKER_ACCOUNT_ID + "\\r\\n";
+
+   char post[];
+   char result[];
+   string responseHeaders;
+   int status = WebRequest("GET", url, headers, 5000, post, result, responseHeaders);
+   if(status != 200)
+   {
+      return(false);
+   }
+
+   string body = CharArrayToString(result, 0, -1);
+   if(StringFind(body, "\\"pending\\":true") == -1)
+   {
+      return(false);
+   }
+
+   int tokenKey = StringFind(body, "\\"requestToken\\":\\"");
+   if(tokenKey == -1)
+   {
+      return(false);
+   }
+
+   int start = tokenKey + StringLen("\\"requestToken\\":\\"");
+   int end = StringFind(body, "\\"", start);
+   if(end == -1)
+   {
+      return(false);
+   }
+
+   requestToken = StringSubstr(body, start, end - start);
+   return(StringLen(requestToken) > 0);
+}
+
+ulong FindEntryDeal(ulong positionId, datetime exitTime)
+{
+   int totalDeals = HistoryDealsTotal();
+   for(int i = totalDeals - 1; i >= 0; i--)
+   {
+      ulong ticket = HistoryDealGetTicket(i);
+      if(ticket == 0) continue;
+      if((ulong)HistoryDealGetInteger(ticket, DEAL_POSITION_ID) != positionId) continue;
+
+      ENUM_DEAL_ENTRY entryType = (ENUM_DEAL_ENTRY)HistoryDealGetInteger(ticket, DEAL_ENTRY);
+      datetime dealTime = (datetime)HistoryDealGetInteger(ticket, DEAL_TIME);
+      if((entryType == DEAL_ENTRY_IN || entryType == DEAL_ENTRY_INOUT) && dealTime <= exitTime)
+      {
+         return(ticket);
+      }
+   }
+   return(0);
+}
+
+void ExportClosedTrades(string requestToken)
+{
+   if(!HistorySelect(0, TimeCurrent())) return;
+
+   int totalDeals = HistoryDealsTotal();
+   int exported = 0;
+   string body = "{\\"trades\\":[";
+   datetime minCloseTime = TimeCurrent() - (HISTORY_LOOKBACK_DAYS * 24 * 60 * 60);
+
+   for(int i = totalDeals - 1; i >= 0 && exported < MAX_TRADES_PER_EXPORT; i--)
+   {
+      ulong exitTicket = HistoryDealGetTicket(i);
+      if(exitTicket == 0) continue;
+
+      ENUM_DEAL_ENTRY exitEntry = (ENUM_DEAL_ENTRY)HistoryDealGetInteger(exitTicket, DEAL_ENTRY);
+      ENUM_DEAL_TYPE exitType = (ENUM_DEAL_TYPE)HistoryDealGetInteger(exitTicket, DEAL_TYPE);
+      if(exitEntry != DEAL_ENTRY_OUT) continue;
+      if(exitType != DEAL_TYPE_BUY && exitType != DEAL_TYPE_SELL) continue;
+
+      datetime exitTime = (datetime)HistoryDealGetInteger(exitTicket, DEAL_TIME);
+      if(exitTime <= 0) continue;
+      if(HISTORY_LOOKBACK_DAYS > 0 && exitTime < minCloseTime) continue;
+
+      ulong positionId = (ulong)HistoryDealGetInteger(exitTicket, DEAL_POSITION_ID);
+      ulong entryTicket = FindEntryDeal(positionId, exitTime);
+      if(entryTicket == 0) continue;
+
+      ulong orderTicket = (ulong)HistoryDealGetInteger(entryTicket, DEAL_ORDER);
+      HistoryOrderSelect(orderTicket);
+      string symbol = HistoryDealGetString(exitTicket, DEAL_SYMBOL);
+      int digits = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
+
+      if(exported > 0) body += ",";
+
+      body += "{";
+      body += "\\"trade_id\\":\\"" + IntegerToString((int)exitTicket) + "\\",";
+      body += "\\"entry_time\\":\\"" + TimeToString((datetime)HistoryDealGetInteger(entryTicket, DEAL_TIME), TIME_DATE|TIME_SECONDS) + "\\",";
+      body += "\\"exit_time\\":\\"" + TimeToString(exitTime, TIME_DATE|TIME_SECONDS) + "\\",";
+      body += "\\"side\\":\\"" + (HistoryDealGetInteger(entryTicket, DEAL_TYPE) == DEAL_TYPE_BUY ? "LONG" : "SHORT") + "\\",";
+      body += "\\"entry_price\\":" + DoubleToString(HistoryDealGetDouble(entryTicket, DEAL_PRICE), digits) + ",";
+      body += "\\"exit_price\\":" + DoubleToString(HistoryDealGetDouble(exitTicket, DEAL_PRICE), digits) + ",";
+      body += "\\"stop_loss\\":" + DoubleToString(HistoryOrderGetDouble(orderTicket, ORDER_SL), digits) + ",";
+      body += "\\"take_profit\\":" + DoubleToString(HistoryOrderGetDouble(orderTicket, ORDER_TP), digits) + ",";
+      body += "\\"symbol\\":\\"" + symbol + "\\",";
+      body += "\\"volume\\":" + DoubleToString(HistoryDealGetDouble(exitTicket, DEAL_VOLUME), 2) + ",";
+      body += "\\"profit\\":" + DoubleToString(HistoryDealGetDouble(exitTicket, DEAL_PROFIT), 2) + ",";
+      body += "\\"commission\\":" + DoubleToString(HistoryDealGetDouble(exitTicket, DEAL_COMMISSION), 2) + ",";
+      body += "\\"swap\\":" + DoubleToString(HistoryDealGetDouble(exitTicket, DEAL_SWAP), 2);
+      body += "}";
+      exported++;
+   }
+
+   body += "],";
+   body += "\\"requestToken\\":\\"" + requestToken + "\\",";
+   body += "\\"source\\":\\"mt5_ea_history\\"";
+   body += "}";
+
+   if(exported == 0) return;
+   if(SendJson("/v1/ea/history/export", body))
+   {
+      Print("Green Turtle Trades EA exported ", exported, " historical trades.");
+   }
+}
+
+bool SendJson(string path, string jsonBody)
+{
+   string url = API_BASE_URL + path;
+   string headers = "Content-Type: application/json\\r\\n";
+   headers += "x-api-key: " + API_KEY + "\\r\\n";
+   headers += "x-broker-account-id: " + BROKER_ACCOUNT_ID + "\\r\\n";
+
+   char post[];
+   char result[];
+   string responseHeaders;
+   StringToCharArray(jsonBody, post, 0, StringLen(jsonBody));
+   int status = WebRequest("POST", url, headers, 10000, post, result, responseHeaders);
+   if(status != 200)
+   {
+      Print("Green Turtle Trades EA request failed: ", status);
+      return(false);
+   }
+   return(true);
+}
+
+void CheckForRequestedExport()
+{
+   string requestToken = "";
+   if(!FetchPendingExportToken(requestToken))
+   {
+      return;
+   }
+
+   if(StringLen(requestToken) == 0 || requestToken == lastRequestToken)
+   {
+      return;
+   }
+
+   lastRequestToken = requestToken;
+   ExportClosedTrades(requestToken);
+}
+
+void OnTimer()
+{
+   SendHeartbeat();
+   CheckForRequestedExport();
+}
+
+void OnTick()
+{
+   SendHeartbeat();
+   if(TimeCurrent() - lastPollTime < MathMax(5, EXPORT_POLL_SECONDS))
+   {
+      return;
+   }
+
+   lastPollTime = TimeCurrent();
+   CheckForRequestedExport();
+}
+//+------------------------------------------------------------------+`;
+}
+
+function buildEaSource({ platform, apiBaseUrl, apiKey, brokerAccountId }) {
+  if (platform === "MT4") {
+    return buildMt4EaSource({ apiBaseUrl, apiKey, brokerAccountId });
+  }
+  return buildMt5EaSource({ apiBaseUrl, apiKey, brokerAccountId });
 }
 
 async function apiKeyRequired(req, res, next) {
@@ -452,7 +1142,12 @@ app.get("/api/trader/application", async (req, res, next) => {
 });
 
 // Auth
-app.post("/api/auth/register", async (req, res) => {
+app.post("/api/auth/register", rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  keyPrefix: "auth-register",
+  message: "Too many registration attempts. Please try again later.",
+}), async (req, res) => {
   try {
     const { email, password, name, metaTraderUsername, brokerName } = req.body || {};
 
@@ -533,7 +1228,12 @@ app.post("/api/auth/register", async (req, res) => {
   }
 });
 
-app.post("/api/auth/login", async (req, res) => {
+app.post("/api/auth/login", rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  keyPrefix: "auth-login",
+  message: "Too many login attempts. Please try again later.",
+}), async (req, res) => {
   try {
     const { email, password } = req.body || {};
 
@@ -583,7 +1283,12 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
-app.post("/api/admin/login", async (req, res) => {
+app.post("/api/admin/login", rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  keyPrefix: "admin-login",
+  message: "Too many admin login attempts. Please try again later.",
+}), async (req, res) => {
   try {
     const { email, password } = req.body || {};
 
@@ -600,7 +1305,12 @@ app.post("/api/admin/login", async (req, res) => {
     const envEmail = process.env.ADMIN_EMAIL;
     const envPassword = process.env.ADMIN_PASSWORD;
 
+    const allowEnvAdminLogin =
+      process.env.ENABLE_ENV_ADMIN_LOGIN === "true" &&
+      process.env.NODE_ENV !== "production";
+
     if (
+      allowEnvAdminLogin &&
       envEmail &&
       envPassword &&
       normalizedEmail === envEmail.trim().toLowerCase() &&
@@ -1716,11 +2426,89 @@ app.delete("/api/api-keys/:id", authRequired, async (req, res, next) => {
   }
 });
 
+app.post("/api/ea/download", authRequired, async (req, res, next) => {
+  try {
+    const requestedPlatform = req.body?.platform;
+    if (requestedPlatform !== "MT4" && requestedPlatform !== "MT5") {
+      return res.status(400).json({ ok: false, error: "Platform must be MT4 or MT5" });
+    }
+
+    const brokerAccount = await getOrCreateEaBrokerAccount(req.user.id, requestedPlatform);
+    const { apiKey, rawKey } = await issueManagedEaApiKey(req.user.id);
+    const apiBaseUrl = getPublicApiBaseUrl(req);
+    const filename = requestedPlatform === "MT4"
+      ? "GreenTurtleTradesEA.mq4"
+      : "GreenTurtleTradesEA.mq5";
+
+    const content = buildEaSource({
+      platform: requestedPlatform,
+      apiBaseUrl,
+      apiKey: rawKey,
+      brokerAccountId: brokerAccount.id,
+    });
+
+    return res.json({
+      ok: true,
+      filename,
+      content,
+      apiKeyLast4: apiKey.last4,
+      brokerAccountId: brokerAccount.id,
+      brokerAccountNumber: brokerAccount.accountNumber,
+      platform: requestedPlatform,
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 // EA ingestion
+app.get("/v1/ea/export-request", apiKeyRequired, async (req, res, next) => {
+  try {
+    const [latestRequest, latestExport] = await Promise.all([
+      prisma.eaEvent.findFirst({
+        where: {
+          brokerAccountId: req.brokerAccountId,
+          type: "EXPORT_REQUEST",
+        },
+        orderBy: { receivedAt: "desc" },
+      }),
+      prisma.eaEvent.findFirst({
+        where: {
+          brokerAccountId: req.brokerAccountId,
+          type: "HISTORY_EXPORT",
+        },
+        orderBy: { receivedAt: "desc" },
+      }),
+    ]);
+
+    const requestToken =
+      typeof latestRequest?.payload?.requestToken === "string"
+        ? latestRequest.payload.requestToken
+        : latestRequest?.id || "";
+    const pending =
+      !!latestRequest &&
+      (!latestExport || latestExport.receivedAt < latestRequest.receivedAt);
+
+    return res.json({
+      ok: true,
+      pending,
+      requestToken: pending ? requestToken : null,
+      requestedAt: pending ? latestRequest.receivedAt.toISOString() : null,
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 app.post(
   "/v1/ea/market/batch",
   apiKeyRequired,
   eaEventHandler("MARKET_BATCH")
+);
+app.post(
+  "/v1/ea/heartbeat",
+  apiKeyRequired,
+  eaEventHandler("HEARTBEAT")
 );
 app.post(
   "/v1/ea/trades/event",
@@ -1732,6 +2520,112 @@ app.post(
   apiKeyRequired,
   eaEventHandler("HISTORY_EXPORT")
 );
+
+app.get("/api/ea/status", authRequired, async (req, res, next) => {
+  try {
+    const brokerAccounts = await prisma.brokerAccount.findMany({
+      where: { userId: req.user.id, isActive: true },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        platform: true,
+        accountNumber: true,
+        brokerName: true,
+        eaEvents: {
+          where: { type: { in: ["HEARTBEAT", "HISTORY_EXPORT"] } },
+          orderBy: { receivedAt: "desc" },
+          take: 10,
+          select: { id: true, type: true, receivedAt: true },
+        },
+      },
+    });
+
+    const primaryAccount = brokerAccounts[0] || null;
+    const status = buildEaConnectionStatus(primaryAccount?.eaEvents || []);
+
+    return res.json({
+      ok: true,
+      platform: primaryAccount?.platform || null,
+      brokerAccountId: primaryAccount?.id || null,
+      brokerAccountNumber: primaryAccount?.accountNumber || null,
+      brokerName: primaryAccount?.brokerName || null,
+      ...status,
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.get("/api/ea/diagnostics", authRequired, async (req, res, next) => {
+  try {
+    const brokerAccounts = await prisma.brokerAccount.findMany({
+      where: { userId: req.user.id, isActive: true },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        platform: true,
+        accountNumber: true,
+        brokerName: true,
+        eaEvents: {
+          where: { type: { in: ["EXPORT_REQUEST", "HEARTBEAT", "HISTORY_EXPORT"] } },
+          orderBy: { receivedAt: "desc" },
+          take: 25,
+          select: { id: true, type: true, payload: true, receivedAt: true },
+        },
+      },
+    });
+
+    const primaryAccount = brokerAccounts[0] || null;
+    const events = primaryAccount?.eaEvents || [];
+    const status = buildEaConnectionStatus(events);
+    const latestRequest = events.find((event) => event.type === "EXPORT_REQUEST") || null;
+    const latestExport = events.find((event) => event.type === "HISTORY_EXPORT") || null;
+    const hints = [];
+
+    if (!primaryAccount) {
+      hints.push("No broker account is linked yet. Save your MetaTrader ID in Settings first.");
+    } else if (!status.eaLastSeenAt) {
+      hints.push("No EA telemetry has reached the backend yet. Download the latest EA file and keep MetaTrader running.");
+    } else if (!status.eaConnected) {
+      hints.push(`The EA was seen before but is currently offline. Expected heartbeat every ${status.onlineWindowMinutes} minutes or less.`);
+    }
+
+    if (latestRequest && (!latestExport || latestExport.receivedAt < latestRequest.receivedAt)) {
+      hints.push("A history export has been requested but the EA has not uploaded it yet. Keep MetaTrader open and attached to a chart.");
+    }
+
+    hints.push(`Allow MetaTrader WebRequest access to: ${getPublicApiBaseUrl(req)}`);
+
+    return res.json({
+      ok: true,
+      connection: status,
+      profile: {
+        brokerAccountId: primaryAccount?.id || null,
+        accountNumber: primaryAccount?.accountNumber || null,
+        brokerName: primaryAccount?.brokerName || null,
+        platform: primaryAccount?.platform || null,
+      },
+      expected: {
+        apiBaseUrl: getPublicApiBaseUrl(req),
+        exportRequestPath: "/v1/ea/export-request",
+        historyExportPath: "/v1/ea/history/export",
+        heartbeatPath: "/v1/ea/heartbeat",
+      },
+      telemetry: {
+        latestRequestAt: toIsoOrNull(latestRequest?.receivedAt || null),
+        latestExportAt: toIsoOrNull(latestExport?.receivedAt || null),
+        recentEvents: events.slice(0, 10).map((event) => ({
+          id: event.id,
+          type: event.type,
+          receivedAt: toIsoOrNull(event.receivedAt),
+        })),
+      },
+      hints,
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
 
 // Admin metrics
 app.get("/api/admin/metrics", authRequired, adminRequired, async (req, res, next) => {
@@ -1834,6 +2728,26 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
     }
 
     const brokerAccountIds = brokerAccounts.map((b) => b.id);
+    const exportRequestToken = crypto.randomUUID();
+    const exportRequestedAt = new Date();
+
+    await prisma.eaEvent.createMany({
+      data: brokerAccountIds.map((brokerAccountId) => ({
+        brokerAccountId,
+        type: "EXPORT_REQUEST",
+        payload: {
+          requestToken: exportRequestToken,
+          requestedByUserId: req.user.id,
+          requestedAt: exportRequestedAt.toISOString(),
+        },
+        receivedAt: exportRequestedAt,
+      })),
+    });
+
+    const freshExportEvents = await waitForFreshHistoryExports(brokerAccountIds, {
+      receivedAt: exportRequestedAt,
+      requestToken: exportRequestToken,
+    }, 15000);
 
     // 2. Calculate date range filter
     const dateTo = new Date();
@@ -1842,20 +2756,17 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
       : new Date(dateTo.getTime() - 5 * 365 * 24 * 60 * 60 * 1000); // 5 years back, limit by tradeCount
 
     // 3. Fetch HISTORY_EXPORT events for these accounts
-    const events = await prisma.eaEvent.findMany({
-      where: {
-        brokerAccountId: { in: brokerAccountIds },
-        type: "HISTORY_EXPORT",
-        receivedAt: { gte: dateFrom, lte: dateTo },
-      },
-      orderBy: { receivedAt: "desc" },
-      take: 50, // max 50 export batches
-    });
+    const events =
+      freshExportEvents.length > 0
+        ? freshExportEvents
+        : await getLatestHistoryExports(brokerAccountIds, {
+            since: { requestToken: exportRequestToken },
+          });
 
     if (events.length === 0) {
       return res.status(400).json({
         ok: false,
-        error: "No trade history found. Please export your trade history from your EA first.",
+        error: "No trade history found. Connect the MetaTrader EA and keep the platform running, then try Run Model again.",
       });
     }
 
@@ -1863,6 +2774,10 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
     //    The EA payload may be { trades: [...] } or an array directly
     let allTrades = [];
     for (const event of events) {
+      if (event.receivedAt < dateFrom || event.receivedAt > dateTo) {
+        continue;
+      }
+
       const payload = event.payload;
       if (Array.isArray(payload)) {
         allTrades.push(...payload);
@@ -1874,7 +2789,9 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
     if (allTrades.length === 0) {
       return res.status(400).json({
         ok: false,
-        error: "Trade history events found but no trade records could be extracted from the payloads.",
+        error: freshExportEvents.length > 0
+          ? "The EA responded, but no closed trades were found in the requested history window."
+          : "Trade history events were found, but no trade records could be extracted from the latest export.",
       });
     }
 

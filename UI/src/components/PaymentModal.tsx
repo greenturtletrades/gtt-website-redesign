@@ -24,7 +24,7 @@ export function PaymentModal({ onClose, onComplete, onBack, selectedPlan, userNa
   const planDetails = {
     payg: {
       name: "Pay-As-You-Go",
-      price: "£25.00",
+      price: "£10.00",
       billing: "monthly + £0.20 per trade",
       description: "Base subscription + usage fees"
     }
@@ -298,7 +298,7 @@ export function PaymentModal({ onClose, onComplete, onBack, selectedPlan, userNa
                   Processing Payment...
                 </span>
               ) : (
-                `Pay ${hasReferralCode ? '£20.00' : plan.price} Now`
+                `Pay ${hasReferralCode ? '£8.00' : plan.price} Now`
               )}
             </button>
 
@@ -333,7 +333,7 @@ export function PaymentModal({ onClose, onComplete, onBack, selectedPlan, userNa
                   {hasReferralCode && (
                     <div className="flex justify-between items-center text-xs text-teal-600 mb-3">
                       <span>Referral Discount (First 2 Months)</span>
-                      <span>-£5.00</span>
+                      <span>-£2.00</span>
                     </div>
                   )}
                 </div>
@@ -341,11 +341,11 @@ export function PaymentModal({ onClose, onComplete, onBack, selectedPlan, userNa
                 <div className="border-t border-slate-200 pt-4">
                   <div className="flex justify-between items-center mb-4">
                     <span className="text-slate-900 font-semibold">Due Today</span>
-                    <span className="text-slate-900 font-semibold text-2xl">{hasReferralCode ? '£20.00' : plan.price}</span>
+                    <span className="text-slate-900 font-semibold text-2xl">{hasReferralCode ? '£8.00' : plan.price}</span>
                   </div>
                   <div className="text-slate-600 text-xs">
                     {hasReferralCode 
-                      ? 'Your subscription will renew at £20.00 for the second month, then £25.00/month thereafter'
+                      ? 'Your subscription will renew at £8.00 for the second month, then £10.00/month thereafter'
                       : `Your subscription will auto-renew at ${plan.price}/month`
                     }
                   </div>

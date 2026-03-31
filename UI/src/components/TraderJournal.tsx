@@ -16,7 +16,7 @@ interface JournalEntry {
   exitTime: string;
   duration: number; // in minutes
   exitType: "TP" | "SL" | "Manual";
-  result: number;
+  result: number | null;
   rMultiple: number;
   notes: string;
   emotions: string;
@@ -26,6 +26,11 @@ interface JournalEntry {
 
 interface TraderJournalProps {
   entries?: JournalEntry[];
+  pnlMeta?: {
+    currency_pnl_available?: boolean;
+    message?: string | null;
+    source_column?: string | null;
+  };
 }
 
 function toSafeNumber(value: unknown, fallback = 0): number {
@@ -62,7 +67,10 @@ function normalizeJournalEntry(entry: Partial<JournalEntry>): JournalEntry {
     exitTime: toSafeString(entry.exitTime),
     duration: Math.max(0, Math.round(toSafeNumber(entry.duration))),
     exitType: entry.exitType === "TP" || entry.exitType === "SL" ? entry.exitType : "Manual",
-    result: toSafeNumber(entry.result),
+    result:
+      entry.result === null || entry.result === undefined
+        ? null
+        : toSafeNumber(entry.result),
     rMultiple: toSafeNumber(entry.rMultiple),
     notes: cleanImportedText(entry.notes),
     emotions: cleanImportedText(entry.emotions),
@@ -71,7 +79,7 @@ function normalizeJournalEntry(entry: Partial<JournalEntry>): JournalEntry {
   };
 }
 
-export function TraderJournal({ entries: liveEntries = [] }: TraderJournalProps) {
+export function TraderJournal({ entries: liveEntries = [], pnlMeta }: TraderJournalProps) {
   const currencyFormatter = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -80,9 +88,12 @@ export function TraderJournal({ entries: liveEntries = [] }: TraderJournalProps)
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [liveOverrides, setLiveOverrides] = useState<Record<string, JournalEntry>>({});
   const hasLiveEntries = liveEntries.length > 0;
+  const hasCurrencyPnl = pnlMeta?.currency_pnl_available !== false;
   const activeEntries = hasLiveEntries
     ? liveEntries.map((entry) => normalizeJournalEntry(liveOverrides[entry.id] ?? entry))
     : entries;
+  const formatPnl = (value: number | null) =>
+    value === null ? "N/A" : currencyFormatter.format(value);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
@@ -186,7 +197,7 @@ export function TraderJournal({ entries: liveEntries = [] }: TraderJournalProps)
       exitTime: normalizedEntry.exitTime,
       duration: normalizedEntry.duration.toString(),
       exitType: normalizedEntry.exitType,
-      result: normalizedEntry.result.toString(),
+      result: normalizedEntry.result === null ? "" : normalizedEntry.result.toString(),
       rMultiple: normalizedEntry.rMultiple.toString(),
       notes: normalizedEntry.notes,
       emotions: normalizedEntry.emotions,
@@ -209,9 +220,11 @@ export function TraderJournal({ entries: liveEntries = [] }: TraderJournalProps)
   );
 
   const totalTrades = activeEntries.length;
-  const winningTrades = activeEntries.filter(e => e.result > 0).length;
-  const losingTrades = activeEntries.filter(e => e.result < 0).length;
-  const totalPnL = activeEntries.reduce((sum, e) => sum + e.result, 0);
+  const winningTrades = activeEntries.filter(e => (e.result ?? 0) > 0).length;
+  const losingTrades = activeEntries.filter(e => (e.result ?? 0) < 0).length;
+  const totalPnL = hasCurrencyPnl
+    ? activeEntries.reduce((sum, e) => sum + (e.result ?? 0), 0)
+    : null;
   const avgR = activeEntries.length > 0 ? activeEntries.reduce((sum, e) => sum + e.rMultiple, 0) / activeEntries.length : 0;
 
   // Calculate monthly PnL
@@ -228,11 +241,11 @@ export function TraderJournal({ entries: liveEntries = [] }: TraderJournalProps)
         totalR: 0
       };
     }
-    acc[monthKey].pnl += entry.result;
+    acc[monthKey].pnl += entry.result ?? 0;
     acc[monthKey].trades += 1;
     acc[monthKey].totalR += entry.rMultiple;
-    if (entry.result > 0) acc[monthKey].winners += 1;
-    if (entry.result < 0) acc[monthKey].losers += 1;
+    if ((entry.result ?? 0) > 0) acc[monthKey].winners += 1;
+    if ((entry.result ?? 0) < 0) acc[monthKey].losers += 1;
     return acc;
   }, {} as Record<string, { month: string; pnl: number; trades: number; winners: number; losers: number; avgR: number; totalR: number }>);
 
@@ -295,9 +308,11 @@ export function TraderJournal({ entries: liveEntries = [] }: TraderJournalProps)
               <div className="text-red-600 text-2xl">{losingTrades}</div>
             </div>
             <div className="bg-white border border-teal-200 rounded-lg p-4 shadow-sm">
-              <div className="text-slate-600 text-sm mb-1">Total P&L</div>
-              <div className={`text-2xl ${totalPnL >= 0 ? "text-teal-600" : "text-red-600"}`}>
-                {currencyFormatter.format(totalPnL)}
+              <div className="text-slate-600 text-sm mb-1">Profit / Loss</div>
+              <div className={`text-2xl ${
+                totalPnL === null ? "text-slate-500" : totalPnL >= 0 ? "text-teal-600" : "text-red-600"
+              }`}>
+                {formatPnl(totalPnL)}
               </div>
             </div>
             <div className="bg-white border border-teal-200 rounded-lg p-4 shadow-sm">
@@ -307,6 +322,12 @@ export function TraderJournal({ entries: liveEntries = [] }: TraderJournalProps)
               </div>
             </div>
           </div>
+
+          {!hasCurrencyPnl && (
+            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              {pnlMeta?.message || "No position sizing found, so currency profit/loss cannot be calculated for this journal."}
+            </div>
+          )}
 
           {recentEntries.length > 0 && (
             <div className="mt-8">
@@ -324,9 +345,9 @@ export function TraderJournal({ entries: liveEntries = [] }: TraderJournalProps)
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          entry.result > 0 ? "bg-teal-100" : "bg-red-100"
+                          (entry.result ?? 0) > 0 ? "bg-teal-100" : "bg-red-100"
                         }`}>
-                          {entry.result > 0 ? (
+                          {(entry.result ?? 0) > 0 ? (
                             <TrendingUp className="w-5 h-5 text-teal-600" />
                           ) : (
                             <TrendingDown className="w-5 h-5 text-red-600" />
@@ -353,8 +374,10 @@ export function TraderJournal({ entries: liveEntries = [] }: TraderJournalProps)
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className={`text-sm ${entry.result >= 0 ? "text-teal-600" : "text-red-600"}`}>
-                          PnL {currencyFormatter.format(entry.result)}
+                        <div className={`text-sm ${
+                          entry.result === null ? "text-slate-500" : entry.result >= 0 ? "text-teal-600" : "text-red-600"
+                        }`}>
+                          PnL {formatPnl(entry.result)}
                         </div>
                         <div className={`text-xs ${entry.rMultiple >= 0 ? "text-teal-600" : "text-red-600"}`}>
                           {entry.rMultiple.toFixed(2)}R
@@ -451,9 +474,9 @@ export function TraderJournal({ entries: liveEntries = [] }: TraderJournalProps)
                               </td>
                               <td className="py-3 px-4 text-sm">
                                 <span className={`font-semibold ${
-                                  monthData.pnl > 0 ? "text-teal-600" : monthData.pnl < 0 ? "text-red-600" : "text-slate-600"
+                                  !hasCurrencyPnl ? "text-slate-500" : monthData.pnl > 0 ? "text-teal-600" : monthData.pnl < 0 ? "text-red-600" : "text-slate-600"
                                 }`}>
-                                  {currencyFormatter.format(monthData.pnl)}
+                                  {hasCurrencyPnl ? formatPnl(monthData.pnl) : "N/A"}
                                 </span>
                               </td>
                               <td className="py-3 px-4 text-sm">
@@ -518,7 +541,7 @@ export function TraderJournal({ entries: liveEntries = [] }: TraderJournalProps)
                                             {(() => {
                                               let maxStreak = 0, currentStreak = 0;
                                               monthTrades.forEach(t => {
-                                                if (t.result > 0) {
+                                                if ((t.result ?? 0) > 0) {
                                                   currentStreak++;
                                                   maxStreak = Math.max(maxStreak, currentStreak);
                                                 } else {
@@ -535,7 +558,7 @@ export function TraderJournal({ entries: liveEntries = [] }: TraderJournalProps)
                                             {(() => {
                                               let maxStreak = 0, currentStreak = 0;
                                               monthTrades.forEach(t => {
-                                                if (t.result < 0) {
+                                                if ((t.result ?? 0) < 0) {
                                                   currentStreak++;
                                                   maxStreak = Math.max(maxStreak, currentStreak);
                                                 } else {
@@ -561,9 +584,9 @@ export function TraderJournal({ entries: liveEntries = [] }: TraderJournalProps)
                                             <div className="flex items-center justify-between mb-2">
                                               <div className="flex items-center gap-3">
                                                 <div className={`w-8 h-8 rounded flex items-center justify-center ${
-                                                  trade.result > 0 ? "bg-teal-100" : "bg-red-100"
+                                                  (trade.result ?? 0) > 0 ? "bg-teal-100" : "bg-red-100"
                                                 }`}>
-                                                  {trade.result > 0 ? (
+                                                  {(trade.result ?? 0) > 0 ? (
                                                     <TrendingUp className="w-4 h-4 text-teal-600" />
                                                   ) : (
                                                     <TrendingDown className="w-4 h-4 text-red-600" />
@@ -591,9 +614,9 @@ export function TraderJournal({ entries: liveEntries = [] }: TraderJournalProps)
                                               <div className="flex items-center gap-4">
                                                 <div className="text-right">
                                                   <div className={`text-sm ${
-                                                    trade.result >= 0 ? "text-teal-600" : "text-red-600"
+                                                    trade.result === null ? "text-slate-500" : trade.result >= 0 ? "text-teal-600" : "text-red-600"
                                                   }`}>
-                                                    {currencyFormatter.format(trade.result)}
+                                                    {formatPnl(trade.result)}
                                                   </div>
                                                   <div className={`text-xs ${
                                                     trade.rMultiple >= 0 ? "text-teal-600" : "text-red-600"

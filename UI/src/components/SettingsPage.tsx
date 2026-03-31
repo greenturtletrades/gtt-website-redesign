@@ -14,6 +14,7 @@ import {
   Trash2,
   User,
   Code,
+  Activity,
 } from "lucide-react";
 import { me } from "../api/auth";
 import {
@@ -21,6 +22,9 @@ import {
   createApiKey,
   createBrokerAccount,
   deleteMyAccount,
+  downloadEaFile,
+  fetchEaDiagnostics,
+  fetchEaStatus,
   fetchApiKeys,
   fetchBrokerAccounts,
   revokeApiKey,
@@ -28,6 +32,8 @@ import {
   updateProfile,
   type ApiKeyRecord,
   type BrokerAccount,
+  type EaDiagnosticsResponse,
+  type EaStatusResponse,
 } from "../api/settings";
 
 interface SettingsPageProps {
@@ -54,7 +60,7 @@ export function SettingsPage({
   onCancelSubscription,
 }: SettingsPageProps) {
   const [activeTab, setActiveTab] = useState<
-    "account" | "subscription" | "billing" | "ea-code" | "api-keys" | "referrals"
+    "account" | "subscription" | "ea-code" | "api-keys" | "referrals"
   >("account");
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
@@ -78,6 +84,10 @@ export function SettingsPage({
   const [changingPassword, setChangingPassword] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [regeneratingApiKeyId, setRegeneratingApiKeyId] = useState<string | null>(null);
+  const [downloadingEaPlatform, setDownloadingEaPlatform] = useState<"MT4" | "MT5" | null>(null);
+  const [eaStatus, setEaStatus] = useState<EaStatusResponse | null>(null);
+  const [eaDiagnostics, setEaDiagnostics] = useState<EaDiagnosticsResponse | null>(null);
+  const [refreshingEaHealth, setRefreshingEaHealth] = useState(false);
   const [copiedValue, setCopiedValue] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
@@ -85,6 +95,7 @@ export function SettingsPage({
 
   const primaryBrokerAccount = brokerAccounts[0] || null;
   const activeApiKeys = apiKeys.filter((item) => !item.revokedAt);
+  const managedEaApiKey = activeApiKeys.find((item) => item.name === "MetaTrader EA") || null;
   const currentApiKey = freshApiKey || null;
 
   const referralCode = useMemo(() => {
@@ -97,10 +108,12 @@ export function SettingsPage({
 
     const load = async () => {
       try {
-        const [session, brokerResponse, apiKeyResponse] = await Promise.all([
+        const [session, brokerResponse, apiKeyResponse, eaStatusResponse, eaDiagnosticsResponse] = await Promise.all([
           me(),
           fetchBrokerAccounts(),
           fetchApiKeys(),
+          fetchEaStatus(),
+          fetchEaDiagnostics(),
         ]);
 
         if (cancelled) return;
@@ -116,6 +129,8 @@ export function SettingsPage({
         });
         setBrokerAccounts(brokerResponse.brokerAccounts);
         setApiKeys(apiKeyResponse.apiKeys);
+        setEaStatus(eaStatusResponse);
+        setEaDiagnostics(eaDiagnosticsResponse);
         setPageError(null);
       } catch (error) {
         if (!cancelled) {
@@ -136,8 +151,7 @@ export function SettingsPage({
 
   const tabs = [
     { id: "account", label: "Account", icon: User },
-    { id: "subscription", label: "Subscription", icon: Sparkles },
-    { id: "billing", label: "Billing", icon: CreditCard },
+    { id: "subscription", label: "Subscription & Billing", icon: CreditCard },
     { id: "ea-code", label: "EA Code", icon: Code },
     { id: "api-keys", label: "API Keys", icon: Key },
     { id: "referrals", label: "Referrals", icon: Gift },
@@ -230,6 +244,91 @@ export function SettingsPage({
       setCreatingApiKey(false);
     }
   };
+
+  const handleDownloadEa = async (platform: "MT4" | "MT5") => {
+    setDownloadingEaPlatform(platform);
+    setPageError(null);
+
+    try {
+      const response = await downloadEaFile(platform);
+      const blob = new Blob([response.content], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = response.filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
+
+      const [brokerResponse, apiKeyResponse, eaStatusResponse, eaDiagnosticsResponse] = await Promise.all([
+        fetchBrokerAccounts(),
+        fetchApiKeys(),
+        fetchEaStatus(),
+        fetchEaDiagnostics(),
+      ]);
+
+      setBrokerAccounts(brokerResponse.brokerAccounts);
+      setApiKeys(apiKeyResponse.apiKeys);
+      setEaStatus(eaStatusResponse);
+      setEaDiagnostics(eaDiagnosticsResponse);
+      setSuccessMessage(`Downloaded ${platform} EA linked to API key ending ${response.apiKeyLast4}.`);
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : "Unable to generate the EA download.");
+    } finally {
+      setDownloadingEaPlatform(null);
+    }
+  };
+
+  const handleRefreshEaHealth = async () => {
+    setRefreshingEaHealth(true);
+    setPageError(null);
+    try {
+      const [eaStatusResponse, eaDiagnosticsResponse] = await Promise.all([
+        fetchEaStatus(),
+        fetchEaDiagnostics(),
+      ]);
+      setEaStatus(eaStatusResponse);
+      setEaDiagnostics(eaDiagnosticsResponse);
+      setTransientSuccess("EA health refreshed.");
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : "Unable to refresh EA health.");
+    } finally {
+      setRefreshingEaHealth(false);
+    }
+  };
+
+  const formatTimestamp = (value: string | null) => {
+    if (!value) return "Not seen yet";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Not seen yet";
+    return date.toLocaleString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const eaHealthTone = eaStatus?.eaConnected
+    ? {
+        badge: "Live",
+        badgeClass: "bg-emerald-100 text-emerald-700",
+        panelClass: "border-emerald-200 bg-emerald-50",
+        copy: "The EA is connected and sending telemetry.",
+      }
+    : eaStatus?.eaLastSeenAt
+      ? {
+          badge: "Offline",
+          badgeClass: "bg-amber-100 text-amber-700",
+          panelClass: "border-amber-200 bg-amber-50",
+          copy: "The EA was seen before, but it is not currently connected.",
+        }
+      : {
+          badge: "Not Connected",
+          badgeClass: "bg-slate-200 text-slate-700",
+          panelClass: "border-slate-200 bg-slate-50",
+          copy: "No EA telemetry has reached the backend yet.",
+        };
 
   const handleRevokeApiKey = async (id: string) => {
     setRegeneratingApiKeyId(id);
@@ -418,7 +517,7 @@ export function SettingsPage({
                   {activeTab === "subscription" && (
                     <div className="space-y-6">
                       <div>
-                        <h2 className="text-xl text-slate-900">Subscription</h2>
+                        <h2 className="text-xl text-slate-900">Subscription & Billing</h2>
                         <p className="mt-1 text-sm text-slate-600">Your plan status is live in the app. Cancellation feedback is sent to the backend.</p>
                       </div>
 
@@ -429,7 +528,7 @@ export function SettingsPage({
                               <Sparkles className="h-5 w-5 text-teal-600" />
                               <h3 className="text-lg text-slate-900">Pay-As-You-Go</h3>
                             </div>
-                            <p className="mt-2 text-sm text-slate-600">£25/month + £0.20 per trade analysed</p>
+                            <p className="mt-2 text-sm text-slate-600">£10/month + £0.20 per trade analysed</p>
                           </div>
                           <span className={`rounded-full px-3 py-1 text-sm ${subscriptionStatus === "paused" ? "bg-amber-100 text-amber-700" : "bg-teal-600 text-white"}`}>
                             {subscriptionStatus === "paused" ? "Paused" : "Active"}
@@ -460,6 +559,18 @@ export function SettingsPage({
                           Cancel Subscription
                         </button>
                       </div>
+
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-6">
+                        <div className="flex items-start gap-3">
+                          <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-600" />
+                          <div>
+                            <h3 className="text-slate-900">Billing History</h3>
+                            <p className="mt-2 text-sm text-slate-600">
+                              There is no live backend dataset for billing history yet, so this section stays empty until that backend exists.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -468,6 +579,68 @@ export function SettingsPage({
                       <div>
                         <h2 className="text-xl text-slate-900">EA Connection</h2>
                         <p className="mt-1 text-sm text-slate-600">Use your live API key and MetaTrader account to connect the EA.</p>
+                      </div>
+
+                      <div className={`rounded-lg border p-4 ${eaHealthTone.panelClass}`}>
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                          <div>
+                            <div className="flex items-center gap-3">
+                              <Activity className="h-5 w-5 text-slate-700" />
+                              <h3 className="text-slate-900">EA Health</h3>
+                              <span className={`rounded-full px-3 py-1 text-xs ${eaHealthTone.badgeClass}`}>
+                                {eaHealthTone.badge}
+                              </span>
+                            </div>
+                            <p className="mt-2 text-sm text-slate-700">{eaHealthTone.copy}</p>
+                          </div>
+                          <button
+                            onClick={handleRefreshEaHealth}
+                            disabled={refreshingEaHealth}
+                            className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm text-slate-700 shadow-sm ring-1 ring-slate-200 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70"
+                          >
+                            <RefreshCw className={`h-4 w-4 ${refreshingEaHealth ? "animate-spin" : ""}`} />
+                            {refreshingEaHealth ? "Refreshing..." : "Refresh Health"}
+                          </button>
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+                          <div className="rounded-lg bg-white/80 p-3 ring-1 ring-slate-200">
+                            <div className="text-xs text-slate-500">Last Seen</div>
+                            <div className="mt-1 text-sm text-slate-900">{formatTimestamp(eaStatus?.eaLastSeenAt || null)}</div>
+                          </div>
+                          <div className="rounded-lg bg-white/80 p-3 ring-1 ring-slate-200">
+                            <div className="text-xs text-slate-500">Last Heartbeat</div>
+                            <div className="mt-1 text-sm text-slate-900">{formatTimestamp(eaStatus?.eaLastHeartbeatAt || null)}</div>
+                          </div>
+                          <div className="rounded-lg bg-white/80 p-3 ring-1 ring-slate-200">
+                            <div className="text-xs text-slate-500">Last History Export</div>
+                            <div className="mt-1 text-sm text-slate-900">{formatTimestamp(eaStatus?.eaLastExportAt || null)}</div>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+                          <div className="rounded-lg bg-white/80 p-3 ring-1 ring-slate-200">
+                            <div className="text-xs text-slate-500">Expected API Host</div>
+                            <div className="mt-1 break-all text-sm text-slate-900">{eaDiagnostics?.expected.apiBaseUrl || "Unknown"}</div>
+                          </div>
+                          <div className="rounded-lg bg-white/80 p-3 ring-1 ring-slate-200">
+                            <div className="text-xs text-slate-500">Online Window</div>
+                            <div className="mt-1 text-sm text-slate-900">
+                              {eaStatus?.onlineWindowMinutes ? `${eaStatus.onlineWindowMinutes} minutes` : "15 minutes"}
+                            </div>
+                          </div>
+                        </div>
+
+                        {eaDiagnostics?.hints?.length ? (
+                          <div className="mt-4 rounded-lg bg-white/80 p-4 ring-1 ring-slate-200">
+                            <div className="mb-2 text-sm text-slate-700">Connection Hints</div>
+                            <ul className="space-y-2 text-sm text-slate-600">
+                              {eaDiagnostics.hints.slice(0, 3).map((hint) => (
+                                <li key={hint}>• {hint}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
                       </div>
 
                       <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
@@ -487,8 +660,10 @@ export function SettingsPage({
                             <div className="text-slate-900">
                               {currentApiKey
                                 ? currentApiKey
-                                : activeApiKeys[0]
-                                  ? `Active key ending ${activeApiKeys[0].last4}`
+                                : managedEaApiKey
+                                  ? `MetaTrader EA key ending ${managedEaApiKey.last4}`
+                                  : activeApiKeys[0]
+                                    ? `Active key ending ${activeApiKeys[0].last4}`
                                   : "No API key generated yet"}
                             </div>
                           </div>
@@ -510,6 +685,31 @@ export function SettingsPage({
                             {creatingApiKey ? "Generating..." : "Generate API Key"}
                           </button>
                         )}
+                      </div>
+
+                      <div className="rounded-lg border border-slate-200 bg-white p-4">
+                        <div className="mb-3">
+                          <div className="text-sm text-slate-600">Linked EA download</div>
+                          <div className="text-slate-900">
+                            Generate an MT4 or MT5 file with your managed API key and broker account already wired in. The EA waits for a model-run request, then uploads fresh historical trades.
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-3">
+                          <button
+                            onClick={() => handleDownloadEa("MT4")}
+                            disabled={downloadingEaPlatform !== null}
+                            className="rounded-lg bg-teal-600 px-4 py-2 text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
+                          >
+                            {downloadingEaPlatform === "MT4" ? "Generating MT4..." : "Download MT4 EA"}
+                          </button>
+                          <button
+                            onClick={() => handleDownloadEa("MT5")}
+                            disabled={downloadingEaPlatform !== null}
+                            className="rounded-lg border border-teal-200 bg-teal-50 px-4 py-2 text-teal-700 transition-colors hover:bg-teal-100 disabled:cursor-not-allowed disabled:opacity-70"
+                          >
+                            {downloadingEaPlatform === "MT5" ? "Generating MT5..." : "Download MT5 EA"}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -581,34 +781,32 @@ export function SettingsPage({
                     </div>
                   )}
 
-                  {(activeTab === "billing" || activeTab === "referrals") && (
+                  {activeTab === "referrals" && (
                     <div className="space-y-4">
-                      <h2 className="text-xl text-slate-900">{activeTab === "billing" ? "Billing" : "Referrals"}</h2>
+                      <h2 className="text-xl text-slate-900">Referrals</h2>
                       <div className="rounded-lg border border-slate-200 bg-slate-50 p-6">
                         <div className="flex items-start gap-3">
                           <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-600" />
                           <div>
                             <p className="text-slate-900">This section no longer shows mock data.</p>
                             <p className="mt-2 text-sm text-slate-600">
-                              There is no live backend dataset for {activeTab === "billing" ? "billing history" : "referral tracking"} yet, so the UI intentionally stays empty until that backend exists.
+                              There is no live backend dataset for referral tracking yet, so the UI intentionally stays empty until that backend exists.
                             </p>
                           </div>
                         </div>
                       </div>
-                      {activeTab === "referrals" && (
-                        <div className="rounded-lg border border-slate-200 p-4">
-                          <div className="mb-2 text-sm text-slate-600">Referral code</div>
-                          <div className="flex items-center justify-between gap-3">
-                            <code className="rounded bg-slate-100 px-3 py-2 text-sm text-slate-900">{referralCode}</code>
-                            <button
-                              onClick={() => handleCopy("referral-code", referralCode)}
-                              className="rounded-lg bg-teal-600 px-3 py-2 text-sm text-white hover:bg-teal-700"
-                            >
-                              {copiedValue === "referral-code" ? "Copied!" : "Copy"}
-                            </button>
-                          </div>
+                      <div className="rounded-lg border border-slate-200 p-4">
+                        <div className="mb-2 text-sm text-slate-600">Referral code</div>
+                        <div className="flex items-center justify-between gap-3">
+                          <code className="rounded bg-slate-100 px-3 py-2 text-sm text-slate-900">{referralCode}</code>
+                          <button
+                            onClick={() => handleCopy("referral-code", referralCode)}
+                            className="rounded-lg bg-teal-600 px-3 py-2 text-sm text-white hover:bg-teal-700"
+                          >
+                            {copiedValue === "referral-code" ? "Copied!" : "Copy"}
+                          </button>
                         </div>
-                      )}
+                      </div>
                     </div>
                   )}
                 </>

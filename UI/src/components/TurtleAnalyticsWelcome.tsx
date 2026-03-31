@@ -145,7 +145,7 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn }: TurtleAnalyticsWe
 
                 <h3 className="text-white mb-2">Pay-As-You-Go</h3>
                 <div className="mb-3">
-                  <span className="text-2xl font-semibold text-white">£25</span>
+                  <span className="text-2xl font-semibold text-white">£10</span>
                   <span className="text-slate-300 text-sm">/month</span>
                   <div className="mt-1">
                     <span className="text-slate-300 text-sm">+ £0.20 per trade</span>
@@ -155,7 +155,7 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn }: TurtleAnalyticsWe
                 <ul className="space-y-2 mb-4">
                   <li className="flex items-start gap-2 text-sm">
                     <Check className="w-4 h-4 text-teal-400 flex-shrink-0 mt-0.5" />
-                    <span className="text-slate-200">£25/month base subscription</span>
+                    <span className="text-slate-200">£10/month base subscription</span>
                   </li>
                   <li className="flex items-start gap-2 text-sm">
                     <Check className="w-4 h-4 text-teal-400 flex-shrink-0 mt-0.5" />

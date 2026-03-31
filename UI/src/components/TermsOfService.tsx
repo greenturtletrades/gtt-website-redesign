@@ -105,7 +105,7 @@ export function TermsOfService({ onBack }: TermsOfServiceProps) {
                 <div>
                   <div className="text-slate-900 font-medium mb-1">Pay-As-You-Go</div>
                   <p className="text-slate-600 text-xs">
-                    £25/month base fee + £0.20 per trade analysed.
+                    £10/month base fee + £0.20 per trade analysed.
                   </p>
                 </div>
               </div>

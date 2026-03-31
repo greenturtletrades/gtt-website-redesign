@@ -14,14 +14,14 @@ export function SubscriptionModal({ onClose, onSelectPlan, userName }: Subscript
   const plan = {
     id: "payg" as const,
     name: "Pay-As-You-Go",
-    price: "£25",
+    price: "£10",
     icon: Calculator,
     color: "from-teal-500 to-cyan-500",
     borderColor: "border-teal-300",
     bgColor: "bg-teal-50",
     perTradePrice: "£0.20",
     features: [
-      "£25/month base subscription",
+      "£10/month base subscription",
       "£0.20 per trade analysed",
       "Access to Turtle Analytics",
       "Trade Journal",
@@ -34,7 +34,7 @@ export function SubscriptionModal({ onClose, onSelectPlan, userName }: Subscript
   };
 
   const calculatePaygEstimate = () => {
-    const baseFee = 25;
+    const baseFee = 10;
     const perTrade = 0.20;
     const total = baseFee + (estimatedTrades * perTrade);
     return total.toFixed(2);
@@ -125,7 +125,7 @@ export function SubscriptionModal({ onClose, onSelectPlan, userName }: Subscript
           <div className="bg-white rounded-lg p-4 border border-slate-200">
             <div className="flex justify-between items-center mb-2 text-sm">
               <span className="text-slate-600">Base subscription:</span>
-              <span className="text-slate-900">£25.00</span>
+              <span className="text-slate-900">£10.00</span>
             </div>
             <div className="flex justify-between items-center mb-2 text-sm">
               <span className="text-slate-600">{estimatedTrades} trades × £0.20:</span>
@@ -172,7 +172,7 @@ export function SubscriptionModal({ onClose, onSelectPlan, userName }: Subscript
             <div>
               <h4 className="text-teal-900 font-medium mb-1">Have a Referral Code?</h4>
               <p className="text-teal-700 text-sm">
-                If you have a referral code, you can apply it after signing up to receive <strong>20% off your subscription for 2 months</strong> (£20/month instead of £25/month). 
+                If you have a referral code, you can apply it after signing up to receive <strong>20% off your subscription for 2 months</strong> (£8/month instead of £10/month). 
                 The trader who referred you will also receive the same discount for 2 months!
               </p>
             </div>

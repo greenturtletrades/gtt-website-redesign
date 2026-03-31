@@ -336,7 +336,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
 
     const now = new Date();
     const tradesCount = analysisMode === "trades" ? selectedTradeCount : Math.round(selectedMonths * 47);
-    const cost = tradesCount * 0.20;
+    const estimatedCost = tradesCount * 0.20;
 
     const newLogEntry: ModelRunLog = {
       id: `run-${Date.now()}`,
@@ -350,7 +350,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         ? new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000)
         : new Date(now.getTime() - selectedMonths * 30 * 24 * 60 * 60 * 1000),
       dateRangeEnd: now,
-      cost: subscriptionTier === "payg" ? cost : 0,
+      cost: subscriptionTier === "payg" ? estimatedCost : 0,
       status: "running",
     };
 
@@ -395,6 +395,10 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
 
         if (result.status === "complete") {
           const tradesAnalysed = result.tradesAnalysed ?? result.trades_analysed;
+          const actualCost =
+            subscriptionTier === "payg"
+              ? (tradesAnalysed ?? newLogEntry.tradesAnalysed) * 0.20
+              : 0;
           const simulationsRun = result.simulationsRun ?? result.simulations_run;
           const regimesFound = result.regimesFound ?? result.regimes_found;
           const avgRMultiple = result.avgRMultiple ?? result.avg_r_multiple;
@@ -412,6 +416,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                   ...entry,
                   status: "completed" as const,
                   tradesAnalysed: tradesAnalysed ?? entry.tradesAnalysed,
+                  cost: actualCost,
                   periodDescription: actualPeriodDescription,
                   dateRangeStart: actualStartDate ?? entry.dateRangeStart,
                   dateRangeEnd: actualEndDate ?? entry.dateRangeEnd,
@@ -534,6 +539,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   const equityCurveComparison = derived.equityCurveData;
   const consecutiveLossData = derived.consecutiveLossData;
   const journalEntries = reportData?.trade_analytics?.journal_entries ?? [];
+  const journalPnlMeta = reportData?.trade_analytics?.pnl_metadata;
 
   // Trailing stop table is derived from the latest completed analysis inputs.
   const trailingStopResults = [
@@ -729,7 +735,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
 
       {/* Conditional Content Based on Active Tab */}
       {activeTab === "journal" ? (
-        <TraderJournal entries={journalEntries} />
+        <TraderJournal entries={journalEntries} pnlMeta={journalPnlMeta} />
       ) : activeTab === "settings" ? (
         <SettingsPage
           userName={currentUserName}
@@ -1154,13 +1160,13 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
 
             {/* Key Metrics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              {/* Card 1: Current Performance */}
+              {/* Card 1: Equity Performance */}
               <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
                     <BarChart3 className="w-5 h-5 text-slate-600" />
                   </div>
-                  <div className="text-slate-600 text-sm">Current Performance</div>
+                  <div className="text-slate-600 text-sm">Equity Performance</div>
                 </div>
                 <div className="text-3xl text-slate-900 mb-1">{derived.currentPnl}</div>
                 <div className="text-sm text-slate-600">{derived.avgR}R avg • {derived.winRate}% win rate</div>
@@ -1249,9 +1255,9 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
             {expandedSections.performance && (
               <div className="mt-4 bg-white border border-slate-200 rounded-xl p-6 sm:p-8">
                 <div className="mb-8 text-center">
-                  <h3 className="text-slate-900 mb-3 text-2xl">Your Profit Curve vs. Optimised Settings</h3>
+                  <h3 className="text-slate-900 mb-3 text-2xl">Your Equity Curve vs. Optimised Settings</h3>
                   <p className="text-slate-600 max-w-2xl mx-auto text-base">
-                    Your actual cumulative profit vs. what Bayesian optimisation found (same trades, better parameters)
+                    Your cumulative equity performance vs. what Bayesian optimisation found on the same analysed trades
                   </p>
                   <p className="text-slate-500 text-sm mt-2">
                     Based on £100 risk per trade
@@ -1261,7 +1267,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
               <div className="bg-slate-50 rounded-2xl p-6 sm:p-8 border border-slate-200">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                   <div className="bg-white rounded-lg p-6 border border-slate-200 shadow-sm">
-                    <div className="text-slate-600 mb-2">Your Actual Performance</div>
+                    <div className="text-slate-600 mb-2">Your Equity Performance</div>
                     <div className="text-slate-900 text-3xl mb-2">{derived.currentPnl}</div>
                     <div className="text-slate-600 text-sm">Avg £{derived.avgPerTrade} per trade ({derived.avgR}R)</div>
                   </div>
@@ -1290,7 +1296,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                     />
                     <YAxis 
                       stroke="#64748b"
-                      label={{ value: "Cumulative Profit (£)", angle: -90, position: "insideLeft", offset: -10, fill: "#64748b" }}
+                      label={{ value: "Cumulative Equity (£)", angle: -90, position: "insideLeft", offset: -10, fill: "#64748b" }}
                     />
                     <Tooltip
                       contentStyle={{ 
@@ -1307,7 +1313,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                       dataKey="actual" 
                       stroke="#64748b" 
                       strokeWidth={3}
-                      name="Your Performance"
+                      name="Your Equity"
                       dot={false}
                     />
                     <Line 
@@ -2308,7 +2314,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                         }
                       </p>
                       <div className="text-amber-600 text-xs">
-                        Pay-As-You-Go: £0.20 per trade analysed
+                        Final cost is calculated after the run using the actual number of trades analysed at £0.20 per trade.
                       </div>
                     </div>
                   </div>

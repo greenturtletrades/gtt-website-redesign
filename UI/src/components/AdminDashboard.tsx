@@ -1271,7 +1271,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <div className="border-b border-slate-100 pb-4">
                     <h4 className="text-blue-900 mb-1">Pay-As-You-Go (PAYG)</h4>
                     <p className="text-slate-600 text-sm">
-                      Our subscription model: £25/month + £0.20 per trade analysed. You only pay for ML analyses you actually use, making it cost-effective for traders with varying activity levels. No long-term commitment required.
+                      Our subscription model: £10/month + £0.20 per trade analysed. You only pay for ML analyses you actually use, making it cost-effective for traders with varying activity levels. No long-term commitment required.
                     </p>
                   </div>
 

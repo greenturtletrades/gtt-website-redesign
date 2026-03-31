@@ -312,8 +312,14 @@ def build_report(
     risk_recommendations = _calculate_risk_recommendations(df, best_policy)
 
     # Trade Analytics (computed from raw df for dashboard charts)
+    pnl_metadata = _build_currency_pnl_metadata(df)
     trade_analytics = _compute_trade_analytics(df)
-    trade_analytics["journal_entries"] = _build_journal_entries(df)
+    trade_analytics["pnl_metadata"] = {
+        "currency_pnl_available": bool(pnl_metadata.get("currency_pnl_available")),
+        "message": pnl_metadata.get("message"),
+        "source_column": pnl_metadata.get("source_column"),
+    }
+    trade_analytics["journal_entries"] = _build_journal_entries(df, pnl_metadata)
 
     # Assemble final report
     report = {
@@ -708,6 +714,48 @@ def _compute_trade_analytics(df: pd.DataFrame) -> dict[str, Any]:
     return result
 
 
+def _build_currency_pnl_metadata(df: pd.DataFrame) -> dict[str, Any]:
+    currency_columns = (
+        "net_pnl",
+        "realized_pnl",
+        "realised_pnl",
+        "pnl",
+        "profit",
+    )
+
+    for column in currency_columns:
+        if column not in df.columns:
+            continue
+
+        pnl_values = pd.to_numeric(df[column], errors="coerce")
+        if pnl_values.notna().sum() == 0:
+            continue
+
+        if column == "profit":
+            pnl_values = pnl_values.fillna(0.0)
+            if "commission" in df.columns:
+                pnl_values = pnl_values + pd.to_numeric(df["commission"], errors="coerce").fillna(0.0)
+            if "swap" in df.columns:
+                pnl_values = pnl_values + pd.to_numeric(df["swap"], errors="coerce").fillna(0.0)
+
+        return {
+            "currency_pnl_available": True,
+            "message": None,
+            "source_column": column,
+            "values": pnl_values.fillna(0.0),
+        }
+
+    return {
+        "currency_pnl_available": False,
+        "message": (
+            "No position sizing or realised profit fields were found in this dataset, "
+            "so currency profit/loss cannot be calculated."
+        ),
+        "source_column": None,
+        "values": None,
+    }
+
+
 def _infer_exit_type(row: pd.Series) -> str:
     exit_price = row.get("exit_price")
     take_profit = row.get("take_profit")
@@ -743,16 +791,27 @@ def _format_market_conditions(row: pd.Series) -> str:
     return ", ".join(parts) if parts else "Imported from analysed trade data"
 
 
-def _build_journal_entries(df: pd.DataFrame) -> list[dict[str, Any]]:
+def _build_journal_entries(
+    df: pd.DataFrame,
+    pnl_metadata: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     entries: list[dict[str, Any]] = []
     if len(df) == 0:
         return entries
+
+    pnl_values = pnl_metadata.get("values") if pnl_metadata else None
+    has_currency_pnl = bool(pnl_metadata and pnl_metadata.get("currency_pnl_available"))
 
     for idx, row in df.sort_values("entry_time", ascending=False).iterrows():
         entry_time = pd.to_datetime(row.get("entry_time"), errors="coerce")
         exit_time = pd.to_datetime(row.get("exit_time"), errors="coerce")
         symbol = row.get("symbol")
         pair = str(symbol).strip() if pd.notna(symbol) and str(symbol).strip() else "Trade"
+        currency_result = None
+        if has_currency_pnl and pnl_values is not None and idx in pnl_values.index:
+            raw_currency_result = pnl_values.loc[idx]
+            if pd.notna(raw_currency_result):
+                currency_result = round(float(raw_currency_result), 2)
 
         entries.append({
             "id": f"trade-{idx + 1}",
@@ -767,7 +826,7 @@ def _build_journal_entries(df: pd.DataFrame) -> list[dict[str, Any]]:
             "exitTime": exit_time.strftime("%H:%M") if pd.notna(exit_time) else "",
             "duration": int(round(float(row.get("duration_minutes", 0.0)))) if pd.notna(row.get("duration_minutes")) else 0,
             "exitType": _infer_exit_type(row),
-            "result": round(float(row.get("directional_pnl", 0.0)), 5) if pd.notna(row.get("directional_pnl")) else 0.0,
+            "result": currency_result,
             "rMultiple": round(float(row.get("R", 0.0)), 3) if pd.notna(row.get("R")) else 0.0,
             "notes": "",
             "emotions": "",
