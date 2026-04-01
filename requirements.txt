@@ -12,19 +12,11 @@ python-multipart>=0.0.9
 # Uncomment if using MT5 data source:
 # MetaTrader5>=5.0.45
 
-# Optional: Bayesian Optimization (Phase 3)
-# optuna>=3.0.0
-# pyyaml>=6.0
+optuna>=3.0.0
+pyyaml>=6.0
 
-# Optional: Survival Analysis (Phase 4)
-# lifelines>=0.27.0
+lifelines>=0.27.0
 
-# Optional: Clustering (Phase 5)
-# scikit-learn>=1.3.0
+scikit-learn>=1.3.0
 
-# All optional features (uncomment to install everything)
-# optuna>=3.0.0
-# pyyaml>=6.0
-# lifelines>=0.27.0
-# scikit-learn>=1.3.0
 # MetaTrader5>=5.0.45
