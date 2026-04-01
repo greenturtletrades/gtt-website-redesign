@@ -749,6 +749,33 @@ async function buildAccountStatePayload(userId) {
   };
 }
 
+async function createFailedAnalysisRun(userId, {
+  mode = "trades",
+  requestedTrades = null,
+  tradesAnalysed = 0,
+  cost = 0,
+  periodDescription = "Analysis run",
+  dateRangeStart = null,
+  dateRangeEnd = null,
+  error = "Analysis could not be started",
+} = {}) {
+  return prisma.analysisRun.create({
+    data: {
+      userId,
+      status: "FAILED",
+      mode,
+      requestedTrades,
+      tradesAnalysed,
+      cost,
+      periodDescription,
+      dateRangeStart,
+      dateRangeEnd,
+      error,
+      completedAt: new Date(),
+    },
+  });
+}
+
 function mergeTradesForAnalysis(...tradeGroups) {
   const latestByIdentity = new Map();
 
@@ -3438,6 +3465,7 @@ app.get("/api/trades", authRequired, async (req, res, next) => {
  * and analyses the user's cumulative remembered trade history.
  */
 app.post("/api/analyse/csv", authRequired, async (req, res, next) => {
+  let analysisRun = null;
   try {
     const tradeCount = 500;
     const mode = "trades";
@@ -3455,9 +3483,18 @@ app.post("/api/analyse/csv", authRequired, async (req, res, next) => {
     });
 
     if (pendingTrades.length === 0) {
+      analysisRun = await createFailedAnalysisRun(req.user.id, {
+        mode,
+        requestedTrades: parsedTrades.length,
+        tradesAnalysed: 0,
+        cost: 0,
+        periodDescription: "CSV import",
+        error: "This CSV did not add any new trades that still need analysing.",
+      });
       return res.status(400).json({
         ok: false,
         error: "This CSV did not add any new trades that still need analysing.",
+        analysisRunId: analysisRun.id,
       });
     }
 
@@ -3469,7 +3506,7 @@ app.post("/api/analyse/csv", authRequired, async (req, res, next) => {
 
     const csvDateRange = deriveTradeDateRange(allTrades);
     const estimatedCost = await estimateAnalysisCost(req.user.id, pendingTrades.length);
-    const analysisRun = await prisma.analysisRun.create({
+    analysisRun = await prisma.analysisRun.create({
       data: {
         userId: req.user.id,
         status: "RUNNING",
@@ -3498,6 +3535,14 @@ app.post("/api/analyse/csv", authRequired, async (req, res, next) => {
 
     if (!pythonRes.ok) {
       const err = await pythonRes.text();
+      await prisma.analysisRun.update({
+        where: { id: analysisRun.id },
+        data: {
+          status: "FAILED",
+          error: "Analysis service error: " + err,
+          completedAt: new Date(),
+        },
+      });
       return res.status(502).json({ ok: false, error: "Analysis service error: " + err });
     }
 
@@ -3527,6 +3572,16 @@ app.post("/api/analyse/csv", authRequired, async (req, res, next) => {
       storedTradeCount: persistSummary.stored,
     });
   } catch (err) {
+    if (analysisRun?.id) {
+      await prisma.analysisRun.update({
+        where: { id: analysisRun.id },
+        data: {
+          status: "FAILED",
+          error: err instanceof Error ? err.message : "Analysis failed to start",
+          completedAt: new Date(),
+        },
+      }).catch(() => {});
+    }
     return next(err);
   }
 });
@@ -3544,6 +3599,7 @@ app.post("/api/analyse/csv", authRequired, async (req, res, next) => {
  * Returns: { ok: true, jobId: string }
  */
 app.post("/api/analyse", authRequired, async (req, res, next) => {
+  let analysisRun = null;
   try {
     const { tradeCount = 500, months = 12, mode = "trades" } = req.body || {};
 
@@ -3620,12 +3676,27 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
     });
 
     if (pendingTrades.length === 0) {
+      analysisRun = await createFailedAnalysisRun(req.user.id, {
+        mode,
+        requestedTrades: mode === "trades" ? tradeCount : null,
+        tradesAnalysed: 0,
+        cost: 0,
+        periodDescription:
+          mode === "months"
+            ? `Last ${months} month${months === 1 ? "" : "s"}`
+            : "No new trades pending analysis",
+        error:
+          brokerAccountIds.length > 0
+            ? "No new closed trades were received from MetaTrader for analysis. Keep the terminal open, make sure the latest EA is attached, or wait for new trades before running again."
+            : "No stored trades found yet. Upload a CSV or connect the MetaTrader EA before running analysis.",
+      });
       return res.status(400).json({
         ok: false,
         error:
           brokerAccountIds.length > 0
             ? "No new closed trades were received from MetaTrader for analysis. Keep the terminal open, make sure the latest EA is attached, or wait for new trades before running again."
             : "No stored trades found yet. Upload a CSV or connect the MetaTrader EA before running analysis.",
+        analysisRunId: analysisRun.id,
       });
     }
 
@@ -3642,7 +3713,7 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
         ? `Last ${months} month${months === 1 ? "" : "s"}`
         : `${pendingTrades.length} new trade${pendingTrades.length === 1 ? "" : "s"} added to ${allTrades.length} total`;
     const estimatedCost = await estimateAnalysisCost(req.user.id, pendingTrades.length);
-    const analysisRun = await prisma.analysisRun.create({
+    analysisRun = await prisma.analysisRun.create({
       data: {
         userId: req.user.id,
         status: "RUNNING",
@@ -3677,6 +3748,14 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
     if (!pythonRes.ok) {
       const err = await pythonRes.text();
       console.error("Python service error:", err);
+      await prisma.analysisRun.update({
+        where: { id: analysisRun.id },
+        data: {
+          status: "FAILED",
+          error: "Analysis service error: " + err,
+          completedAt: new Date(),
+        },
+      });
       return res.status(502).json({ ok: false, error: "Analysis service error: " + err });
     }
 
@@ -3705,6 +3784,16 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
       storedTradeCount: persistSummary.stored,
     });
   } catch (err) {
+    if (analysisRun?.id) {
+      await prisma.analysisRun.update({
+        where: { id: analysisRun.id },
+        data: {
+          status: "FAILED",
+          error: err instanceof Error ? err.message : "Analysis failed to start",
+          completedAt: new Date(),
+        },
+      }).catch(() => {});
+    }
     return next(err);
   }
 });

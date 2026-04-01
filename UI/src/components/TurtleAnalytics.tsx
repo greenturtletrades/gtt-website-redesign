@@ -570,6 +570,16 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
 
       if (!startRes.ok) {
         const body = await startRes.json().catch(() => ({}));
+        if (body?.analysisRunId) {
+          currentRunEntryId = String(body.analysisRunId);
+          setModelRunHistory((prev) =>
+            prev.map((entry) =>
+              entry.id === tempRunId
+                ? { ...entry, id: currentRunEntryId, status: "failed" as const }
+                : entry
+            )
+          );
+        }
         throw new Error((body as any).error || (body as any).detail || "Failed to start analysis");
       }
 
