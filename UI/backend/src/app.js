@@ -3295,12 +3295,15 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
         15000
       );
 
-      const events =
+      let events =
         freshExportEvents.length > 0
           ? freshExportEvents
           : await getLatestHistoryExports(brokerAccountIds, {
               since: { requestToken: exportRequestToken },
             });
+      if (events.length === 0) {
+        events = await getLatestHistoryExports(brokerAccountIds);
+      }
       const freshRows = dedupeTrades(extractTradesFromEvents(events));
       const tradesByBrokerAccount = new Map();
 
