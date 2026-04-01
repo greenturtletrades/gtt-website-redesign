@@ -542,6 +542,45 @@ bool FetchPendingExportToken(string &requestToken)
    return(StringLen(requestToken) > 0);
 }
 
+bool ComputeTradeExcursions(string symbol, datetime entryTime, datetime exitTime, bool isLong, double entryPrice, double &mfe, double &mae)
+{
+   mfe = 0.0;
+   mae = 0.0;
+
+   int entryShift = iBarShift(symbol, PERIOD_M1, entryTime, false);
+   int exitShift = iBarShift(symbol, PERIOD_M1, exitTime, false);
+   if(entryShift < 0 || exitShift < 0)
+   {
+      return(false);
+   }
+
+   int firstShift = MathMin(entryShift, exitShift);
+   int lastShift = MathMax(entryShift, exitShift);
+   double maxHigh = entryPrice;
+   double minLow = entryPrice;
+
+   for(int shift = firstShift; shift <= lastShift; shift++)
+   {
+      double barHigh = iHigh(symbol, PERIOD_M1, shift);
+      double barLow = iLow(symbol, PERIOD_M1, shift);
+      if(barHigh > maxHigh) maxHigh = barHigh;
+      if(barLow < minLow) minLow = barLow;
+   }
+
+   if(isLong)
+   {
+      mfe = MathMax(0.0, maxHigh - entryPrice);
+      mae = MathMax(0.0, entryPrice - minLow);
+   }
+   else
+   {
+      mfe = MathMax(0.0, entryPrice - minLow);
+      mae = MathMax(0.0, maxHigh - entryPrice);
+   }
+
+   return(true);
+}
+
 void ExportClosedTrades(string requestToken)
 {
    int totalOrders = OrdersHistoryTotal();
@@ -559,15 +598,21 @@ void ExportClosedTrades(string requestToken)
       if(exported > 0) body += ",";
 
       int digits = (int)MarketInfo(OrderSymbol(), MODE_DIGITS);
+      bool isLong = OrderType() == OP_BUY;
+      double mfe = 0.0;
+      double mae = 0.0;
+      ComputeTradeExcursions(OrderSymbol(), OrderOpenTime(), OrderCloseTime(), isLong, OrderOpenPrice(), mfe, mae);
       body += "{";
       body += "\\"trade_id\\":\\"" + IntegerToString(OrderTicket()) + "\\",";
       body += "\\"entry_time\\":\\"" + TimeToString(OrderOpenTime(), TIME_DATE|TIME_SECONDS) + "\\",";
       body += "\\"exit_time\\":\\"" + TimeToString(OrderCloseTime(), TIME_DATE|TIME_SECONDS) + "\\",";
-      body += "\\"side\\":\\"" + (OrderType() == OP_BUY ? "LONG" : "SHORT") + "\\",";
+      body += "\\"side\\":\\"" + (isLong ? "LONG" : "SHORT") + "\\",";
       body += "\\"entry_price\\":" + DoubleToString(OrderOpenPrice(), digits) + ",";
       body += "\\"exit_price\\":" + DoubleToString(OrderClosePrice(), digits) + ",";
       body += "\\"stop_loss\\":" + DoubleToString(OrderStopLoss(), digits) + ",";
       body += "\\"take_profit\\":" + DoubleToString(OrderTakeProfit(), digits) + ",";
+      body += "\\"mfe\\":" + DoubleToString(mfe, digits) + ",";
+      body += "\\"mae\\":" + DoubleToString(mae, digits) + ",";
       body += "\\"symbol\\":\\"" + OrderSymbol() + "\\",";
       body += "\\"volume\\":" + DoubleToString(OrderLots(), 2) + ",";
       body += "\\"profit\\":" + DoubleToString(OrderProfit(), 2) + ",";
@@ -775,6 +820,68 @@ ulong FindEntryDeal(ulong positionId, datetime exitTime)
    return(0);
 }
 
+ulong FindLatestOrderForPosition(ulong positionId, datetime exitTime)
+{
+   int totalOrders = HistoryOrdersTotal();
+   ulong latestTicket = 0;
+   datetime latestTime = 0;
+
+   for(int i = totalOrders - 1; i >= 0; i--)
+   {
+      ulong ticket = HistoryOrderGetTicket(i);
+      if(ticket == 0) continue;
+      if((ulong)HistoryOrderGetInteger(ticket, ORDER_POSITION_ID) != positionId) continue;
+
+      datetime orderTime = (datetime)HistoryOrderGetInteger(ticket, ORDER_TIME_DONE);
+      if(orderTime == 0)
+      {
+         orderTime = (datetime)HistoryOrderGetInteger(ticket, ORDER_TIME_SETUP);
+      }
+      if(orderTime > exitTime) continue;
+      if(orderTime >= latestTime)
+      {
+         latestTime = orderTime;
+         latestTicket = ticket;
+      }
+   }
+
+   return(latestTicket);
+}
+
+bool ComputeTradeExcursions(string symbol, datetime entryTime, datetime exitTime, bool isLong, double entryPrice, double &mfe, double &mae)
+{
+   mfe = 0.0;
+   mae = 0.0;
+
+   MqlRates rates[];
+   int copied = CopyRates(symbol, PERIOD_M1, entryTime, exitTime, rates);
+   if(copied <= 0)
+   {
+      return(false);
+   }
+
+   double maxHigh = entryPrice;
+   double minLow = entryPrice;
+   for(int i = 0; i < copied; i++)
+   {
+      if(rates[i].high > maxHigh) maxHigh = rates[i].high;
+      if(rates[i].low < minLow) minLow = rates[i].low;
+   }
+
+   if(isLong)
+   {
+      mfe = MathMax(0.0, maxHigh - entryPrice);
+      mae = MathMax(0.0, entryPrice - minLow);
+   }
+   else
+   {
+      mfe = MathMax(0.0, entryPrice - minLow);
+      mae = MathMax(0.0, maxHigh - entryPrice);
+   }
+
+   return(true);
+}
+
 void ExportClosedTrades(string requestToken)
 {
    if(!HistorySelect(0, TimeCurrent())) return;
@@ -803,9 +910,15 @@ void ExportClosedTrades(string requestToken)
       if(entryTicket == 0) continue;
 
       ulong orderTicket = (ulong)HistoryDealGetInteger(entryTicket, DEAL_ORDER);
-      HistoryOrderSelect(orderTicket);
+      ulong latestOrderTicket = FindLatestOrderForPosition(positionId, exitTime);
+      ulong slTpOrderTicket = latestOrderTicket != 0 ? latestOrderTicket : orderTicket;
+      HistoryOrderSelect(slTpOrderTicket);
       string symbol = HistoryDealGetString(exitTicket, DEAL_SYMBOL);
       int digits = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
+      bool isLong = HistoryDealGetInteger(entryTicket, DEAL_TYPE) == DEAL_TYPE_BUY;
+      double mfe = 0.0;
+      double mae = 0.0;
+      ComputeTradeExcursions(symbol, (datetime)HistoryDealGetInteger(entryTicket, DEAL_TIME), exitTime, isLong, HistoryDealGetDouble(entryTicket, DEAL_PRICE), mfe, mae);
 
       if(exported > 0) body += ",";
 
@@ -813,11 +926,13 @@ void ExportClosedTrades(string requestToken)
       body += "\\"trade_id\\":\\"" + IntegerToString((int)exitTicket) + "\\",";
       body += "\\"entry_time\\":\\"" + TimeToString((datetime)HistoryDealGetInteger(entryTicket, DEAL_TIME), TIME_DATE|TIME_SECONDS) + "\\",";
       body += "\\"exit_time\\":\\"" + TimeToString(exitTime, TIME_DATE|TIME_SECONDS) + "\\",";
-      body += "\\"side\\":\\"" + (HistoryDealGetInteger(entryTicket, DEAL_TYPE) == DEAL_TYPE_BUY ? "LONG" : "SHORT") + "\\",";
+      body += "\\"side\\":\\"" + (isLong ? "LONG" : "SHORT") + "\\",";
       body += "\\"entry_price\\":" + DoubleToString(HistoryDealGetDouble(entryTicket, DEAL_PRICE), digits) + ",";
       body += "\\"exit_price\\":" + DoubleToString(HistoryDealGetDouble(exitTicket, DEAL_PRICE), digits) + ",";
-      body += "\\"stop_loss\\":" + DoubleToString(HistoryOrderGetDouble(orderTicket, ORDER_SL), digits) + ",";
-      body += "\\"take_profit\\":" + DoubleToString(HistoryOrderGetDouble(orderTicket, ORDER_TP), digits) + ",";
+      body += "\\"stop_loss\\":" + DoubleToString(HistoryOrderGetDouble(slTpOrderTicket, ORDER_SL), digits) + ",";
+      body += "\\"take_profit\\":" + DoubleToString(HistoryOrderGetDouble(slTpOrderTicket, ORDER_TP), digits) + ",";
+      body += "\\"mfe\\":" + DoubleToString(mfe, digits) + ",";
+      body += "\\"mae\\":" + DoubleToString(mae, digits) + ",";
       body += "\\"symbol\\":\\"" + symbol + "\\",";
       body += "\\"volume\\":" + DoubleToString(HistoryDealGetDouble(exitTicket, DEAL_VOLUME), 2) + ",";
       body += "\\"profit\\":" + DoubleToString(HistoryDealGetDouble(exitTicket, DEAL_PROFIT), 2) + ",";
