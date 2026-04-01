@@ -1913,12 +1913,11 @@ app.post("/api/admin/login", rateLimit({
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    const envEmail = process.env.ADMIN_EMAIL;
+    const envEmail = process.env.ADMIN_EMAIL || "greenturtlrtraders26@gmail.com";
     const envPassword = process.env.ADMIN_PASSWORD;
 
     const allowEnvAdminLogin =
-      process.env.ENABLE_ENV_ADMIN_LOGIN === "true" &&
-      process.env.NODE_ENV !== "production";
+      process.env.ENABLE_ENV_ADMIN_LOGIN === "true";
 
     if (
       allowEnvAdminLogin &&
@@ -2609,7 +2608,7 @@ app.get("/api/admin/staff", authRequired, adminRequired, async (req, res, next) 
 
     const items = adminUsers.map(buildAdminStaffMember);
 
-    const envEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+    const envEmail = (process.env.ADMIN_EMAIL || "greenturtlrtraders26@gmail.com").trim().toLowerCase();
     if (envEmail && !items.some((item) => item.email === envEmail)) {
       items.unshift({
         id: "env-admin",
