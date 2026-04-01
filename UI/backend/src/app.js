@@ -1,4 +1,5 @@
 const http = require("http");
+const https = require("https");
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
@@ -2975,11 +2976,13 @@ app.get("/api/analyse/options", authRequired, async (req, res, next) => {
  */
 app.post("/api/analyse/csv", authRequired, (req, res, next) => {
   const pythonUrl = new URL(`${PYTHON_SERVICE_URL}/analyse/csv`);
-  const pythonReq = http.request(
+  const transport = pythonUrl.protocol === "https:" ? https : http;
+  const defaultPort = pythonUrl.protocol === "https:" ? 443 : 80;
+  const pythonReq = transport.request(
     {
       hostname: pythonUrl.hostname,
-      port: parseInt(pythonUrl.port) || 8000,
-      path: pythonUrl.pathname,
+      port: parseInt(pythonUrl.port, 10) || defaultPort,
+      path: `${pythonUrl.pathname}${pythonUrl.search}`,
       method: "POST",
       headers: {
         "content-type": req.headers["content-type"],
