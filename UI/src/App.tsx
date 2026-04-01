@@ -151,6 +151,10 @@ export default function App() {
   }, []);
 
   const handleTraderClick = () => {
+    if (!isAdminRoute) {
+      setCurrentView("turtle-analytics");
+      setTimeout(() => window.scrollTo(0, 0), 0);
+    }
     setAuthMode("login");
     setShowAuthModal(true);
   };
