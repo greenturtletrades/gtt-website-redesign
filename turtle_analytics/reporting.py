@@ -417,6 +417,25 @@ def _format_optimization_results(opt_results: dict) -> dict[str, Any]:
                 "trials_to_best": trials_to_best,
                 "improvement_per_trial": float(trials_df["avg_R"].max() / len(trials_df)),
             }
+            real_rows = []
+            sorted_trials = trials_df.sort_values("avg_R", ascending=False, kind="stable").head(8)
+            for _, row in sorted_trials.iterrows():
+                real_rows.append({
+                    "sl_mult": float(row.get("sl_mult", 0.0)),
+                    "tp_mult": float(row.get("tp_mult", 0.0)),
+                    "trail_pct": float(row.get("trail_pct", 0.0)) if pd.notna(row.get("trail_pct")) else None,
+                    "max_hold_minutes": None if pd.isna(row.get("max_hold_minutes")) else row.get("max_hold_minutes"),
+                    "risk_fraction": float(row.get("risk_fraction", 0.0)) if pd.notna(row.get("risk_fraction")) else None,
+                    "avg_r": float(row.get("avg_R", 0.0)),
+                    "win_rate": None if pd.isna(row.get("win_rate")) else float(row.get("win_rate")),
+                    "ci_lower": None if pd.isna(row.get("ci_lower")) else float(row.get("ci_lower")),
+                    "ci_upper": None if pd.isna(row.get("ci_upper")) else float(row.get("ci_upper")),
+                })
+            formatted["trial_rows"] = real_rows
+        else:
+            formatted["trial_rows"] = []
+    else:
+        formatted["trial_rows"] = []
     
     return formatted
 

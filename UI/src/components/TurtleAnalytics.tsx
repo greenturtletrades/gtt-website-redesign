@@ -63,6 +63,11 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         ci: "0.00",
         slMult: "0.0",
         tpMult: "0.0",
+        optimisationFoundEdge: false,
+        optimisationHeadline: "No consistent optimisation edge found yet",
+        optimisationSubtext: "Run more trades to improve optimisation stability",
+        improvementDisplay: "Not available",
+        improvementSubtext: "No improvement baseline available yet",
         equityLabel: "Cumulative R",
         recs: [],
         bestRegimeAvgR: "0.00",
@@ -107,6 +112,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       : "0.08";
     const slM = policy.sl_mult?.toFixed(1) ?? "1.0";
     const tpM = policy.tp_mult?.toFixed(1) ?? "2.0";
+    const optimisationFoundEdge = bestAvgR > (orig.avg_r ?? 0) && bestAvgR > 0;
 
     const allRecs: string[] = [
       ...(reportData.regimes?.recommendations ?? []),
@@ -249,16 +255,25 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       : [];
 
     const counterfactualResults = (() => {
-      if (!policy.sl_mult || !policy.tp_mult) return [];
-      const avgRNum = orig.avg_r ?? 0;
-      const n_trades = n;
-      return [
-        { sl: "0.5R", tp: "1.0R", avgR: (avgRNum * 0.4).toFixed(2), winRate: "72%", confidence: "±0.04", trades: n_trades, status: "Exits profitable trades prematurely", isCurrent: false, isRecommended: false },
-        { sl: "0.75R", tp: "1.5R", avgR: (avgRNum * 0.65).toFixed(2), winRate: "68%", confidence: "±0.06", trades: n_trades, status: "Suboptimal", isCurrent: false, isRecommended: false },
-        { sl: `${slM}R`, tp: `${(parseFloat(tpM) * 0.8).toFixed(1)}R`, avgR: avgRNum.toFixed(2), winRate: `${Math.round((orig.win_rate ?? 0.64) * 100)}%`, confidence: `±${ciVal}`, trades: n_trades, status: "Current parameters", isCurrent: true, isRecommended: false },
-        { sl: `${slM}R`, tp: `${tpM}R`, avgR: bestAvgR.toFixed(2), winRate: `${Math.round((best.win_rate ?? 0.58) * 100)}%`, confidence: `±${ciVal}`, trades: n_trades, status: "Optimal (Bayesian)", isCurrent: false, isRecommended: true },
-        { sl: `${(parseFloat(slM) * 1.25).toFixed(1)}R`, tp: `${tpM}R`, avgR: (bestAvgR * 0.75).toFixed(2), winRate: "61%", confidence: "±0.07", trades: n_trades, status: "SL too wide", isCurrent: false, isRecommended: false },
-      ];
+      const trialRows = reportData.optimization_results?.trial_rows;
+      if (!Array.isArray(trialRows) || trialRows.length === 0) return [];
+      return trialRows.slice(0, 5).map((row: any, idx: number) => {
+        const ciHalfWidth =
+          typeof row.ci_lower === "number" && typeof row.ci_upper === "number"
+            ? ((row.ci_upper - row.ci_lower) / 2).toFixed(2)
+            : ciVal;
+        return {
+          sl: `${Number(row.sl_mult ?? 0).toFixed(1)}R`,
+          tp: `${Number(row.tp_mult ?? 0).toFixed(1)}R`,
+          avgR: Number(row.avg_r ?? 0).toFixed(2),
+          winRate:
+            typeof row.win_rate === "number" ? `${Math.round(row.win_rate * 100)}%` : "—",
+          confidence: `±${ciHalfWidth}`,
+          status: idx === 0 ? "Best tested policy" : "Observed trial",
+          isCurrent: false,
+          isRecommended: idx === 0,
+        };
+      });
     })();
     const topRecommendation = recs[0]
       ? `${recs[0].bold}${recs[0].rest}`
@@ -268,16 +283,33 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
 
     return {
       currentPnl: totalCurrencyPnl !== null ? formatAccountMetric(totalCurrencyPnl) : `${(orig.total_r ?? 0).toFixed(2)}R`,
-      optimisedPnl: optimisedCurrencyPnl !== null ? formatAccountMetric(optimisedCurrencyPnl) : `${(bestAvgR * n).toFixed(2)}R`,
-      gainPnl: gain !== null ? formatAccountMetric(gain) : `${Math.abs(bestAvgR - (orig.avg_r ?? 0)).toFixed(2)}R/trade`,
+      optimisedPnl: optimisationFoundEdge
+        ? (optimisedCurrencyPnl !== null ? formatAccountMetric(optimisedCurrencyPnl) : `${(bestAvgR * n).toFixed(2)}R`)
+        : "No consistent edge found",
+      gainPnl: optimisationFoundEdge
+        ? (gain !== null ? formatAccountMetric(gain) : `${Math.abs(bestAvgR - (orig.avg_r ?? 0)).toFixed(2)}R/trade`)
+        : "No reliable uplift",
       avgR: (orig.avg_r ?? 0).toFixed(2),
       winRate: Math.round((orig.win_rate ?? 0) * 100).toString(),
       bestAvgR: bestAvgR.toFixed(2),
       improvementPct: impPct,
       avgPerTrade: totalCurrencyPnl !== null && n > 0 ? formatAccountMetric(totalCurrencyPnl / n) : (orig.avg_r ?? 0).toFixed(2),
-      bestAvgPerTrade: optimisedCurrencyPnl !== null && n > 0 ? formatAccountMetric(optimisedCurrencyPnl / n) : bestAvgR.toFixed(2),
+      bestAvgPerTrade: optimisationFoundEdge
+        ? (optimisedCurrencyPnl !== null && n > 0 ? formatAccountMetric(optimisedCurrencyPnl / n) : bestAvgR.toFixed(2))
+        : "Not reliable",
       ci: ciVal,
       slMult: slM, tpMult: tpM,
+      optimisationFoundEdge,
+      optimisationHeadline: optimisationFoundEdge ? "Optimised Parameters" : "Optimisation Outcome",
+      optimisationSubtext: optimisationFoundEdge
+        ? `Projected average trade outcome ${optimisedCurrencyPnl !== null && n > 0 ? formatAccountMetric(optimisedCurrencyPnl / n) : bestAvgR.toFixed(2)} (${bestAvgR.toFixed(2)}R, 95% CI: ±${ciVal})`
+        : `No consistent edge was found in this run. Best tested policy still averaged ${bestAvgR.toFixed(2)}R.`,
+      improvementDisplay: optimisationFoundEdge
+        ? (gain !== null ? formatAccountMetric(gain) : `${Math.abs(bestAvgR - (orig.avg_r ?? 0)).toFixed(2)}R/trade`)
+        : "No improvement confirmed",
+      improvementSubtext: optimisationFoundEdge
+        ? `+${impPct}% better performance`
+        : "Best tested policy did not outperform your baseline",
       equityLabel: totalCurrencyPnl !== null ? "Cumulative Account P/L" : "Cumulative R",
       recs: recs.length > 0 ? recs : [
         { bold: `Use ${slM}R SL / ${tpM}R TP`, rest: ` — Bayesian optimisation shows +${impPct}% improvement` },
@@ -1254,7 +1286,11 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                   <div className="text-teal-900 text-sm font-medium">Optimised Potential</div>
                 </div>
                 <div className="text-3xl text-teal-900 mb-1">{derived.optimisedPnl}</div>
-                <div className="text-sm text-teal-700">{derived.bestAvgR}R avg • {derived.gainPnl} projected change</div>
+                <div className="text-sm text-teal-700">
+                  {derived.optimisationFoundEdge
+                    ? `${derived.bestAvgR}R avg • ${derived.gainPnl} projected change`
+                    : derived.optimisationSubtext}
+                </div>
               </div>
 
               {/* Card 3: Top Recommendation */}
@@ -1342,14 +1378,14 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                     <div className="text-slate-600 text-sm">Average trade outcome {derived.avgPerTrade} ({derived.avgR}R)</div>
                   </div>
                   <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-lg p-6 border-2 border-teal-300 shadow-sm">
-                    <div className="text-teal-700 mb-2">Optimised Parameters</div>
+                    <div className="text-teal-700 mb-2">{derived.optimisationHeadline}</div>
                     <div className="text-teal-900 text-3xl mb-2">{derived.optimisedPnl}</div>
-                    <div className="text-teal-700 text-sm">Projected average trade outcome {derived.bestAvgPerTrade} ({derived.bestAvgR}R, 95% CI: ±{derived.ci})</div>
+                    <div className="text-teal-700 text-sm">{derived.optimisationSubtext}</div>
                   </div>
                   <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg p-6 border-2 border-amber-300 shadow-sm">
                     <div className="text-amber-700 mb-2">Improvement Potential</div>
-                    <div className="text-amber-900 text-3xl mb-2">{derived.gainPnl}</div>
-                    <div className="text-amber-700 text-sm">+{derived.improvementPct}% better performance</div>
+                    <div className="text-amber-900 text-3xl mb-2">{derived.improvementDisplay}</div>
+                    <div className="text-amber-700 text-sm">{derived.improvementSubtext}</div>
                   </div>
                 </div>
 

@@ -187,6 +187,7 @@ def _run_pipeline(job_id: str, request: AnalyseRequest) -> None:
                 "method": "bayesian_optimization",
                 "n_trials": len(trials_df),
                 "summary": study_summary,
+                "trials_df": trials_df,
             }
             logger.info(f"[{job_id}] Optimisation complete")
 
