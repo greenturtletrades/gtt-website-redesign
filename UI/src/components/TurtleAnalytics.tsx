@@ -1688,7 +1688,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                     </div>
                   ) : (
                     <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 text-sm text-slate-600">
-                      Per-trade MFE/MAE scatter points are not included in this report payload yet, so only the aggregated excursion summary is shown.
+                      Your imported trade data did not include per-trade MFE/MAE values, so this chart cannot be drawn for this run. Summary excursion metrics are shown instead.
                     </div>
                   )}
 
