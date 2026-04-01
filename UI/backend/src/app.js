@@ -3434,21 +3434,27 @@ app.post("/api/analyse/csv", authRequired, async (req, res, next) => {
       source: "csv_import",
       seenAt: new Date(),
     });
-    const allTrades = await loadStoredTradesForAnalysis(req.user.id, {
+    const pendingTrades = await loadStoredTradesForAnalysis(req.user.id, {
       mode,
       tradeCount,
       pendingOnly: true,
     });
 
-    if (allTrades.length === 0) {
+    if (pendingTrades.length === 0) {
       return res.status(400).json({
         ok: false,
         error: "This CSV did not add any new trades that still need analysing.",
       });
     }
 
+    const allTrades = await loadStoredTradesForAnalysis(req.user.id, {
+      mode,
+      tradeCount,
+      pendingOnly: false,
+    });
+
     const csvDateRange = deriveTradeDateRange(allTrades);
-    const estimatedCost = await estimateAnalysisCost(req.user.id, allTrades.length);
+    const estimatedCost = await estimateAnalysisCost(req.user.id, pendingTrades.length);
     const analysisRun = await prisma.analysisRun.create({
       data: {
         userId: req.user.id,
@@ -3486,7 +3492,7 @@ app.post("/api/analyse/csv", authRequired, async (req, res, next) => {
       userId: req.user.id,
       analysisRunId: analysisRun.id,
       tradeFingerprint,
-      tradeIdentities: allTrades
+      tradeIdentities: pendingTrades
         .map((trade) => buildTradeIdentity(trade, req.user.id))
         .filter(Boolean),
       requestedTradeCount: tradeCount,
@@ -3501,6 +3507,7 @@ app.post("/api/analyse/csv", authRequired, async (req, res, next) => {
       jobId: job_id,
       analysisRunId: analysisRun.id,
       availableTradeCount: allTrades.length,
+      pendingTradeCount: pendingTrades.length,
       duplicateTradeCount: persistSummary.updated,
       importedTradeCount: parsedTrades.length,
       storedTradeCount: persistSummary.stored,
@@ -3591,14 +3598,14 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
       }
     }
 
-    const allTrades = await loadStoredTradesForAnalysis(req.user.id, {
+    const pendingTrades = await loadStoredTradesForAnalysis(req.user.id, {
       mode,
       tradeCount,
       months,
       pendingOnly: true,
     });
 
-    if (allTrades.length === 0) {
+    if (pendingTrades.length === 0) {
       return res.status(400).json({
         ok: false,
         error:
@@ -3608,12 +3615,19 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
       });
     }
 
+    const allTrades = await loadStoredTradesForAnalysis(req.user.id, {
+      mode,
+      tradeCount,
+      months,
+      pendingOnly: false,
+    });
+
     const analysisDateRange = deriveTradeDateRange(allTrades);
     const periodDescription =
       mode === "months"
         ? `Last ${months} month${months === 1 ? "" : "s"}`
-        : `${allTrades.length} new trade${allTrades.length === 1 ? "" : "s"}`;
-    const estimatedCost = await estimateAnalysisCost(req.user.id, allTrades.length);
+        : `${pendingTrades.length} new trade${pendingTrades.length === 1 ? "" : "s"} added to ${allTrades.length} total`;
+    const estimatedCost = await estimateAnalysisCost(req.user.id, pendingTrades.length);
     const analysisRun = await prisma.analysisRun.create({
       data: {
         userId: req.user.id,
@@ -3657,7 +3671,7 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
       userId: req.user.id,
       analysisRunId: analysisRun.id,
       tradeFingerprint,
-      tradeIdentities: allTrades
+      tradeIdentities: pendingTrades
         .map((trade) => buildTradeIdentity(trade, req.user.id))
         .filter(Boolean),
       requestedTradeCount: mode === "trades" ? tradeCount : null,
@@ -3671,6 +3685,7 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
       jobId: job_id,
       analysisRunId: analysisRun.id,
       availableTradeCount: uniqueTradeCount,
+      pendingTradeCount: pendingTrades.length,
       duplicateTradeCount,
       dedupedTradeCount: allTrades.length,
       storedTradeCount: persistSummary.stored,
