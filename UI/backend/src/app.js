@@ -896,10 +896,27 @@ app.use((req, res, next) => {
   next();
 });
 
-// CORS (dev)
+const allowedOrigins = Array.from(
+  new Set(
+    [
+      "http://localhost:3000",
+      "http://localhost:5173",
+      process.env.APP_URL,
+      process.env.FRONTEND_URL,
+      process.env.PUBLIC_FRONTEND_URL,
+    ].filter((value) => typeof value === "string" && value.trim())
+  )
+);
+
+// CORS
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:5173"],
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("Not allowed by CORS"));
+    },
     credentials: false,
   })
 );
