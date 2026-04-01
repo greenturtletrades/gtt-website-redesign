@@ -77,6 +77,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         riskFractionResults: [],
         consecutiveLossData: [],
         mfeAnalysis: [],
+        mfeMaePoints: [],
         counterfactualResults: [],
       };
     }
@@ -236,6 +237,16 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
             : `Losers averaged ${r.avg_r.toFixed(2)}R before stopping out`,
         }))
       : [];
+    const mfeMaePoints = reportData.trade_analytics?.mfe_mae_points?.length
+      ? reportData.trade_analytics.mfe_mae_points.map((point: any) => ({
+          tradeId: point.trade_id ?? null,
+          mae: Number(point.mae ?? 0),
+          mfe: Number(point.mfe ?? 0),
+          result: point.result === "Win" ? "Win" : "Loss",
+          r: Number(point.r ?? 0),
+          color: point.result === "Win" ? "#0d9488" : "#ef4444",
+        }))
+      : [];
 
     const counterfactualResults = (() => {
       if (!policy.sl_mult || !policy.tp_mult) return [];
@@ -287,6 +298,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       riskFractionResults,
       consecutiveLossData,
       mfeAnalysis,
+      mfeMaePoints,
       counterfactualResults,
     };
   }, [formatAccountMetric, reportData]);
@@ -610,6 +622,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   const recommendationCards = derived.recs.slice(0, 3);
   const hasCounterfactualResults = counterfactualResults.length > 0;
   const hasMfeMaeAnalysis = mfeAnalysis.length > 0;
+  const hasMfeMaePoints = derived.mfeMaePoints.length > 0;
   const hasMarketRegimes = marketRegimes.length > 0;
   const hasSessionPerformance = sessionPerformance.length > 0;
   const hasHoldTimeResults = holdTimeResults.length > 0;
@@ -1574,9 +1587,50 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                     ))}
                   </div>
 
-                  <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 text-sm text-slate-600">
-                    Per-trade MFE/MAE scatter points are not included in this report payload yet, so only the aggregated excursion summary is shown.
-                  </div>
+                  {hasMfeMaePoints ? (
+                    <div className="bg-white rounded-xl border border-slate-200 p-6">
+                      <div className="text-sm text-slate-700 mb-4">MFE vs MAE Scatter Plot (each dot = one trade)</div>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <ScatterChart>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis 
+                            type="number" 
+                            dataKey="mae" 
+                            name="MAE" 
+                            label={{ value: "Max Adverse Excursion (R)", position: "insideBottom", offset: -5 }}
+                          />
+                          <YAxis 
+                            type="number" 
+                            dataKey="mfe" 
+                            name="MFE"
+                            label={{ value: "Max Favorable Excursion (R)", angle: -90, position: "insideLeft" }}
+                          />
+                          <Tooltip 
+                            cursor={{ strokeDasharray: '3 3' }}
+                            formatter={(value: number, name: string, payload: any) => {
+                              if (name === "mfe") return [`${value.toFixed(2)}R`, "MFE"];
+                              if (name === "mae") return [`${value.toFixed(2)}R`, "MAE"];
+                              return [value, name];
+                            }}
+                            labelFormatter={(_, payload) => {
+                              const point = payload?.[0]?.payload;
+                              if (!point) return "Trade";
+                              return point.tradeId ? `Trade ${point.tradeId}` : `Trade result: ${point.result}`;
+                            }}
+                          />
+                          <Scatter name="Trades" data={derived.mfeMaePoints} fill="#0d9488">
+                            {derived.mfeMaePoints.map((entry: any, index: number) => (
+                              <Cell key={`mfe-mae-${index}`} fill={entry.color} opacity={0.7} />
+                            ))}
+                          </Scatter>
+                        </ScatterChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : (
+                    <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 text-sm text-slate-600">
+                      Per-trade MFE/MAE scatter points are not included in this report payload yet, so only the aggregated excursion summary is shown.
+                    </div>
+                  )}
 
                   <div className="mt-4 p-4 bg-teal-50 border border-teal-200 rounded-lg">
                     <div className="flex items-start gap-2">

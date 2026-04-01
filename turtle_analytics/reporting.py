@@ -689,6 +689,7 @@ def _compute_trade_analytics(df: pd.DataFrame) -> dict[str, Any]:
         has_mfe = "mfe" in df.columns
         has_mae = "mae" in df.columns
         mfe_rows = []
+        mfe_mae_points: list[dict[str, Any]] = []
         wins = df[df["R"] > 0] if "R" in df.columns else df.iloc[0:0]
         losses = df[df["R"] <= 0] if "R" in df.columns else df.iloc[0:0]
         for category, grp in [("Hit Target", wins), ("Stopped Out", losses)]:
@@ -706,9 +707,25 @@ def _compute_trade_analytics(df: pd.DataFrame) -> dict[str, Any]:
                 mae_vals = pd.to_numeric(grp["mae"], errors="coerce").dropna()
                 entry["avg_mae"] = round(float(mae_vals.mean()), 3) if len(mae_vals) > 0 else None
             mfe_rows.append(entry)
+        if has_mfe and has_mae:
+            scatter_df = df.copy()
+            scatter_df["mfe_numeric"] = pd.to_numeric(scatter_df["mfe"], errors="coerce")
+            scatter_df["mae_numeric"] = pd.to_numeric(scatter_df["mae"], errors="coerce")
+            scatter_df = scatter_df.dropna(subset=["mfe_numeric", "mae_numeric"])
+            for row in scatter_df.itertuples(index=False):
+                r_value = float(getattr(row, "R", 0.0) or 0.0)
+                mfe_mae_points.append({
+                    "trade_id": getattr(row, "trade_id", None),
+                    "mfe": round(float(getattr(row, "mfe_numeric")), 3),
+                    "mae": round(float(getattr(row, "mae_numeric")), 3),
+                    "result": "Win" if r_value > 0 else "Loss",
+                    "r": round(r_value, 3),
+                })
         result["mfe_mae_analysis"] = mfe_rows
+        result["mfe_mae_points"] = mfe_mae_points
     else:
         result["mfe_mae_analysis"] = []
+        result["mfe_mae_points"] = []
 
     # ── Hold time distribution ─────────────────────────────────────────────────
     if "duration_minutes" in df.columns and len(r_col) > 0:
