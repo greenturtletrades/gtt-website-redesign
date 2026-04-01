@@ -31,6 +31,17 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   const [modelRunError, setModelRunError] = useState<string | null>(null);
   const [currentUserName, setCurrentUserName] = useState("Trader");
   const [currentUserEmail, setCurrentUserEmail] = useState("");
+  const [analysisOptions, setAnalysisOptions] = useState<{
+    availableTradeCount: number;
+    minimumTradeCount: number;
+    recommendedTradeCount: number;
+    latestAnalysis: { updatedAt?: string | null; tradesAnalysed?: number | null } | null;
+  }>({
+    availableTradeCount: 0,
+    minimumTradeCount: 10,
+    recommendedTradeCount: 200,
+    latestAnalysis: null,
+  });
 
   const formatAccountMetric = (value: number | null) =>
     value === null || !Number.isFinite(value)
@@ -347,6 +358,51 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadAnalysisOptions = async () => {
+      try {
+        const token = localStorage.getItem("gtt_token");
+        const authHeader: Record<string, string> = {};
+        if (token) authHeader["Authorization"] = `Bearer ${token}`;
+        const response = await fetch(`${API_BASE}/api/analyse/options`, { headers: authHeader });
+        if (!response.ok) return;
+        const payload = await response.json();
+        if (!cancelled && payload.ok) {
+          setAnalysisOptions({
+            availableTradeCount: payload.availableTradeCount ?? 0,
+            minimumTradeCount: payload.minimumTradeCount ?? 10,
+            recommendedTradeCount: payload.recommendedTradeCount ?? 200,
+            latestAnalysis: payload.latestAnalysis ?? null,
+          });
+        }
+      } catch {
+        if (!cancelled) {
+          setAnalysisOptions((prev) => prev);
+        }
+      }
+    };
+
+    loadAnalysisOptions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [API_BASE, lastRunTime]);
+
+  const minTradeSelection = Math.max(10, analysisOptions.minimumTradeCount || 10);
+  const maxTradeSelection = Math.max(minTradeSelection, analysisOptions.availableTradeCount || minTradeSelection);
+  const effectiveTradeCount = Math.min(Math.max(selectedTradeCount, minTradeSelection), maxTradeSelection);
+  const canRunTradeAnalysis = analysisOptions.availableTradeCount >= minTradeSelection;
+
+  useEffect(() => {
+    if (analysisMode !== "trades") return;
+    if (selectedTradeCount !== effectiveTradeCount) {
+      setSelectedTradeCount(effectiveTradeCount);
+    }
+  }, [analysisMode, effectiveTradeCount, selectedTradeCount]);
   
   const handleRunModel = async () => {
     setModelRunError(null);
@@ -354,7 +410,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
     setIsRunningModel(true);
 
     const now = new Date();
-    const tradesCount = analysisMode === "trades" ? selectedTradeCount : Math.round(selectedMonths * 47);
+    const tradesCount = analysisMode === "trades" ? effectiveTradeCount : Math.round(selectedMonths * 47);
     const estimatedCost = tradesCount * 0.20;
 
     const newLogEntry: ModelRunLog = {
@@ -363,7 +419,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       mode: analysisMode,
       tradesAnalysed: tradesCount,
       periodDescription: analysisMode === "trades"
-        ? `Last ${selectedTradeCount} trades`
+        ? `Last ${effectiveTradeCount} trades`
         : `Last ${selectedMonths} month${selectedMonths > 1 ? 's' : ''}`,
       dateRangeStart: analysisMode === "trades"
         ? new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000)
@@ -391,7 +447,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         startRes = await fetch(`${API_BASE}/api/analyse`, {
           method: "POST",
           headers: { ...authHeader, "Content-Type": "application/json" },
-          body: JSON.stringify({ mode: analysisMode, tradeCount: selectedTradeCount, months: selectedMonths }),
+          body: JSON.stringify({ mode: analysisMode, tradeCount: effectiveTradeCount, months: selectedMonths }),
         });
       }
 
@@ -478,7 +534,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   
   const handleTradeCountEdit = (value: string) => {
     const num = parseInt(value);
-    if (!isNaN(num) && num >= 50 && num <= 1000) {
+    if (!isNaN(num) && num >= minTradeSelection && num <= maxTradeSelection) {
       setSelectedTradeCount(num);
     }
     setIsEditingTradeCount(false);
@@ -512,7 +568,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
     });
     
     const totalOverlappingTrades = overlappingRuns.reduce((sum, run) => sum + run.tradesAnalysed, 0);
-    const proposedTrades = analysisMode === "trades" ? selectedTradeCount : Math.round(selectedMonths * 47);
+    const proposedTrades = analysisMode === "trades" ? effectiveTradeCount : Math.round(selectedMonths * 47);
     const overlapPercentage = overlappingRuns.length > 0 ? Math.min(100, (totalOverlappingTrades / proposedTrades) * 100) : 0;
     
     return {
@@ -2048,8 +2104,8 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                     {isEditingTradeCount ? (
                       <input
                         type="number"
-                        min="50"
-                        max="1000"
+                        min={minTradeSelection}
+                        max={maxTradeSelection}
                         value={editValue}
                         onChange={(e) => setEditValue(e.target.value)}
                         onBlur={() => {
@@ -2069,11 +2125,11 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                       <button
                         onClick={() => {
                           setIsEditingTradeCount(true);
-                          setEditValue(selectedTradeCount.toString());
+                          setEditValue(effectiveTradeCount.toString());
                         }}
                         className="px-3 py-1 text-teal-600 font-semibold text-lg hover:bg-teal-50 rounded-lg transition-colors"
                       >
-                        {selectedTradeCount}
+                        {effectiveTradeCount}
                       </button>
                     )}
                   </div>
@@ -2082,10 +2138,10 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                   <div className="relative">
                     <input
                       type="range"
-                      min="50"
-                      max="1000"
-                      step="50"
-                      value={selectedTradeCount}
+                      min={minTradeSelection}
+                      max={maxTradeSelection}
+                      step="1"
+                      value={effectiveTradeCount}
                       onChange={(e) => setSelectedTradeCount(Number(e.target.value))}
                       className="w-full h-3 bg-slate-200 rounded-full appearance-none cursor-pointer
                         [&::-webkit-slider-thumb]:appearance-none 
@@ -2111,19 +2167,38 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                         [&::-moz-range-thumb]:transition-transform
                         [&::-moz-range-thumb]:hover:scale-110"
                       style={{
-                        background: `linear-gradient(to right, #0d9488 0%, #0d9488 ${((selectedTradeCount - 50) / (1000 - 50)) * 100}%, #e2e8f0 ${((selectedTradeCount - 50) / (1000 - 50)) * 100}%, #e2e8f0 100%)`
+                        background: `linear-gradient(to right, #0d9488 0%, #0d9488 ${maxTradeSelection === minTradeSelection ? 100 : ((effectiveTradeCount - minTradeSelection) / (maxTradeSelection - minTradeSelection)) * 100}%, #e2e8f0 ${maxTradeSelection === minTradeSelection ? 100 : ((effectiveTradeCount - minTradeSelection) / (maxTradeSelection - minTradeSelection)) * 100}%, #e2e8f0 100%)`
                       }}
                     />
                   </div>
                   
                   <div className="flex justify-between text-xs text-slate-500 mt-2">
-                    <span>50</span>
-                    <span>1,000</span>
+                    <span>{minTradeSelection}</span>
+                    <span>{maxTradeSelection.toLocaleString()}</span>
                   </div>
                   <div className="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
                     <div className="text-xs text-slate-600">
-                      <strong>Recommendation:</strong> Use at least 200 trades for statistically significant results. 
-                      More trades = higher confidence in the ML recommendations.
+                      <strong>Recommendation:</strong> {analysisOptions.availableTradeCount > 0
+                        ? `Your account currently has ${analysisOptions.availableTradeCount.toLocaleString()} unique closed trades available.`
+                        : "Connect the EA and export history to detect how many trades are available."}{" "}
+                      Use around {Math.min(analysisOptions.recommendedTradeCount || 200, maxTradeSelection).toLocaleString()} trades for stronger statistical confidence when possible.
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {analysisMode === "trades" && !canRunTradeAnalysis && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-red-900 text-sm font-semibold mb-1">
+                        At least 10 closed trades are required
+                      </div>
+                      <p className="text-red-700 text-xs">
+                        The latest export only contains {analysisOptions.availableTradeCount.toLocaleString()} unique closed trade{analysisOptions.availableTradeCount === 1 ? "" : "s"}.
+                        Run more trades in MetaTrader, then export again before starting the model.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -2292,8 +2367,27 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                         ✅ New Period - No Overlap Detected
                       </div>
                       <p className="text-green-700 text-xs">
-                        This analysis covers a new period with no overlap from previous runs. 
-                        The ML model will mathematically combine this with your existing {modelRunHistory.reduce((sum, run) => sum + run.tradesAnalysed, 0)} analysed trades.
+                        This analysis covers a new period with no overlap from previous runs.
+                        Any repeated MetaTrader trade IDs are filtered out before the model runs, so reruns do not duplicate the same closed trades in the analysis set.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {analysisMode === "trades" && analysisOptions.availableTradeCount > 0 && (
+                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-blue-900 text-sm font-semibold mb-1">
+                        Duplicate-safe trade matching is active
+                      </div>
+                      <p className="text-blue-700 text-xs">
+                        We identify each MetaTrader trade by its broker trade ID or a fallback trade fingerprint, so rerunning the model on the same exported trades will not duplicate them inside the analysis set.
+                        {analysisOptions.latestAnalysis?.tradesAnalysed
+                          ? ` Latest saved run analysed ${analysisOptions.latestAnalysis.tradesAnalysed.toLocaleString()} trades.`
+                          : ""}
                       </p>
                     </div>
                   </div>
@@ -2308,7 +2402,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                     <div className="text-teal-900 text-sm mb-1">Estimated Processing Time</div>
                     <p className="text-teal-700 text-xs">
                       {analysisMode === "trades" 
-                        ? `~${Math.ceil(selectedTradeCount / 100)} seconds for ${selectedTradeCount} trades`
+                        ? `~${Math.ceil(effectiveTradeCount / 100)} seconds for ${effectiveTradeCount} trades`
                         : `~${Math.ceil(selectedMonths * 0.5)} seconds for ${selectedMonths} months of data`
                       }
                     </p>
@@ -2328,7 +2422,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                       <div className="text-amber-900 text-sm mb-1">Estimated Cost</div>
                       <p className="text-amber-700 text-xs mb-2">
                         {analysisMode === "trades" 
-                          ? `£${(selectedTradeCount * 0.20).toFixed(2)} for ${selectedTradeCount} trades`
+                          ? `£${(effectiveTradeCount * 0.20).toFixed(2)} for ${effectiveTradeCount} trades`
                           : `£${(Math.round(selectedMonths * 47) * 0.20).toFixed(2)} for ~${Math.round(selectedMonths * 47)} trades (${selectedMonths} months)`
                         }
                       </p>
@@ -2352,13 +2446,19 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                 </button>
                 <button
                   onClick={handleRunModel}
-                  disabled={analysisMode === "csv" && !csvFile}
+                  disabled={(analysisMode === "csv" && !csvFile) || (analysisMode === "trades" && !canRunTradeAnalysis)}
                   className={`px-8 py-3 rounded-lg shadow-lg transition-all flex items-center gap-2 ${
-                    analysisMode === "csv" && !csvFile
+                    (analysisMode === "csv" && !csvFile) || (analysisMode === "trades" && !canRunTradeAnalysis)
                       ? 'bg-slate-400 text-slate-200 cursor-not-allowed'
                       : 'bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:from-teal-700 hover:to-cyan-700'
                   }`}
-                  title={analysisMode === "csv" && !csvFile ? 'Please select a CSV file' : ''}
+                  title={
+                    analysisMode === "csv" && !csvFile
+                      ? 'Please select a CSV file'
+                      : analysisMode === "trades" && !canRunTradeAnalysis
+                        ? 'At least 10 exported MetaTrader trades are required'
+                        : ''
+                  }
                 >
                   <Brain className="w-5 h-5" />
                   Run Analysis

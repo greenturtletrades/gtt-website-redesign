@@ -240,6 +240,121 @@ function buildEaConnectionStatus(events) {
   };
 }
 
+function parseTradeTimestamp(value) {
+  if (typeof value !== "string" || !value.trim()) {
+    return 0;
+  }
+  const normalized = value.includes("T") ? value : value.replace(" ", "T");
+  const parsed = Date.parse(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function sortTradesByRecency(trades) {
+  return trades.slice().sort((a, b) => {
+    const exitDiff = parseTradeTimestamp(b?.exit_time) - parseTradeTimestamp(a?.exit_time);
+    if (exitDiff !== 0) return exitDiff;
+    return parseTradeTimestamp(b?.entry_time) - parseTradeTimestamp(a?.entry_time);
+  });
+}
+
+function buildTradeIdentity(trade, brokerAccountId = "account") {
+  if (!trade || typeof trade !== "object") {
+    return null;
+  }
+
+  const explicitId =
+    typeof trade.trade_id === "string" && trade.trade_id.trim()
+      ? trade.trade_id.trim()
+      : typeof trade.ticket === "string" && trade.ticket.trim()
+        ? trade.ticket.trim()
+        : null;
+
+  if (explicitId) {
+    return `${brokerAccountId}:${explicitId}`;
+  }
+
+  const parts = [
+    brokerAccountId,
+    trade.symbol || "",
+    trade.side || "",
+    trade.entry_time || "",
+    trade.exit_time || "",
+    trade.entry_price ?? "",
+    trade.exit_price ?? "",
+    trade.volume ?? "",
+  ];
+
+  return parts.join("|");
+}
+
+function dedupeTrades(tradeRows) {
+  const latestByIdentity = new Map();
+
+  for (const row of tradeRows) {
+    const identity = buildTradeIdentity(row.trade, row.brokerAccountId);
+    if (!identity) continue;
+
+    const existing = latestByIdentity.get(identity);
+    if (!existing || row.receivedAt > existing.receivedAt) {
+      latestByIdentity.set(identity, { ...row, identity });
+    }
+  }
+
+  const deduped = Array.from(latestByIdentity.values());
+  deduped.sort((a, b) => {
+    const exitDiff = parseTradeTimestamp(b.trade?.exit_time) - parseTradeTimestamp(a.trade?.exit_time);
+    if (exitDiff !== 0) return exitDiff;
+    return b.receivedAt.getTime() - a.receivedAt.getTime();
+  });
+
+  return deduped;
+}
+
+function buildTradeFingerprint(trades, brokerAccountId = "account") {
+  const identities = sortTradesByRecency(trades)
+    .map((trade) => buildTradeIdentity(trade, brokerAccountId))
+    .filter(Boolean);
+
+  return crypto.createHash("sha1").update(JSON.stringify(identities)).digest("hex");
+}
+
+function extractTradesFromEvents(events) {
+  const tradeRows = [];
+
+  for (const event of events) {
+    const payload = event?.payload;
+    const trades = Array.isArray(payload) ? payload : Array.isArray(payload?.trades) ? payload.trades : [];
+
+    for (const trade of trades) {
+      if (!trade || typeof trade !== "object") continue;
+      tradeRows.push({
+        brokerAccountId: event.brokerAccountId,
+        receivedAt: new Date(event.receivedAt),
+        trade,
+      });
+    }
+  }
+
+  return tradeRows;
+}
+
+function buildSnapshotReport(report, metadataPatch) {
+  const existingMetadata =
+    report && typeof report === "object" && report.metadata && typeof report.metadata === "object"
+      ? report.metadata
+      : {};
+
+  return {
+    ...(report && typeof report === "object" ? report : {}),
+    metadata: {
+      ...existingMetadata,
+      ...metadataPatch,
+    },
+  };
+}
+
+const analysisJobContext = new Map();
+
 async function createHistoryExportRequests(brokerAccountIds) {
   const requestedAt = new Date();
 
@@ -2679,6 +2794,64 @@ app.get("/api/admin/metrics", authRequired, adminRequired, async (req, res, next
 
 const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL || "http://localhost:8000";
 
+app.get("/api/analyse/options", authRequired, async (req, res, next) => {
+  try {
+    const brokerAccounts = await prisma.brokerAccount.findMany({
+      where: { userId: req.user.id, isActive: true },
+      select: { id: true },
+    });
+
+    if (brokerAccounts.length === 0) {
+      return res.json({
+        ok: true,
+        availableTradeCount: 0,
+        minimumTradeCount: 10,
+        recommendedTradeCount: 200,
+        latestAnalysis: null,
+      });
+    }
+
+    const brokerAccountIds = brokerAccounts.map((account) => account.id);
+    const events = await getLatestHistoryExports(brokerAccountIds);
+    const dedupedTrades = dedupeTrades(extractTradesFromEvents(events));
+    const latestSnapshot = await prisma.analysisSnapshot.findFirst({
+      where: { userId: req.user.id },
+      orderBy: { updatedAt: "desc" },
+      select: {
+        id: true,
+        updatedAt: true,
+        tradesAnalysed: true,
+        report: true,
+      },
+    });
+
+    const latestMetadata =
+      latestSnapshot?.report &&
+      typeof latestSnapshot.report === "object" &&
+      latestSnapshot.report.metadata &&
+      typeof latestSnapshot.report.metadata === "object"
+        ? latestSnapshot.report.metadata
+        : null;
+
+    return res.json({
+      ok: true,
+      availableTradeCount: dedupedTrades.length,
+      minimumTradeCount: 10,
+      recommendedTradeCount: Math.min(200, dedupedTrades.length || 200),
+      latestAnalysis: latestSnapshot
+        ? {
+            id: latestSnapshot.id,
+            updatedAt: latestSnapshot.updatedAt.toISOString(),
+            tradesAnalysed: latestSnapshot.tradesAnalysed ?? latestMetadata?.unique_trade_count ?? null,
+            tradeFingerprint: latestMetadata?.trade_fingerprint ?? null,
+          }
+        : null,
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 /**
  * POST /api/analyse/csv
  *
@@ -2789,19 +2962,11 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
 
     // 4. Extract and flatten trade records from event payloads
     //    The EA payload may be { trades: [...] } or an array directly
-    let allTrades = [];
-    for (const event of events) {
-      if (event.receivedAt < dateFrom || event.receivedAt > dateTo) {
-        continue;
-      }
-
-      const payload = event.payload;
-      if (Array.isArray(payload)) {
-        allTrades.push(...payload);
-      } else if (payload && Array.isArray(payload.trades)) {
-        allTrades.push(...payload.trades);
-      }
-    }
+    const extractedTrades = extractTradesFromEvents(
+      events.filter((event) => event.receivedAt >= dateFrom && event.receivedAt <= dateTo)
+    );
+    const dedupedTrades = dedupeTrades(extractedTrades);
+    let allTrades = dedupedTrades.map((row) => row.trade);
 
     if (allTrades.length === 0) {
       return res.status(400).json({
@@ -2813,9 +2978,14 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
     }
 
     // 5. Apply trade count limit for "trades" mode
+    const uniqueTradeCount = allTrades.length;
+    const duplicateTradeCount = Math.max(0, extractedTrades.length - uniqueTradeCount);
+
     if (mode === "trades" && allTrades.length > tradeCount) {
-      allTrades = allTrades.slice(0, tradeCount);
+      allTrades = sortTradesByRecency(allTrades).slice(0, tradeCount);
     }
+
+    const tradeFingerprint = buildTradeFingerprint(allTrades, req.user.id);
 
     // 6. Dispatch to Python service
     const pythonRes = await fetch(`${PYTHON_SERVICE_URL}/analyse`, {
@@ -2837,7 +3007,22 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
     }
 
     const { job_id } = await pythonRes.json();
-    return res.json({ ok: true, jobId: job_id });
+    analysisJobContext.set(job_id, {
+      userId: req.user.id,
+      tradeFingerprint,
+      requestedTradeCount: mode === "trades" ? tradeCount : null,
+      uniqueTradeCount: allTrades.length,
+      availableTradeCount: uniqueTradeCount,
+      duplicateTradeCount,
+      mode,
+    });
+    return res.json({
+      ok: true,
+      jobId: job_id,
+      availableTradeCount: uniqueTradeCount,
+      duplicateTradeCount,
+      dedupedTradeCount: allTrades.length,
+    });
   } catch (err) {
     return next(err);
   }
@@ -2870,18 +3055,47 @@ app.get("/api/analyse/:jobId", authRequired, async (req, res, next) => {
       const originalPerformance = data.report.summary?.original_performance ?? {};
       const riskMetrics = data.report.risk_recommendations?.risk_metrics ?? {};
 
-      await prisma.analysisSnapshot.create({
-        data: {
-          userId: req.user.id,
-          report: data.report,
-          tradesAnalysed: data.trades_analysed ?? originalPerformance.n_trades ?? null,
-          avgRMultiple: data.avg_r_multiple ?? originalPerformance.avg_r ?? null,
-          winRate: originalPerformance.win_rate ?? null,
-          sharpeRatio: originalPerformance.sharpe_ratio ?? null,
-          maxDrawdownR: riskMetrics.max_drawdown_r ?? null,
-          totalR: originalPerformance.total_r ?? null,
-        },
+      const jobContext = analysisJobContext.get(jobId) || null;
+      const snapshotReport = buildSnapshotReport(data.report, {
+        trade_fingerprint: jobContext?.tradeFingerprint ?? null,
+        unique_trade_count: jobContext?.uniqueTradeCount ?? data.trades_analysed ?? originalPerformance.n_trades ?? null,
+        duplicate_trade_count: jobContext?.duplicateTradeCount ?? 0,
+        available_trade_count: jobContext?.availableTradeCount ?? null,
       });
+
+      let existingSnapshot = null;
+      if (jobContext?.tradeFingerprint) {
+        existingSnapshot = await prisma.analysisSnapshot.findFirst({
+          where: {
+            userId: req.user.id,
+            report: {
+              path: ["metadata", "trade_fingerprint"],
+              equals: jobContext.tradeFingerprint,
+            },
+          },
+          orderBy: { updatedAt: "desc" },
+        });
+      }
+
+      const snapshotData = {
+        userId: req.user.id,
+        report: snapshotReport,
+        tradesAnalysed: data.trades_analysed ?? jobContext?.uniqueTradeCount ?? originalPerformance.n_trades ?? null,
+        avgRMultiple: data.avg_r_multiple ?? originalPerformance.avg_r ?? null,
+        winRate: originalPerformance.win_rate ?? null,
+        sharpeRatio: originalPerformance.sharpe_ratio ?? null,
+        maxDrawdownR: riskMetrics.max_drawdown_r ?? null,
+        totalR: originalPerformance.total_r ?? null,
+      };
+
+      if (existingSnapshot) {
+        await prisma.analysisSnapshot.update({
+          where: { id: existingSnapshot.id },
+          data: snapshotData,
+        });
+      } else {
+        await prisma.analysisSnapshot.create({ data: snapshotData });
+      }
     }
 
     return res.json({
