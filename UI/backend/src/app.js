@@ -3252,6 +3252,39 @@ app.get("/api/analyse/options", authRequired, async (req, res, next) => {
   }
 });
 
+app.get("/api/analyse/latest", authRequired, async (req, res, next) => {
+  try {
+    const latestSnapshot = await prisma.analysisSnapshot.findFirst({
+      where: { userId: req.user.id },
+      orderBy: { updatedAt: "desc" },
+      select: {
+        id: true,
+        updatedAt: true,
+        tradesAnalysed: true,
+        avgRMultiple: true,
+        report: true,
+      },
+    });
+
+    if (!latestSnapshot) {
+      return res.json({ ok: true, latestAnalysis: null });
+    }
+
+    return res.json({
+      ok: true,
+      latestAnalysis: {
+        id: latestSnapshot.id,
+        updatedAt: latestSnapshot.updatedAt.toISOString(),
+        tradesAnalysed: latestSnapshot.tradesAnalysed,
+        avgRMultiple: latestSnapshot.avgRMultiple,
+        report: latestSnapshot.report,
+      },
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 app.get("/api/trades", authRequired, async (req, res, next) => {
   try {
     const storedTrades = await prisma.storedTrade.findMany({

@@ -443,6 +443,51 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   useEffect(() => {
     let cancelled = false;
 
+    const loadLatestAnalysis = async () => {
+      try {
+        const token = localStorage.getItem("gtt_token");
+        const authHeader: Record<string, string> = {};
+        if (token) authHeader["Authorization"] = `Bearer ${token}`;
+        const response = await fetch(`${API_BASE}/api/analyse/latest`, { headers: authHeader });
+        if (!response.ok) return;
+        const payload = await response.json();
+        const latest = payload.latestAnalysis;
+        if (!cancelled && latest?.report) {
+          setReportData(latest.report);
+          setStatsData((prev) => ({
+            tradesAnalysed: latest.tradesAnalysed ?? latest.report?.summary?.original_performance?.n_trades ?? prev.tradesAnalysed,
+            simulationsRun:
+              latest.report?.optimization_results?.summary?.n_trials ??
+              latest.report?.optimization_results?.n_trials ??
+              prev.simulationsRun,
+            regimesFound:
+              latest.report?.regimes?.regime_details?.length ??
+              latest.report?.summary?.n_regimes ??
+              prev.regimesFound,
+            avgRMultiple:
+              latest.avgRMultiple ??
+              latest.report?.summary?.original_performance?.avg_r ??
+              prev.avgRMultiple,
+          }));
+          if (latest.updatedAt) {
+            setLastRunTime(new Date(latest.updatedAt));
+          }
+        }
+      } catch {
+        // Keep the current in-memory state if the latest snapshot cannot be loaded.
+      }
+    };
+
+    loadLatestAnalysis();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [API_BASE]);
+
+  useEffect(() => {
+    let cancelled = false;
+
     const loadStoredJournal = async () => {
       try {
         const token = localStorage.getItem("gtt_token");
