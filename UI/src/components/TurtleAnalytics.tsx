@@ -67,7 +67,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         optimisationHeadline: "No consistent optimisation edge found yet",
         optimisationSubtext: "Run more trades to improve optimisation stability",
         improvementDisplay: "Not available",
-        improvementSubtext: "No improvement baseline available yet",
+      improvementSubtext: "No improvement baseline available yet",
         equityLabel: "Cumulative R",
         recs: [],
         bestRegimeAvgR: "0.00",
@@ -312,9 +312,11 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         : "Best tested policy did not outperform your baseline",
       equityLabel: totalCurrencyPnl !== null ? "Cumulative Account P/L" : "Cumulative R",
       recs: recs.length > 0 ? recs : [
-        { bold: `Use ${slM}R SL / ${tpM}R TP`, rest: ` — Bayesian optimisation shows +${impPct}% improvement` },
-        { bold: "Review hold time", rest: " — Survival analysis found optimal exit window" },
-        { bold: "Adapt by regime", rest: " — Different market conditions need different parameters" },
+        optimisationFoundEdge
+          ? { bold: `Use ${slM}R SL / ${tpM}R TP`, rest: ` — Best tested policy improved on your baseline in this run` }
+          : { bold: "No consistent optimisation edge found", rest: " — The tested policies did not outperform your baseline in this run" },
+        { bold: "Review hold time", rest: " — Survival analysis output is shown only when the run supports it" },
+        { bold: "Adapt by regime", rest: " — Regime recommendations are shown only when clustering data is available" },
       ],
       bestRegimeAvgR,
       topActionLabel: topRecommendation,
@@ -1302,7 +1304,9 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                   <div className="text-slate-600 text-sm">Top Action</div>
                 </div>
                 <div className="text-lg text-slate-900 mb-1">{derived.topActionLabel}</div>
-                <div className="text-sm text-slate-600">+{derived.improvementPct}% improvement</div>
+                <div className="text-sm text-slate-600">
+                  {derived.optimisationFoundEdge ? `+${derived.improvementPct}% improvement` : "No confirmed optimisation edge in this run"}
+                </div>
               </div>
 
               {/* Card 4: Best Trading Time */}
@@ -1422,14 +1426,16 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                       name="Your Equity"
                       dot={false}
                     />
-                    <Line 
-                      type="monotone" 
-                      dataKey="optimised" 
-                      stroke="#0d9488" 
-                      strokeWidth={3}
-                      name="Optimised (Bayesian)"
-                      dot={false}
-                    />
+                    {derived.optimisationFoundEdge && (
+                      <Line 
+                        type="monotone" 
+                        dataKey="optimised" 
+                        stroke="#0d9488" 
+                        strokeWidth={3}
+                        name="Optimised (Bayesian)"
+                        dot={false}
+                      />
+                    )}
                   </LineChart>
                 </ResponsiveContainer>
               </div>
