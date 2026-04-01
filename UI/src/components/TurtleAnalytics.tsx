@@ -595,14 +595,6 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
     return "Just now";
   };
   
-  // Standard risk amount for profit calculations (£100 per trade)
-  const riskPerTrade = 100;
-  
-  // Helper function to convert R to £
-  const rToProfit = (r: number) => {
-    return (r * riskPerTrade).toFixed(0);
-  };
-  
   // All chart/table data comes from the latest completed analysis report.
   const counterfactualResults = derived.counterfactualResults;
   const mfeAnalysis = derived.mfeAnalysis;
@@ -615,24 +607,17 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   const consecutiveLossData = derived.consecutiveLossData;
   const journalEntries = reportData?.trade_analytics?.journal_entries ?? [];
   const journalPnlMeta = reportData?.trade_analytics?.pnl_metadata;
-
-  // Trailing stop table is derived from the latest completed analysis inputs.
-  const trailingStopResults = [
-    { threshold: "No Trailing", avgR: derived.avgR, winRate: `${derived.winRate}%`, avgHold: "4.2h", status: "Current", isCurrent: true, isRecommended: false },
-    { threshold: `Trail at ${derived.tpMult}R`, avgR: derived.bestAvgR, winRate: "62%", avgHold: "5.8h", status: "Recommended", isCurrent: false, isRecommended: true },
-    { threshold: `Trail at ${(parseFloat(derived.tpMult) * 1.25).toFixed(1)}R`, avgR: (parseFloat(derived.bestAvgR) * 0.93).toFixed(2), winRate: "60%", avgHold: "6.4h", status: "Good", isCurrent: false, isRecommended: false },
-    { threshold: `Trail at ${(parseFloat(derived.tpMult) * 1.6).toFixed(1)}R`, avgR: (parseFloat(derived.bestAvgR) * 0.8).toFixed(2), winRate: "58%", avgHold: "7.1h", status: "Too late", isCurrent: false, isRecommended: false },
-  ];
-
-  // MFE/MAE scatter — generate from mfeAnalysis counts
-  const mfeMaeScatter = [
-    ...Array.from({ length: mfeAnalysis.find(m => m.category === "Stopped Out")?.count ?? 203 }, () => ({
-      mae: -0.5 - Math.random() * 1.0, mfe: Math.random() * 1.5, result: "Loss", color: "#ef4444"
-    })),
-    ...Array.from({ length: mfeAnalysis.find(m => m.category === "Hit Target")?.count ?? 362 }, () => ({
-      mae: -Math.random() * 0.8, mfe: 1.5 + Math.random() * 1.5, result: "Win", color: "#0d9488"
-    })),
-  ];
+  const recommendationCards = derived.recs.slice(0, 3);
+  const hasCounterfactualResults = counterfactualResults.length > 0;
+  const hasMfeMaeAnalysis = mfeAnalysis.length > 0;
+  const hasMarketRegimes = marketRegimes.length > 0;
+  const hasSessionPerformance = sessionPerformance.length > 0;
+  const hasHoldTimeResults = holdTimeResults.length > 0;
+  const hasRiskFractionResults = riskFractionResults.length > 0;
+  const hasConsecutiveLossData = consecutiveLossData.length > 0;
+  const equityUsesCurrency = derived.equityLabel === "Cumulative Account P/L";
+  const formatEquityValue = (value: number) =>
+    equityUsesCurrency ? formatAccountMetric(value) : `${value.toFixed(2)}R`;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -674,8 +659,8 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
               </span>
             </h1>
             <p className="text-slate-700 text-base sm:text-lg mb-8">
-              Counterfactual simulation engine that replays your historical trades under 6,780+ parameter combinations. 
-              No predictions. No cross-trader data. Pure statistical analysis of YOUR trading behaviour using Bayesian optimisation and unsupervised clustering.
+              Counterfactual simulation engine that replays your historical trades against the parameter sets generated for your own account data.
+              No predictions. No cross-trader data. Statistical analysis of your trading behaviour using optimisation and clustering on your exported history.
             </p>
 
             {/* Tabs */}
@@ -1334,9 +1319,6 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                   <p className="text-slate-600 max-w-2xl mx-auto text-base">
                     Your cumulative equity performance vs. what Bayesian optimisation found on the same analysed trades
                   </p>
-                  <p className="text-slate-500 text-sm mt-2">
-                    Based on £100 risk per trade
-                  </p>
                 </div>
 
               <div className="bg-slate-50 rounded-2xl p-6 sm:p-8 border border-slate-200">
@@ -1380,7 +1362,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                         borderRadius: "8px",
                         color: "#1e293b" 
                       }}
-                      formatter={(value: number) => [`£${value.toLocaleString()}`, ""]}
+                      formatter={(value: number) => [formatEquityValue(value), ""]}
                       labelFormatter={(label) => `Trade ${label}`}
                     />
                     <Line 
@@ -1436,70 +1418,40 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                     Data-Driven Recommendations
                   </h2>
                   <p className="text-slate-600 mb-8 max-w-2xl mx-auto">
-                    Based on counterfactual simulations of your {statsData.tradesAnalysed.toLocaleString()} trades with 95% confidence intervals
+                    These recommendations are generated from the latest completed run on your own account data. Sections without supporting model output are left blank rather than filled with examples.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-16">
-              {/* Recommendation 1: Parameters */}
-              <div className="bg-white border-2 border-teal-200 rounded-xl p-6 shadow-sm">
-                <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mb-4">
-                  <Settings className="w-6 h-6 text-teal-600" />
-                </div>
-                <h3 className="text-slate-900 mb-2 text-xl">Widen Take Profit</h3>
-                <p className="text-slate-600 text-sm leading-relaxed mb-4">
-                  Your current 2.0R TP may be limiting potential gains. Bayesian optimisation tested 6,780 combinations and found that a 1.0R SL with 2.5R TP maximises your R-multiple.
-                </p>
-                <div className="bg-teal-50 border border-teal-200 rounded-lg p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-teal-900 text-sm">Current: 1.0R / 2.0R</span>
-                    <span className="text-teal-700 text-sm">0.72R avg</span>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-teal-600 mx-auto mb-2" />
-                  <div className="flex items-center justify-between">
-                    <span className="text-teal-900 text-sm">Recommended: 1.0R / 2.5R</span>
-                    <span className="text-teal-700 text-sm font-semibold">0.89R avg</span>
-                  </div>
-                  <div className="text-teal-600 text-xs mt-2">95% CI: ±0.08R</div>
-                </div>
-              </div>
-
-              {/* Recommendation 2: Trailing Stop */}
-              <div className="bg-white border-2 border-teal-200 rounded-xl p-6 shadow-sm">
-                <div className="w-12 h-12 bg-cyan-100 rounded-lg flex items-center justify-center mb-4">
-                  <Maximize2 className="w-6 h-6 text-cyan-600" />
-                </div>
-                <h3 className="text-slate-900 mb-2 text-xl">Add Trailing Stop</h3>
-                <p className="text-slate-600 text-sm leading-relaxed mb-4">
-                  Survival analysis shows: activating a trailing stop at 1.2R increases your avg R from 0.72 to 0.94 (+30% improvement).
-                </p>
-                <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-3">
-                  <div className="text-cyan-900 text-sm mb-1">When trade hits +1.2R profit:</div>
-                  <p className="text-cyan-700 text-xs mb-2">
-                    Move stop to breakeven, then trail by 50% of the move
-                  </p>
-                  <div className="text-cyan-600 text-xs">Avg hold time: 4.2h → 5.8h</div>
-                </div>
-              </div>
-
-              {/* Recommendation 3: Session Filter */}
-              <div className="bg-white border-2 border-red-200 rounded-xl p-6 shadow-sm">
-                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4">
-                  <AlertTriangle className="w-6 h-6 text-red-600" />
-                </div>
-                <h3 className="text-slate-900 mb-2 text-xl">Avoid Low Liquidity</h3>
-                <p className="text-slate-600 text-sm leading-relaxed mb-4">
-                  Unsupervised clustering detected a "Low Liquidity" regime (Asian session) where you average -0.18R per trade. 31 trades cost you -5.6R total.
-                </p>
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                  <div className="text-red-900 text-sm mb-1">Skip trading:</div>
-                  <p className="text-red-700 text-xs">
-                    00:00-07:00 UTC (Asian session)<br/>
-                    When spread &gt; 2x normal<br/>
-                    Low volatility + wide spread combo
-                  </p>
-                </div>
-              </div>
+                  {recommendationCards.length > 0 ? recommendationCards.map((rec, idx) => (
+                    <div key={`${rec.bold}-${idx}`} className="bg-white border-2 border-teal-200 rounded-xl p-6 shadow-sm">
+                      <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mb-4">
+                        {idx === 0 ? (
+                          <Settings className="w-6 h-6 text-teal-600" />
+                        ) : idx === 1 ? (
+                          <Maximize2 className="w-6 h-6 text-teal-600" />
+                        ) : (
+                          <AlertTriangle className="w-6 h-6 text-teal-600" />
+                        )}
+                      </div>
+                      <h3 className="text-slate-900 mb-2 text-xl">{rec.bold}</h3>
+                      <p className="text-slate-600 text-sm leading-relaxed mb-4">
+                        {rec.rest.trim() || "This recommendation comes directly from the latest completed analysis output."}
+                      </p>
+                      <div className="bg-teal-50 border border-teal-200 rounded-lg p-3">
+                        <div className="text-teal-900 text-sm">
+                          Recommendation {idx + 1} of {recommendationCards.length}
+                        </div>
+                        <div className="text-teal-700 text-xs mt-1">
+                          Generated from your most recent analysis snapshot only.
+                        </div>
+                      </div>
+                    </div>
+                  )) : (
+                    <div className="lg:col-span-3 bg-slate-50 border border-slate-200 rounded-xl p-6 text-center text-slate-600">
+                      No recommendation set was returned by this run yet.
+                    </div>
+                  )}
             </div>
 
             {/* Counterfactual Simulation Results */}
@@ -1511,44 +1463,49 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
               <p className="text-slate-600 text-sm mb-6">
                 We replayed all {statsData.tradesAnalysed.toLocaleString()} trades with different SL/TP combinations. Each row shows what your avg R-multiple would have been with those settings:
               </p>
-              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-slate-50">
-                    <tr>
-                      <th className="text-left py-3 px-4 text-slate-700 text-sm">Stop Loss</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-sm">Take Profit</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-sm">Avg R</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-sm">Win Rate</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-sm">95% CI</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-sm">Result</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {counterfactualResults.map((row, idx) => (
-                      <tr key={idx} className={`border-t border-slate-100 ${row.isRecommended ? 'bg-teal-50' : row.isCurrent ? 'bg-blue-50' : ''}`}>
-                        <td className="py-3 px-4 text-sm">{row.sl}</td>
-                        <td className="py-3 px-4 text-sm">{row.tp}</td>
-                        <td className="py-3 px-4 text-sm font-semibold">{row.avgR}</td>
-                        <td className="py-3 px-4 text-sm">{row.winRate}</td>
-                        <td className="py-3 px-4 text-sm text-slate-500">{row.confidence}</td>
-                        <td className="py-3 px-4 text-sm">
-                          <span className={row.isRecommended ? 'text-teal-700 font-medium' : row.isCurrent ? 'text-blue-700 font-medium' : 'text-slate-600'}>
-                            {row.status}
-                          </span>
-                        </td>
+              {hasCounterfactualResults ? (
+                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Stop Loss</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Take Profit</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Avg R</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Win Rate</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">95% CI</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Result</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {counterfactualResults.map((row, idx) => (
+                        <tr key={idx} className={`border-t border-slate-100 ${row.isRecommended ? 'bg-teal-50' : row.isCurrent ? 'bg-blue-50' : ''}`}>
+                          <td className="py-3 px-4 text-sm">{row.sl}</td>
+                          <td className="py-3 px-4 text-sm">{row.tp}</td>
+                          <td className="py-3 px-4 text-sm font-semibold">{row.avgR}</td>
+                          <td className="py-3 px-4 text-sm">{row.winRate}</td>
+                          <td className="py-3 px-4 text-sm text-slate-500">{row.confidence}</td>
+                          <td className="py-3 px-4 text-sm">
+                            <span className={row.isRecommended ? 'text-teal-700 font-medium' : row.isCurrent ? 'text-blue-700 font-medium' : 'text-slate-600'}>
+                              {row.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 text-sm text-slate-600">
+                  This run did not return a counterfactual parameter comparison table.
+                </div>
+              )}
               <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-lg">
                 <div className="flex items-start gap-2">
                   <Brain className="w-5 h-5 text-slate-600 flex-shrink-0 mt-0.5" />
                   <div>
                     <div className="text-slate-900 text-sm mb-1">How This Works:</div>
                     <p className="text-slate-600 text-xs">
-                      For each trade, we check if the price moved far enough to hit each hypothetical SL or TP. 
-                      We then calculate what your total R would have been. Confidence intervals use bootstrapping (1,000 resamples).
+                      When the report includes counterfactual rows, each line shows how the analysed trades would have performed under a different stop-loss and take-profit pair.
                     </p>
                   </div>
                 </div>
@@ -1596,67 +1553,48 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                 Maximum Adverse Excursion (MAE) = worst drawdown during the trade.
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                {mfeAnalysis.map((item, idx) => (
-                  <div key={idx} className={`p-5 rounded-xl border-2 ${item.category === 'Hit Target' ? 'bg-teal-50 border-teal-300' : 'bg-red-50 border-red-300'}`}>
-                    <div className="text-sm text-slate-700 mb-2">{item.category} ({item.count} trades)</div>
-                    <div className="grid grid-cols-2 gap-4 mb-3">
-                      <div>
-                        <div className="text-xs text-slate-600">Avg MFE</div>
-                        <div className="text-2xl">{item.avgMFE}</div>
+              {hasMfeMaeAnalysis ? (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    {mfeAnalysis.map((item, idx) => (
+                      <div key={idx} className={`p-5 rounded-xl border-2 ${item.category === 'Hit Target' ? 'bg-teal-50 border-teal-300' : 'bg-red-50 border-red-300'}`}>
+                        <div className="text-sm text-slate-700 mb-2">{item.category} ({item.count} trades)</div>
+                        <div className="grid grid-cols-2 gap-4 mb-3">
+                          <div>
+                            <div className="text-xs text-slate-600">Avg MFE</div>
+                            <div className="text-2xl">{item.avgMFE}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-slate-600">Avg MAE</div>
+                            <div className="text-2xl">{item.avgMAE}</div>
+                          </div>
+                        </div>
+                        <p className="text-xs text-slate-600">{item.insight}</p>
                       </div>
+                    ))}
+                  </div>
+
+                  <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 text-sm text-slate-600">
+                    Per-trade MFE/MAE scatter points are not included in this report payload yet, so only the aggregated excursion summary is shown.
+                  </div>
+
+                  <div className="mt-4 p-4 bg-teal-50 border border-teal-200 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <Sparkles className="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" />
                       <div>
-                        <div className="text-xs text-slate-600">Avg MAE</div>
-                        <div className="text-2xl">{item.avgMAE}</div>
+                        <div className="text-teal-900 text-sm mb-1">Key Insight:</div>
+                        <p className="text-teal-700 text-xs">
+                          Review the excursion categories above to compare how far winning and losing trades moved before exit.
+                        </p>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-600">{item.insight}</p>
                   </div>
-                ))}
-              </div>
-
-              <div className="bg-white rounded-xl border border-slate-200 p-6">
-                <div className="text-sm text-slate-700 mb-4">MFE vs MAE Scatter Plot (each dot = one trade)</div>
-                <ResponsiveContainer width="100%" height={300}>
-                  <ScatterChart>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                      type="number" 
-                      dataKey="mae" 
-                      name="MAE" 
-                      label={{ value: "Max Adverse Excursion (R)", position: "insideBottom", offset: -5 }}
-                    />
-                    <YAxis 
-                      type="number" 
-                      dataKey="mfe" 
-                      name="MFE"
-                      label={{ value: "Max Favorable Excursion (R)", angle: -90, position: "insideLeft" }}
-                    />
-                    <Tooltip 
-                      cursor={{ strokeDasharray: '3 3' }}
-                      formatter={(value: number) => `${value.toFixed(2)}R`}
-                    />
-                    <Scatter name="Trades" data={mfeMaeScatter} fill="#0d9488">
-                      {mfeMaeScatter.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} opacity={0.6} />
-                      ))}
-                    </Scatter>
-                  </ScatterChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="mt-4 p-4 bg-teal-50 border border-teal-200 rounded-lg">
-                <div className="flex items-start gap-2">
-                  <Sparkles className="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <div className="text-teal-900 text-sm mb-1">Key Insight:</div>
-                    <p className="text-teal-700 text-xs">
-                      Your winners typically reach 2.1R MFE, but you're closing at 2.0R TP. This represents an unrealised profit potential of approximately 0.1R+ per winning trade. 
-                      A trailing stop at 1.2R would have captured more of that price movement.
-                    </p>
-                  </div>
+                </>
+              ) : (
+                <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 text-sm text-slate-600">
+                  This run did not return MFE/MAE excursion data.
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Trailing Stop Optimisation */}
@@ -1669,35 +1607,10 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                 <strong>What this analysis does:</strong> Using survival analysis, we tested when to activate a trailing stop loss to maximise your profit while protecting gains.
               </p>
               <p className="text-slate-600 text-sm mb-6">
-                Starting at 1.2R profit gives the best balance between locking in profits and letting winners run.
+                This view is only shown when the report includes explicit trailing-stop test results.
               </p>
-              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-slate-50">
-                    <tr>
-                      <th className="text-left py-3 px-4 text-slate-700 text-sm">Trailing Threshold</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-sm">Avg R</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-sm">Win Rate</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-sm">Avg Hold Time</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-sm">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {trailingStopResults.map((row, idx) => (
-                      <tr key={idx} className={`border-t border-slate-100 ${row.isRecommended ? 'bg-teal-50' : row.isCurrent ? 'bg-blue-50' : ''}`}>
-                        <td className="py-3 px-4 text-sm">{row.threshold}</td>
-                        <td className="py-3 px-4 text-sm font-semibold">{row.avgR}</td>
-                        <td className="py-3 px-4 text-sm">{row.winRate}</td>
-                        <td className="py-3 px-4 text-sm">{row.avgHold}</td>
-                        <td className="py-3 px-4 text-sm">
-                          <span className={row.isRecommended ? 'text-teal-700 font-medium' : row.isCurrent ? 'text-blue-700 font-medium' : 'text-slate-600'}>
-                            {row.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 text-sm text-slate-600">
+                No trailing-stop optimisation table is available in the current report output.
               </div>
             </div>
               </div>
@@ -1735,55 +1648,48 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                     Market Regimes (Unsupervised K-Means Clustering)
                   </h2>
                   <p className="text-slate-600 text-sm mb-6">
-                    We applied K-Means clustering to volatility, spread, and session data to identify 5 distinct market conditions. Your performance varies significantly across these regimes:
+                    Regimes below come directly from the latest clustering output in this run.
                   </p>
-                  <div className="space-y-4">
-                {marketRegimes.map((regime, idx) => (
-                  <div key={idx} className={`${regime.color} border-2 rounded-xl p-5`}>
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="text-lg mb-1">{regime.regime}</h3>
-                        <p className="text-xs text-slate-600">{regime.features}</p>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-2xl mb-1">{regime.avgR}</div>
-                        <div className="text-xs text-slate-600">avg R-multiple</div>
-                      </div>
+                  {hasMarketRegimes ? (
+                    <div className="space-y-4">
+                      {marketRegimes.map((regime, idx) => (
+                        <div key={idx} className={`${regime.color} border-2 rounded-xl p-5`}>
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <h3 className="text-lg mb-1">{regime.regime}</h3>
+                              <p className="text-xs text-slate-600">{regime.features}</p>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-2xl mb-1">{regime.avgR}</div>
+                              <div className="text-xs text-slate-600">avg R-multiple</div>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                            <div>
+                              <div className="text-slate-600">Win Rate</div>
+                              <div className="font-semibold">{regime.winRate}</div>
+                            </div>
+                            <div>
+                              <div className="text-slate-600">Trades</div>
+                              <div className="font-semibold">{regime.trades}</div>
+                            </div>
+                            <div>
+                              <div className="text-slate-600">Best SL/TP</div>
+                              <div className="font-semibold">{regime.bestSL} / {regime.bestTP}</div>
+                            </div>
+                            <div>
+                              <div className="text-slate-600">Confidence</div>
+                              <div className="font-semibold">{regime.confidence}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                      <div>
-                        <div className="text-slate-600">Win Rate</div>
-                        <div className="font-semibold">{regime.winRate}</div>
-                      </div>
-                      <div>
-                        <div className="text-slate-600">Trades</div>
-                        <div className="font-semibold">{regime.trades}</div>
-                      </div>
-                      <div>
-                        <div className="text-slate-600">Best SL/TP</div>
-                        <div className="font-semibold">{regime.bestSL} / {regime.bestTP}</div>
-                      </div>
-                      <div>
-                        <div className="text-slate-600">Confidence</div>
-                        <div className="font-semibold">{regime.confidence}</div>
-                      </div>
+                  ) : (
+                    <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 text-sm text-slate-600">
+                      This run did not produce enough clustering output to show market regimes.
                     </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                <div className="flex items-start gap-2">
-                  <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <div className="text-amber-900 text-sm mb-1">Regime Performance Analysis:</div>
-                    <p className="text-amber-700 text-xs">
-                      "Choppy Range" regime: 186 trades, 0.31R average. "Low Liquidity" regime: 31 trades, -0.18R average. 
-                      "Trending Bull/Bear" regimes: 270 combined trades, 73% win rate, 1.2R average. Trading exclusively in higher-performing regimes would have yielded 0.96R overall versus the actual 0.72R.
-                    </p>
-                  </div>
-                </div>
-              </div>
+                  )}
             </div>
 
             {/* Session Performance */}
@@ -1793,38 +1699,44 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                 Time-of-Day Performance
               </h2>
               <p className="text-slate-600 text-sm mb-6">
-                Your R-multiple varies dramatically by trading session:
+                Session stats below are only shown when the run includes trade timing data.
               </p>
-              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-slate-50">
-                    <tr>
-                      <th className="text-left py-3 px-4 text-slate-700 text-sm">Session</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-sm">Avg R</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-sm">Trades</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-sm">Win Rate</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-sm">Spread</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-sm">Verdict</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sessionPerformance.map((session, idx) => (
-                      <tr key={idx} className={`border-t border-slate-100 ${session.isBest ? 'bg-teal-50' : session.status === 'Avoid' ? 'bg-red-50' : ''}`}>
-                        <td className="py-3 px-4 text-sm">{session.session}</td>
-                        <td className="py-3 px-4 text-sm font-semibold">{session.avgR}</td>
-                        <td className="py-3 px-4 text-sm">{session.trades}</td>
-                        <td className="py-3 px-4 text-sm">{session.winRate}</td>
-                        <td className="py-3 px-4 text-sm">{session.spread}</td>
-                        <td className="py-3 px-4 text-sm">
-                          <span className={session.isBest ? 'text-teal-700 font-medium' : session.status === 'Avoid' ? 'text-red-700 font-medium' : 'text-slate-600'}>
-                            {session.status}
-                          </span>
-                        </td>
+              {hasSessionPerformance ? (
+                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Session</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Avg R</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Trades</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Win Rate</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Spread</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Verdict</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {sessionPerformance.map((session, idx) => (
+                        <tr key={idx} className={`border-t border-slate-100 ${session.isBest ? 'bg-teal-50' : session.status === 'Avoid' ? 'bg-red-50' : ''}`}>
+                          <td className="py-3 px-4 text-sm">{session.session}</td>
+                          <td className="py-3 px-4 text-sm font-semibold">{session.avgR}</td>
+                          <td className="py-3 px-4 text-sm">{session.trades}</td>
+                          <td className="py-3 px-4 text-sm">{session.winRate}</td>
+                          <td className="py-3 px-4 text-sm">{session.spread}</td>
+                          <td className="py-3 px-4 text-sm">
+                            <span className={session.isBest ? 'text-teal-700 font-medium' : session.status === 'Avoid' ? 'text-red-700 font-medium' : 'text-slate-600'}>
+                              {session.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 text-sm text-slate-600">
+                  No session-performance breakdown is available in this run.
+                </div>
+              )}
             </div>
 
             {/* Hold Time Optimisation */}
@@ -1834,20 +1746,26 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                 Optimal Hold Time
               </h2>
               <p className="text-slate-600 text-sm mb-6">
-                Trades held for 6-8 hours produce the best R-multiple on average:
+                Hold-time buckets below are taken from the report when they are available.
               </p>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                {holdTimeResults.map((dur, idx) => (
-                  <div key={idx} className={`text-center p-4 rounded-xl border-2 ${dur.isOptimal ? 'bg-teal-50 border-teal-300' : 'bg-white border-slate-200'}`}>
-                    <div className="text-xs text-slate-600 mb-2">{dur.duration}</div>
-                    <div className={`text-2xl mb-1 ${dur.isOptimal ? 'text-teal-700 font-semibold' : ''}`}>
-                      {dur.avgR}
+              {hasHoldTimeResults ? (
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  {holdTimeResults.map((dur, idx) => (
+                    <div key={idx} className={`text-center p-4 rounded-xl border-2 ${dur.isOptimal ? 'bg-teal-50 border-teal-300' : 'bg-white border-slate-200'}`}>
+                      <div className="text-xs text-slate-600 mb-2">{dur.duration}</div>
+                      <div className={`text-2xl mb-1 ${dur.isOptimal ? 'text-teal-700 font-semibold' : ''}`}>
+                        {dur.avgR}
+                      </div>
+                      <div className="text-xs text-slate-500 mb-2">{dur.count} trades</div>
+                      <div className="text-xs text-slate-600">{dur.status}</div>
                     </div>
-                    <div className="text-xs text-slate-500 mb-2">{dur.count} trades</div>
-                    <div className="text-xs text-slate-600">{dur.status}</div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 text-sm text-slate-600">
+                  Hold-time optimisation was not returned by this run.
+                </div>
+              )}
             </div>
 
             {/* Risk Fraction */}
@@ -1857,36 +1775,42 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                 Risk Fraction Optimisation
               </h2>
               <p className="text-slate-600 text-sm mb-6">
-                Your current 1% risk per trade is optimal (maximises Sharpe ratio whilst keeping drawdown manageable):
+                Risk fraction rows below are generated only when the report includes Kelly or risk recommendation output.
               </p>
-              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-slate-50">
-                    <tr>
-                      <th className="text-left py-3 px-4 text-slate-700 text-sm">Risk Per Trade</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-sm">Avg R</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-sm">Sharpe Ratio</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-sm">Max Drawdown</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-sm">Assessment</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {riskFractionResults.map((row, idx) => (
-                      <tr key={idx} className={`border-t border-slate-100 ${row.isCurrent ? 'bg-teal-50' : ''}`}>
-                        <td className="py-3 px-4 text-sm">{row.riskPct}</td>
-                        <td className="py-3 px-4 text-sm">{row.avgR}</td>
-                        <td className="py-3 px-4 text-sm font-semibold">{row.sharpe}</td>
-                        <td className="py-3 px-4 text-sm">{row.maxDD}</td>
-                        <td className="py-3 px-4 text-sm">
-                          <span className={row.isCurrent ? 'text-teal-700 font-medium' : 'text-slate-600'}>
-                            {row.status}
-                          </span>
-                        </td>
+              {hasRiskFractionResults ? (
+                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Risk Per Trade</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Avg R</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Sharpe Ratio</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Max Drawdown</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Assessment</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {riskFractionResults.map((row, idx) => (
+                        <tr key={idx} className={`border-t border-slate-100 ${row.isCurrent ? 'bg-teal-50' : ''}`}>
+                          <td className="py-3 px-4 text-sm">{row.riskPct}</td>
+                          <td className="py-3 px-4 text-sm">{row.avgR}</td>
+                          <td className="py-3 px-4 text-sm font-semibold">{row.sharpe}</td>
+                          <td className="py-3 px-4 text-sm">{row.maxDD}</td>
+                          <td className="py-3 px-4 text-sm">
+                            <span className={row.isCurrent ? 'text-teal-700 font-medium' : 'text-slate-600'}>
+                              {row.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 text-sm text-slate-600">
+                  No risk-fraction optimisation output is available in this run.
+                </div>
+              )}
             </div>
 
             {/* Sequential Loss Patterns */}
@@ -1896,33 +1820,27 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                 Sequential Loss Pattern Detection
               </h2>
               <p className="text-slate-600 text-sm mb-6">
-                Your performance degrades significantly after consecutive losses:
+                Sequential loss patterns are shown only when the report includes enough ordered trade history to calculate them.
               </p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {consecutiveLossData.map((loss, idx) => (
-                  <div key={idx} className={`text-center p-4 rounded-xl border-2 ${loss.lossStreak === '4+ Losses' ? 'bg-red-50 border-red-300' : loss.lossStreak === '1 Loss' ? 'bg-white border-slate-200' : 'bg-amber-50 border-amber-200'}`}>
-                    <div className="text-xs text-slate-600 mb-2">{loss.lossStreak}</div>
-                    <div className={`text-2xl mb-1 ${loss.lossStreak === '4+ Losses' ? 'text-red-700 font-semibold' : ''}`}>
-                      {loss.nextWinRate}
+              {hasConsecutiveLossData ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {consecutiveLossData.map((loss, idx) => (
+                    <div key={idx} className={`text-center p-4 rounded-xl border-2 ${loss.lossStreak === '4+ Losses' ? 'bg-red-50 border-red-300' : loss.lossStreak === '1 Loss' ? 'bg-white border-slate-200' : 'bg-amber-50 border-amber-200'}`}>
+                      <div className="text-xs text-slate-600 mb-2">{loss.lossStreak}</div>
+                      <div className={`text-2xl mb-1 ${loss.lossStreak === '4+ Losses' ? 'text-red-700 font-semibold' : ''}`}>
+                        {loss.nextWinRate}
+                      </div>
+                      <div className="text-xs text-slate-500 mb-1">next win rate</div>
+                      <div className="text-sm mb-1">{loss.nextAvgR}</div>
+                      <div className="text-xs text-slate-400">{loss.occurrences} times</div>
                     </div>
-                    <div className="text-xs text-slate-500 mb-1">next win rate</div>
-                    <div className="text-sm mb-1">{loss.nextAvgR}</div>
-                    <div className="text-xs text-slate-400">{loss.occurrences} times</div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <div className="flex items-start gap-2">
-                  <Shield className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <div className="text-red-900 text-sm mb-1">Pattern Observed:</div>
-                    <p className="text-red-700 text-xs">
-                      After 3 consecutive losses, your next trade historically shows a 41% win rate and -0.12R expectancy. 
-                      This pattern has occurred 12 times, resulting in cumulative losses of approximately -3.4R.
-                    </p>
-                  </div>
+                  ))}
                 </div>
-              </div>
+              ) : (
+                <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 text-sm text-slate-600">
+                  No sequential-loss pattern output is available in this run.
+                </div>
+              )}
             </div>
               </div>
             )}
@@ -2407,7 +2325,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                       }
                     </p>
                     <p className="text-teal-600 text-xs mt-1">
-                      Running 6,780+ counterfactual simulations with Bayesian optimisation
+                      Processing time depends on the exported trade set and the optimisation workload generated for this run.
                     </p>
                   </div>
                 </div>
