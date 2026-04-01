@@ -636,14 +636,50 @@ async function getPendingStoredTradeCount(userId) {
   ).length;
 }
 
-async function buildAnalysisOptionsPayload(userId) {
-  const brokerAccounts = await prisma.brokerAccount.findMany({
-    where: { userId, isActive: true },
-    select: { id: true },
-  });
+async function syncStoredTradesFromMt(userId, brokerAccountIds, { requestFresh = false, timeoutMs = 8000 } = {}) {
+  if (!Array.isArray(brokerAccountIds) || brokerAccountIds.length === 0) {
+    return [];
+  }
 
-  const brokerAccountIds = brokerAccounts.map((account) => account.id);
-  const events = brokerAccountIds.length > 0 ? await getLatestHistoryExports(brokerAccountIds) : [];
+  let events = [];
+
+  if (requestFresh) {
+    const exportRequestToken = crypto.randomUUID();
+    const exportRequestedAt = new Date();
+
+    await prisma.eaEvent.createMany({
+      data: brokerAccountIds.map((brokerAccountId) => ({
+        brokerAccountId,
+        type: "EXPORT_REQUEST",
+        payload: {
+          requestToken: exportRequestToken,
+          requestedByUserId: userId,
+          requestedAt: exportRequestedAt.toISOString(),
+        },
+        receivedAt: exportRequestedAt,
+      })),
+    });
+
+    const freshExportEvents = await waitForFreshHistoryExports(
+      brokerAccountIds,
+      {
+        receivedAt: exportRequestedAt,
+        requestToken: exportRequestToken,
+      },
+      timeoutMs
+    );
+
+    events =
+      freshExportEvents.length > 0
+        ? freshExportEvents
+        : await getLatestHistoryExports(brokerAccountIds, {
+            since: { requestToken: exportRequestToken },
+          });
+  }
+
+  if (events.length === 0) {
+    events = await getLatestHistoryExports(brokerAccountIds);
+  }
 
   for (const event of events) {
     const payload = event?.payload;
@@ -655,6 +691,18 @@ async function buildAnalysisOptionsPayload(userId) {
       seenAt: new Date(event.receivedAt),
     });
   }
+
+  return events;
+}
+
+async function buildAnalysisOptionsPayload(userId) {
+  const brokerAccounts = await prisma.brokerAccount.findMany({
+    where: { userId, isActive: true },
+    select: { id: true },
+  });
+
+  const brokerAccountIds = brokerAccounts.map((account) => account.id);
+  await syncStoredTradesFromMt(userId, brokerAccountIds, { requestFresh: true, timeoutMs: 8000 });
 
   const pendingStoredTradeCount = await getPendingStoredTradeCount(userId);
   const latestSnapshot = await prisma.analysisSnapshot.findFirst({
