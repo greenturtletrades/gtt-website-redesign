@@ -48,6 +48,7 @@ model User {
   apiKeys              ApiKey[]
   churnFeedbacks       ChurnFeedback[]
   analysisSnapshots    AnalysisSnapshot[]
+  storedTrades         StoredTrade[]
   stripeCustomerId     String?
   stripeSubscriptionId String?
 }
@@ -75,6 +76,7 @@ model BrokerAccount {
   updatedAt     DateTime       @updatedAt
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   eaEvents      EaEvent[]
+  storedTrades  StoredTrade[]
 
   @@index([userId])
 }
@@ -164,4 +166,41 @@ model AnalysisSnapshot {
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, updatedAt])
+}
+
+model StoredTrade {
+  id              String        @id @default(cuid())
+  userId          String
+  brokerAccountId String?
+  source          String
+  tradeIdentity   String
+  externalTradeId String?
+  symbol          String?
+  side            String
+  entryTime       DateTime
+  exitTime        DateTime
+  entryPrice      Float
+  exitPrice       Float
+  stopLoss        Float
+  takeProfit      Float
+  mfe             Float?
+  mae             Float?
+  session         String?
+  spread          Float?
+  volatility      Float?
+  volume          Float?
+  profit          Float?
+  commission      Float?
+  swap            Float?
+  rawTrade        Json
+  firstSeenAt     DateTime      @default(now())
+  lastSeenAt      DateTime      @default(now())
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brokerAccount   BrokerAccount? @relation(fields: [brokerAccountId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, tradeIdentity])
+  @@index([userId, exitTime])
+  @@index([brokerAccountId, exitTime])
 }

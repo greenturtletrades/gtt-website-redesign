@@ -271,7 +271,12 @@ function buildTradeIdentity(trade, brokerAccountId = "account") {
         : null;
 
   if (explicitId) {
-    return `${brokerAccountId}:${explicitId}`;
+    return [
+      explicitId,
+      trade.symbol || "",
+      trade.entry_time || "",
+      trade.exit_time || "",
+    ].join("|");
   }
 
   const parts = [
@@ -355,6 +360,217 @@ function buildSnapshotReport(report, metadataPatch) {
 }
 
 const analysisJobContext = new Map();
+
+function normalizeStoredTradeValue(value) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function normalizeStoredTradeDate(value) {
+  const timestamp = parseTradeTimestamp(value);
+  if (!timestamp) return null;
+  return new Date(timestamp);
+}
+
+function normalizeTradeForStorage(trade) {
+  if (!trade || typeof trade !== "object") return null;
+
+  const entryTime = normalizeStoredTradeDate(trade.entry_time);
+  const exitTime = normalizeStoredTradeDate(trade.exit_time);
+  const entryPrice = normalizeStoredTradeValue(trade.entry_price);
+  const exitPrice = normalizeStoredTradeValue(trade.exit_price);
+  const stopLoss = normalizeStoredTradeValue(trade.stop_loss);
+  const takeProfit = normalizeStoredTradeValue(trade.take_profit);
+  const side = typeof trade.side === "string" ? trade.side.toUpperCase() : "";
+
+  if (
+    !entryTime ||
+    !exitTime ||
+    entryPrice === null ||
+    exitPrice === null ||
+    stopLoss === null ||
+    takeProfit === null ||
+    !side
+  ) {
+    return null;
+  }
+
+  return {
+    externalTradeId:
+      typeof trade.trade_id === "string" && trade.trade_id.trim() ? trade.trade_id.trim() : null,
+    symbol: typeof trade.symbol === "string" && trade.symbol.trim() ? trade.symbol.trim() : null,
+    side,
+    entryTime,
+    exitTime,
+    entryPrice,
+    exitPrice,
+    stopLoss,
+    takeProfit,
+    mfe: normalizeStoredTradeValue(trade.mfe),
+    mae: normalizeStoredTradeValue(trade.mae),
+    session: typeof trade.session === "string" && trade.session.trim() ? trade.session.trim() : null,
+    spread: normalizeStoredTradeValue(trade.spread),
+    volatility: normalizeStoredTradeValue(trade.volatility),
+    volume: normalizeStoredTradeValue(trade.volume),
+    profit: normalizeStoredTradeValue(trade.profit),
+    commission: normalizeStoredTradeValue(trade.commission),
+    swap: normalizeStoredTradeValue(trade.swap),
+    rawTrade: trade,
+  };
+}
+
+function storedTradeToAnalysisTrade(storedTrade) {
+  return {
+    trade_id: storedTrade.externalTradeId,
+    entry_time: storedTrade.entryTime.toISOString(),
+    exit_time: storedTrade.exitTime.toISOString(),
+    side: storedTrade.side,
+    entry_price: storedTrade.entryPrice,
+    exit_price: storedTrade.exitPrice,
+    stop_loss: storedTrade.stopLoss,
+    take_profit: storedTrade.takeProfit,
+    symbol: storedTrade.symbol,
+    mfe: storedTrade.mfe,
+    mae: storedTrade.mae,
+    session: storedTrade.session,
+    spread: storedTrade.spread,
+    volatility: storedTrade.volatility,
+    volume: storedTrade.volume,
+    profit: storedTrade.profit,
+    commission: storedTrade.commission,
+    swap: storedTrade.swap,
+  };
+}
+
+async function getPreferredBrokerAccountId(userId) {
+  const brokerAccount = await prisma.brokerAccount.findFirst({
+    where: { userId, isActive: true },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+  });
+  return brokerAccount?.id || null;
+}
+
+async function persistTradesToMemory(userId, trades, { brokerAccountId = null, source = "unknown", seenAt = new Date() } = {}) {
+  if (!Array.isArray(trades) || trades.length === 0) {
+    return { stored: 0, updated: 0, invalid: 0 };
+  }
+
+  let stored = 0;
+  let updated = 0;
+  let invalid = 0;
+
+  for (const trade of trades) {
+    const normalizedTrade = normalizeTradeForStorage(trade);
+    const tradeIdentity = buildTradeIdentity(trade, brokerAccountId || source);
+    if (!normalizedTrade || !tradeIdentity) {
+      invalid += 1;
+      continue;
+    }
+
+    const existing = await prisma.storedTrade.findUnique({
+      where: {
+        userId_tradeIdentity: {
+          userId,
+          tradeIdentity,
+        },
+      },
+      select: { id: true },
+    });
+
+    await prisma.storedTrade.upsert({
+      where: {
+        userId_tradeIdentity: {
+          userId,
+          tradeIdentity,
+        },
+      },
+      create: {
+        userId,
+        brokerAccountId,
+        source,
+        tradeIdentity,
+        ...normalizedTrade,
+        firstSeenAt: seenAt,
+        lastSeenAt: seenAt,
+      },
+      update: {
+        brokerAccountId,
+        source,
+        ...normalizedTrade,
+        lastSeenAt: seenAt,
+      },
+    });
+
+    if (existing) {
+      updated += 1;
+    } else {
+      stored += 1;
+    }
+  }
+
+  return { stored, updated, invalid };
+}
+
+async function loadStoredTradesForAnalysis(userId, { mode = "trades", tradeCount = 500, months = 12 } = {}) {
+  const now = new Date();
+  const where = { userId };
+
+  if (mode === "months") {
+    where.exitTime = {
+      gte: new Date(now.getTime() - months * 30 * 24 * 60 * 60 * 1000),
+    };
+  }
+
+  const storedRows = await prisma.storedTrade.findMany({
+    where,
+    orderBy: [{ exitTime: "desc" }, { updatedAt: "desc" }],
+    ...(mode === "trades" ? { take: Math.max(10, Number(tradeCount) || 500) } : {}),
+  });
+
+  return storedRows.map(storedTradeToAnalysisTrade);
+}
+
+function readRequestBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => resolve(Buffer.concat(chunks)));
+    req.on("error", reject);
+  });
+}
+
+async function parseCsvTradesFromPython(req) {
+  const pythonUrl = new URL(`${PYTHON_SERVICE_URL}/parse/csv`);
+  const contentType = req.headers["content-type"];
+
+  if (!contentType) {
+    throw new Error("CSV upload is missing a content-type header");
+  }
+
+  const body = await readRequestBody(req);
+  const pythonRes = await fetch(pythonUrl, {
+    method: "POST",
+    headers: {
+      "content-type": contentType,
+      "content-length": String(body.length),
+    },
+    body,
+  });
+
+  const text = await pythonRes.text();
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch (err) {
+    throw new Error("Invalid response from analysis service");
+  }
+
+  if (!pythonRes.ok) {
+    throw new Error(parsed?.detail || parsed?.error || "Analysis service error");
+  }
+
+  return Array.isArray(parsed?.trades) ? parsed.trades : [];
+}
 
 async function createHistoryExportRequests(brokerAccountIds) {
   const requestedAt = new Date();
@@ -2912,23 +3128,17 @@ const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL || "http://localhost:8
 
 app.get("/api/analyse/options", authRequired, async (req, res, next) => {
   try {
+    const storedTradeCount = await prisma.storedTrade.count({
+      where: { userId: req.user.id },
+    });
     const brokerAccounts = await prisma.brokerAccount.findMany({
       where: { userId: req.user.id, isActive: true },
       select: { id: true },
     });
 
-    if (brokerAccounts.length === 0) {
-      return res.json({
-        ok: true,
-        availableTradeCount: 0,
-        minimumTradeCount: 10,
-        recommendedTradeCount: 200,
-        latestAnalysis: null,
-      });
-    }
-
     const brokerAccountIds = brokerAccounts.map((account) => account.id);
-    const events = await getLatestHistoryExports(brokerAccountIds);
+    const events =
+      brokerAccountIds.length > 0 ? await getLatestHistoryExports(brokerAccountIds) : [];
     const dedupedTrades = dedupeTrades(extractTradesFromEvents(events));
     const latestSnapshot = await prisma.analysisSnapshot.findFirst({
       where: { userId: req.user.id },
@@ -2951,9 +3161,9 @@ app.get("/api/analyse/options", authRequired, async (req, res, next) => {
 
     return res.json({
       ok: true,
-      availableTradeCount: dedupedTrades.length,
+      availableTradeCount: Math.max(storedTradeCount, dedupedTrades.length),
       minimumTradeCount: 10,
-      recommendedTradeCount: Math.min(200, dedupedTrades.length || 200),
+      recommendedTradeCount: Math.min(200, Math.max(storedTradeCount, dedupedTrades.length) || 200),
       latestAnalysis: latestSnapshot
         ? {
             id: latestSnapshot.id,
@@ -2971,42 +3181,69 @@ app.get("/api/analyse/options", authRequired, async (req, res, next) => {
 /**
  * POST /api/analyse/csv
  *
- * Accepts a CSV file upload and pipes it directly to the Python service.
- * Returns: { ok: true, jobId: string }
+ * Parses a CSV upload, upserts its trades into the stored trade ledger,
+ * and analyses the user's cumulative remembered trade history.
  */
-app.post("/api/analyse/csv", authRequired, (req, res, next) => {
-  const pythonUrl = new URL(`${PYTHON_SERVICE_URL}/analyse/csv`);
-  const transport = pythonUrl.protocol === "https:" ? https : http;
-  const defaultPort = pythonUrl.protocol === "https:" ? 443 : 80;
-  const pythonReq = transport.request(
-    {
-      hostname: pythonUrl.hostname,
-      port: parseInt(pythonUrl.port, 10) || defaultPort,
-      path: `${pythonUrl.pathname}${pythonUrl.search}`,
-      method: "POST",
-      headers: {
-        "content-type": req.headers["content-type"],
-        ...(req.headers["content-length"] && { "content-length": req.headers["content-length"] }),
-      },
-    },
-    (pythonRes) => {
-      let data = "";
-      pythonRes.on("data", (chunk) => (data += chunk));
-      pythonRes.on("end", () => {
-        try {
-          const parsed = JSON.parse(data);
-          if (pythonRes.statusCode !== 200) {
-            return res.status(502).json({ ok: false, error: parsed.detail || "Analysis service error" });
-          }
-          return res.json({ ok: true, jobId: parsed.job_id });
-        } catch (e) {
-          return res.status(502).json({ ok: false, error: "Invalid response from analysis service" });
-        }
+app.post("/api/analyse/csv", authRequired, async (req, res, next) => {
+  try {
+    const tradeCount = 500;
+    const mode = "trades";
+    const brokerAccountId = await getPreferredBrokerAccountId(req.user.id);
+    const parsedTrades = await parseCsvTradesFromPython(req);
+    const persistSummary = await persistTradesToMemory(req.user.id, parsedTrades, {
+      brokerAccountId,
+      source: "csv_import",
+      seenAt: new Date(),
+    });
+    const allTrades = await loadStoredTradesForAnalysis(req.user.id, { mode, tradeCount });
+
+    if (allTrades.length === 0) {
+      return res.status(400).json({
+        ok: false,
+        error: "No valid trades were found in the uploaded CSV.",
       });
     }
-  );
-  pythonReq.on("error", next);
-  req.pipe(pythonReq);
+
+    const tradeFingerprint = buildTradeFingerprint(allTrades, req.user.id);
+    const pythonRes = await fetch(`${PYTHON_SERVICE_URL}/analyse`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        trades: allTrades,
+        run_optimisation: true,
+        run_survival: true,
+        run_clustering: true,
+        n_clusters: 4,
+      }),
+    });
+
+    if (!pythonRes.ok) {
+      const err = await pythonRes.text();
+      return res.status(502).json({ ok: false, error: "Analysis service error: " + err });
+    }
+
+    const { job_id } = await pythonRes.json();
+    analysisJobContext.set(job_id, {
+      userId: req.user.id,
+      tradeFingerprint,
+      requestedTradeCount: tradeCount,
+      uniqueTradeCount: allTrades.length,
+      availableTradeCount: allTrades.length,
+      duplicateTradeCount: persistSummary.updated,
+      mode,
+    });
+
+    return res.json({
+      ok: true,
+      jobId: job_id,
+      availableTradeCount: allTrades.length,
+      duplicateTradeCount: persistSummary.updated,
+      importedTradeCount: parsedTrades.length,
+      storedTradeCount: persistSummary.stored,
+    });
+  } catch (err) {
+    return next(err);
+  }
 });
 
 /**
@@ -3025,83 +3262,80 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
   try {
     const { tradeCount = 500, months = 12, mode = "trades" } = req.body || {};
 
-    // 1. Fetch the user's broker accounts
     const brokerAccounts = await prisma.brokerAccount.findMany({
       where: { userId: req.user.id, isActive: true },
       select: { id: true },
     });
-
-    if (brokerAccounts.length === 0) {
-      return res.status(400).json({ ok: false, error: "No active broker accounts found" });
-    }
-
     const brokerAccountIds = brokerAccounts.map((b) => b.id);
-    const exportRequestToken = crypto.randomUUID();
-    const exportRequestedAt = new Date();
+    let persistSummary = { stored: 0, updated: 0, invalid: 0 };
 
-    await prisma.eaEvent.createMany({
-      data: brokerAccountIds.map((brokerAccountId) => ({
-        brokerAccountId,
-        type: "EXPORT_REQUEST",
-        payload: {
-          requestToken: exportRequestToken,
-          requestedByUserId: req.user.id,
-          requestedAt: exportRequestedAt.toISOString(),
-        },
-        receivedAt: exportRequestedAt,
-      })),
-    });
+    if (brokerAccountIds.length > 0) {
+      const exportRequestToken = crypto.randomUUID();
+      const exportRequestedAt = new Date();
 
-    const freshExportEvents = await waitForFreshHistoryExports(brokerAccountIds, {
-      receivedAt: exportRequestedAt,
-      requestToken: exportRequestToken,
-    }, 15000);
-
-    // 2. Calculate date range filter
-    const dateTo = new Date();
-    const dateFrom = mode === "months"
-      ? new Date(dateTo.getTime() - months * 30 * 24 * 60 * 60 * 1000)
-      : new Date(dateTo.getTime() - 5 * 365 * 24 * 60 * 60 * 1000); // 5 years back, limit by tradeCount
-
-    // 3. Fetch HISTORY_EXPORT events for these accounts
-    const events =
-      freshExportEvents.length > 0
-        ? freshExportEvents
-        : await getLatestHistoryExports(brokerAccountIds, {
-            since: { requestToken: exportRequestToken },
-          });
-
-    if (events.length === 0) {
-      return res.status(400).json({
-        ok: false,
-        error: "No trade history found. Connect the MetaTrader EA and keep the platform running, then try Run Model again.",
+      await prisma.eaEvent.createMany({
+        data: brokerAccountIds.map((brokerAccountId) => ({
+          brokerAccountId,
+          type: "EXPORT_REQUEST",
+          payload: {
+            requestToken: exportRequestToken,
+            requestedByUserId: req.user.id,
+            requestedAt: exportRequestedAt.toISOString(),
+          },
+          receivedAt: exportRequestedAt,
+        })),
       });
+
+      const freshExportEvents = await waitForFreshHistoryExports(
+        brokerAccountIds,
+        {
+          receivedAt: exportRequestedAt,
+          requestToken: exportRequestToken,
+        },
+        15000
+      );
+
+      const events =
+        freshExportEvents.length > 0
+          ? freshExportEvents
+          : await getLatestHistoryExports(brokerAccountIds, {
+              since: { requestToken: exportRequestToken },
+            });
+      const freshRows = dedupeTrades(extractTradesFromEvents(events));
+      const tradesByBrokerAccount = new Map();
+
+      for (const row of freshRows) {
+        const rows = tradesByBrokerAccount.get(row.brokerAccountId) || [];
+        rows.push(row.trade);
+        tradesByBrokerAccount.set(row.brokerAccountId, rows);
+      }
+
+      for (const [brokerAccountId, trades] of tradesByBrokerAccount.entries()) {
+        const summary = await persistTradesToMemory(req.user.id, trades, {
+          brokerAccountId,
+          source: "ea_history_export",
+          seenAt: exportRequestedAt,
+        });
+        persistSummary.stored += summary.stored;
+        persistSummary.updated += summary.updated;
+        persistSummary.invalid += summary.invalid;
+      }
     }
 
-    // 4. Extract and flatten trade records from event payloads
-    //    The EA payload may be { trades: [...] } or an array directly
-    const extractedTrades = extractTradesFromEvents(
-      events.filter((event) => event.receivedAt >= dateFrom && event.receivedAt <= dateTo)
-    );
-    const dedupedTrades = dedupeTrades(extractedTrades);
-    let allTrades = dedupedTrades.map((row) => row.trade);
+    const allTrades = await loadStoredTradesForAnalysis(req.user.id, { mode, tradeCount, months });
 
     if (allTrades.length === 0) {
       return res.status(400).json({
         ok: false,
-        error: freshExportEvents.length > 0
-          ? "The EA responded, but no closed trades were found in the requested history window."
-          : "Trade history events were found, but no trade records could be extracted from the latest export.",
+        error:
+          brokerAccountIds.length > 0
+            ? "No closed trades are stored for this account yet. Keep MetaTrader open, export history, or upload a CSV first."
+            : "No stored trades found yet. Upload a CSV or connect the MetaTrader EA before running analysis.",
       });
     }
 
-    // 5. Apply trade count limit for "trades" mode
     const uniqueTradeCount = allTrades.length;
-    const duplicateTradeCount = Math.max(0, extractedTrades.length - uniqueTradeCount);
-
-    if (mode === "trades" && allTrades.length > tradeCount) {
-      allTrades = sortTradesByRecency(allTrades).slice(0, tradeCount);
-    }
+    const duplicateTradeCount = persistSummary.updated;
 
     const tradeFingerprint = buildTradeFingerprint(allTrades, req.user.id);
 
@@ -3140,6 +3374,7 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
       availableTradeCount: uniqueTradeCount,
       duplicateTradeCount,
       dedupedTradeCount: allTrades.length,
+      storedTradeCount: persistSummary.stored,
     });
   } catch (err) {
     return next(err);

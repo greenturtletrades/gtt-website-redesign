@@ -377,6 +377,34 @@ async def start_analysis_csv(file: UploadFile = File(...)):
     return JobStatus(job_id=job_id, status="queued")
 
 
+@app.post("/parse/csv")
+async def parse_csv(file: UploadFile = File(...)):
+    content = await file.read()
+    try:
+        df = pd.read_csv(builtin_io.BytesIO(content))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to parse CSV: {e}")
+
+    try:
+        raw_trades = _map_csv_columns(df)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    if len(raw_trades) < 10:
+        raise HTTPException(status_code=400, detail="At least 10 valid trades are required")
+
+    try:
+        trade_objects = [TradeRecord(**t) for t in raw_trades]
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Trade validation error: {e}")
+
+    return {
+        "ok": True,
+        "trades": [trade.model_dump() for trade in trade_objects],
+        "count": len(trade_objects),
+    }
+
+
 @app.get("/results/{job_id}", response_model=JobStatus)
 def get_results(job_id: str):
     job = jobs.get(job_id)
