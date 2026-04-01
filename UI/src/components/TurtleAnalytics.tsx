@@ -653,6 +653,10 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   const consecutiveLossData = derived.consecutiveLossData;
   const journalEntries = reportData?.trade_analytics?.journal_entries ?? [];
   const journalPnlMeta = reportData?.trade_analytics?.pnl_metadata;
+  const pnlWarning =
+    journalPnlMeta?.currency_pnl_available === false && journalPnlMeta?.message
+      ? journalPnlMeta.message
+      : null;
   const recommendationCards = derived.recs.slice(0, 3);
   const hasCounterfactualResults = counterfactualResults.length > 0;
   const hasMfeMaeAnalysis = mfeAnalysis.length > 0;
@@ -1264,6 +1268,20 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                 </button>
               </div>
             </div>
+
+            {pnlWarning && (
+              <div className="mb-8 rounded-xl border border-amber-300 bg-amber-50 p-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-700" />
+                  <div>
+                    <div className="text-sm font-medium text-amber-900">Currency P/L not available for this import</div>
+                    <p className="mt-1 text-sm text-amber-800">
+                      {pnlWarning} The dashboard is showing R-multiple based analytics for this run instead of account-currency profit and loss.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Key Metrics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
