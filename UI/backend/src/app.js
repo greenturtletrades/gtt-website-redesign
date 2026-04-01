@@ -245,9 +245,24 @@ function parseTradeTimestamp(value) {
   if (typeof value !== "string" || !value.trim()) {
     return 0;
   }
-  const normalized = value.includes("T") ? value : value.replace(" ", "T");
+  const trimmed = value.trim();
+  const normalizedDate = trimmed.replace(
+    /^(\d{4})\.(\d{2})\.(\d{2})/,
+    "$1-$2-$3"
+  );
+  const normalized = normalizedDate.includes("T")
+    ? normalizedDate
+    : normalizedDate.replace(" ", "T");
   const parsed = Date.parse(normalized);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function normalizeTradeTimestampText(value) {
+  const timestamp = parseTradeTimestamp(value);
+  if (!timestamp) {
+    return typeof value === "string" ? value.trim() : "";
+  }
+  return new Date(timestamp).toISOString();
 }
 
 function sortTradesByRecency(trades) {
@@ -271,20 +286,15 @@ function buildTradeIdentity(trade, brokerAccountId = "account") {
         : null;
 
   if (explicitId) {
-    return [
-      explicitId,
-      trade.symbol || "",
-      trade.entry_time || "",
-      trade.exit_time || "",
-    ].join("|");
+    return [brokerAccountId, explicitId].join("|");
   }
 
   const parts = [
     brokerAccountId,
     trade.symbol || "",
     trade.side || "",
-    trade.entry_time || "",
-    trade.exit_time || "",
+    normalizeTradeTimestampText(trade.entry_time),
+    normalizeTradeTimestampText(trade.exit_time),
     trade.entry_price ?? "",
     trade.exit_price ?? "",
     trade.volume ?? "",
