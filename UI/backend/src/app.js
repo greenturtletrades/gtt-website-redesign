@@ -581,6 +581,29 @@ async function loadStoredTradesForAnalysis(userId, { mode = "trades", tradeCount
   return storedRows.map(storedTradeToAnalysisTrade);
 }
 
+function mergeTradesForAnalysis(...tradeGroups) {
+  const latestByIdentity = new Map();
+
+  for (const trades of tradeGroups) {
+    if (!Array.isArray(trades)) continue;
+
+    for (const trade of trades) {
+      const identity = buildTradeIdentity(trade);
+      if (!identity) continue;
+
+      const existing = latestByIdentity.get(identity);
+      const existingExit = existing ? parseTradeTimestamp(existing.exit_time) : 0;
+      const nextExit = parseTradeTimestamp(trade.exit_time);
+
+      if (!existing || nextExit >= existingExit) {
+        latestByIdentity.set(identity, trade);
+      }
+    }
+  }
+
+  return sortTradesByRecency(Array.from(latestByIdentity.values()));
+}
+
 function readRequestBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -3274,7 +3297,8 @@ app.post("/api/analyse/csv", authRequired, async (req, res, next) => {
       source: "csv_import",
       seenAt: new Date(),
     });
-    const allTrades = await loadStoredTradesForAnalysis(req.user.id, { mode, tradeCount });
+    const rememberedTrades = await loadStoredTradesForAnalysis(req.user.id, { mode, tradeCount });
+    const allTrades = mergeTradesForAnalysis(parsedTrades, rememberedTrades).slice(0, tradeCount);
 
     if (allTrades.length === 0) {
       return res.status(400).json({
@@ -3347,6 +3371,7 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
     });
     const brokerAccountIds = brokerAccounts.map((b) => b.id);
     let persistSummary = { stored: 0, updated: 0, invalid: 0 };
+    let freshTrades = [];
 
     if (brokerAccountIds.length > 0) {
       const exportRequestToken = crypto.randomUUID();
@@ -3384,6 +3409,7 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
         events = await getLatestHistoryExports(brokerAccountIds);
       }
       const freshRows = dedupeTrades(extractTradesFromEvents(events));
+      freshTrades = freshRows.map((row) => row.trade);
       const tradesByBrokerAccount = new Map();
 
       for (const row of freshRows) {
@@ -3404,14 +3430,18 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
       }
     }
 
-    const allTrades = await loadStoredTradesForAnalysis(req.user.id, { mode, tradeCount, months });
+    const rememberedTrades = await loadStoredTradesForAnalysis(req.user.id, { mode, tradeCount, months });
+    const allTrades = mergeTradesForAnalysis(freshTrades, rememberedTrades).slice(
+      0,
+      mode === "trades" ? Math.max(10, Number(tradeCount) || 500) : Number.MAX_SAFE_INTEGER
+    );
 
     if (allTrades.length === 0) {
       return res.status(400).json({
         ok: false,
         error:
           brokerAccountIds.length > 0
-            ? "No closed trades are stored for this account yet. Keep MetaTrader open, export history, or upload a CSV first."
+            ? "No closed trades were received from MetaTrader yet. Keep the terminal open, make sure the latest EA is attached, or upload a CSV to seed the trade log."
             : "No stored trades found yet. Upload a CSV or connect the MetaTrader EA before running analysis.",
       });
     }
