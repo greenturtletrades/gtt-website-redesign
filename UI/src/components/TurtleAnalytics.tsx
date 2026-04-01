@@ -363,7 +363,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   interface ModelRunLog {
     id: string;
     timestamp: Date;
-    mode: "trades" | "months" | "auto";
+    mode: "trades" | "months" | "csv" | "auto";
     tradesAnalysed: number;
     periodDescription: string;
     dateRangeStart: Date;
@@ -373,6 +373,27 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   }
   
   const [modelRunHistory, setModelRunHistory] = useState<ModelRunLog[]>([]);
+
+  const mapRunHistoryItem = (item: any): ModelRunLog => ({
+    id: String(item.id),
+    timestamp: item.createdAt ? new Date(item.createdAt) : new Date(),
+    mode: item.mode === "months" || item.mode === "csv" || item.mode === "auto" ? item.mode : "trades",
+    tradesAnalysed: typeof item.tradesAnalysed === "number" ? item.tradesAnalysed : 0,
+    periodDescription: typeof item.periodDescription === "string" && item.periodDescription
+      ? item.periodDescription
+      : "Analysis run",
+    dateRangeStart: item.dateRangeStart ? new Date(item.dateRangeStart) : (item.createdAt ? new Date(item.createdAt) : new Date()),
+    dateRangeEnd: item.dateRangeEnd ? new Date(item.dateRangeEnd) : (item.createdAt ? new Date(item.createdAt) : new Date()),
+    cost: typeof item.cost === "number" ? item.cost : 0,
+    status:
+      item.status === "completed" || item.status === "running" || item.status === "failed"
+        ? item.status
+        : item.status === "COMPLETED"
+          ? "completed"
+          : item.status === "FAILED"
+            ? "failed"
+            : "running",
+  });
   
   // Scroll to top whenever tab changes
   useEffect(() => {
@@ -434,6 +455,36 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
     };
 
     loadAnalysisOptions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [API_BASE, lastRunTime]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadRunHistory = async () => {
+      try {
+        const token = localStorage.getItem("gtt_token");
+        const authHeader: Record<string, string> = {};
+        if (token) authHeader["Authorization"] = `Bearer ${token}`;
+        const response = await fetch(`${API_BASE}/api/analyse/history`, { headers: authHeader });
+        if (!response.ok) return;
+        const payload = await response.json();
+        if (!cancelled && payload.ok) {
+          setModelRunHistory(
+            Array.isArray(payload.history) ? payload.history.map(mapRunHistoryItem) : []
+          );
+        }
+      } catch {
+        if (!cancelled) {
+          setModelRunHistory((prev) => prev);
+        }
+      }
+    };
+
+    loadRunHistory();
 
     return () => {
       cancelled = true;
@@ -537,7 +588,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
     const estimatedCost = tradesCount * 0.20;
 
     const newLogEntry: ModelRunLog = {
-      id: `run-${Date.now()}`,
+      id: `pending-${Date.now()}`,
       timestamp: now,
       mode: analysisMode,
       tradesAnalysed: tradesCount,
@@ -579,7 +630,14 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         throw new Error((body as any).error || (body as any).detail || "Failed to start analysis");
       }
 
-      const { jobId } = await startRes.json();
+      const { jobId, analysisRunId } = await startRes.json();
+      if (analysisRunId) {
+        setModelRunHistory((prev) =>
+          prev.map((entry) =>
+            entry.id === newLogEntry.id ? { ...entry, id: analysisRunId } : entry
+          )
+        );
+      }
 
       // 2. Poll every 3 seconds until done (10 minute timeout)
       const started = Date.now();

@@ -492,6 +492,35 @@ function storedTradeToJournalEntry(storedTrade) {
   };
 }
 
+function formatAnalysisRun(run) {
+  return {
+    id: run.id,
+    status: run.status,
+    mode: run.mode,
+    requestedTrades: run.requestedTrades,
+    tradesAnalysed: run.tradesAnalysed,
+    cost: run.cost,
+    periodDescription: run.periodDescription,
+    dateRangeStart: run.dateRangeStart ? run.dateRangeStart.toISOString() : null,
+    dateRangeEnd: run.dateRangeEnd ? run.dateRangeEnd.toISOString() : null,
+    error: run.error || null,
+    createdAt: run.createdAt.toISOString(),
+    updatedAt: run.updatedAt.toISOString(),
+    completedAt: run.completedAt ? run.completedAt.toISOString() : null,
+  };
+}
+
+async function estimateAnalysisCost(userId, tradesAnalysed) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { stripeSubscriptionId: true },
+  });
+  if (user?.stripeSubscriptionId) {
+    return 0;
+  }
+  return Math.max(0, Number(tradesAnalysed) || 0) * 0.2;
+}
+
 async function getPreferredBrokerAccountId(userId) {
   const brokerAccount = await prisma.brokerAccount.findFirst({
     where: { userId, isActive: true },
@@ -625,6 +654,27 @@ function mergeTradesForAnalysis(...tradeGroups) {
   }
 
   return sortTradesByRecency(Array.from(latestByIdentity.values()));
+}
+
+function deriveTradeDateRange(trades) {
+  if (!Array.isArray(trades) || trades.length === 0) {
+    return { start: null, end: null };
+  }
+
+  const entryTimes = trades
+    .map((trade) => normalizeStoredTradeDate(trade.entry_time))
+    .filter(Boolean);
+  const exitTimes = trades
+    .map((trade) => normalizeStoredTradeDate(trade.exit_time))
+    .filter(Boolean);
+
+  if (entryTimes.length === 0 && exitTimes.length === 0) {
+    return { start: null, end: null };
+  }
+
+  const start = entryTimes.length > 0 ? new Date(Math.min(...entryTimes.map((date) => date.getTime()))) : null;
+  const end = exitTimes.length > 0 ? new Date(Math.max(...exitTimes.map((date) => date.getTime()))) : null;
+  return { start, end };
 }
 
 function readRequestBody(req) {
@@ -3323,6 +3373,23 @@ app.get("/api/analyse/latest", authRequired, async (req, res, next) => {
   }
 });
 
+app.get("/api/analyse/history", authRequired, async (req, res, next) => {
+  try {
+    const runs = await prisma.analysisRun.findMany({
+      where: { userId: req.user.id },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+
+    return res.json({
+      ok: true,
+      history: runs.map(formatAnalysisRun),
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 app.get("/api/trades", authRequired, async (req, res, next) => {
   try {
     const storedTrades = await prisma.storedTrade.findMany({
@@ -3381,6 +3448,22 @@ app.post("/api/analyse/csv", authRequired, async (req, res, next) => {
       });
     }
 
+    const csvDateRange = deriveTradeDateRange(allTrades);
+    const estimatedCost = await estimateAnalysisCost(req.user.id, allTrades.length);
+    const analysisRun = await prisma.analysisRun.create({
+      data: {
+        userId: req.user.id,
+        status: "RUNNING",
+        mode: "csv",
+        requestedTrades: parsedTrades.length,
+        tradesAnalysed: allTrades.length,
+        cost: estimatedCost,
+        periodDescription: "CSV import",
+        dateRangeStart: csvDateRange.start,
+        dateRangeEnd: csvDateRange.end,
+      },
+    });
+
     const tradeFingerprint = buildTradeFingerprint(allTrades, req.user.id);
     const pythonRes = await fetch(`${PYTHON_SERVICE_URL}/analyse`, {
       method: "POST",
@@ -3402,6 +3485,7 @@ app.post("/api/analyse/csv", authRequired, async (req, res, next) => {
     const { job_id } = await pythonRes.json();
     analysisJobContext.set(job_id, {
       userId: req.user.id,
+      analysisRunId: analysisRun.id,
       tradeFingerprint,
       tradeIdentities: allTrades
         .map((trade) => buildTradeIdentity(trade, req.user.id))
@@ -3416,6 +3500,7 @@ app.post("/api/analyse/csv", authRequired, async (req, res, next) => {
     return res.json({
       ok: true,
       jobId: job_id,
+      analysisRunId: analysisRun.id,
       availableTradeCount: allTrades.length,
       duplicateTradeCount: persistSummary.updated,
       importedTradeCount: parsedTrades.length,
@@ -3524,6 +3609,26 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
       });
     }
 
+    const analysisDateRange = deriveTradeDateRange(allTrades);
+    const periodDescription =
+      mode === "months"
+        ? `Last ${months} month${months === 1 ? "" : "s"}`
+        : `${allTrades.length} new trade${allTrades.length === 1 ? "" : "s"}`;
+    const estimatedCost = await estimateAnalysisCost(req.user.id, allTrades.length);
+    const analysisRun = await prisma.analysisRun.create({
+      data: {
+        userId: req.user.id,
+        status: "RUNNING",
+        mode,
+        requestedTrades: mode === "trades" ? tradeCount : null,
+        tradesAnalysed: allTrades.length,
+        cost: estimatedCost,
+        periodDescription,
+        dateRangeStart: analysisDateRange.start,
+        dateRangeEnd: analysisDateRange.end,
+      },
+    });
+
     const uniqueTradeCount = allTrades.length;
     const duplicateTradeCount = persistSummary.updated;
 
@@ -3551,6 +3656,7 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
     const { job_id } = await pythonRes.json();
     analysisJobContext.set(job_id, {
       userId: req.user.id,
+      analysisRunId: analysisRun.id,
       tradeFingerprint,
       tradeIdentities: allTrades
         .map((trade) => buildTradeIdentity(trade, req.user.id))
@@ -3564,6 +3670,7 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
     return res.json({
       ok: true,
       jobId: job_id,
+      analysisRunId: analysisRun.id,
       availableTradeCount: uniqueTradeCount,
       duplicateTradeCount,
       dedupedTradeCount: allTrades.length,
@@ -3592,6 +3699,17 @@ app.get("/api/analyse/:jobId", authRequired, async (req, res, next) => {
     }
 
     if (!pythonRes.ok) {
+      const jobContext = analysisJobContext.get(jobId) || null;
+      if (jobContext?.analysisRunId) {
+        await prisma.analysisRun.update({
+          where: { id: jobContext.analysisRunId },
+          data: {
+            status: "FAILED",
+            error: "Analysis service unavailable",
+            completedAt: new Date(),
+          },
+        });
+      }
       return res.status(502).json({ ok: false, error: "Analysis service unavailable" });
     }
 
@@ -3634,13 +3752,15 @@ app.get("/api/analyse/:jobId", authRequired, async (req, res, next) => {
         totalR: originalPerformance.total_r ?? null,
       };
 
+      let snapshotId = existingSnapshot?.id || null;
       if (existingSnapshot) {
         await prisma.analysisSnapshot.update({
           where: { id: existingSnapshot.id },
           data: snapshotData,
         });
       } else {
-        await prisma.analysisSnapshot.create({ data: snapshotData });
+        const createdSnapshot = await prisma.analysisSnapshot.create({ data: snapshotData });
+        snapshotId = createdSnapshot.id;
       }
 
       if (jobContext?.userId && Array.isArray(jobContext.tradeIdentities) && jobContext.tradeIdentities.length > 0) {
@@ -3652,6 +3772,31 @@ app.get("/api/analyse/:jobId", authRequired, async (req, res, next) => {
           data: {
             lastAnalysedAt: new Date(),
             analysisCount: { increment: 1 },
+          },
+        });
+      }
+
+      if (jobContext?.analysisRunId) {
+        await prisma.analysisRun.update({
+          where: { id: jobContext.analysisRunId },
+          data: {
+            status: "COMPLETED",
+            analysisSnapshotId: snapshotId,
+            tradesAnalysed: data.trades_analysed ?? jobContext?.uniqueTradeCount ?? null,
+            completedAt: new Date(),
+            error: null,
+          },
+        });
+      }
+    } else if (data.status === "error") {
+      const jobContext = analysisJobContext.get(jobId) || null;
+      if (jobContext?.analysisRunId) {
+        await prisma.analysisRun.update({
+          where: { id: jobContext.analysisRunId },
+          data: {
+            status: "FAILED",
+            error: data.error || "Analysis failed",
+            completedAt: new Date(),
           },
         });
       }
