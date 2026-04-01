@@ -2292,9 +2292,9 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                   <div className="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
                     <div className="text-xs text-slate-600">
                       <strong>Recommendation:</strong> {analysisOptions.availableTradeCount > 0
-                        ? `Your account currently has ${analysisOptions.availableTradeCount.toLocaleString()} unique closed trades available.`
-                        : "Connect the EA and export history to detect how many trades are available."}{" "}
-                      Use around {Math.min(analysisOptions.recommendedTradeCount || 200, maxTradeSelection).toLocaleString()} trades for stronger statistical confidence when possible.
+                        ? `Your account currently has ${analysisOptions.availableTradeCount.toLocaleString()} new trade${analysisOptions.availableTradeCount === 1 ? "" : "s"} pending analysis.`
+                        : "Connect the EA or upload a CSV to detect new trades that still need analysing."}{" "}
+                      Use around {Math.min(analysisOptions.recommendedTradeCount || 200, maxTradeSelection).toLocaleString()} new trades for stronger statistical confidence when possible.
                     </div>
                   </div>
                 </div>
@@ -2309,8 +2309,8 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                         At least 10 closed trades are required
                       </div>
                       <p className="text-red-700 text-xs">
-                        The latest export only contains {analysisOptions.availableTradeCount.toLocaleString()} unique closed trade{analysisOptions.availableTradeCount === 1 ? "" : "s"}.
-                        Run more trades in MetaTrader, then export again before starting the model.
+                        Only {analysisOptions.availableTradeCount.toLocaleString()} new trade{analysisOptions.availableTradeCount === 1 ? "" : "s"} are currently pending analysis.
+                        Run more trades in MetaTrader or upload a newer CSV before starting the model.
                       </p>
                     </div>
                   </div>
@@ -2497,7 +2497,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                         Duplicate-safe trade matching is active
                       </div>
                       <p className="text-blue-700 text-xs">
-                        We identify each MetaTrader trade by its broker trade ID or a fallback trade fingerprint, so rerunning the model on the same exported trades will not duplicate them inside the analysis set.
+                        We identify each MetaTrader trade by its broker trade ID or a fallback trade fingerprint, then only charge and analyse trades that are still new to your account log.
                         {analysisOptions.latestAnalysis?.tradesAnalysed
                           ? ` Latest saved run analysed ${analysisOptions.latestAnalysis.tradesAnalysed.toLocaleString()} trades.`
                           : ""}

@@ -562,7 +562,10 @@ async function persistTradesToMemory(userId, trades, { brokerAccountId = null, s
   return { stored, updated, invalid };
 }
 
-async function loadStoredTradesForAnalysis(userId, { mode = "trades", tradeCount = 500, months = 12 } = {}) {
+async function loadStoredTradesForAnalysis(
+  userId,
+  { mode = "trades", tradeCount = 500, months = 12, pendingOnly = false } = {}
+) {
   const now = new Date();
   const where = { userId };
 
@@ -575,10 +578,30 @@ async function loadStoredTradesForAnalysis(userId, { mode = "trades", tradeCount
   const storedRows = await prisma.storedTrade.findMany({
     where,
     orderBy: [{ exitTime: "desc" }, { updatedAt: "desc" }],
-    ...(mode === "trades" ? { take: Math.max(10, Number(tradeCount) || 500) } : {}),
   });
 
-  return storedRows.map(storedTradeToAnalysisTrade);
+  const eligibleRows = pendingOnly
+    ? storedRows.filter((trade) => !trade.lastAnalysedAt || trade.lastSeenAt > trade.lastAnalysedAt)
+    : storedRows;
+  const limitedRows =
+    mode === "trades" ? eligibleRows.slice(0, Math.max(10, Number(tradeCount) || 500)) : eligibleRows;
+
+  return limitedRows.map(storedTradeToAnalysisTrade);
+}
+
+async function getPendingStoredTradeCount(userId) {
+  const rows = await prisma.storedTrade.findMany({
+    where: { userId },
+    select: {
+      id: true,
+      lastSeenAt: true,
+      lastAnalysedAt: true,
+    },
+  });
+
+  return rows.filter(
+    (trade) => !trade.lastAnalysedAt || trade.lastSeenAt > trade.lastAnalysedAt
+  ).length;
 }
 
 function mergeTradesForAnalysis(...tradeGroups) {
@@ -3202,9 +3225,18 @@ const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL || "http://localhost:8
 
 app.get("/api/analyse/options", authRequired, async (req, res, next) => {
   try {
-    const storedTradeCount = await prisma.storedTrade.count({
+    const pendingStoredTradeCount = await getPendingStoredTradeCount(req.user.id);
+    const storedTrades = await prisma.storedTrade.findMany({
       where: { userId: req.user.id },
+      select: {
+        tradeIdentity: true,
+        lastSeenAt: true,
+        lastAnalysedAt: true,
+      },
     });
+    const storedTradeState = new Map(
+      storedTrades.map((trade) => [trade.tradeIdentity, trade])
+    );
     const brokerAccounts = await prisma.brokerAccount.findMany({
       where: { userId: req.user.id, isActive: true },
       select: { id: true },
@@ -3214,6 +3246,12 @@ app.get("/api/analyse/options", authRequired, async (req, res, next) => {
     const events =
       brokerAccountIds.length > 0 ? await getLatestHistoryExports(brokerAccountIds) : [];
     const dedupedTrades = dedupeTrades(extractTradesFromEvents(events));
+    const latestPendingTradeCount = dedupedTrades.filter((row) => {
+      const identity = row.identity || buildTradeIdentity(row.trade, row.brokerAccountId);
+      if (!identity) return false;
+      const storedTrade = storedTradeState.get(identity);
+      return !storedTrade || !storedTrade.lastAnalysedAt || storedTrade.lastSeenAt > storedTrade.lastAnalysedAt;
+    }).length;
     const latestSnapshot = await prisma.analysisSnapshot.findFirst({
       where: { userId: req.user.id },
       orderBy: { updatedAt: "desc" },
@@ -3235,9 +3273,9 @@ app.get("/api/analyse/options", authRequired, async (req, res, next) => {
 
     return res.json({
       ok: true,
-      availableTradeCount: Math.max(storedTradeCount, dedupedTrades.length),
+      availableTradeCount: Math.max(pendingStoredTradeCount, latestPendingTradeCount),
       minimumTradeCount: 10,
-      recommendedTradeCount: Math.min(200, Math.max(storedTradeCount, dedupedTrades.length) || 200),
+      recommendedTradeCount: Math.min(200, Math.max(pendingStoredTradeCount, latestPendingTradeCount) || 200),
       latestAnalysis: latestSnapshot
         ? {
             id: latestSnapshot.id,
@@ -3330,13 +3368,16 @@ app.post("/api/analyse/csv", authRequired, async (req, res, next) => {
       source: "csv_import",
       seenAt: new Date(),
     });
-    const rememberedTrades = await loadStoredTradesForAnalysis(req.user.id, { mode, tradeCount });
-    const allTrades = mergeTradesForAnalysis(parsedTrades, rememberedTrades).slice(0, tradeCount);
+    const allTrades = await loadStoredTradesForAnalysis(req.user.id, {
+      mode,
+      tradeCount,
+      pendingOnly: true,
+    });
 
     if (allTrades.length === 0) {
       return res.status(400).json({
         ok: false,
-        error: "No valid trades were found in the uploaded CSV.",
+        error: "This CSV did not add any new trades that still need analysing.",
       });
     }
 
@@ -3362,6 +3403,9 @@ app.post("/api/analyse/csv", authRequired, async (req, res, next) => {
     analysisJobContext.set(job_id, {
       userId: req.user.id,
       tradeFingerprint,
+      tradeIdentities: allTrades
+        .map((trade) => buildTradeIdentity(trade, req.user.id))
+        .filter(Boolean),
       requestedTradeCount: tradeCount,
       uniqueTradeCount: allTrades.length,
       availableTradeCount: allTrades.length,
@@ -3463,18 +3507,19 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
       }
     }
 
-    const rememberedTrades = await loadStoredTradesForAnalysis(req.user.id, { mode, tradeCount, months });
-    const allTrades = mergeTradesForAnalysis(freshTrades, rememberedTrades).slice(
-      0,
-      mode === "trades" ? Math.max(10, Number(tradeCount) || 500) : Number.MAX_SAFE_INTEGER
-    );
+    const allTrades = await loadStoredTradesForAnalysis(req.user.id, {
+      mode,
+      tradeCount,
+      months,
+      pendingOnly: true,
+    });
 
     if (allTrades.length === 0) {
       return res.status(400).json({
         ok: false,
         error:
           brokerAccountIds.length > 0
-            ? "No closed trades were received from MetaTrader yet. Keep the terminal open, make sure the latest EA is attached, or upload a CSV to seed the trade log."
+            ? "No new closed trades were received from MetaTrader for analysis. Keep the terminal open, make sure the latest EA is attached, or wait for new trades before running again."
             : "No stored trades found yet. Upload a CSV or connect the MetaTrader EA before running analysis.",
       });
     }
@@ -3507,6 +3552,9 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
     analysisJobContext.set(job_id, {
       userId: req.user.id,
       tradeFingerprint,
+      tradeIdentities: allTrades
+        .map((trade) => buildTradeIdentity(trade, req.user.id))
+        .filter(Boolean),
       requestedTradeCount: mode === "trades" ? tradeCount : null,
       uniqueTradeCount: allTrades.length,
       availableTradeCount: uniqueTradeCount,
@@ -3593,6 +3641,19 @@ app.get("/api/analyse/:jobId", authRequired, async (req, res, next) => {
         });
       } else {
         await prisma.analysisSnapshot.create({ data: snapshotData });
+      }
+
+      if (jobContext?.userId && Array.isArray(jobContext.tradeIdentities) && jobContext.tradeIdentities.length > 0) {
+        await prisma.storedTrade.updateMany({
+          where: {
+            userId: jobContext.userId,
+            tradeIdentity: { in: jobContext.tradeIdentities },
+          },
+          data: {
+            lastAnalysedAt: new Date(),
+            analysisCount: { increment: 1 },
+          },
+        });
       }
     }
 
