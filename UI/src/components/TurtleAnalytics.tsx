@@ -29,6 +29,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   const [statsData, setStatsData] = useState({ tradesAnalysed: 0, simulationsRun: 0, regimesFound: 0, avgRMultiple: 0 });
   const [reportData, setReportData] = useState<any>(null);
   const [modelRunError, setModelRunError] = useState<string | null>(null);
+  const [runHistoryError, setRunHistoryError] = useState<string | null>(null);
   const [storedJournalEntries, setStoredJournalEntries] = useState<any[]>([]);
   const [storedJournalPnlMeta, setStoredJournalPnlMeta] = useState<any>(null);
   const [currentUserName, setCurrentUserName] = useState("Trader");
@@ -470,16 +471,22 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         const authHeader: Record<string, string> = {};
         if (token) authHeader["Authorization"] = `Bearer ${token}`;
         const response = await fetch(`${API_BASE}/api/analyse/history`, { headers: authHeader });
-        if (!response.ok) return;
+        if (!response.ok) {
+          if (!cancelled) {
+            setRunHistoryError("Saved run history could not be loaded. The backend may be missing the latest migration or deploy.");
+          }
+          return;
+        }
         const payload = await response.json();
         if (!cancelled && payload.ok) {
           setModelRunHistory(
             Array.isArray(payload.history) ? payload.history.map(mapRunHistoryItem) : []
           );
+          setRunHistoryError(null);
         }
       } catch {
         if (!cancelled) {
-          setModelRunHistory((prev) => prev);
+          setRunHistoryError("Saved run history could not be loaded. The backend may be unavailable right now.");
         }
       }
     };
@@ -1172,6 +1179,11 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         <>
           {/* Model Run History Log */}
           <section className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
+            {runHistoryError && (
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
+                {runHistoryError}
+              </div>
+            )}
             <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
               <div className="bg-gradient-to-r from-slate-50 to-teal-50 border-b border-slate-200 px-6 py-4">
                 <div className="flex items-center justify-between">
