@@ -29,6 +29,8 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   const [statsData, setStatsData] = useState({ tradesAnalysed: 0, simulationsRun: 0, regimesFound: 0, avgRMultiple: 0 });
   const [reportData, setReportData] = useState<any>(null);
   const [modelRunError, setModelRunError] = useState<string | null>(null);
+  const [storedJournalEntries, setStoredJournalEntries] = useState<any[]>([]);
+  const [storedJournalPnlMeta, setStoredJournalPnlMeta] = useState<any>(null);
   const [currentUserName, setCurrentUserName] = useState("Trader");
   const [currentUserEmail, setCurrentUserEmail] = useState("");
   const [analysisOptions, setAnalysisOptions] = useState<{
@@ -438,6 +440,36 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
     };
   }, [API_BASE, lastRunTime]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadStoredJournal = async () => {
+      try {
+        const token = localStorage.getItem("gtt_token");
+        const authHeader: Record<string, string> = {};
+        if (token) authHeader["Authorization"] = `Bearer ${token}`;
+        const response = await fetch(`${API_BASE}/api/trades`, { headers: authHeader });
+        if (!response.ok) return;
+        const payload = await response.json();
+        if (!cancelled && payload.ok) {
+          setStoredJournalEntries(Array.isArray(payload.trades) ? payload.trades : []);
+          setStoredJournalPnlMeta(payload.pnlMeta ?? null);
+        }
+      } catch {
+        if (!cancelled) {
+          setStoredJournalEntries([]);
+          setStoredJournalPnlMeta(null);
+        }
+      }
+    };
+
+    loadStoredJournal();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [API_BASE, lastRunTime]);
+
   const minTradeSelection = Math.max(10, analysisOptions.minimumTradeCount || 10);
   const maxTradeSelection = Math.max(minTradeSelection, analysisOptions.availableTradeCount || minTradeSelection);
   const effectiveTradeCount = Math.min(Math.max(selectedTradeCount, minTradeSelection), maxTradeSelection);
@@ -651,8 +683,14 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   const rMultipleData = derived.rMultipleData;
   const equityCurveComparison = derived.equityCurveData;
   const consecutiveLossData = derived.consecutiveLossData;
-  const journalEntries = reportData?.trade_analytics?.journal_entries ?? [];
-  const journalPnlMeta = reportData?.trade_analytics?.pnl_metadata;
+  const journalEntries =
+    storedJournalEntries.length > 0
+      ? storedJournalEntries
+      : reportData?.trade_analytics?.journal_entries ?? [];
+  const journalPnlMeta =
+    storedJournalEntries.length > 0
+      ? storedJournalPnlMeta
+      : reportData?.trade_analytics?.pnl_metadata;
   const pnlWarning =
     journalPnlMeta?.currency_pnl_available === false && journalPnlMeta?.message
       ? journalPnlMeta.message

@@ -441,6 +441,57 @@ function storedTradeToAnalysisTrade(storedTrade) {
   };
 }
 
+function storedTradeToJournalEntry(storedTrade) {
+  const result =
+    typeof storedTrade.profit === "number" ||
+    typeof storedTrade.commission === "number" ||
+    typeof storedTrade.swap === "number"
+      ? (storedTrade.profit ?? 0) + (storedTrade.commission ?? 0) + (storedTrade.swap ?? 0)
+      : null;
+  const riskPerTrade =
+    typeof storedTrade.entryPrice === "number" && typeof storedTrade.stopLoss === "number"
+      ? Math.abs(storedTrade.entryPrice - storedTrade.stopLoss)
+      : 0;
+  const rMultiple =
+    riskPerTrade > 0 && typeof storedTrade.exitPrice === "number"
+      ? (storedTrade.side === "SHORT"
+          ? (storedTrade.entryPrice - storedTrade.exitPrice) / riskPerTrade
+          : (storedTrade.exitPrice - storedTrade.entryPrice) / riskPerTrade)
+      : 0;
+  const durationMinutes = Math.max(
+    0,
+    Math.round((storedTrade.exitTime.getTime() - storedTrade.entryTime.getTime()) / 60000)
+  );
+  const tolerance = 1e-9;
+  const exitType =
+    Math.abs(storedTrade.exitPrice - storedTrade.takeProfit) <= tolerance
+      ? "TP"
+      : Math.abs(storedTrade.exitPrice - storedTrade.stopLoss) <= tolerance
+        ? "SL"
+        : "Manual";
+
+  return {
+    id: storedTrade.tradeIdentity,
+    date: storedTrade.exitTime.toISOString().slice(0, 10),
+    pair: storedTrade.symbol || "Trade",
+    direction: storedTrade.side === "SHORT" ? "short" : "long",
+    entryPrice: storedTrade.entryPrice,
+    exitPrice: storedTrade.exitPrice,
+    stopLoss: storedTrade.stopLoss,
+    takeProfit: storedTrade.takeProfit,
+    entryTime: storedTrade.entryTime.toISOString(),
+    exitTime: storedTrade.exitTime.toISOString(),
+    duration: durationMinutes,
+    exitType,
+    result,
+    rMultiple,
+    notes: "",
+    emotions: "",
+    lessonsLearned: "",
+    marketConditions: storedTrade.session || "",
+  };
+}
+
 async function getPreferredBrokerAccountId(userId) {
   const brokerAccount = await prisma.brokerAccount.findFirst({
     where: { userId, isActive: true },
@@ -3172,6 +3223,34 @@ app.get("/api/analyse/options", authRequired, async (req, res, next) => {
             tradeFingerprint: latestMetadata?.trade_fingerprint ?? null,
           }
         : null,
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.get("/api/trades", authRequired, async (req, res, next) => {
+  try {
+    const storedTrades = await prisma.storedTrade.findMany({
+      where: { userId: req.user.id },
+      orderBy: [{ exitTime: "desc" }, { updatedAt: "desc" }],
+    });
+    const hasCurrencyPnl = storedTrades.some(
+      (trade) =>
+        typeof trade.profit === "number" ||
+        typeof trade.commission === "number" ||
+        typeof trade.swap === "number"
+    );
+
+    return res.json({
+      ok: true,
+      trades: storedTrades.map(storedTradeToJournalEntry),
+      pnlMeta: {
+        currency_pnl_available: hasCurrencyPnl,
+        message: hasCurrencyPnl
+          ? null
+          : "These stored trades do not include realised profit/loss fields yet, so the journal is shown in R-multiples until richer trade data is synced.",
+      },
     });
   } catch (err) {
     return next(err);
