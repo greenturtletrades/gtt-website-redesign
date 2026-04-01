@@ -89,6 +89,7 @@ executor = ThreadPoolExecutor(max_workers=4)
 # ---------------------------------------------------------------------------
 
 class TradeRecord(BaseModel):
+    trade_id: Optional[str] = None
     entry_time: str
     exit_time: str
     side: str               # "LONG" or "SHORT"
@@ -102,6 +103,10 @@ class TradeRecord(BaseModel):
     session: Optional[str] = None
     spread: Optional[float] = None
     volatility: Optional[float] = None
+    volume: Optional[float] = None
+    profit: Optional[float] = None
+    commission: Optional[float] = None
+    swap: Optional[float] = None
 
 
 class AnalyseRequest(BaseModel):
@@ -256,9 +261,14 @@ def _map_csv_columns(df: pd.DataFrame) -> list[dict]:
     entry_price = find("entry_price", "entryprice", "open_price", "openprice", "buyprice", "buy_price")
     exit_price  = find("exit_price",  "exitprice",  "close_price", "closeprice", "sellprice", "sell_price")
     symbol_col  = find("symbol", "ticker", "instrument", "pair", "asset")
+    trade_id_col = find("trade_id", "ticket", "id", "order_id")
     side_col    = find("side", "direction", "type", "trade_type")
     sl_col      = find("stop_loss", "stoploss", "sl")
     tp_col      = find("take_profit", "takeprofit", "tp")
+    volume_col = find("volume", "lot_size", "lots", "position_size", "size")
+    profit_col = find("profit", "pnl", "net_pnl", "realized_pnl", "realised_pnl")
+    commission_col = find("commission", "fees", "fee")
+    swap_col = find("swap", "financing", "rollover")
 
     missing = []
     if entry_time is None:  missing.append("entry_time/entry_date")
@@ -303,7 +313,12 @@ def _map_csv_columns(df: pd.DataFrame) -> list[dict]:
                 "exit_price":  float(xp.iloc[i]),
                 "stop_loss":   float(sl_vals[i]),
                 "take_profit": float(tp_vals[i]),
+                "trade_id":    str(trade_id_col.iloc[i]) if trade_id_col is not None else None,
                 "symbol":      str(symbol_col.iloc[i]) if symbol_col is not None else None,
+                "volume":      float(pd.to_numeric(volume_col.iloc[i], errors="coerce")) if volume_col is not None and pd.notna(pd.to_numeric(volume_col.iloc[i], errors="coerce")) else None,
+                "profit":      float(pd.to_numeric(profit_col.iloc[i], errors="coerce")) if profit_col is not None and pd.notna(pd.to_numeric(profit_col.iloc[i], errors="coerce")) else None,
+                "commission":  float(pd.to_numeric(commission_col.iloc[i], errors="coerce")) if commission_col is not None and pd.notna(pd.to_numeric(commission_col.iloc[i], errors="coerce")) else None,
+                "swap":        float(pd.to_numeric(swap_col.iloc[i], errors="coerce")) if swap_col is not None and pd.notna(pd.to_numeric(swap_col.iloc[i], errors="coerce")) else None,
             })
         except Exception:
             continue  # skip malformed rows

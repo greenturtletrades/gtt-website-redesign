@@ -80,20 +80,25 @@ function normalizeJournalEntry(entry: Partial<JournalEntry>): JournalEntry {
 }
 
 export function TraderJournal({ entries: liveEntries = [], pnlMeta }: TraderJournalProps) {
-  const currencyFormatter = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
+  const numberFormatter = new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [liveOverrides, setLiveOverrides] = useState<Record<string, JournalEntry>>({});
   const hasLiveEntries = liveEntries.length > 0;
-  const hasCurrencyPnl = pnlMeta?.currency_pnl_available !== false;
+  const hasCurrencyPnl =
+    pnlMeta?.currency_pnl_available === true ||
+    (!hasLiveEntries && entries.some((entry) => entry.result !== null));
   const activeEntries = hasLiveEntries
     ? liveEntries.map((entry) => normalizeJournalEntry(liveOverrides[entry.id] ?? entry))
     : entries;
   const formatPnl = (value: number | null) =>
-    value === null ? "N/A" : currencyFormatter.format(value);
+    value === null ? "N/A" : `${value >= 0 ? "+" : "-"}${numberFormatter.format(Math.abs(value))}`;
+  const getTradeOutcomeValue = (entry: JournalEntry) =>
+    entry.result !== null && entry.result !== undefined ? entry.result : entry.rMultiple;
+  const isWinningTrade = (entry: JournalEntry) => getTradeOutcomeValue(entry) > 0;
+  const isLosingTrade = (entry: JournalEntry) => getTradeOutcomeValue(entry) < 0;
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
@@ -220,8 +225,8 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta }: TraderJour
   );
 
   const totalTrades = activeEntries.length;
-  const winningTrades = activeEntries.filter(e => (e.result ?? 0) > 0).length;
-  const losingTrades = activeEntries.filter(e => (e.result ?? 0) < 0).length;
+  const winningTrades = activeEntries.filter((entry) => isWinningTrade(entry)).length;
+  const losingTrades = activeEntries.filter((entry) => isLosingTrade(entry)).length;
   const totalPnL = hasCurrencyPnl
     ? activeEntries.reduce((sum, e) => sum + (e.result ?? 0), 0)
     : null;
@@ -244,8 +249,8 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta }: TraderJour
     acc[monthKey].pnl += entry.result ?? 0;
     acc[monthKey].trades += 1;
     acc[monthKey].totalR += entry.rMultiple;
-    if ((entry.result ?? 0) > 0) acc[monthKey].winners += 1;
-    if ((entry.result ?? 0) < 0) acc[monthKey].losers += 1;
+    if (isWinningTrade(entry)) acc[monthKey].winners += 1;
+    if (isLosingTrade(entry)) acc[monthKey].losers += 1;
     return acc;
   }, {} as Record<string, { month: string; pnl: number; trades: number; winners: number; losers: number; avgR: number; totalR: number }>);
 
@@ -345,12 +350,14 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta }: TraderJour
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          (entry.result ?? 0) > 0 ? "bg-teal-100" : "bg-red-100"
+                          isWinningTrade(entry) ? "bg-teal-100" : isLosingTrade(entry) ? "bg-red-100" : "bg-slate-100"
                         }`}>
-                          {(entry.result ?? 0) > 0 ? (
+                          {isWinningTrade(entry) ? (
                             <TrendingUp className="w-5 h-5 text-teal-600" />
-                          ) : (
+                          ) : isLosingTrade(entry) ? (
                             <TrendingDown className="w-5 h-5 text-red-600" />
+                          ) : (
+                            <Activity className="w-5 h-5 text-slate-500" />
                           )}
                         </div>
                         <div>
@@ -377,7 +384,7 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta }: TraderJour
                         <div className={`text-sm ${
                           entry.result === null ? "text-slate-500" : entry.result >= 0 ? "text-teal-600" : "text-red-600"
                         }`}>
-                          PnL {formatPnl(entry.result)}
+                          Account P/L {formatPnl(entry.result)}
                         </div>
                         <div className={`text-xs ${entry.rMultiple >= 0 ? "text-teal-600" : "text-red-600"}`}>
                           {entry.rMultiple.toFixed(2)}R
@@ -541,7 +548,7 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta }: TraderJour
                                             {(() => {
                                               let maxStreak = 0, currentStreak = 0;
                                               monthTrades.forEach(t => {
-                                                if ((t.result ?? 0) > 0) {
+                                                if (isWinningTrade(t)) {
                                                   currentStreak++;
                                                   maxStreak = Math.max(maxStreak, currentStreak);
                                                 } else {
@@ -558,7 +565,7 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta }: TraderJour
                                             {(() => {
                                               let maxStreak = 0, currentStreak = 0;
                                               monthTrades.forEach(t => {
-                                                if ((t.result ?? 0) < 0) {
+                                                if (isLosingTrade(t)) {
                                                   currentStreak++;
                                                   maxStreak = Math.max(maxStreak, currentStreak);
                                                 } else {
@@ -584,12 +591,14 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta }: TraderJour
                                             <div className="flex items-center justify-between mb-2">
                                               <div className="flex items-center gap-3">
                                                 <div className={`w-8 h-8 rounded flex items-center justify-center ${
-                                                  (trade.result ?? 0) > 0 ? "bg-teal-100" : "bg-red-100"
+                                                  isWinningTrade(trade) ? "bg-teal-100" : isLosingTrade(trade) ? "bg-red-100" : "bg-slate-100"
                                                 }`}>
-                                                  {(trade.result ?? 0) > 0 ? (
+                                                  {isWinningTrade(trade) ? (
                                                     <TrendingUp className="w-4 h-4 text-teal-600" />
-                                                  ) : (
+                                                  ) : isLosingTrade(trade) ? (
                                                     <TrendingDown className="w-4 h-4 text-red-600" />
+                                                  ) : (
+                                                    <Activity className="w-4 h-4 text-slate-500" />
                                                   )}
                                                 </div>
                                                 <div>

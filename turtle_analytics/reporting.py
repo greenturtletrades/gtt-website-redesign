@@ -336,6 +336,14 @@ def build_report(
     return report
 
 
+def _sorted_trade_frame(df: pd.DataFrame) -> pd.DataFrame:
+    if "exit_time" in df.columns:
+        return df.sort_values("exit_time", kind="stable").reset_index(drop=True)
+    if "entry_time" in df.columns:
+        return df.sort_values("entry_time", kind="stable").reset_index(drop=True)
+    return df.reset_index(drop=True)
+
+
 def _calculate_original_performance(df: pd.DataFrame) -> dict[str, Any]:
     """Calculate baseline performance metrics."""
     if "R" not in df.columns:
@@ -348,10 +356,23 @@ def _calculate_original_performance(df: pd.DataFrame) -> dict[str, Any]:
             "max_win_r": 0.0,
             "max_loss_r": 0.0,
             "n_trades": 0,
+            "win_count": 0,
+            "loss_count": 0,
+            "breakeven_count": 0,
+            "total_currency_pnl": None,
+            "avg_currency_pnl": None,
         }
     
     r_values = df["R"].dropna()
-    
+    pnl_metadata = _build_currency_pnl_metadata(df)
+    total_currency_pnl = None
+    avg_currency_pnl = None
+    if pnl_metadata.get("currency_pnl_available") and pnl_metadata.get("values") is not None:
+        pnl_values = pd.to_numeric(pnl_metadata["values"], errors="coerce").dropna()
+        if len(pnl_values) > 0:
+            total_currency_pnl = float(pnl_values.sum())
+            avg_currency_pnl = float(pnl_values.mean())
+
     return {
         "avg_r": float(r_values.mean()),
         "win_rate": float((r_values > 0).mean()),
@@ -361,6 +382,11 @@ def _calculate_original_performance(df: pd.DataFrame) -> dict[str, Any]:
         "max_win_r": float(r_values.max()),
         "max_loss_r": float(r_values.min()),
         "n_trades": int(len(r_values)),
+        "win_count": int((r_values > 0).sum()),
+        "loss_count": int((r_values < 0).sum()),
+        "breakeven_count": int((r_values == 0).sum()),
+        "total_currency_pnl": total_currency_pnl,
+        "avg_currency_pnl": avg_currency_pnl,
     }
 
 
@@ -582,8 +608,13 @@ def _compute_trade_analytics(df: pd.DataFrame) -> dict[str, Any]:
     mfe_mae_analysis, hold_time_distribution, consecutive_loss_analysis.
     """
     result: dict[str, Any] = {}
-
-    r_col = df["R"].dropna() if "R" in df.columns else pd.Series([], dtype=float)
+    df = _sorted_trade_frame(df)
+    plot_df = df[df["R"].notna()].copy() if "R" in df.columns else df.iloc[0:0].copy()
+    r_col = plot_df["R"] if "R" in plot_df.columns else pd.Series([], dtype=float)
+    pnl_metadata = _build_currency_pnl_metadata(plot_df) if len(plot_df) > 0 else {
+        "currency_pnl_available": False,
+        "values": None,
+    }
 
     # ── R-multiple distribution histogram ─────────────────────────────────────
     if len(r_col) > 0:
@@ -603,28 +634,47 @@ def _compute_trade_analytics(df: pd.DataFrame) -> dict[str, Any]:
 
     # ── Equity curve (sampled ~20 points) ─────────────────────────────────────
     if len(r_col) > 1:
-        cum = r_col.reset_index(drop=True).cumsum()
+        plot_df = plot_df.reset_index(drop=True)
+        cum = plot_df["R"].cumsum()
+        cumulative_pnl = None
+        if pnl_metadata.get("currency_pnl_available") and pnl_metadata.get("values") is not None:
+            cumulative_pnl = (
+                pd.to_numeric(pnl_metadata["values"], errors="coerce")
+                .fillna(0.0)
+                .reset_index(drop=True)
+                .cumsum()
+            )
         n = len(cum)
         step = max(1, n // 19)
         indices = list(range(0, n, step)) + [n - 1]
         indices = sorted(set(indices))
-        curve = [{"trade": 0, "cumulative_r": 0.0}]
+        curve = [{"trade": 0, "cumulative_r": 0.0, "cumulative_pnl": 0.0 if cumulative_pnl is not None else None}]
         for idx in indices:
-            curve.append({"trade": int(idx + 1), "cumulative_r": round(float(cum.iloc[idx]), 3)})
+            curve.append({
+                "trade": int(idx + 1),
+                "cumulative_r": round(float(cum.iloc[idx]), 3),
+                "cumulative_pnl": round(float(cumulative_pnl.iloc[idx]), 2) if cumulative_pnl is not None else None,
+            })
         result["equity_curve"] = curve
     else:
         result["equity_curve"] = []
 
     # ── Session performance ────────────────────────────────────────────────────
-    if "session" in df.columns and len(r_col) > 0:
-        df2 = df[["session", "R"]].dropna()
+    session_column = None
+    if "session" in df.columns and df["session"].notna().any():
+        session_column = "session"
+    elif "time_of_day_bucket" in df.columns and df["time_of_day_bucket"].notna().any():
+        session_column = "time_of_day_bucket"
+
+    if session_column and len(r_col) > 0:
+        df2 = df[[session_column, "R"]].dropna()
         session_rows = []
-        for session, grp in df2.groupby("session"):
+        for session, grp in df2.groupby(session_column):
             r = grp["R"]
-            if len(r) < 3:
+            if len(r) < 1:
                 continue
             session_rows.append({
-                "session": str(session),
+                "session": str(session).replace("_", " "),
                 "avg_r": round(float(r.mean()), 3),
                 "win_rate": round(float((r > 0).mean()), 3),
                 "trades": int(len(r)),
@@ -824,7 +874,7 @@ def _build_journal_entries(
             "takeProfit": round(float(row.get("take_profit", 0.0)), 5) if pd.notna(row.get("take_profit")) else 0.0,
             "entryTime": entry_time.strftime("%H:%M") if pd.notna(entry_time) else "",
             "exitTime": exit_time.strftime("%H:%M") if pd.notna(exit_time) else "",
-            "duration": int(round(float(row.get("duration_minutes", 0.0)))) if pd.notna(row.get("duration_minutes")) else 0,
+            "duration": max(0, int(round(float(row.get("duration_minutes", 0.0))))) if pd.notna(row.get("duration_minutes")) else 0,
             "exitType": _infer_exit_type(row),
             "result": currency_result,
             "rMultiple": round(float(row.get("R", 0.0)), 3) if pd.notna(row.get("R")) else 0.0,

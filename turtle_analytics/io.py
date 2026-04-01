@@ -74,6 +74,12 @@ REQUIRED_TRADE_COLUMNS: Dict[str, ColumnSpec] = {
 
 # Optional columns: nice-to-have, used if present
 OPTIONAL_TRADE_COLUMNS: Dict[str, ColumnSpec] = {
+    "trade_id": ColumnSpec(
+        name="trade_id",
+        dtype="string",
+        required=False,
+        description="Broker/dealer trade identifier."
+    ),
     "mfe": ColumnSpec(
         name="mfe",
         dtype="float",
@@ -109,6 +115,30 @@ OPTIONAL_TRADE_COLUMNS: Dict[str, ColumnSpec] = {
         dtype="string",
         required=False,
         description="Instrument symbol, e.g. EURUSD, XAUUSD."
+    ),
+    "volume": ColumnSpec(
+        name="volume",
+        dtype="float",
+        required=False,
+        description="Executed position size or lot size."
+    ),
+    "profit": ColumnSpec(
+        name="profit",
+        dtype="float",
+        required=False,
+        description="Realised profit/loss in account currency."
+    ),
+    "commission": ColumnSpec(
+        name="commission",
+        dtype="float",
+        required=False,
+        description="Commission charged on the trade in account currency."
+    ),
+    "swap": ColumnSpec(
+        name="swap",
+        dtype="float",
+        required=False,
+        description="Swap or financing adjustment in account currency."
     ),
 }
 

@@ -32,8 +32,12 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   const [currentUserName, setCurrentUserName] = useState("Trader");
   const [currentUserEmail, setCurrentUserEmail] = useState("");
 
+  const formatAccountMetric = (value: number | null) =>
+    value === null || !Number.isFinite(value)
+      ? "Not available"
+      : `${value >= 0 ? "+" : "-"}${Math.abs(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
   const derived = useMemo(() => {
-    const R = 100;
     if (!reportData) {
       return {
         currentPnl: "Not available",
@@ -48,9 +52,12 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         ci: "0.00",
         slMult: "0.0",
         tpMult: "0.0",
+        equityLabel: "Cumulative R",
         recs: [],
         bestRegimeAvgR: "0.00",
         topActionLabel: "Run analysis to generate recommendations",
+        bestHoursLabel: "Not available yet",
+        bestHoursSubtext: "Import more trade timing data to rank hours",
         marketRegimes: [],
         rMultipleData: [],
         equityCurveData: [],
@@ -63,17 +70,23 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       };
     }
 
-    // ── KPI scalars ────────────────────────────────────────────────────────────
     const orig = reportData.summary?.original_performance ?? {};
     const best = reportData.summary?.best_performance ?? {};
     const policy = reportData.global_policy?.best_policy ?? {};
     const conf = reportData.global_policy?.confidence ?? {};
     const n = orig.n_trades ?? 0;
-
-    const curTotal = Math.round((orig.total_r ?? 0) * R);
     const bestAvgR = best.avg_r ?? orig.avg_r ?? 0;
-    const optTotal = Math.round(bestAvgR * n * R);
-    const gain = optTotal - curTotal;
+    const journalEntries = reportData.trade_analytics?.journal_entries ?? [];
+    const pnlMeta = reportData.trade_analytics?.pnl_metadata ?? {};
+    const hasCurrencyPnl = pnlMeta.currency_pnl_available === true;
+    const totalCurrencyPnl = hasCurrencyPnl
+      ? journalEntries.reduce((sum: number, entry: any) => sum + (typeof entry.result === "number" ? entry.result : 0), 0)
+      : null;
+    const pnlRatio = (orig.avg_r ?? 0) !== 0 ? bestAvgR / (orig.avg_r ?? 1) : 1;
+    const optimisedCurrencyPnl = totalCurrencyPnl !== null ? totalCurrencyPnl * pnlRatio : null;
+    const gain = totalCurrencyPnl !== null && optimisedCurrencyPnl !== null
+      ? optimisedCurrencyPnl - totalCurrencyPnl
+      : null;
     const impPct = orig.avg_r && orig.avg_r !== 0
       ? (((bestAvgR - orig.avg_r) / Math.abs(orig.avg_r)) * 100).toFixed(1)
       : "0.0";
@@ -98,9 +111,8 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
 
     const bestRegimeAvgR = reportData.regimes?.regime_details?.length
       ? Math.max(...reportData.regimes.regime_details.map((r: any) => r.performance?.avg_r ?? 0)).toFixed(2)
-      : "1.2";
+      : "0.00";
 
-    // ── Market regimes ─────────────────────────────────────────────────────────
     const regimeColors = [
       "bg-emerald-50 border-emerald-300 text-emerald-700",
       "bg-teal-50 border-teal-300 text-teal-700",
@@ -127,24 +139,25 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         })
       : [];
 
-    // ── R-multiple distribution ────────────────────────────────────────────────
     const rMultipleData = reportData.trade_analytics?.r_distribution?.length
       ? reportData.trade_analytics.r_distribution
       : [];
 
-    // ── Equity curve ───────────────────────────────────────────────────────────
     const equityCurveData = reportData.trade_analytics?.equity_curve?.length
       ? (() => {
-          const ratio = (orig.avg_r ?? 0) !== 0 ? bestAvgR / (orig.avg_r ?? 1) : 1;
+          const usesCurrencyCurve = reportData.trade_analytics.equity_curve.some((pt: any) => typeof pt.cumulative_pnl === "number");
           return reportData.trade_analytics.equity_curve.map((pt: any) => ({
             trade: pt.trade,
-            actual: Math.round(pt.cumulative_r * R),
-            optimised: Math.round(pt.cumulative_r * R * ratio),
+            actual: usesCurrencyCurve && typeof pt.cumulative_pnl === "number"
+              ? Number(pt.cumulative_pnl.toFixed(2))
+              : Number((pt.cumulative_r ?? 0).toFixed(3)),
+            optimised: usesCurrencyCurve && typeof pt.cumulative_pnl === "number"
+              ? Number((pt.cumulative_pnl * pnlRatio).toFixed(2))
+              : Number(((pt.cumulative_r ?? 0) * pnlRatio).toFixed(3)),
           }));
         })()
       : [];
 
-    // ── Session performance ────────────────────────────────────────────────────
     const sessionPerformance = reportData.trade_analytics?.session_performance?.length
       ? (() => {
           const rows = reportData.trade_analytics.session_performance;
@@ -160,8 +173,8 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
           }));
         })()
       : [];
+    const bestSession = sessionPerformance[0] ?? null;
 
-    // ── Hold time distribution ─────────────────────────────────────────────────
     const holdTimeResults = reportData.trade_analytics?.hold_time_distribution?.length
       ? (() => {
           const rows = reportData.trade_analytics.hold_time_distribution;
@@ -176,7 +189,6 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         })()
       : [];
 
-    // ── Risk fraction results ──────────────────────────────────────────────────
     const riskFractionResults = (() => {
       const kelly = reportData.risk_recommendations?.kelly_criterion;
       const suggestedPct = reportData.risk_recommendations?.suggested_risk_fraction ?? 0.01;
@@ -193,7 +205,6 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       }));
     })();
 
-    // ── Consecutive loss analysis ──────────────────────────────────────────────
     const consecutiveLossData = reportData.trade_analytics?.consecutive_loss_analysis?.length
       ? reportData.trade_analytics.consecutive_loss_analysis.map((r: any) => ({
           lossStreak: r.loss_streak,
@@ -203,7 +214,6 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         }))
       : [];
 
-    // ── MFE / MAE analysis ─────────────────────────────────────────────────────
     const mfeAnalysis = reportData.trade_analytics?.mfe_mae_analysis?.length
       ? reportData.trade_analytics.mfe_mae_analysis.map((r: any) => ({
           category: r.category,
@@ -216,7 +226,6 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         }))
       : [];
 
-    // ── Counterfactual summary ─────────────────────────────────────────────────
     const counterfactualResults = (() => {
       if (!policy.sl_mult || !policy.tp_mult) return [];
       const avgRNum = orig.avg_r ?? 0;
@@ -229,26 +238,36 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         { sl: `${(parseFloat(slM) * 1.25).toFixed(1)}R`, tp: `${tpM}R`, avgR: (bestAvgR * 0.75).toFixed(2), winRate: "61%", confidence: "±0.07", trades: n_trades, status: "SL too wide", isCurrent: false, isRecommended: false },
       ];
     })();
+    const topRecommendation = recs[0]
+      ? `${recs[0].bold}${recs[0].rest}`
+      : policy.sl_mult || policy.tp_mult
+        ? `Use ${slM}R SL / ${tpM}R TP`
+        : "Review the latest model recommendations";
 
     return {
-      currentPnl: `£${curTotal.toLocaleString()}`,
-      optimisedPnl: `£${optTotal.toLocaleString()}`,
-      gainPnl: `£${Math.abs(gain).toLocaleString()}`,
+      currentPnl: totalCurrencyPnl !== null ? formatAccountMetric(totalCurrencyPnl) : `${(orig.total_r ?? 0).toFixed(2)}R`,
+      optimisedPnl: optimisedCurrencyPnl !== null ? formatAccountMetric(optimisedCurrencyPnl) : `${(bestAvgR * n).toFixed(2)}R`,
+      gainPnl: gain !== null ? formatAccountMetric(gain) : `${Math.abs(bestAvgR - (orig.avg_r ?? 0)).toFixed(2)}R/trade`,
       avgR: (orig.avg_r ?? 0).toFixed(2),
       winRate: Math.round((orig.win_rate ?? 0) * 100).toString(),
       bestAvgR: bestAvgR.toFixed(2),
       improvementPct: impPct,
-      avgPerTrade: Math.round((orig.avg_r ?? 0) * R).toString(),
-      bestAvgPerTrade: Math.round(bestAvgR * R).toString(),
+      avgPerTrade: totalCurrencyPnl !== null && n > 0 ? formatAccountMetric(totalCurrencyPnl / n) : (orig.avg_r ?? 0).toFixed(2),
+      bestAvgPerTrade: optimisedCurrencyPnl !== null && n > 0 ? formatAccountMetric(optimisedCurrencyPnl / n) : bestAvgR.toFixed(2),
       ci: ciVal,
       slMult: slM, tpMult: tpM,
+      equityLabel: totalCurrencyPnl !== null ? "Cumulative Account P/L" : "Cumulative R",
       recs: recs.length > 0 ? recs : [
         { bold: `Use ${slM}R SL / ${tpM}R TP`, rest: ` — Bayesian optimisation shows +${impPct}% improvement` },
         { bold: "Review hold time", rest: " — Survival analysis found optimal exit window" },
         { bold: "Adapt by regime", rest: " — Different market conditions need different parameters" },
       ],
       bestRegimeAvgR,
-      topActionLabel: `Use ${slM}R SL / ${tpM}R TP`,
+      topActionLabel: topRecommendation,
+      bestHoursLabel: bestSession?.session ?? "Not available yet",
+      bestHoursSubtext: bestSession
+        ? `${bestSession.avgR}R avg • ${bestSession.winRate} win rate`
+        : "Import more trade timing data to rank hours",
       marketRegimes,
       rMultipleData,
       equityCurveData,
@@ -259,7 +278,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       mfeAnalysis,
       counterfactualResults,
     };
-  }, [reportData]);
+  }, [formatAccountMetric, reportData]);
   const [isEditingTradeCount, setIsEditingTradeCount] = useState(false);
   const [isEditingMonths, setIsEditingMonths] = useState(false);
   const [editValue, setEditValue] = useState("");
@@ -1181,7 +1200,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                   <div className="text-teal-900 text-sm font-medium">Optimised Potential</div>
                 </div>
                 <div className="text-3xl text-teal-900 mb-1">{derived.optimisedPnl}</div>
-                <div className="text-sm text-teal-700">{derived.bestAvgR}R avg • +{derived.gainPnl} gain</div>
+                <div className="text-sm text-teal-700">{derived.bestAvgR}R avg • {derived.gainPnl} projected change</div>
               </div>
 
               {/* Card 3: Top Recommendation */}
@@ -1204,8 +1223,8 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                   </div>
                   <div className="text-slate-600 text-sm">Best Hours</div>
                 </div>
-                <div className="text-lg text-slate-900 mb-1">Best Regime</div>
-                <div className="text-sm text-slate-600">{derived.bestRegimeAvgR}R avg performance</div>
+                <div className="text-lg text-slate-900 mb-1">{derived.bestHoursLabel}</div>
+                <div className="text-sm text-slate-600">{derived.bestHoursSubtext}</div>
               </div>
             </div>
 
@@ -1269,12 +1288,12 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                   <div className="bg-white rounded-lg p-6 border border-slate-200 shadow-sm">
                     <div className="text-slate-600 mb-2">Your Equity Performance</div>
                     <div className="text-slate-900 text-3xl mb-2">{derived.currentPnl}</div>
-                    <div className="text-slate-600 text-sm">Avg £{derived.avgPerTrade} per trade ({derived.avgR}R)</div>
+                    <div className="text-slate-600 text-sm">Average trade outcome {derived.avgPerTrade} ({derived.avgR}R)</div>
                   </div>
                   <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-lg p-6 border-2 border-teal-300 shadow-sm">
                     <div className="text-teal-700 mb-2">Optimised Parameters</div>
                     <div className="text-teal-900 text-3xl mb-2">{derived.optimisedPnl}</div>
-                    <div className="text-teal-700 text-sm">Avg £{derived.bestAvgPerTrade} per trade ({derived.bestAvgR}R, 95% CI: ±{derived.ci})</div>
+                    <div className="text-teal-700 text-sm">Projected average trade outcome {derived.bestAvgPerTrade} ({derived.bestAvgR}R, 95% CI: ±{derived.ci})</div>
                   </div>
                   <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg p-6 border-2 border-amber-300 shadow-sm">
                     <div className="text-amber-700 mb-2">Improvement Potential</div>
@@ -1296,7 +1315,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                     />
                     <YAxis 
                       stroke="#64748b"
-                      label={{ value: "Cumulative Equity (£)", angle: -90, position: "insideLeft", offset: -10, fill: "#64748b" }}
+                      label={{ value: derived.equityLabel, angle: -90, position: "insideLeft", offset: -10, fill: "#64748b" }}
                     />
                     <Tooltip
                       contentStyle={{ 
