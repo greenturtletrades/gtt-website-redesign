@@ -633,6 +633,122 @@ async function getPendingStoredTradeCount(userId) {
   ).length;
 }
 
+async function buildAnalysisOptionsPayload(userId) {
+  const pendingStoredTradeCount = await getPendingStoredTradeCount(userId);
+  const storedTrades = await prisma.storedTrade.findMany({
+    where: { userId },
+    select: {
+      tradeIdentity: true,
+      lastSeenAt: true,
+      lastAnalysedAt: true,
+    },
+  });
+  const storedTradeState = new Map(
+    storedTrades.map((trade) => [trade.tradeIdentity, trade])
+  );
+  const brokerAccounts = await prisma.brokerAccount.findMany({
+    where: { userId, isActive: true },
+    select: { id: true },
+  });
+
+  const brokerAccountIds = brokerAccounts.map((account) => account.id);
+  const events =
+    brokerAccountIds.length > 0 ? await getLatestHistoryExports(brokerAccountIds) : [];
+  const dedupedTrades = dedupeTrades(extractTradesFromEvents(events));
+  const latestPendingTradeCount = dedupedTrades.filter((row) => {
+    const identity = row.identity || buildTradeIdentity(row.trade, row.brokerAccountId);
+    if (!identity) return false;
+    const storedTrade = storedTradeState.get(identity);
+    return !storedTrade || !storedTrade.lastAnalysedAt || storedTrade.lastSeenAt > storedTrade.lastAnalysedAt;
+  }).length;
+  const latestSnapshot = await prisma.analysisSnapshot.findFirst({
+    where: { userId },
+    orderBy: { updatedAt: "desc" },
+    select: {
+      id: true,
+      updatedAt: true,
+      tradesAnalysed: true,
+      report: true,
+    },
+  });
+
+  const latestMetadata =
+    latestSnapshot?.report &&
+    typeof latestSnapshot.report === "object" &&
+    latestSnapshot.report.metadata &&
+    typeof latestSnapshot.report.metadata === "object"
+      ? latestSnapshot.report.metadata
+      : null;
+
+  return {
+    availableTradeCount: Math.max(pendingStoredTradeCount, latestPendingTradeCount),
+    minimumTradeCount: 10,
+    recommendedTradeCount: Math.min(200, Math.max(pendingStoredTradeCount, latestPendingTradeCount) || 200),
+    latestAnalysis: latestSnapshot
+      ? {
+          id: latestSnapshot.id,
+          updatedAt: latestSnapshot.updatedAt.toISOString(),
+          tradesAnalysed: latestSnapshot.tradesAnalysed ?? latestMetadata?.unique_trade_count ?? null,
+          tradeFingerprint: latestMetadata?.trade_fingerprint ?? null,
+        }
+      : null,
+  };
+}
+
+async function buildAccountStatePayload(userId) {
+  const [analysisOptions, latestSnapshot, runs, storedTrades] = await Promise.all([
+    buildAnalysisOptionsPayload(userId),
+    prisma.analysisSnapshot.findFirst({
+      where: { userId },
+      orderBy: { updatedAt: "desc" },
+      select: {
+        id: true,
+        updatedAt: true,
+        tradesAnalysed: true,
+        avgRMultiple: true,
+        report: true,
+      },
+    }),
+    prisma.analysisRun.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    }),
+    prisma.storedTrade.findMany({
+      where: { userId },
+      orderBy: [{ exitTime: "desc" }, { updatedAt: "desc" }],
+    }),
+  ]);
+
+  const hasCurrencyPnl = storedTrades.some(
+    (trade) =>
+      typeof trade.profit === "number" ||
+      typeof trade.commission === "number" ||
+      typeof trade.swap === "number"
+  );
+
+  return {
+    analysisOptions,
+    latestAnalysis: latestSnapshot
+      ? {
+          id: latestSnapshot.id,
+          updatedAt: latestSnapshot.updatedAt.toISOString(),
+          tradesAnalysed: latestSnapshot.tradesAnalysed,
+          avgRMultiple: latestSnapshot.avgRMultiple,
+          report: latestSnapshot.report,
+        }
+      : null,
+    history: runs.map(formatAnalysisRun),
+    trades: storedTrades.map(storedTradeToJournalEntry),
+    pnlMeta: {
+      currency_pnl_available: hasCurrencyPnl,
+      message: hasCurrencyPnl
+        ? null
+        : "These stored trades do not include realised profit/loss fields yet, so the journal is shown in R-multiples until richer trade data is synced.",
+    },
+  };
+}
+
 function mergeTradesForAnalysis(...tradeGroups) {
   const latestByIdentity = new Map();
 
@@ -3274,66 +3390,15 @@ const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL || "http://localhost:8
 
 app.get("/api/analyse/options", authRequired, async (req, res, next) => {
   try {
-    const pendingStoredTradeCount = await getPendingStoredTradeCount(req.user.id);
-    const storedTrades = await prisma.storedTrade.findMany({
-      where: { userId: req.user.id },
-      select: {
-        tradeIdentity: true,
-        lastSeenAt: true,
-        lastAnalysedAt: true,
-      },
-    });
-    const storedTradeState = new Map(
-      storedTrades.map((trade) => [trade.tradeIdentity, trade])
-    );
-    const brokerAccounts = await prisma.brokerAccount.findMany({
-      where: { userId: req.user.id, isActive: true },
-      select: { id: true },
-    });
+    return res.json({ ok: true, ...(await buildAnalysisOptionsPayload(req.user.id)) });
+  } catch (err) {
+    return next(err);
+  }
+});
 
-    const brokerAccountIds = brokerAccounts.map((account) => account.id);
-    const events =
-      brokerAccountIds.length > 0 ? await getLatestHistoryExports(brokerAccountIds) : [];
-    const dedupedTrades = dedupeTrades(extractTradesFromEvents(events));
-    const latestPendingTradeCount = dedupedTrades.filter((row) => {
-      const identity = row.identity || buildTradeIdentity(row.trade, row.brokerAccountId);
-      if (!identity) return false;
-      const storedTrade = storedTradeState.get(identity);
-      return !storedTrade || !storedTrade.lastAnalysedAt || storedTrade.lastSeenAt > storedTrade.lastAnalysedAt;
-    }).length;
-    const latestSnapshot = await prisma.analysisSnapshot.findFirst({
-      where: { userId: req.user.id },
-      orderBy: { updatedAt: "desc" },
-      select: {
-        id: true,
-        updatedAt: true,
-        tradesAnalysed: true,
-        report: true,
-      },
-    });
-
-    const latestMetadata =
-      latestSnapshot?.report &&
-      typeof latestSnapshot.report === "object" &&
-      latestSnapshot.report.metadata &&
-      typeof latestSnapshot.report.metadata === "object"
-        ? latestSnapshot.report.metadata
-        : null;
-
-    return res.json({
-      ok: true,
-      availableTradeCount: Math.max(pendingStoredTradeCount, latestPendingTradeCount),
-      minimumTradeCount: 10,
-      recommendedTradeCount: Math.min(200, Math.max(pendingStoredTradeCount, latestPendingTradeCount) || 200),
-      latestAnalysis: latestSnapshot
-        ? {
-            id: latestSnapshot.id,
-            updatedAt: latestSnapshot.updatedAt.toISOString(),
-            tradesAnalysed: latestSnapshot.tradesAnalysed ?? latestMetadata?.unique_trade_count ?? null,
-            tradeFingerprint: latestMetadata?.trade_fingerprint ?? null,
-          }
-        : null,
-    });
+app.get("/api/account/state", authRequired, async (req, res, next) => {
+  try {
+    return res.json({ ok: true, ...(await buildAccountStatePayload(req.user.id)) });
   } catch (err) {
     return next(err);
   }
@@ -3341,32 +3406,8 @@ app.get("/api/analyse/options", authRequired, async (req, res, next) => {
 
 app.get("/api/analyse/latest", authRequired, async (req, res, next) => {
   try {
-    const latestSnapshot = await prisma.analysisSnapshot.findFirst({
-      where: { userId: req.user.id },
-      orderBy: { updatedAt: "desc" },
-      select: {
-        id: true,
-        updatedAt: true,
-        tradesAnalysed: true,
-        avgRMultiple: true,
-        report: true,
-      },
-    });
-
-    if (!latestSnapshot) {
-      return res.json({ ok: true, latestAnalysis: null });
-    }
-
-    return res.json({
-      ok: true,
-      latestAnalysis: {
-        id: latestSnapshot.id,
-        updatedAt: latestSnapshot.updatedAt.toISOString(),
-        tradesAnalysed: latestSnapshot.tradesAnalysed,
-        avgRMultiple: latestSnapshot.avgRMultiple,
-        report: latestSnapshot.report,
-      },
-    });
+    const { latestAnalysis } = await buildAccountStatePayload(req.user.id);
+    return res.json({ ok: true, latestAnalysis });
   } catch (err) {
     return next(err);
   }
@@ -3374,16 +3415,8 @@ app.get("/api/analyse/latest", authRequired, async (req, res, next) => {
 
 app.get("/api/analyse/history", authRequired, async (req, res, next) => {
   try {
-    const runs = await prisma.analysisRun.findMany({
-      where: { userId: req.user.id },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-    });
-
-    return res.json({
-      ok: true,
-      history: runs.map(formatAnalysisRun),
-    });
+    const { history } = await buildAccountStatePayload(req.user.id);
+    return res.json({ ok: true, history });
   } catch (err) {
     return next(err);
   }
@@ -3391,27 +3424,8 @@ app.get("/api/analyse/history", authRequired, async (req, res, next) => {
 
 app.get("/api/trades", authRequired, async (req, res, next) => {
   try {
-    const storedTrades = await prisma.storedTrade.findMany({
-      where: { userId: req.user.id },
-      orderBy: [{ exitTime: "desc" }, { updatedAt: "desc" }],
-    });
-    const hasCurrencyPnl = storedTrades.some(
-      (trade) =>
-        typeof trade.profit === "number" ||
-        typeof trade.commission === "number" ||
-        typeof trade.swap === "number"
-    );
-
-    return res.json({
-      ok: true,
-      trades: storedTrades.map(storedTradeToJournalEntry),
-      pnlMeta: {
-        currency_pnl_available: hasCurrencyPnl,
-        message: hasCurrencyPnl
-          ? null
-          : "These stored trades do not include realised profit/loss fields yet, so the journal is shown in R-multiples until richer trade data is synced.",
-      },
-    });
+    const { trades, pnlMeta } = await buildAccountStatePayload(req.user.id);
+    return res.json({ ok: true, trades, pnlMeta });
   } catch (err) {
     return next(err);
   }

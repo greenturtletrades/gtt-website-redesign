@@ -395,6 +395,51 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
             ? "failed"
             : "running",
   });
+
+  const applyPersistedAccountState = (payload: any) => {
+    setAnalysisOptions({
+      availableTradeCount: payload.analysisOptions?.availableTradeCount ?? 0,
+      minimumTradeCount: payload.analysisOptions?.minimumTradeCount ?? 10,
+      recommendedTradeCount: payload.analysisOptions?.recommendedTradeCount ?? 200,
+      latestAnalysis: payload.analysisOptions?.latestAnalysis ?? null,
+    });
+
+    setModelRunHistory(
+      Array.isArray(payload.history) ? payload.history.map(mapRunHistoryItem) : []
+    );
+    setRunHistoryError(null);
+    setStoredJournalEntries(Array.isArray(payload.trades) ? payload.trades : []);
+    setStoredJournalPnlMeta(payload.pnlMeta ?? null);
+
+    const latest = payload.latestAnalysis;
+    if (latest?.report) {
+      setReportData(latest.report);
+      setStatsData((prev) => ({
+        tradesAnalysed: latest.tradesAnalysed ?? latest.report?.summary?.original_performance?.n_trades ?? prev.tradesAnalysed,
+        simulationsRun:
+          latest.report?.optimization_results?.summary?.n_trials ??
+          latest.report?.optimization_results?.n_trials ??
+          prev.simulationsRun,
+        regimesFound:
+          latest.report?.regimes?.regime_details?.length ??
+          latest.report?.summary?.n_regimes ??
+          prev.regimesFound,
+        avgRMultiple:
+          latest.avgRMultiple ??
+          latest.report?.summary?.original_performance?.avg_r ??
+          prev.avgRMultiple,
+      }));
+      if (latest.updatedAt) {
+        const latestRunAt = new Date(latest.updatedAt);
+        setLastRunTime((prev) => {
+          if (prev && prev.getTime() === latestRunAt.getTime()) {
+            return prev;
+          }
+          return latestRunAt;
+        });
+      }
+    }
+  };
   
   // Scroll to top whenever tab changes
   useEffect(() => {
@@ -432,141 +477,30 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   useEffect(() => {
     let cancelled = false;
 
-    const loadAnalysisOptions = async () => {
+    const loadAccountState = async () => {
       try {
         const token = localStorage.getItem("gtt_token");
         const authHeader: Record<string, string> = {};
         if (token) authHeader["Authorization"] = `Bearer ${token}`;
-        const response = await fetch(`${API_BASE}/api/analyse/options`, { headers: authHeader });
-        if (!response.ok) return;
-        const payload = await response.json();
-        if (!cancelled && payload.ok) {
-          setAnalysisOptions({
-            availableTradeCount: payload.availableTradeCount ?? 0,
-            minimumTradeCount: payload.minimumTradeCount ?? 10,
-            recommendedTradeCount: payload.recommendedTradeCount ?? 200,
-            latestAnalysis: payload.latestAnalysis ?? null,
-          });
-        }
-      } catch {
-        if (!cancelled) {
-          setAnalysisOptions((prev) => prev);
-        }
-      }
-    };
-
-    loadAnalysisOptions();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [API_BASE, lastRunTime]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadRunHistory = async () => {
-      try {
-        const token = localStorage.getItem("gtt_token");
-        const authHeader: Record<string, string> = {};
-        if (token) authHeader["Authorization"] = `Bearer ${token}`;
-        const response = await fetch(`${API_BASE}/api/analyse/history`, { headers: authHeader });
+        const response = await fetch(`${API_BASE}/api/account/state`, { headers: authHeader });
         if (!response.ok) {
           if (!cancelled) {
-            setRunHistoryError("Saved run history could not be loaded. The backend may be missing the latest migration or deploy.");
+            setRunHistoryError("Saved account data could not be loaded. The backend may be missing the latest migration or deploy.");
           }
           return;
         }
         const payload = await response.json();
         if (!cancelled && payload.ok) {
-          setModelRunHistory(
-            Array.isArray(payload.history) ? payload.history.map(mapRunHistoryItem) : []
-          );
-          setRunHistoryError(null);
+          applyPersistedAccountState(payload);
         }
       } catch {
         if (!cancelled) {
-          setRunHistoryError("Saved run history could not be loaded. The backend may be unavailable right now.");
+          setRunHistoryError("Saved account data could not be loaded. The backend may be unavailable right now.");
         }
       }
     };
 
-    loadRunHistory();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [API_BASE, lastRunTime]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadLatestAnalysis = async () => {
-      try {
-        const token = localStorage.getItem("gtt_token");
-        const authHeader: Record<string, string> = {};
-        if (token) authHeader["Authorization"] = `Bearer ${token}`;
-        const response = await fetch(`${API_BASE}/api/analyse/latest`, { headers: authHeader });
-        if (!response.ok) return;
-        const payload = await response.json();
-        const latest = payload.latestAnalysis;
-        if (!cancelled && latest?.report) {
-          setReportData(latest.report);
-          setStatsData((prev) => ({
-            tradesAnalysed: latest.tradesAnalysed ?? latest.report?.summary?.original_performance?.n_trades ?? prev.tradesAnalysed,
-            simulationsRun:
-              latest.report?.optimization_results?.summary?.n_trials ??
-              latest.report?.optimization_results?.n_trials ??
-              prev.simulationsRun,
-            regimesFound:
-              latest.report?.regimes?.regime_details?.length ??
-              latest.report?.summary?.n_regimes ??
-              prev.regimesFound,
-            avgRMultiple:
-              latest.avgRMultiple ??
-              latest.report?.summary?.original_performance?.avg_r ??
-              prev.avgRMultiple,
-          }));
-          if (latest.updatedAt) {
-            setLastRunTime(new Date(latest.updatedAt));
-          }
-        }
-      } catch {
-        // Keep the current in-memory state if the latest snapshot cannot be loaded.
-      }
-    };
-
-    loadLatestAnalysis();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [API_BASE]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadStoredJournal = async () => {
-      try {
-        const token = localStorage.getItem("gtt_token");
-        const authHeader: Record<string, string> = {};
-        if (token) authHeader["Authorization"] = `Bearer ${token}`;
-        const response = await fetch(`${API_BASE}/api/trades`, { headers: authHeader });
-        if (!response.ok) return;
-        const payload = await response.json();
-        if (!cancelled && payload.ok) {
-          setStoredJournalEntries(Array.isArray(payload.trades) ? payload.trades : []);
-          setStoredJournalPnlMeta(payload.pnlMeta ?? null);
-        }
-      } catch {
-        if (!cancelled) {
-          setStoredJournalEntries([]);
-          setStoredJournalPnlMeta(null);
-        }
-      }
-    };
-
-    loadStoredJournal();
+    loadAccountState();
 
     return () => {
       cancelled = true;
@@ -594,8 +528,10 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
     const tradesCount = analysisMode === "trades" ? effectiveTradeCount : Math.round(selectedMonths * 47);
     const estimatedCost = tradesCount * 0.20;
 
+    const tempRunId = `pending-${Date.now()}`;
+    let currentRunEntryId = tempRunId;
     const newLogEntry: ModelRunLog = {
-      id: `pending-${Date.now()}`,
+      id: tempRunId,
       timestamp: now,
       mode: analysisMode,
       tradesAnalysed: tradesCount,
@@ -639,9 +575,10 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
 
       const { jobId, analysisRunId } = await startRes.json();
       if (analysisRunId) {
+        currentRunEntryId = analysisRunId;
         setModelRunHistory((prev) =>
           prev.map((entry) =>
-            entry.id === newLogEntry.id ? { ...entry, id: analysisRunId } : entry
+            entry.id === tempRunId ? { ...entry, id: analysisRunId } : entry
           )
         );
       }
@@ -674,7 +611,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
               : newLogEntry.periodDescription;
 
           setModelRunHistory(prev => prev.map(entry =>
-            entry.id === newLogEntry.id
+            entry.id === currentRunEntryId
               ? {
                   ...entry,
                   status: "completed" as const,
@@ -705,14 +642,14 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       console.error("Model run failed:", err);
       setModelRunError(err instanceof Error ? err.message : "Model run failed.");
       setModelRunHistory(prev => prev.map(entry =>
-        entry.id === newLogEntry.id ? { ...entry, status: "failed" as const } : entry
+        entry.id === currentRunEntryId ? { ...entry, status: "failed" as const } : entry
       ));
     }
 
     if (!completed) {
       setModelRunError((prev) => prev ?? "Analysis timed out before the UI received a completed result.");
       setModelRunHistory(prev => prev.map(entry =>
-        entry.id === newLogEntry.id ? { ...entry, status: "failed" as const } : entry
+        entry.id === currentRunEntryId ? { ...entry, status: "failed" as const } : entry
       ));
     }
 
