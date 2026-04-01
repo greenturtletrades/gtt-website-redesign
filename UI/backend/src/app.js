@@ -554,8 +554,11 @@ async function persistTradesToMemory(userId, trades, { brokerAccountId = null, s
           tradeIdentity,
         },
       },
-      select: { id: true },
+      select: { id: true, lastSeenAt: true },
     });
+
+    const effectiveSeenAt =
+      existing?.lastSeenAt && existing.lastSeenAt > seenAt ? existing.lastSeenAt : seenAt;
 
     await prisma.storedTrade.upsert({
       where: {
@@ -570,14 +573,14 @@ async function persistTradesToMemory(userId, trades, { brokerAccountId = null, s
         source,
         tradeIdentity,
         ...normalizedTrade,
-        firstSeenAt: seenAt,
-        lastSeenAt: seenAt,
+        firstSeenAt: effectiveSeenAt,
+        lastSeenAt: effectiveSeenAt,
       },
       update: {
         brokerAccountId,
         source,
         ...normalizedTrade,
-        lastSeenAt: seenAt,
+        lastSeenAt: effectiveSeenAt,
       },
     });
 
@@ -634,33 +637,26 @@ async function getPendingStoredTradeCount(userId) {
 }
 
 async function buildAnalysisOptionsPayload(userId) {
-  const pendingStoredTradeCount = await getPendingStoredTradeCount(userId);
-  const storedTrades = await prisma.storedTrade.findMany({
-    where: { userId },
-    select: {
-      tradeIdentity: true,
-      lastSeenAt: true,
-      lastAnalysedAt: true,
-    },
-  });
-  const storedTradeState = new Map(
-    storedTrades.map((trade) => [trade.tradeIdentity, trade])
-  );
   const brokerAccounts = await prisma.brokerAccount.findMany({
     where: { userId, isActive: true },
     select: { id: true },
   });
 
   const brokerAccountIds = brokerAccounts.map((account) => account.id);
-  const events =
-    brokerAccountIds.length > 0 ? await getLatestHistoryExports(brokerAccountIds) : [];
-  const dedupedTrades = dedupeTrades(extractTradesFromEvents(events));
-  const latestPendingTradeCount = dedupedTrades.filter((row) => {
-    const identity = row.identity || buildTradeIdentity(row.trade, row.brokerAccountId);
-    if (!identity) return false;
-    const storedTrade = storedTradeState.get(identity);
-    return !storedTrade || !storedTrade.lastAnalysedAt || storedTrade.lastSeenAt > storedTrade.lastAnalysedAt;
-  }).length;
+  const events = brokerAccountIds.length > 0 ? await getLatestHistoryExports(brokerAccountIds) : [];
+
+  for (const event of events) {
+    const payload = event?.payload;
+    const trades = Array.isArray(payload) ? payload : Array.isArray(payload?.trades) ? payload.trades : [];
+    if (!Array.isArray(trades) || trades.length === 0) continue;
+    await persistTradesToMemory(userId, trades, {
+      brokerAccountId: event.brokerAccountId,
+      source: "ea_history_export",
+      seenAt: new Date(event.receivedAt),
+    });
+  }
+
+  const pendingStoredTradeCount = await getPendingStoredTradeCount(userId);
   const latestSnapshot = await prisma.analysisSnapshot.findFirst({
     where: { userId },
     orderBy: { updatedAt: "desc" },
@@ -681,9 +677,9 @@ async function buildAnalysisOptionsPayload(userId) {
       : null;
 
   return {
-    availableTradeCount: Math.max(pendingStoredTradeCount, latestPendingTradeCount),
+    availableTradeCount: pendingStoredTradeCount,
     minimumTradeCount: 10,
-    recommendedTradeCount: Math.min(200, Math.max(pendingStoredTradeCount, latestPendingTradeCount) || 200),
+    recommendedTradeCount: Math.min(200, pendingStoredTradeCount || 200),
     latestAnalysis: latestSnapshot
       ? {
           id: latestSnapshot.id,

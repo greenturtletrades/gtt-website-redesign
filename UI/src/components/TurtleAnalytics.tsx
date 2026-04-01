@@ -691,7 +691,11 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       : new Date(now.getTime() - selectedMonths * 30 * 24 * 60 * 60 * 1000);
     const proposedEndDate = now;
     
-    const overlappingRuns = modelRunHistory.filter(run => {
+    const comparableRuns = modelRunHistory.filter(
+      (run) => run.status === "completed" && run.tradesAnalysed > 0
+    );
+
+    const overlappingRuns = comparableRuns.filter(run => {
       // Check if date ranges overlap
       const runStart = run.dateRangeStart.getTime();
       const runEnd = run.dateRangeEnd.getTime();
