@@ -133,17 +133,18 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
     const tpM = policy.tp_mult?.toFixed(1) ?? "2.0";
     const optimisationFoundEdge = bestAvgR > (orig.avg_r ?? 0) && bestAvgR > 0;
 
-    const allRecs: string[] = [
-      ...(reportData.regimes?.recommendations ?? []),
-      ...(reportData.hold_time_insights?.recommendations ?? []),
-      ...(reportData.risk_recommendations?.recommendations ?? []),
+    const allRecs: Array<{ text: string; source: string }> = [
+      ...(reportData.regimes?.recommendations ?? []).map((text: string) => ({ text, source: "Regime clustering" })),
+      ...(reportData.hold_time_insights?.recommendations ?? []).map((text: string) => ({ text, source: "Hold-time analysis" })),
+      ...(reportData.risk_recommendations?.recommendations ?? []).map((text: string) => ({ text, source: "Risk analysis" })),
     ];
-    const recs = allRecs.slice(0, 3).map((r: string) => {
+    const recs = allRecs.slice(0, 3).map(({ text, source }) => {
+      const r = text;
       const idx = r.indexOf(" — ");
-      if (idx > -1) return { bold: r.slice(0, idx), rest: " — " + r.slice(idx + 3) };
+      if (idx > -1) return { bold: r.slice(0, idx), rest: " — " + r.slice(idx + 3), source };
       const idx2 = r.indexOf(" - ");
-      if (idx2 > -1) return { bold: r.slice(0, idx2), rest: " — " + r.slice(idx2 + 3) };
-      return { bold: r, rest: "" };
+      if (idx2 > -1) return { bold: r.slice(0, idx2), rest: " — " + r.slice(idx2 + 3), source };
+      return { bold: r, rest: "", source };
     });
 
     const strategyIsUnprofitable =
@@ -156,6 +157,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
           bold: "Current strategy is unprofitable in this run",
           rest:
             " — Focus on the least negative regime, strongest session, and tighter risk controls before scaling this setup.",
+          source: "Run summary",
         }
       : null;
 
@@ -388,6 +390,8 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         return {
           sl: `${Number(row.sl_mult ?? 0).toFixed(2)}R`,
           tp: `${Number(row.tp_mult ?? 0).toFixed(2)}R`,
+          trail: typeof row.trail_pct === "number" ? `${(row.trail_pct * 100).toFixed(1)}%` : "—",
+          maxHold: row.max_hold_minutes == null ? "None" : `${row.max_hold_minutes}m`,
           avgR: Number(row.avg_r ?? 0).toFixed(2),
           winRate:
             typeof row.win_rate === "number" ? `${Math.round(row.win_rate * 100)}%` : "—",
@@ -465,10 +469,10 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         ? [profitabilityRecommendation, ...recs].slice(0, 3)
         : recs.length > 0 ? recs : [
         optimisationFoundEdge
-          ? { bold: `Use ${slM}R SL / ${tpM}R TP`, rest: ` — Best tested policy improved on your baseline in this run` }
-          : { bold: "No consistent optimisation edge found", rest: " — The tested policies did not outperform your baseline in this run" },
-        { bold: "Review hold time", rest: " — Survival analysis output is shown only when the run supports it" },
-        { bold: "Adapt by regime", rest: " — Regime recommendations are shown only when clustering data is available" },
+          ? { bold: `Use ${slM}R SL / ${tpM}R TP`, rest: ` — Best tested policy improved on your baseline in this run`, source: "Policy optimisation" }
+          : { bold: "No consistent optimisation edge found", rest: " — The tested policies did not outperform your baseline in this run", source: "Policy optimisation" },
+        { bold: "Review hold time", rest: " — Survival analysis output is shown only when the run supports it", source: "Hold-time analysis" },
+        { bold: "Adapt by regime", rest: " — Regime recommendations are shown only when clustering data is available", source: "Regime clustering" },
       ],
       bestRegimeAvgR,
       topActionLabel: topRecommendation,
@@ -1862,7 +1866,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                           Recommendation {idx + 1} of {recommendationCards.length}
                         </div>
                         <div className="text-teal-700 text-xs mt-1">
-                          Generated from your most recent analysis snapshot only.
+                          Source: {rec.source}
                         </div>
                       </div>
                     </div>
@@ -1880,7 +1884,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                 Counterfactual Parameter Testing
               </h2>
               <p className="text-slate-600 text-sm mb-6">
-                We replayed all {statsData.tradesAnalysed.toLocaleString()} trades with different SL/TP combinations. Each row shows what your avg R-multiple would have been with those settings:
+                We replayed all {statsData.tradesAnalysed.toLocaleString()} trades under the top tested policy combinations from Bayesian optimisation. Rows may differ by stop loss, take profit, trailing stop, and time limit:
               </p>
               {hasCounterfactualResults ? (
                 <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -1889,6 +1893,8 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                       <tr>
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">Stop Loss</th>
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">Take Profit</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Trail</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Max Hold</th>
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">Avg R</th>
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">Win Rate</th>
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">95% CI</th>
@@ -1900,6 +1906,8 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                         <tr key={idx} className={`border-t border-slate-100 ${row.isRecommended ? 'bg-teal-50' : row.isCurrent ? 'bg-blue-50' : ''}`}>
                           <td className="py-3 px-4 text-sm">{row.sl}</td>
                           <td className="py-3 px-4 text-sm">{row.tp}</td>
+                          <td className="py-3 px-4 text-sm">{row.trail}</td>
+                          <td className="py-3 px-4 text-sm">{row.maxHold}</td>
                           <td className="py-3 px-4 text-sm font-semibold">{row.avgR}</td>
                           <td className="py-3 px-4 text-sm">{row.winRate}</td>
                           <td className="py-3 px-4 text-sm text-slate-500">{row.confidence}</td>
@@ -1924,7 +1932,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                   <div>
                     <div className="text-slate-900 text-sm mb-1">How This Works:</div>
                     <p className="text-slate-600 text-xs">
-                      When the report includes counterfactual rows, each line shows how the analysed trades would have performed under a different stop-loss and take-profit pair.
+                      When the report includes counterfactual rows, each line shows how the analysed trades would have performed under one tested policy combination from the optimiser. The visible columns show the management settings that differ between those top-ranked policies.
                     </p>
                   </div>
                 </div>
