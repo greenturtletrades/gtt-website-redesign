@@ -286,9 +286,9 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
           const maxR = Math.max(...rows.map((r: any) => r.avg_r));
           return rows.map((r: any) => ({
             duration: r.duration,
-            avgR: r.avg_r.toFixed(2),
+            avgR: `${r.avg_r.toFixed(2)}R`,
             count: r.count,
-            status: r.avg_r === maxR ? "Optimal" : r.avg_r < 0 ? "Losing" : "—",
+            status: r.avg_r === maxR ? "Highest Avg R" : r.avg_r < 0 ? "Negative Avg R" : "—",
             isOptimal: r.avg_r === maxR,
           }));
         })()
@@ -2241,7 +2241,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                 Optimal Hold Time
               </h2>
               <p className="text-slate-600 text-sm mb-6">
-                Hold-time buckets below are taken from the report when they are available.
+                Hold-time buckets below are taken from the report when they are available. Duration ranges are ranked by average R-multiple for trades in each bucket.
               </p>
               {hasHoldTimeResults ? (
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
