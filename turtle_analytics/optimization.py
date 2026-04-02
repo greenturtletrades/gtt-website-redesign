@@ -157,6 +157,9 @@ def optimize_policy(
             
             # Calculate metrics
             metrics = calculate_policy_metrics(sim_df)
+            for key, value in metrics.items():
+                if isinstance(value, (int, float, np.floating)) and np.isfinite(value):
+                    trial.set_user_attr(key, float(value))
             
             # Get objective value
             objective_value = metrics.get(objective_metric, 0.0)
@@ -200,6 +203,12 @@ def optimize_policy(
             **trial.params,
             f"{objective_metric}": -trial.value if trial.value is not None else None,
             "state": trial.state.name,
+            "avg_R": trial.user_attrs.get("avg_R"),
+            "winrate": trial.user_attrs.get("winrate"),
+            "median_R": trial.user_attrs.get("median_R"),
+            "std_R": trial.user_attrs.get("std_R"),
+            "n_trades": trial.user_attrs.get("n_trades"),
+            "total_R": trial.user_attrs.get("total_R"),
         }
         trials_data.append(trial_data)
     

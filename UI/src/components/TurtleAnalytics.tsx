@@ -377,8 +377,8 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
             ? ((row.ci_upper - row.ci_lower) / 2).toFixed(2)
             : ciVal;
         return {
-          sl: `${Number(row.sl_mult ?? 0).toFixed(1)}R`,
-          tp: `${Number(row.tp_mult ?? 0).toFixed(1)}R`,
+          sl: `${Number(row.sl_mult ?? 0).toFixed(2)}R`,
+          tp: `${Number(row.tp_mult ?? 0).toFixed(2)}R`,
           avgR: Number(row.avg_r ?? 0).toFixed(2),
           winRate:
             typeof row.win_rate === "number" ? `${Math.round(row.win_rate * 100)}%` : "—",
