@@ -142,6 +142,19 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       return { bold: r, rest: "" };
     });
 
+    const strategyIsUnprofitable =
+      (typeof totalCurrencyPnl === "number" && totalCurrencyPnl < 0) ||
+      (typeof orig.total_r === "number" && orig.total_r < 0) ||
+      (typeof orig.avg_r === "number" && orig.avg_r < 0);
+
+    const profitabilityRecommendation = strategyIsUnprofitable
+      ? {
+          bold: "Current strategy is unprofitable in this run",
+          rest:
+            " — Focus on the least negative regime, strongest session, and tighter risk controls before scaling this setup.",
+        }
+      : null;
+
     const bestRegimeAvgR = reportData.regimes?.regime_details?.length
       ? Math.max(...reportData.regimes.regime_details.map((r: any) => r.performance?.avg_r ?? 0)).toFixed(2)
       : "0.00";
@@ -416,7 +429,9 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         ? `+${impPct}% better performance`
         : "Best tested policy did not outperform your baseline",
       equityLabel: totalCurrencyPnl !== null ? "Cumulative Account P/L" : "Cumulative R",
-      recs: recs.length > 0 ? recs : [
+      recs: profitabilityRecommendation
+        ? [profitabilityRecommendation, ...recs].slice(0, 3)
+        : recs.length > 0 ? recs : [
         optimisationFoundEdge
           ? { bold: `Use ${slM}R SL / ${tpM}R TP`, rest: ` — Best tested policy improved on your baseline in this run` }
           : { bold: "No consistent optimisation edge found", rest: " — The tested policies did not outperform your baseline in this run" },

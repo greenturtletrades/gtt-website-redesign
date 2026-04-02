@@ -623,10 +623,17 @@ def create_regime_summary(
         best_type = summary["regimes"][best_regime]["regime_type"]
         worst_type = summary["regimes"][worst_regime]["regime_type"]
         
-        recommendations.append(
-            f"Best performance in {best_type} regime "
-            f"(avg R: {summary['regimes'][best_regime]['performance']['avg_r']:.3f})"
-        )
+        best_avg_r = summary["regimes"][best_regime]["performance"]["avg_r"]
+        if best_avg_r > 0:
+            recommendations.append(
+                f"Best performance in {best_type} regime "
+                f"(avg R: {best_avg_r:.3f})"
+            )
+        else:
+            recommendations.append(
+                f"Least negative performance in {best_type} regime "
+                f"(avg R: {best_avg_r:.3f})"
+            )
         
         recommendations.append(
             f"Weakest performance in {worst_type} regime "
