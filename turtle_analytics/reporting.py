@@ -755,8 +755,7 @@ def _compute_trade_analytics(df: pd.DataFrame) -> dict[str, Any]:
     # ── Hold time distribution ─────────────────────────────────────────────────
     if "duration_minutes" in df.columns and len(r_col) > 0:
         df3 = df[["R", "duration_minutes"]].dropna()
-        bin_edges = [0, 120, 240, 360, 480, np.inf]
-        bin_labels = ["0-2h", "2-4h", "4-6h", "6-8h", "8h+"]
+        bin_edges, bin_labels = _get_hold_time_bins(df3["duration_minutes"])
         df3 = df3.copy()
         df3["bucket"] = pd.cut(df3["duration_minutes"], bins=bin_edges, labels=bin_labels)
         ht_rows = []
@@ -846,6 +845,31 @@ def _build_currency_pnl_metadata(df: pd.DataFrame) -> dict[str, Any]:
         "source_column": None,
         "values": None,
     }
+
+
+def _get_hold_time_bins(duration_minutes: pd.Series) -> tuple[list[float], list[str]]:
+    clean = pd.to_numeric(duration_minutes, errors="coerce").dropna()
+    if len(clean) == 0:
+        return [0, 120, 240, 360, 480, np.inf], ["0-2h", "2-4h", "4-6h", "6-8h", "8h+"]
+
+    max_duration = float(clean.max())
+
+    if max_duration < 1:
+        return (
+            [0, 0.25, 0.5, 0.75, 1, np.inf],
+            ["0-15s", "15-30s", "30-45s", "45-60s", "60s+"],
+        )
+
+    if max_duration < 60:
+        return (
+            [0, 15, 30, 45, 60, np.inf],
+            ["0-15m", "15-30m", "30-45m", "45-60m", "60m+"],
+        )
+
+    return (
+        [0, 120, 240, 360, 480, np.inf],
+        ["0-2h", "2-4h", "4-6h", "6-8h", "8h+"],
+    )
 
 
 def _infer_exit_type(row: pd.Series) -> str:
