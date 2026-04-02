@@ -267,16 +267,22 @@ def build_report(
     # Summary - Original Performance
     original_performance = _calculate_original_performance(df)
     
+    simulated_best_df = _simulate_best_policy_frame(df, best_policy) if best_policy is not None else None
+
     # Summary - Best Performance
     if best_policy is not None:
+        best_performance_data = _calculate_best_policy_performance(simulated_best_df, best_policy)
         best_performance = {
-            "avg_r": best_policy.get("performance", {}).get("avg_r", 0.0),
-            "improvement": best_policy.get("performance", {}).get("avg_r", 0.0) - original_performance["avg_r"],
+            "avg_r": best_performance_data.get("avg_r", 0.0),
+            "improvement": best_performance_data.get("avg_r", 0.0) - original_performance["avg_r"],
             "improvement_pct": (
-                (best_policy.get("performance", {}).get("avg_r", 0.0) - original_performance["avg_r"]) 
+                (best_performance_data.get("avg_r", 0.0) - original_performance["avg_r"]) 
                 / abs(original_performance["avg_r"]) if original_performance["avg_r"] != 0 else 0
             ),
-            "win_rate": best_policy.get("performance", {}).get("win_rate", 0.0),
+            "win_rate": best_performance_data.get("win_rate", 0.0),
+            "total_r": best_performance_data.get("total_r"),
+            "total_currency_pnl": best_performance_data.get("total_currency_pnl"),
+            "avg_currency_pnl": best_performance_data.get("avg_currency_pnl"),
             "source": optimization_results.get("method", "unknown") if optimization_results else "unknown"
         }
     else:
@@ -292,7 +298,7 @@ def build_report(
     if best_policy is not None:
         global_policy = {
             "best_policy": best_policy.get("policy", {}),
-            "performance": best_policy.get("performance", {}),
+            "performance": _calculate_best_policy_performance(simulated_best_df, best_policy),
             "confidence": best_policy.get("confidence", {}),
         }
     
@@ -318,7 +324,7 @@ def build_report(
     pnl_metadata = _build_currency_pnl_metadata(df)
     trade_analytics = _compute_trade_analytics(df)
     if best_policy is not None:
-        trade_analytics["optimized_equity_curve"] = _build_optimized_equity_curve(df, best_policy)
+        trade_analytics["optimized_equity_curve"] = _build_optimized_equity_curve(df, simulated_best_df)
     else:
         trade_analytics["optimized_equity_curve"] = []
     trade_analytics["pnl_metadata"] = {
@@ -343,15 +349,47 @@ def build_report(
     return report
 
 
-def _build_optimized_equity_curve(df: pd.DataFrame, best_policy: dict[str, Any]) -> list[dict[str, Any]]:
+def _simulate_best_policy_frame(df: pd.DataFrame, best_policy: dict[str, Any] | None) -> pd.DataFrame | None:
     policy_dict = best_policy.get("policy", {}) if isinstance(best_policy, dict) else {}
     if not policy_dict:
-        return []
+        return None
 
     try:
         policy = PolicyParams.from_dict(policy_dict)
-        sim_df = run_simulation(df, policy, inplace=False)
+        return run_simulation(df, policy, inplace=False)
     except Exception:
+        return None
+
+
+def _calculate_best_policy_performance(sim_df: pd.DataFrame | None, best_policy: dict[str, Any]) -> dict[str, Any]:
+    fallback = dict(best_policy.get("performance", {})) if isinstance(best_policy, dict) else {}
+    if sim_df is None or "sim_R" not in sim_df.columns:
+        return fallback
+
+    sim_r = pd.to_numeric(sim_df["sim_R"], errors="coerce").dropna()
+    performance = {
+        "avg_r": float(sim_r.mean()) if len(sim_r) > 0 else fallback.get("avg_r", 0.0),
+        "win_rate": float((sim_r > 0).mean()) if len(sim_r) > 0 else fallback.get("win_rate", 0.0),
+        "total_r": float(sim_r.sum()) if len(sim_r) > 0 else fallback.get("total_r"),
+    }
+
+    pnl_metadata = _build_currency_pnl_metadata(sim_df)
+    if pnl_metadata.get("currency_pnl_available") and pnl_metadata.get("values") is not None and "R" in sim_df.columns:
+        actual_currency = pd.to_numeric(pnl_metadata["values"], errors="coerce")
+        actual_r = pd.to_numeric(sim_df["R"], errors="coerce")
+        sim_r_full = pd.to_numeric(sim_df["sim_R"], errors="coerce")
+        cash_risk = actual_currency.divide(actual_r.replace(0, np.nan))
+        sim_currency = cash_risk * sim_r_full
+        sim_currency = sim_currency.replace([np.inf, -np.inf], np.nan)
+        if sim_currency.notna().sum() > 0:
+            performance["total_currency_pnl"] = float(sim_currency.fillna(0.0).sum())
+            performance["avg_currency_pnl"] = float(sim_currency.dropna().mean())
+
+    return performance
+
+
+def _build_optimized_equity_curve(df: pd.DataFrame, sim_df: pd.DataFrame | None) -> list[dict[str, Any]]:
+    if sim_df is None:
         return []
 
     if "sim_R" not in sim_df.columns:
@@ -363,15 +401,26 @@ def _build_optimized_equity_curve(df: pd.DataFrame, best_policy: dict[str, Any])
         return []
 
     cum = sim_r.cumsum().reset_index(drop=True)
+    cumulative_pnl = None
+    pnl_metadata = _build_currency_pnl_metadata(sim_df)
+    if pnl_metadata.get("currency_pnl_available") and pnl_metadata.get("values") is not None and "R" in sim_df.columns:
+        actual_currency = pd.to_numeric(pnl_metadata["values"], errors="coerce").reset_index(drop=True)
+        actual_r = pd.to_numeric(sim_df["R"], errors="coerce").reset_index(drop=True)
+        sim_r_full = pd.to_numeric(sim_df["sim_R"], errors="coerce").reset_index(drop=True)
+        cash_risk = actual_currency.divide(actual_r.replace(0, np.nan))
+        sim_currency = (cash_risk * sim_r_full).replace([np.inf, -np.inf], np.nan).fillna(0.0)
+        cumulative_pnl = sim_currency.cumsum()
+
     n = len(cum)
     step = max(1, n // 19)
     indices = list(range(0, n, step)) + [n - 1]
     indices = sorted(set(indices))
-    curve = [{"trade": 0, "cumulative_r": 0.0}]
+    curve = [{"trade": 0, "cumulative_r": 0.0, "cumulative_pnl": 0.0 if cumulative_pnl is not None else None}]
     for idx in indices:
         curve.append({
             "trade": int(idx + 1),
             "cumulative_r": round(float(cum.iloc[idx]), 3),
+            "cumulative_pnl": round(float(cumulative_pnl.iloc[idx]), 2) if cumulative_pnl is not None else None,
         })
     return curve
 
