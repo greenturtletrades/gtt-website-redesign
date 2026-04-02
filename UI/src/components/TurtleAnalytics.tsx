@@ -309,7 +309,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       if (typeof riskRec.suggested_risk_fraction === "number") {
         rows.push({
           riskPct: `${(riskRec.suggested_risk_fraction * 100).toFixed(2)}%`,
-          basis: "System recommendation",
+          basis: "Adjusted Kelly",
           maxDD: typeof maxDrawdownR === "number" ? `${Math.abs(maxDrawdownR).toFixed(2)}R` : "—",
           status: "Recommended",
           isCurrent: true,
