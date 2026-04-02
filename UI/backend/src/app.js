@@ -3896,6 +3896,8 @@ app.get("/api/analyse/:jobId", authRequired, async (req, res, next) => {
         unique_trade_count: jobContext?.uniqueTradeCount ?? data.trades_analysed ?? originalPerformance.n_trades ?? null,
         duplicate_trade_count: jobContext?.duplicateTradeCount ?? 0,
         available_trade_count: jobContext?.availableTradeCount ?? null,
+        simulations_run: data.simulations_run ?? null,
+        regimes_found: data.regimes_found ?? null,
       });
 
       let existingSnapshot = null;

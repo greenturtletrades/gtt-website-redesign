@@ -417,10 +417,12 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       setStatsData((prev) => ({
         tradesAnalysed: latest.tradesAnalysed ?? latest.report?.summary?.original_performance?.n_trades ?? prev.tradesAnalysed,
         simulationsRun:
+          latest.report?.metadata?.simulations_run ??
           latest.report?.optimization_results?.summary?.n_trials ??
           latest.report?.optimization_results?.n_trials ??
           prev.simulationsRun,
         regimesFound:
+          latest.report?.metadata?.regimes_found ??
           latest.report?.regimes?.regime_details?.length ??
           latest.report?.summary?.n_regimes ??
           prev.regimesFound,
