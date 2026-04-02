@@ -3523,18 +3523,14 @@ app.delete("/api/account/analysis-data", authRequired, async (req, res, next) =>
         where: { userId: req.user.id },
       });
 
-      await tx.storedTrade.updateMany({
+      await tx.storedTrade.deleteMany({
         where: { userId: req.user.id },
-        data: {
-          lastAnalysedAt: null,
-          analysisCount: 0,
-        },
       });
     });
 
     return res.json({
       ok: true,
-      message: "Saved analysis runs and snapshots were cleared. Stored trades remain available for a fresh rerun.",
+      message: "Saved analysis runs, snapshots, and stored trade history were cleared for this account.",
     });
   } catch (err) {
     return next(err);

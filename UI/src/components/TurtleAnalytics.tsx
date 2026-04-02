@@ -583,7 +583,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
 
   const handleClearAnalysisData = async () => {
     const confirmed = window.confirm(
-      "Clear saved model runs and snapshots for this account? Stored trades will remain, so you can rerun the model against the same account history."
+      "Clear saved model runs, snapshots, and stored journal trades for this account? This removes the saved trade ledger as well, so the next run must come from a fresh EA export or CSV upload."
     );
     if (!confirmed) return;
 
@@ -607,6 +607,8 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       setReportData(null);
       setStatsData({ tradesAnalysed: 0, simulationsRun: 0, regimesFound: 0, avgRMultiple: 0 });
       setModelRunHistory([]);
+      setStoredJournalEntries([]);
+      setStoredJournalPnlMeta(null);
       setLastRunTime(null);
       await loadPersistedAccountState();
     } catch (err) {
@@ -1361,7 +1363,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                           : "bg-rose-50 text-rose-700 hover:bg-rose-100"
                       }`}
                     >
-                      {isClearingAnalysisData ? "Clearing..." : "Clear Saved Analysis Data"}
+                      {isClearingAnalysisData ? "Clearing..." : "Clear Saved Analysis And Journal Data"}
                     </button>
                   </div>
                 </div>
