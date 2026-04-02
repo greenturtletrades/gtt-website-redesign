@@ -226,7 +226,6 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
             isBest,
             rawAvgR: s.avg_r,
             rawWinRate: s.win_rate,
-            isTopRanked: topRow ? index === 0 : false,
           });
           });
         })()
