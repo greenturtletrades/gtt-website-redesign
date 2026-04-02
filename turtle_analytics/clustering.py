@@ -559,6 +559,32 @@ def create_regime_summary(
         "recommendations": [],
     }
     
+    def _base_regime_type(chars: dict[str, Any]) -> str:
+        trend_strength = float(chars.get("trend_strength", 0.5) or 0.0)
+        volatility = float(chars.get("volatility_recent", 0.0) or 0.0)
+
+        if trend_strength >= 0.8:
+            trend_label = "Strong Trend"
+        elif trend_strength >= 0.6:
+            trend_label = "Trending"
+        elif trend_strength >= 0.35:
+            trend_label = "Mixed"
+        else:
+            trend_label = "Ranging"
+
+        if volatility >= 0.05:
+            vol_label = "Extreme Volatility"
+        elif volatility >= 0.02:
+            vol_label = "High Volatility"
+        elif volatility >= 0.008:
+            vol_label = "Moderate Volatility"
+        else:
+            vol_label = "Low Volatility"
+
+        return f"{trend_label} / {vol_label}"
+
+    raw_regimes: list[tuple[int, dict[str, Any], float, float]] = []
+
     # Characterize each regime
     for regime_id in regime_ids:
         regime_df = df[df["regime"] == regime_id]
@@ -569,24 +595,9 @@ def create_regime_summary(
         else:
             chars = {}
         
-        # Classify regime type based on characteristics
-        trend_strength = chars.get("trend_strength", 0.5)
-        volatility = chars.get("volatility_recent", 0.5)
-        
-        if trend_strength > 0.6:
-            if volatility > 0.02:
-                regime_type = "Trending High Volatility"
-            else:
-                regime_type = "Trending Low Volatility"
-        else:
-            if volatility > 0.02:
-                regime_type = "Ranging Volatile"
-            else:
-                regime_type = "Ranging Tight"
-        
         regime_info = {
             "regime_id": int(regime_id),
-            "regime_type": regime_type,
+            "regime_type": _base_regime_type(chars),
             "n_trades": len(regime_df),
             "characteristics": chars,
             "performance": {
@@ -595,8 +606,29 @@ def create_regime_summary(
                 "total_r": float(regime_df["R"].sum()),
             },
         }
-        
-        summary["regimes"][int(regime_id)] = regime_info
+        raw_regimes.append((
+            int(regime_id),
+            regime_info,
+            float(chars.get("trend_strength", 0.0) or 0.0),
+            float(chars.get("volatility_recent", 0.0) or 0.0),
+        ))
+
+    label_groups: dict[str, list[tuple[int, dict[str, Any], float, float]]] = {}
+    for regime_id, regime_info, trend_strength, volatility in raw_regimes:
+        label_groups.setdefault(regime_info["regime_type"], []).append((regime_id, regime_info, trend_strength, volatility))
+
+    for _, grouped in label_groups.items():
+        if len(grouped) == 1:
+            regime_id, regime_info, _, _ = grouped[0]
+            summary["regimes"][regime_id] = regime_info
+            continue
+
+        grouped.sort(key=lambda item: (item[2], item[3], item[1]["performance"]["avg_r"]), reverse=True)
+        descriptors = ["Higher Momentum", "Balanced", "Lower Momentum", "Lowest Momentum"]
+        for idx, (regime_id, regime_info, _, _) in enumerate(grouped):
+            descriptor = descriptors[idx] if idx < len(descriptors) else f"Variant {idx + 1}"
+            regime_info["regime_type"] = f"{regime_info['regime_type']} ({descriptor})"
+            summary["regimes"][regime_id] = regime_info
     
     # Add optimized policies if provided
     if regime_policies:

@@ -178,7 +178,12 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         .replace(/\b\w/g, (char) => char.toUpperCase());
 
     const marketRegimes = reportData.regimes?.regime_details?.length
-      ? reportData.regimes.regime_details.map((r: any, i: number) => {
+      ? (() => {
+          const rows = [...reportData.regimes.regime_details];
+          const ranked = [...rows].sort((a: any, b: any) => (b.performance?.avg_r ?? 0) - (a.performance?.avg_r ?? 0));
+          const bestRegimeId = ranked[0]?.regime_id ?? null;
+          const worstRegimeId = ranked[ranked.length - 1]?.regime_id ?? null;
+          return rows.map((r: any, i: number) => {
           const avgRNum = r.performance?.avg_r ?? 0;
           const colorIdx = avgRNum > 1.0 ? 0 : avgRNum > 0.5 ? 1 : avgRNum > 0.2 ? 2 : avgRNum > 0 ? 3 : 4;
           const op = r.optimal_policy ?? {};
@@ -189,6 +194,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
             .join(", ");
           return {
             regime: r.regime_type ?? `Regime ${r.regime_id}`,
+            regimeId: r.regime_id,
             avgR: avgRNum.toFixed(2),
             winRate: `${Math.round((r.performance?.win_rate ?? 0) * 100)}%`,
             trades: r.n_trades ?? 0,
@@ -197,8 +203,11 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
             bestTP: op.tp_mult ? `${(op.tp_mult as number).toFixed(1)}R` : "—",
             coverage: `${Math.round((r.percentage ?? 0) * 100)}% of trades`,
             color: regimeColors[colorIdx] ?? regimeColors[i % regimeColors.length],
+            isBest: r.regime_id === bestRegimeId,
+            isWorst: r.regime_id === worstRegimeId,
           };
-        })
+        });
+      })()
       : [];
 
     const rMultipleData = reportData.trade_analytics?.r_distribution?.length
@@ -2133,7 +2142,19 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                         <div key={idx} className={`${regime.color} border-2 rounded-xl p-5`}>
                           <div className="flex items-start justify-between mb-3">
                             <div>
-                              <h3 className="text-lg mb-1">{regime.regime}</h3>
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <h3 className="text-lg">{regime.regime}</h3>
+                                {regime.isBest && (
+                                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                                    Best
+                                  </span>
+                                )}
+                                {regime.isWorst && (
+                                  <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-medium text-rose-700">
+                                    Worst
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-xs text-slate-600">{regime.features}</p>
                             </div>
                             <div className="text-right">
