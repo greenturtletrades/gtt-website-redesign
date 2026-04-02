@@ -509,6 +509,39 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
     };
   }, [API_BASE, lastRunTime]);
 
+  useEffect(() => {
+    if (!showRunModelModal) return;
+
+    let cancelled = false;
+
+    const refreshAnalysisOptions = async () => {
+      try {
+        const token = localStorage.getItem("gtt_token");
+        const authHeader: Record<string, string> = {};
+        if (token) authHeader["Authorization"] = `Bearer ${token}`;
+        const response = await fetch(`${API_BASE}/api/analyse/options`, { headers: authHeader });
+        if (!response.ok) return;
+        const payload = await response.json();
+        if (!cancelled && payload.ok) {
+          setAnalysisOptions({
+            availableTradeCount: payload.availableTradeCount ?? 0,
+            minimumTradeCount: payload.minimumTradeCount ?? 10,
+            recommendedTradeCount: payload.recommendedTradeCount ?? 200,
+            latestAnalysis: payload.latestAnalysis ?? null,
+          });
+        }
+      } catch {
+        // Keep the last known options if this refresh fails.
+      }
+    };
+
+    refreshAnalysisOptions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [API_BASE, showRunModelModal]);
+
   const minTradeSelection = Math.max(10, analysisOptions.minimumTradeCount || 10);
   const maxTradeSelection = Math.max(minTradeSelection, analysisOptions.availableTradeCount || minTradeSelection);
   const effectiveTradeCount = Math.min(Math.max(selectedTradeCount, minTradeSelection), maxTradeSelection);

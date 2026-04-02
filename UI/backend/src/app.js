@@ -705,14 +705,14 @@ async function syncStoredTradesFromMt(userId, brokerAccountIds, { requestFresh =
   return events;
 }
 
-async function buildAnalysisOptionsPayload(userId) {
+async function buildAnalysisOptionsPayload(userId, { requestFresh = false } = {}) {
   const brokerAccounts = await prisma.brokerAccount.findMany({
     where: { userId, isActive: true },
     select: { id: true },
   });
 
   const brokerAccountIds = brokerAccounts.map((account) => account.id);
-  await syncStoredTradesFromMt(userId, brokerAccountIds, { requestFresh: true, timeoutMs: 8000 });
+  await syncStoredTradesFromMt(userId, brokerAccountIds, { requestFresh, timeoutMs: 8000 });
 
   const pendingStoredTradeCount = await getPendingStoredTradeCount(userId);
   const latestSnapshot = await prisma.analysisSnapshot.findFirst({
@@ -3471,7 +3471,7 @@ const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL || "http://localhost:8
 
 app.get("/api/analyse/options", authRequired, async (req, res, next) => {
   try {
-    return res.json({ ok: true, ...(await buildAnalysisOptionsPayload(req.user.id)) });
+    return res.json({ ok: true, ...(await buildAnalysisOptionsPayload(req.user.id, { requestFresh: true })) });
   } catch (err) {
     return next(err);
   }
