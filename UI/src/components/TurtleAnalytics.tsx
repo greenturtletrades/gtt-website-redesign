@@ -309,7 +309,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       if (typeof riskRec.suggested_risk_fraction === "number") {
         rows.push({
           riskPct: `${(riskRec.suggested_risk_fraction * 100).toFixed(2)}%`,
-          basis: "Adjusted Kelly",
+          basis: "Variance-adjusted Kelly",
           maxDD: typeof maxDrawdownR === "number" ? `${Math.abs(maxDrawdownR).toFixed(2)}R` : "—",
           status: "Recommended",
           isCurrent: true,
@@ -2260,7 +2260,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                 Risk Fraction Optimisation
               </h2>
               <p className="text-slate-600 text-sm mb-6">
-                Risk fraction rows below are generated only when the report includes Kelly or risk recommendation output.
+                Risk fraction rows below are generated from the sizing methods used in the latest run: variance-adjusted Kelly, half Kelly, and full Kelly.
               </p>
               {hasRiskFractionResults ? (
                 <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
