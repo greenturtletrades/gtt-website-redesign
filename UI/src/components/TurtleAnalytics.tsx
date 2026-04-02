@@ -344,7 +344,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
           lossStreak: r.loss_streak,
           occurrences: r.occurrences,
           nextWinRate: `${Math.round(r.next_win_rate * 100)}%`,
-          nextAvgR: r.next_avg_r.toFixed(2),
+          nextAvgR: `${r.next_avg_r >= 0 ? "+" : ""}${r.next_avg_r.toFixed(2)}R`,
         }))
       : [];
 
@@ -2303,7 +2303,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                 Sequential Loss Pattern Detection
               </h2>
               <p className="text-slate-600 text-sm mb-6">
-                Sequential loss patterns are shown only when the report includes enough ordered trade history to calculate them.
+                These cards show what happened on the very next trade after each loss streak length: the next-trade win rate, next-trade average R, and how many times that pattern occurred in this run.
               </p>
               {hasConsecutiveLossData ? (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -2313,9 +2313,10 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                       <div className={`text-2xl mb-1 ${loss.lossStreak === '4+ Losses' ? 'text-red-700 font-semibold' : ''}`}>
                         {loss.nextWinRate}
                       </div>
-                      <div className="text-xs text-slate-500 mb-1">next win rate</div>
+                      <div className="text-xs text-slate-500 mb-1">Next-trade win rate</div>
                       <div className="text-sm mb-1">{loss.nextAvgR}</div>
-                      <div className="text-xs text-slate-400">{loss.occurrences} times</div>
+                      <div className="text-xs text-slate-500 mb-1">Next-trade avg R</div>
+                      <div className="text-xs text-slate-400">{loss.occurrences} occurrences</div>
                     </div>
                   ))}
                 </div>
