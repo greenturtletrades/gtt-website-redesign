@@ -80,6 +80,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         marketRegimes: [],
         rMultipleData: [],
         equityCurveData: [],
+        hasOptimisedEquityCurve: false,
         sessionPerformance: [],
         holdTimeResults: [],
         riskFractionResults: [],
@@ -96,17 +97,28 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
     const conf = reportData.global_policy?.confidence ?? {};
     const n = orig.n_trades ?? 0;
     const bestAvgR = best.avg_r ?? orig.avg_r ?? 0;
+    const bestTotalR =
+      typeof reportData.global_policy?.performance?.total_r === "number"
+        ? reportData.global_policy.performance.total_r
+        : typeof reportData.summary?.best_performance?.total_r === "number"
+          ? reportData.summary.best_performance.total_r
+          : null;
     const journalEntries = reportData.trade_analytics?.journal_entries ?? [];
     const pnlMeta = reportData.trade_analytics?.pnl_metadata ?? {};
     const hasCurrencyPnl = pnlMeta.currency_pnl_available === true;
     const totalCurrencyPnl = hasCurrencyPnl
       ? journalEntries.reduce((sum: number, entry: any) => sum + (typeof entry.result === "number" ? entry.result : 0), 0)
       : null;
-    const pnlRatio = (orig.avg_r ?? 0) !== 0 ? bestAvgR / (orig.avg_r ?? 1) : 1;
-    const optimisedCurrencyPnl = totalCurrencyPnl !== null ? totalCurrencyPnl * pnlRatio : null;
-    const gain = totalCurrencyPnl !== null && optimisedCurrencyPnl !== null
-      ? optimisedCurrencyPnl - totalCurrencyPnl
-      : null;
+    const optimisedCurrencyPnl =
+      typeof reportData.global_policy?.performance?.total_currency_pnl === "number"
+        ? reportData.global_policy.performance.total_currency_pnl
+        : null;
+    const gain =
+      totalCurrencyPnl !== null && optimisedCurrencyPnl !== null
+        ? optimisedCurrencyPnl - totalCurrencyPnl
+        : typeof bestTotalR === "number" && typeof orig.total_r === "number"
+          ? bestTotalR - orig.total_r
+          : null;
     const impPct = orig.avg_r && orig.avg_r !== 0
       ? (((bestAvgR - orig.avg_r) / Math.abs(orig.avg_r)) * 100).toFixed(1)
       : "0.0";
@@ -154,7 +166,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
             features: Object.entries(r.characteristics ?? {}).slice(0, 2).map(([k, v]) => `${k}: ${typeof v === 'number' ? (v as number).toFixed(3) : v}`).join(", ") || "—",
             bestSL: op.sl_mult ? `${(op.sl_mult as number).toFixed(1)}R` : "—",
             bestTP: op.tp_mult ? `${(op.tp_mult as number).toFixed(1)}R` : "—",
-            confidence: "±0.10",
+            confidence: "—",
             color: regimeColors[colorIdx] ?? regimeColors[i % regimeColors.length],
           };
         })
@@ -164,17 +176,28 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       ? reportData.trade_analytics.r_distribution
       : [];
 
+    const hasOptimisedEquityCurve =
+      Array.isArray(reportData.trade_analytics?.optimized_equity_curve) &&
+      reportData.trade_analytics.optimized_equity_curve.length > 0;
     const equityCurveData = reportData.trade_analytics?.equity_curve?.length
       ? (() => {
           const usesCurrencyCurve = reportData.trade_analytics.equity_curve.some((pt: any) => typeof pt.cumulative_pnl === "number");
+          const optimizedCurveByTrade = hasOptimisedEquityCurve
+            ? new Map(
+                reportData.trade_analytics.optimized_equity_curve.map((pt: any) => [
+                  pt.trade,
+                  usesCurrencyCurve && typeof pt.cumulative_pnl === "number"
+                    ? Number(pt.cumulative_pnl.toFixed(2))
+                    : Number((pt.cumulative_r ?? 0).toFixed(3)),
+                ])
+              )
+            : null;
           return reportData.trade_analytics.equity_curve.map((pt: any) => ({
             trade: pt.trade,
             actual: usesCurrencyCurve && typeof pt.cumulative_pnl === "number"
               ? Number(pt.cumulative_pnl.toFixed(2))
               : Number((pt.cumulative_r ?? 0).toFixed(3)),
-            optimised: usesCurrencyCurve && typeof pt.cumulative_pnl === "number"
-              ? Number((pt.cumulative_pnl * pnlRatio).toFixed(2))
-              : Number(((pt.cumulative_r ?? 0) * pnlRatio).toFixed(3)),
+            optimised: optimizedCurveByTrade?.get(pt.trade),
           }));
         })()
       : [];
@@ -211,19 +234,58 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       : [];
 
     const riskFractionResults = (() => {
-      const kelly = reportData.risk_recommendations?.kelly_criterion;
-      const suggestedPct = reportData.risk_recommendations?.suggested_risk_fraction ?? 0.01;
-      if (!kelly) return [];
-      const avgR = orig.avg_r ?? 0;
-      const fractions = [suggestedPct * 0.5, suggestedPct, suggestedPct * 1.5, suggestedPct * 2];
-      return fractions.map((f, i) => ({
-        riskPct: `${(f * 100).toFixed(1)}%`,
-        avgR: avgR.toFixed(2),
-        sharpe: (avgR / Math.max(0.1, (orig.std_r ?? 1) * Math.sqrt(f))).toFixed(2),
-        maxDD: `${(-Math.abs((reportData.risk_recommendations?.risk_metrics?.max_drawdown_r ?? -5) * f * 100)).toFixed(1)}%`,
-        status: i === 0 ? "Too conservative" : i === 1 ? "Recommended" : i === 2 ? "Acceptable" : "Too aggressive",
-        isCurrent: i === 1,
-      }));
+      const riskRec = reportData.risk_recommendations ?? {};
+      const kelly = riskRec.kelly_criterion ?? {};
+      const maxDrawdownR = riskRec.risk_metrics?.max_drawdown_r;
+      const rows: Array<{
+        riskPct: string;
+        basis: string;
+        maxDD: string;
+        status: string;
+        isCurrent: boolean;
+      }> = [];
+
+      if (typeof riskRec.suggested_risk_fraction === "number") {
+        rows.push({
+          riskPct: `${(riskRec.suggested_risk_fraction * 100).toFixed(2)}%`,
+          basis: "System recommendation",
+          maxDD: typeof maxDrawdownR === "number" ? `${Math.abs(maxDrawdownR).toFixed(2)}R` : "—",
+          status: "Recommended",
+          isCurrent: true,
+        });
+      }
+
+      if (typeof kelly.recommended === "number") {
+        rows.push({
+          riskPct: `${(kelly.recommended * 100).toFixed(2)}%`,
+          basis: "Kelly recommended",
+          maxDD: typeof maxDrawdownR === "number" ? `${Math.abs(maxDrawdownR).toFixed(2)}R` : "—",
+          status: "Kelly-based",
+          isCurrent: rows.length === 0,
+        });
+      }
+
+      if (typeof kelly.half_kelly === "number") {
+        rows.push({
+          riskPct: `${(kelly.half_kelly * 100).toFixed(2)}%`,
+          basis: "Half Kelly",
+          maxDD: typeof maxDrawdownR === "number" ? `${Math.abs(maxDrawdownR).toFixed(2)}R` : "—",
+          status: "Conservative",
+          isCurrent: false,
+        });
+      }
+
+      if (typeof kelly.full_kelly === "number") {
+        rows.push({
+          riskPct: `${(kelly.full_kelly * 100).toFixed(2)}%`,
+          basis: "Full Kelly",
+          maxDD: typeof maxDrawdownR === "number" ? `${Math.abs(maxDrawdownR).toFixed(2)}R` : "—",
+          status: "Aggressive",
+          isCurrent: false,
+        });
+      }
+
+      return rows;
     })();
 
     const consecutiveLossData = reportData.trade_analytics?.consecutive_loss_analysis?.length
@@ -295,10 +357,12 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
     return {
       currentPnl: totalCurrencyPnl !== null ? formatAccountMetric(totalCurrencyPnl) : `${(orig.total_r ?? 0).toFixed(2)}R`,
       optimisedPnl: optimisationFoundEdge
-        ? (optimisedCurrencyPnl !== null ? formatAccountMetric(optimisedCurrencyPnl) : `${(bestAvgR * n).toFixed(2)}R`)
+        ? (optimisedCurrencyPnl !== null ? formatAccountMetric(optimisedCurrencyPnl) : typeof bestTotalR === "number" ? `${bestTotalR.toFixed(2)}R` : `${bestAvgR.toFixed(2)}R avg`)
         : "No consistent edge found",
       gainPnl: optimisationFoundEdge
-        ? (gain !== null ? formatAccountMetric(gain) : `${Math.abs(bestAvgR - (orig.avg_r ?? 0)).toFixed(2)}R/trade`)
+        ? (gain !== null
+            ? (optimisedCurrencyPnl !== null && totalCurrencyPnl !== null ? formatAccountMetric(gain) : `${gain.toFixed(2)}R`)
+            : `${Math.abs(bestAvgR - (orig.avg_r ?? 0)).toFixed(2)}R/trade`)
         : "No reliable uplift",
       avgR: (orig.avg_r ?? 0).toFixed(2),
       winRate: Math.round((orig.win_rate ?? 0) * 100).toString(),
@@ -306,17 +370,19 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       improvementPct: impPct,
       avgPerTrade: totalCurrencyPnl !== null && n > 0 ? formatAccountMetric(totalCurrencyPnl / n) : (orig.avg_r ?? 0).toFixed(2),
       bestAvgPerTrade: optimisationFoundEdge
-        ? (optimisedCurrencyPnl !== null && n > 0 ? formatAccountMetric(optimisedCurrencyPnl / n) : bestAvgR.toFixed(2))
+        ? (optimisedCurrencyPnl !== null && n > 0 ? formatAccountMetric(optimisedCurrencyPnl / n) : `${bestAvgR.toFixed(2)}R`)
         : "Not reliable",
       ci: ciVal,
       slMult: slM, tpMult: tpM,
       optimisationFoundEdge,
       optimisationHeadline: optimisationFoundEdge ? "Optimised Parameters" : "Optimisation Outcome",
       optimisationSubtext: optimisationFoundEdge
-        ? `Projected average trade outcome ${optimisedCurrencyPnl !== null && n > 0 ? formatAccountMetric(optimisedCurrencyPnl / n) : bestAvgR.toFixed(2)} (${bestAvgR.toFixed(2)}R, 95% CI: ±${ciVal})`
+        ? `Best tested policy averaged ${bestAvgR.toFixed(2)}R per trade (95% CI: ±${ciVal})`
         : `No consistent edge was found in this run. Best tested policy still averaged ${bestAvgR.toFixed(2)}R.`,
       improvementDisplay: optimisationFoundEdge
-        ? (gain !== null ? formatAccountMetric(gain) : `${Math.abs(bestAvgR - (orig.avg_r ?? 0)).toFixed(2)}R/trade`)
+        ? (gain !== null
+            ? (optimisedCurrencyPnl !== null && totalCurrencyPnl !== null ? formatAccountMetric(gain) : `${gain.toFixed(2)}R`)
+            : `${Math.abs(bestAvgR - (orig.avg_r ?? 0)).toFixed(2)}R/trade`)
         : "No improvement confirmed",
       improvementSubtext: optimisationFoundEdge
         ? `+${impPct}% better performance`
@@ -338,6 +404,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       marketRegimes,
       rMultipleData,
       equityCurveData,
+      hasOptimisedEquityCurve,
       sessionPerformance,
       holdTimeResults,
       riskFractionResults,
@@ -786,6 +853,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   const riskFractionResults = derived.riskFractionResults;
   const rMultipleData = derived.rMultipleData;
   const equityCurveComparison = derived.equityCurveData;
+  const hasOptimisedEquityCurve = derived.hasOptimisedEquityCurve === true;
   const consecutiveLossData = derived.consecutiveLossData;
   const journalEntries =
     reportData?.trade_analytics?.journal_entries ??
@@ -1531,9 +1599,13 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
             {expandedSections.performance && (
               <div className="mt-4 bg-white border border-slate-200 rounded-xl p-6 sm:p-8">
                 <div className="mb-8 text-center">
-                  <h3 className="text-slate-900 mb-3 text-2xl">Your Equity Curve vs. Optimised Settings</h3>
+                  <h3 className="text-slate-900 mb-3 text-2xl">
+                    {hasOptimisedEquityCurve ? "Your Equity Curve vs. Optimised Settings" : "Your Equity Curve"}
+                  </h3>
                   <p className="text-slate-600 max-w-2xl mx-auto text-base">
-                    Your cumulative equity performance vs. what Bayesian optimisation found on the same analysed trades
+                    {hasOptimisedEquityCurve
+                      ? "Your cumulative equity performance vs. what Bayesian optimisation found on the same analysed trades"
+                      : "Your cumulative performance from the latest completed analysis run"}
                   </p>
                 </div>
 
@@ -1589,7 +1661,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                       name="Your Equity"
                       dot={false}
                     />
-                    {derived.optimisationFoundEdge && (
+                    {derived.optimisationFoundEdge && hasOptimisedEquityCurve && (
                       <Line 
                         type="monotone" 
                         dataKey="optimised" 
@@ -2051,8 +2123,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                     <thead className="bg-slate-50">
                       <tr>
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">Risk Per Trade</th>
-                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Avg R</th>
-                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Sharpe Ratio</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Basis</th>
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">Max Drawdown</th>
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">Assessment</th>
                       </tr>
@@ -2061,8 +2132,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                       {riskFractionResults.map((row, idx) => (
                         <tr key={idx} className={`border-t border-slate-100 ${row.isCurrent ? 'bg-teal-50' : ''}`}>
                           <td className="py-3 px-4 text-sm">{row.riskPct}</td>
-                          <td className="py-3 px-4 text-sm">{row.avgR}</td>
-                          <td className="py-3 px-4 text-sm font-semibold">{row.sharpe}</td>
+                          <td className="py-3 px-4 text-sm">{row.basis}</td>
                           <td className="py-3 px-4 text-sm">{row.maxDD}</td>
                           <td className="py-3 px-4 text-sm">
                             <span className={row.isCurrent ? 'text-teal-700 font-medium' : 'text-slate-600'}>
