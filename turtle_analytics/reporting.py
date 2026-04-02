@@ -688,20 +688,38 @@ def _compute_trade_analytics(df: pd.DataFrame) -> dict[str, Any]:
         session_column = "time_of_day_bucket"
 
     if session_column and len(r_col) > 0:
-        df2 = df[[session_column, "R"]].dropna()
+        pnl_metadata = _build_currency_pnl_metadata(df)
+        session_columns = [session_column, "R"]
+        if pnl_metadata.get("currency_pnl_available"):
+            df2 = df[[session_column, "R"]].copy()
+            df2["_currency_pnl"] = pd.to_numeric(pnl_metadata.get("values"), errors="coerce")
+        else:
+            df2 = df[[session_column, "R"]].copy()
+            df2["_currency_pnl"] = np.nan
+        df2 = df2.dropna(subset=[session_column, "R"])
         session_rows = []
         for session, grp in df2.groupby(session_column):
             r = grp["R"]
             if len(r) < 1:
                 continue
+            total_currency_pnl = None
+            currency_values = pd.to_numeric(grp["_currency_pnl"], errors="coerce").dropna()
+            if len(currency_values) > 0:
+                total_currency_pnl = round(float(currency_values.sum()), 2)
             session_rows.append({
                 "session": str(session).replace("_", " "),
                 "avg_r": round(float(r.mean()), 3),
+                "total_r": round(float(r.sum()), 3),
                 "win_rate": round(float((r > 0).mean()), 3),
                 "trades": int(len(r)),
+                "total_currency_pnl": total_currency_pnl,
             })
         session_rows.sort(
-            key=lambda x: (x["avg_r"], x["win_rate"], x["trades"]),
+            key=lambda x: (
+                x["total_currency_pnl"] if x["total_currency_pnl"] is not None else x["total_r"],
+                x["win_rate"],
+                x["trades"],
+            ),
             reverse=True,
         )
         result["session_performance"] = session_rows

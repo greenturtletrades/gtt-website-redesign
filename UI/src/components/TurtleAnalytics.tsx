@@ -205,12 +205,8 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
     const sessionPerformance = reportData.trade_analytics?.session_performance?.length
       ? (() => {
           const rows = reportData.trade_analytics.session_performance;
-          const topRow = rows[0] ?? null;
           return rows.map((s: any, index: number) => {
-            const isBest =
-              index === 0 &&
-              typeof s.avg_r === "number" &&
-              s.avg_r > 0;
+            const isBest = index === 0;
 
             const status = isBest
               ? "Best"
