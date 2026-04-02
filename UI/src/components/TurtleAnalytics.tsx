@@ -203,9 +203,14 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
     const hasOptimisedEquityCurve =
       Array.isArray(reportData.trade_analytics?.optimized_equity_curve) &&
       reportData.trade_analytics.optimized_equity_curve.length > 0;
+    const optimisationComparisonUsesR =
+      hasOptimisedEquityCurve &&
+      !reportData.trade_analytics.optimized_equity_curve.some((pt: any) => typeof pt.cumulative_pnl === "number");
     const equityCurveData = reportData.trade_analytics?.equity_curve?.length
       ? (() => {
-          const usesCurrencyCurve = reportData.trade_analytics.equity_curve.some((pt: any) => typeof pt.cumulative_pnl === "number");
+          const usesCurrencyCurve =
+            !optimisationComparisonUsesR &&
+            reportData.trade_analytics.equity_curve.some((pt: any) => typeof pt.cumulative_pnl === "number");
           const optimizedCurveByTrade = hasOptimisedEquityCurve
             ? new Map(
                 reportData.trade_analytics.optimized_equity_curve.map((pt: any) => [
@@ -430,6 +435,29 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         ? `+${impPct}% better performance`
         : "Best tested policy did not outperform your baseline",
       equityLabel: totalCurrencyPnl !== null ? "Cumulative Account P/L" : "Cumulative R",
+      comparisonCurrentValue: optimisationComparisonUsesR
+        ? `${(orig.total_r ?? 0).toFixed(2)}R`
+        : totalCurrencyPnl !== null
+          ? formatAccountMetric(totalCurrencyPnl)
+          : `${(orig.total_r ?? 0).toFixed(2)}R`,
+      comparisonCurrentSubtext: optimisationComparisonUsesR
+        ? `Average trade outcome ${(orig.avg_r ?? 0).toFixed(2)}R`
+        : `Average trade outcome ${totalCurrencyPnl !== null && n > 0 ? formatAccountMetric(totalCurrencyPnl / n) : (orig.avg_r ?? 0).toFixed(2)} (${(orig.avg_r ?? 0).toFixed(2)}R)`,
+      comparisonOptimisedValue: optimisationFoundEdge
+        ? optimisationComparisonUsesR
+          ? (typeof bestTotalR === "number" ? `${bestTotalR.toFixed(2)}R` : `${bestAvgR.toFixed(2)}R avg`)
+          : (optimisedCurrencyPnl !== null ? formatAccountMetric(optimisedCurrencyPnl) : typeof bestTotalR === "number" ? `${bestTotalR.toFixed(2)}R` : `${bestAvgR.toFixed(2)}R avg`)
+        : "No consistent edge found",
+      comparisonImprovementValue: optimisationFoundEdge
+        ? optimisationComparisonUsesR
+          ? (typeof bestTotalR === "number" && typeof orig.total_r === "number"
+              ? `${(bestTotalR - orig.total_r).toFixed(2)}R`
+              : `${Math.abs(bestAvgR - (orig.avg_r ?? 0)).toFixed(2)}R/trade`)
+          : (gain !== null
+              ? (optimisedCurrencyPnl !== null && totalCurrencyPnl !== null ? formatAccountMetric(gain) : `${gain.toFixed(2)}R`)
+              : `${Math.abs(bestAvgR - (orig.avg_r ?? 0)).toFixed(2)}R/trade`)
+        : "No improvement confirmed",
+      comparisonEquityLabel: optimisationComparisonUsesR ? "Cumulative R" : (totalCurrencyPnl !== null ? "Cumulative Account P/L" : "Cumulative R"),
       recs: profitabilityRecommendation
         ? [profitabilityRecommendation, ...recs].slice(0, 3)
         : recs.length > 0 ? recs : [
@@ -449,6 +477,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       rMultipleData,
       equityCurveData,
       hasOptimisedEquityCurve,
+      optimisationComparisonUsesR,
       sessionPerformance,
       holdTimeResults,
       riskFractionResults,
@@ -1703,21 +1732,21 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                   </p>
                 </div>
 
-              <div className="bg-slate-50 rounded-2xl p-6 sm:p-8 border border-slate-200">
+                  <div className="bg-slate-50 rounded-2xl p-6 sm:p-8 border border-slate-200">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                   <div className="bg-white rounded-lg p-6 border border-slate-200 shadow-sm">
                     <div className="text-slate-600 mb-2">Your Equity Performance</div>
-                    <div className="text-slate-900 text-3xl mb-2">{derived.currentPnl}</div>
-                    <div className="text-slate-600 text-sm">Average trade outcome {derived.avgPerTrade} ({derived.avgR}R)</div>
+                    <div className="text-slate-900 text-3xl mb-2">{derived.comparisonCurrentValue}</div>
+                    <div className="text-slate-600 text-sm">{derived.comparisonCurrentSubtext}</div>
                   </div>
                   <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-lg p-6 border-2 border-teal-300 shadow-sm">
                     <div className="text-teal-700 mb-2">{derived.optimisationHeadline}</div>
-                    <div className="text-teal-900 text-3xl mb-2">{derived.optimisedPnl}</div>
+                    <div className="text-teal-900 text-3xl mb-2">{derived.comparisonOptimisedValue}</div>
                     <div className="text-teal-700 text-sm">{derived.optimisationSubtext}</div>
                   </div>
                   <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg p-6 border-2 border-amber-300 shadow-sm">
                     <div className="text-amber-700 mb-2">Improvement Potential</div>
-                    <div className="text-amber-900 text-3xl mb-2">{derived.improvementDisplay}</div>
+                    <div className="text-amber-900 text-3xl mb-2">{derived.comparisonImprovementValue}</div>
                     <div className="text-amber-700 text-sm">{derived.improvementSubtext}</div>
                   </div>
                 </div>
@@ -1735,7 +1764,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                     />
                     <YAxis 
                       stroke="#64748b"
-                      label={{ value: derived.equityLabel, angle: -90, position: "insideLeft", offset: -10, fill: "#64748b" }}
+                      label={{ value: derived.comparisonEquityLabel, angle: -90, position: "insideLeft", offset: -10, fill: "#64748b" }}
                     />
                     <Tooltip
                       contentStyle={{ 

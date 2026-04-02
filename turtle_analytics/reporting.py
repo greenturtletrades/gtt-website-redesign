@@ -182,6 +182,9 @@ import json
 import pandas as pd
 import numpy as np
 
+from .policies import PolicyParams
+from .simulator import run_simulation
+
 
 def build_report(
     df: pd.DataFrame,
@@ -314,6 +317,10 @@ def build_report(
     # Trade Analytics (computed from raw df for dashboard charts)
     pnl_metadata = _build_currency_pnl_metadata(df)
     trade_analytics = _compute_trade_analytics(df)
+    if best_policy is not None:
+        trade_analytics["optimized_equity_curve"] = _build_optimized_equity_curve(df, best_policy)
+    else:
+        trade_analytics["optimized_equity_curve"] = []
     trade_analytics["pnl_metadata"] = {
         "currency_pnl_available": bool(pnl_metadata.get("currency_pnl_available")),
         "message": pnl_metadata.get("message"),
@@ -334,6 +341,39 @@ def build_report(
     }
 
     return report
+
+
+def _build_optimized_equity_curve(df: pd.DataFrame, best_policy: dict[str, Any]) -> list[dict[str, Any]]:
+    policy_dict = best_policy.get("policy", {}) if isinstance(best_policy, dict) else {}
+    if not policy_dict:
+        return []
+
+    try:
+        policy = PolicyParams.from_dict(policy_dict)
+        sim_df = run_simulation(df, policy, inplace=False)
+    except Exception:
+        return []
+
+    if "sim_R" not in sim_df.columns:
+        return []
+
+    sim_df = _sorted_trade_frame(sim_df).reset_index(drop=True)
+    sim_r = pd.to_numeric(sim_df["sim_R"], errors="coerce").dropna()
+    if len(sim_r) <= 1:
+        return []
+
+    cum = sim_r.cumsum().reset_index(drop=True)
+    n = len(cum)
+    step = max(1, n // 19)
+    indices = list(range(0, n, step)) + [n - 1]
+    indices = sorted(set(indices))
+    curve = [{"trade": 0, "cumulative_r": 0.0}]
+    for idx in indices:
+        curve.append({
+            "trade": int(idx + 1),
+            "cumulative_r": round(float(cum.iloc[idx]), 3),
+        })
+    return curve
 
 
 def _sorted_trade_frame(df: pd.DataFrame) -> pd.DataFrame:
