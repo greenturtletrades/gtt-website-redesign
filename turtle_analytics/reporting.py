@@ -960,10 +960,12 @@ def _compute_trade_analytics(df: pd.DataFrame) -> dict[str, Any]:
         cl_rows = []
         for k in sorted(streaks.keys()):
             next_rs = streaks[k]
+            next_wins = sum(1 for x in next_rs if x > 0)
             cl_rows.append({
                 "loss_streak": streak_labels.get(k, f"{k}+ Losses"),
                 "occurrences": len(next_rs),
-                "next_win_rate": round(sum(1 for x in next_rs if x > 0) / len(next_rs), 3),
+                "next_wins": int(next_wins),
+                "next_win_rate": round(next_wins / len(next_rs), 3),
                 "next_avg_r": round(float(np.mean(next_rs)), 3),
             })
         result["consecutive_loss_analysis"] = cl_rows

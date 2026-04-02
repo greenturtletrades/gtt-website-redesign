@@ -342,7 +342,16 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
     const consecutiveLossData = reportData.trade_analytics?.consecutive_loss_analysis?.length
       ? reportData.trade_analytics.consecutive_loss_analysis.map((r: any) => ({
           lossStreak: r.loss_streak,
+          headline:
+            r.loss_streak === "1 Loss"
+              ? "After exactly 1 loss"
+              : r.loss_streak === "2 Losses"
+                ? "After exactly 2 losses"
+                : r.loss_streak === "3 Losses"
+                  ? "After exactly 3 losses"
+                  : "After 4+ losses",
           occurrences: r.occurrences,
+          nextWins: r.next_wins ?? Math.round((r.next_win_rate ?? 0) * (r.occurrences ?? 0)),
           nextWinRate: `${Math.round(r.next_win_rate * 100)}%`,
           nextAvgR: `${r.next_avg_r >= 0 ? "+" : ""}${r.next_avg_r.toFixed(2)}R`,
         }))
@@ -2303,20 +2312,20 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                 Sequential Loss Pattern Detection
               </h2>
               <p className="text-slate-600 text-sm mb-6">
-                These cards show what happened on the very next trade after each loss streak length: the next-trade win rate, next-trade average R, and how many times that pattern occurred in this run.
+                These cards show what happened on the very next trade after each losing streak length: the exact next-trade win rate, next-trade average R, and the raw win count behind that percentage.
               </p>
               {hasConsecutiveLossData ? (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {consecutiveLossData.map((loss, idx) => (
                     <div key={idx} className={`text-center p-4 rounded-xl border-2 ${loss.lossStreak === '4+ Losses' ? 'bg-red-50 border-red-300' : loss.lossStreak === '1 Loss' ? 'bg-white border-slate-200' : 'bg-amber-50 border-amber-200'}`}>
-                      <div className="text-xs text-slate-600 mb-2">{loss.lossStreak}</div>
+                      <div className="text-xs text-slate-600 mb-2">{loss.headline}</div>
                       <div className={`text-2xl mb-1 ${loss.lossStreak === '4+ Losses' ? 'text-red-700 font-semibold' : ''}`}>
                         {loss.nextWinRate}
                       </div>
                       <div className="text-xs text-slate-500 mb-1">Next-trade win rate</div>
                       <div className="text-sm mb-1">{loss.nextAvgR}</div>
                       <div className="text-xs text-slate-500 mb-1">Next-trade avg R</div>
-                      <div className="text-xs text-slate-400">{loss.occurrences} occurrences</div>
+                      <div className="text-xs text-slate-400">{loss.nextWins}/{loss.occurrences} next trades won</div>
                     </div>
                   ))}
                 </div>
