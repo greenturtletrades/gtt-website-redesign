@@ -221,7 +221,12 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
             avgR: s.avg_r.toFixed(2),
             trades: s.trades,
             winRate: `${Math.round(s.win_rate * 100)}%`,
-            spread: "—",
+            pnl:
+              typeof s.total_currency_pnl === "number"
+                ? formatAccountMetric(s.total_currency_pnl)
+                : typeof s.total_r === "number"
+                  ? `${s.total_r.toFixed(2)}R`
+                  : "—",
             status,
             isBest,
             rawAvgR: s.avg_r,
@@ -2063,7 +2068,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">Avg R</th>
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">Trades</th>
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">Win Rate</th>
-                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Spread</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">P/L</th>
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">Verdict</th>
                       </tr>
                     </thead>
@@ -2074,7 +2079,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                           <td className="py-3 px-4 text-sm font-semibold">{session.avgR}</td>
                           <td className="py-3 px-4 text-sm">{session.trades}</td>
                           <td className="py-3 px-4 text-sm">{session.winRate}</td>
-                          <td className="py-3 px-4 text-sm">{session.spread}</td>
+                          <td className="py-3 px-4 text-sm">{session.pnl}</td>
                           <td className="py-3 px-4 text-sm">
                             <span className={session.isBest ? 'text-teal-700 font-medium' : session.status === 'Avoid' ? 'text-red-700 font-medium' : 'text-slate-600'}>
                               {session.status}
