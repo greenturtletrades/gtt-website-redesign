@@ -241,9 +241,12 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
           avgMFE: r.avg_mfe != null ? `${r.avg_mfe.toFixed(2)}R` : "N/A",
           avgMAE: r.avg_mae != null ? `${r.avg_mae.toFixed(2)}R` : "N/A",
           count: r.count,
-          insight: r.category === "Hit Target"
-            ? `Winners averaged ${r.avg_r.toFixed(2)}R with ${r.avg_mae != null ? Math.abs(r.avg_mae).toFixed(2) + "R" : "minimal"} pullback`
-            : `Losers averaged ${r.avg_r.toFixed(2)}R before stopping out`,
+          insight:
+            r.category === "Wins"
+              ? `Winners averaged ${r.avg_r.toFixed(2)}R with ${r.avg_mae != null ? Math.abs(r.avg_mae).toFixed(2) + "R" : "minimal"} pullback`
+              : r.category === "Losses"
+                ? `Losing trades averaged ${r.avg_r.toFixed(2)}R before exit`
+                : `Breakeven trades averaged ${r.avg_r.toFixed(2)}R with mixed excursion before exit`,
         }))
       : [];
     const mfeMaePoints = reportData.trade_analytics?.mfe_mae_points?.length
@@ -251,9 +254,14 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
           tradeId: point.trade_id ?? null,
           mae: Number(point.mae ?? 0),
           mfe: Number(point.mfe ?? 0),
-          result: point.result === "Win" ? "Win" : "Loss",
+          result: point.result === "Win" ? "Win" : point.result === "Breakeven" ? "Breakeven" : "Loss",
           r: Number(point.r ?? 0),
-          color: point.result === "Win" ? "#0d9488" : "#ef4444",
+          color:
+            point.result === "Win"
+              ? "#0d9488"
+              : point.result === "Breakeven"
+                ? "#64748b"
+                : "#ef4444",
         }))
       : [];
 
@@ -1767,7 +1775,16 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     {mfeAnalysis.map((item, idx) => (
-                      <div key={idx} className={`p-5 rounded-xl border-2 ${item.category === 'Hit Target' ? 'bg-teal-50 border-teal-300' : 'bg-red-50 border-red-300'}`}>
+                      <div
+                        key={idx}
+                        className={`p-5 rounded-xl border-2 ${
+                          item.category === 'Wins'
+                            ? 'bg-teal-50 border-teal-300'
+                            : item.category === 'Breakeven'
+                              ? 'bg-slate-50 border-slate-300'
+                              : 'bg-red-50 border-red-300'
+                        }`}
+                      >
                         <div className="text-sm text-slate-700 mb-2">{item.category} ({item.count} trades)</div>
                         <div className="grid grid-cols-2 gap-4 mb-3">
                           <div>

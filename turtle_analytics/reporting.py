@@ -427,7 +427,9 @@ def _format_optimization_results(opt_results: dict) -> dict[str, Any]:
                     "max_hold_minutes": None if pd.isna(row.get("max_hold_minutes")) else row.get("max_hold_minutes"),
                     "risk_fraction": float(row.get("risk_fraction", 0.0)) if pd.notna(row.get("risk_fraction")) else None,
                     "avg_r": float(row.get("avg_R", 0.0)),
-                    "win_rate": None if pd.isna(row.get("win_rate")) else float(row.get("win_rate")),
+                    "win_rate": None
+                    if pd.isna(row.get("win_rate", row.get("winrate")))
+                    else float(row.get("win_rate", row.get("winrate"))),
                     "ci_lower": None if pd.isna(row.get("ci_lower")) else float(row.get("ci_lower")),
                     "ci_upper": None if pd.isna(row.get("ci_upper")) else float(row.get("ci_upper")),
                 })
@@ -710,8 +712,9 @@ def _compute_trade_analytics(df: pd.DataFrame) -> dict[str, Any]:
         mfe_rows = []
         mfe_mae_points: list[dict[str, Any]] = []
         wins = df[df["R"] > 0] if "R" in df.columns else df.iloc[0:0]
-        losses = df[df["R"] <= 0] if "R" in df.columns else df.iloc[0:0]
-        for category, grp in [("Hit Target", wins), ("Stopped Out", losses)]:
+        losses = df[df["R"] < 0] if "R" in df.columns else df.iloc[0:0]
+        breakeven = df[df["R"] == 0] if "R" in df.columns else df.iloc[0:0]
+        for category, grp in [("Wins", wins), ("Losses", losses), ("Breakeven", breakeven)]:
             if len(grp) == 0:
                 continue
             entry: dict[str, Any] = {
@@ -737,7 +740,7 @@ def _compute_trade_analytics(df: pd.DataFrame) -> dict[str, Any]:
                     "trade_id": getattr(row, "trade_id", None),
                     "mfe": round(float(getattr(row, "mfe_numeric")), 3),
                     "mae": round(float(getattr(row, "mae_numeric")), 3),
-                    "result": "Win" if r_value > 0 else "Loss",
+                    "result": "Win" if r_value > 0 else ("Loss" if r_value < 0 else "Breakeven"),
                     "r": round(r_value, 3),
                 })
         result["mfe_mae_analysis"] = mfe_rows
