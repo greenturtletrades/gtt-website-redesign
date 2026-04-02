@@ -1098,8 +1098,11 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                 <div className="text-slate-900 text-2xl">{statsData.tradesAnalysed.toLocaleString()}</div>
               </div>
               <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                <div className="text-slate-500 text-xs mb-1">Simulations Run</div>
+                <div className="text-slate-500 text-xs mb-1">Policies Tested</div>
                 <div className="text-slate-900 text-2xl">{statsData.simulationsRun.toLocaleString()}</div>
+                <div className="text-slate-500 text-[11px] mt-1">
+                  Counterfactual policy configurations replayed on this run
+                </div>
               </div>
               <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                 <div className="text-slate-500 text-xs mb-1">Regimes Found</div>
