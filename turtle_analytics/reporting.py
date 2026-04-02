@@ -733,10 +733,46 @@ def _compute_trade_analytics(df: pd.DataFrame) -> dict[str, Any]:
 
     # ── MFE / MAE analysis ─────────────────────────────────────────────────────
     if len(r_col) > 0:
-        has_mfe = "mfe" in df.columns
-        has_mae = "mae" in df.columns
+        mfe_r_series = None
+        mae_r_series = None
+
+        if "mfe_R" in df.columns:
+            mfe_r_series = pd.to_numeric(df["mfe_R"], errors="coerce")
+        elif "mfe" in df.columns:
+            risk = None
+            if "risk_per_trade" in df.columns:
+                risk = pd.to_numeric(df["risk_per_trade"], errors="coerce").replace(0, np.nan)
+            elif "entry_price" in df.columns and "stop_loss" in df.columns:
+                risk = (
+                    pd.to_numeric(df["entry_price"], errors="coerce")
+                    - pd.to_numeric(df["stop_loss"], errors="coerce")
+                ).abs().replace(0, np.nan)
+            if risk is not None:
+                mfe_r_series = pd.to_numeric(df["mfe"], errors="coerce") / risk
+
+        if "mae_R" in df.columns:
+            mae_r_series = pd.to_numeric(df["mae_R"], errors="coerce").abs()
+        elif "mae" in df.columns:
+            risk = None
+            if "risk_per_trade" in df.columns:
+                risk = pd.to_numeric(df["risk_per_trade"], errors="coerce").replace(0, np.nan)
+            elif "entry_price" in df.columns and "stop_loss" in df.columns:
+                risk = (
+                    pd.to_numeric(df["entry_price"], errors="coerce")
+                    - pd.to_numeric(df["stop_loss"], errors="coerce")
+                ).abs().replace(0, np.nan)
+            if risk is not None:
+                mae_r_series = pd.to_numeric(df["mae"], errors="coerce").abs() / risk
+
+        has_mfe = mfe_r_series is not None and mfe_r_series.notna().any()
+        has_mae = mae_r_series is not None and mae_r_series.notna().any()
         mfe_rows = []
         mfe_mae_points: list[dict[str, Any]] = []
+        excursions_df = df.copy()
+        if mfe_r_series is not None:
+            excursions_df["mfe_r_numeric"] = mfe_r_series
+        if mae_r_series is not None:
+            excursions_df["mae_r_numeric"] = mae_r_series
         wins = df[df["R"] > 0] if "R" in df.columns else df.iloc[0:0]
         losses = df[df["R"] < 0] if "R" in df.columns else df.iloc[0:0]
         breakeven = df[df["R"] == 0] if "R" in df.columns else df.iloc[0:0]
@@ -749,23 +785,20 @@ def _compute_trade_analytics(df: pd.DataFrame) -> dict[str, Any]:
                 "avg_r": round(float(grp["R"].mean()), 3),
             }
             if has_mfe:
-                mfe_vals = pd.to_numeric(grp["mfe"], errors="coerce").dropna()
+                mfe_vals = pd.to_numeric(excursions_df.loc[grp.index, "mfe_r_numeric"], errors="coerce").dropna()
                 entry["avg_mfe"] = round(float(mfe_vals.mean()), 3) if len(mfe_vals) > 0 else None
             if has_mae:
-                mae_vals = pd.to_numeric(grp["mae"], errors="coerce").dropna()
+                mae_vals = pd.to_numeric(excursions_df.loc[grp.index, "mae_r_numeric"], errors="coerce").dropna()
                 entry["avg_mae"] = round(float(mae_vals.mean()), 3) if len(mae_vals) > 0 else None
             mfe_rows.append(entry)
         if has_mfe and has_mae:
-            scatter_df = df.copy()
-            scatter_df["mfe_numeric"] = pd.to_numeric(scatter_df["mfe"], errors="coerce")
-            scatter_df["mae_numeric"] = pd.to_numeric(scatter_df["mae"], errors="coerce")
-            scatter_df = scatter_df.dropna(subset=["mfe_numeric", "mae_numeric"])
+            scatter_df = excursions_df.dropna(subset=["mfe_r_numeric", "mae_r_numeric"]).copy()
             for row in scatter_df.itertuples(index=False):
                 r_value = float(getattr(row, "R", 0.0) or 0.0)
                 mfe_mae_points.append({
                     "trade_id": getattr(row, "trade_id", None),
-                    "mfe": round(float(getattr(row, "mfe_numeric")), 3),
-                    "mae": round(float(getattr(row, "mae_numeric")), 3),
+                    "mfe": round(float(getattr(row, "mfe_r_numeric")), 3),
+                    "mae": round(float(getattr(row, "mae_r_numeric")), 3),
                     "result": "Win" if r_value > 0 else ("Loss" if r_value < 0 else "Breakeven"),
                     "r": round(r_value, 3),
                 })
