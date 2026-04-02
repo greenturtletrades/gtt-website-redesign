@@ -316,16 +316,6 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         });
       }
 
-      if (typeof kelly.recommended === "number") {
-        rows.push({
-          riskPct: `${(kelly.recommended * 100).toFixed(2)}%`,
-          basis: "Kelly recommended",
-          maxDD: typeof maxDrawdownR === "number" ? `${Math.abs(maxDrawdownR).toFixed(2)}R` : "—",
-          status: "Kelly-based",
-          isCurrent: rows.length === 0,
-        });
-      }
-
       if (typeof kelly.half_kelly === "number") {
         rows.push({
           riskPct: `${(kelly.half_kelly * 100).toFixed(2)}%`,
