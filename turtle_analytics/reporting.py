@@ -943,19 +943,16 @@ def _compute_trade_analytics(df: pd.DataFrame) -> dict[str, Any]:
     if len(r_col) > 0:
         r_list = r_col.tolist()
         streaks: dict[int, list] = {}
-        i = 0
-        while i < len(r_list):
-            if r_list[i] < 0:
-                streak = 0
-                while i + streak < len(r_list) and r_list[i + streak] < 0:
-                    streak += 1
-                next_idx = i + streak
-                if next_idx < len(r_list):
-                    key = min(streak, 4)
-                    streaks.setdefault(key, []).append(r_list[next_idx])
-                i = next_idx if next_idx > i else i + 1
+        consecutive_losses = 0
+        for r_value in r_list:
+            if consecutive_losses > 0:
+                key = min(consecutive_losses, 4)
+                streaks.setdefault(key, []).append(r_value)
+
+            if r_value < 0:
+                consecutive_losses += 1
             else:
-                i += 1
+                consecutive_losses = 0
         streak_labels = {1: "1 Loss", 2: "2 Losses", 3: "3 Losses", 4: "4+ Losses"}
         cl_rows = []
         for k in sorted(streaks.keys()):
