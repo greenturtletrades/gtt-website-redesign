@@ -205,16 +205,34 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
     const sessionPerformance = reportData.trade_analytics?.session_performance?.length
       ? (() => {
           const rows = reportData.trade_analytics.session_performance;
-          const bestAvgRVal = Math.max(...rows.map((s: any) => s.avg_r));
-          return rows.map((s: any) => ({
+          const topRow = rows[0] ?? null;
+          return rows.map((s: any, index: number) => {
+            const isBest =
+              index === 0 &&
+              typeof s.avg_r === "number" &&
+              s.avg_r > 0;
+
+            const status = isBest
+              ? "Best"
+              : s.avg_r < 0
+                ? "Avoid"
+                : s.avg_r > 0
+                  ? "Positive"
+                  : "Flat";
+
+            return ({
             session: s.session,
             avgR: s.avg_r.toFixed(2),
             trades: s.trades,
             winRate: `${Math.round(s.win_rate * 100)}%`,
             spread: "—",
-            status: s.avg_r === bestAvgRVal ? "Best" : s.avg_r < 0 ? "Avoid" : s.avg_r > 0.8 ? "Good" : "Mediocre",
-            isBest: s.avg_r === bestAvgRVal,
-          }));
+            status,
+            isBest,
+            rawAvgR: s.avg_r,
+            rawWinRate: s.win_rate,
+            isTopRanked: topRow ? index === 0 : false,
+          });
+          });
         })()
       : [];
     const bestSession = sessionPerformance[0] ?? null;

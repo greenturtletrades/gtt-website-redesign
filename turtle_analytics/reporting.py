@@ -700,7 +700,10 @@ def _compute_trade_analytics(df: pd.DataFrame) -> dict[str, Any]:
                 "win_rate": round(float((r > 0).mean()), 3),
                 "trades": int(len(r)),
             })
-        session_rows.sort(key=lambda x: x["avg_r"], reverse=True)
+        session_rows.sort(
+            key=lambda x: (x["avg_r"], x["win_rate"], x["trades"]),
+            reverse=True,
+        )
         result["session_performance"] = session_rows
     else:
         result["session_performance"] = []
