@@ -153,20 +153,30 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       "bg-slate-100 border-slate-300 text-slate-700",
       "bg-red-50 border-red-300 text-red-700",
     ];
+    const formatRegimeFeatureLabel = (key: string) =>
+      key
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+
     const marketRegimes = reportData.regimes?.regime_details?.length
       ? reportData.regimes.regime_details.map((r: any, i: number) => {
           const avgRNum = r.performance?.avg_r ?? 0;
           const colorIdx = avgRNum > 1.0 ? 0 : avgRNum > 0.5 ? 1 : avgRNum > 0.2 ? 2 : avgRNum > 0 ? 3 : 4;
           const op = r.optimal_policy ?? {};
+          const featureText = Object.entries(r.characteristics ?? {})
+            .filter(([key]) => !["avg_r", "win_rate", "n_trades"].includes(key))
+            .slice(0, 2)
+            .map(([key, value]) => `${formatRegimeFeatureLabel(key)}: ${typeof value === "number" ? (value as number).toFixed(3) : value}`)
+            .join(", ");
           return {
             regime: r.regime_type ?? `Regime ${r.regime_id}`,
             avgR: avgRNum.toFixed(2),
             winRate: `${Math.round((r.performance?.win_rate ?? 0) * 100)}%`,
             trades: r.n_trades ?? 0,
-            features: Object.entries(r.characteristics ?? {}).slice(0, 2).map(([k, v]) => `${k}: ${typeof v === 'number' ? (v as number).toFixed(3) : v}`).join(", ") || "—",
+            features: featureText || "No stable regime features available",
             bestSL: op.sl_mult ? `${(op.sl_mult as number).toFixed(1)}R` : "—",
             bestTP: op.tp_mult ? `${(op.tp_mult as number).toFixed(1)}R` : "—",
-            confidence: "—",
+            coverage: `${Math.round((r.percentage ?? 0) * 100)}% of trades`,
             color: regimeColors[colorIdx] ?? regimeColors[i % regimeColors.length],
           };
         })
@@ -2036,8 +2046,8 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                               <div className="font-semibold">{regime.bestSL} / {regime.bestTP}</div>
                             </div>
                             <div>
-                              <div className="text-slate-600">Confidence</div>
-                              <div className="font-semibold">{regime.confidence}</div>
+                              <div className="text-slate-600">Coverage</div>
+                              <div className="font-semibold">{regime.coverage}</div>
                             </div>
                           </div>
                         </div>

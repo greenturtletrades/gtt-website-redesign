@@ -475,8 +475,13 @@ def _format_regime_summary(regime_summary: dict) -> dict[str, Any]:
             }
             
             # Add optimal policy if available
-            if "optimal_policies" in regime_summary and str(regime_id) in regime_summary["optimal_policies"]:
-                regime_detail["optimal_policy"] = regime_summary["optimal_policies"][str(regime_id)]["policy"]
+            if "optimal_policies" in regime_summary:
+                optimal_policies = regime_summary["optimal_policies"]
+                policy_entry = optimal_policies.get(regime_id)
+                if policy_entry is None:
+                    policy_entry = optimal_policies.get(str(regime_id))
+                if policy_entry is not None:
+                    regime_detail["optimal_policy"] = policy_entry["policy"]
             
             regimes_section["regime_details"].append(regime_detail)
     
