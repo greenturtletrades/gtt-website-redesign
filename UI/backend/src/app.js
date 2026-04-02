@@ -3512,6 +3512,35 @@ app.get("/api/trades", authRequired, async (req, res, next) => {
   }
 });
 
+app.delete("/api/account/analysis-data", authRequired, async (req, res, next) => {
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.analysisRun.deleteMany({
+        where: { userId: req.user.id },
+      });
+
+      await tx.analysisSnapshot.deleteMany({
+        where: { userId: req.user.id },
+      });
+
+      await tx.storedTrade.updateMany({
+        where: { userId: req.user.id },
+        data: {
+          lastAnalysedAt: null,
+          analysisCount: 0,
+        },
+      });
+    });
+
+    return res.json({
+      ok: true,
+      message: "Saved analysis runs and snapshots were cleared. Stored trades remain available for a fresh rerun.",
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 /**
  * POST /api/analyse/csv
  *

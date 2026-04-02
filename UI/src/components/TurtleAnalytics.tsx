@@ -30,6 +30,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   const [reportData, setReportData] = useState<any>(null);
   const [modelRunError, setModelRunError] = useState<string | null>(null);
   const [runHistoryError, setRunHistoryError] = useState<string | null>(null);
+  const [isClearingAnalysisData, setIsClearingAnalysisData] = useState(false);
   const [storedJournalEntries, setStoredJournalEntries] = useState<any[]>([]);
   const [storedJournalPnlMeta, setStoredJournalPnlMeta] = useState<any>(null);
   const [currentUserName, setCurrentUserName] = useState("Trader");
@@ -560,6 +561,60 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       }
     }
   };
+
+  const loadPersistedAccountState = async () => {
+    try {
+      const token = localStorage.getItem("gtt_token");
+      const authHeader: Record<string, string> = {};
+      if (token) authHeader["Authorization"] = `Bearer ${token}`;
+      const response = await fetch(`${API_BASE}/api/account/state`, { headers: authHeader });
+      if (!response.ok) {
+        setRunHistoryError("Saved account data could not be loaded. The backend may be missing the latest migration or deploy.");
+        return;
+      }
+      const payload = await response.json();
+      if (payload.ok) {
+        applyPersistedAccountState(payload);
+      }
+    } catch {
+      setRunHistoryError("Saved account data could not be loaded. The backend may be unavailable right now.");
+    }
+  };
+
+  const handleClearAnalysisData = async () => {
+    const confirmed = window.confirm(
+      "Clear saved model runs and snapshots for this account? Stored trades will remain, so you can rerun the model against the same account history."
+    );
+    if (!confirmed) return;
+
+    setIsClearingAnalysisData(true);
+    setRunHistoryError(null);
+    setModelRunError(null);
+
+    try {
+      const token = localStorage.getItem("gtt_token");
+      const authHeader: Record<string, string> = {};
+      if (token) authHeader["Authorization"] = `Bearer ${token}`;
+      const response = await fetch(`${API_BASE}/api/account/analysis-data`, {
+        method: "DELETE",
+        headers: authHeader,
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || "Saved analysis data could not be cleared.");
+      }
+
+      setReportData(null);
+      setStatsData({ tradesAnalysed: 0, simulationsRun: 0, regimesFound: 0, avgRMultiple: 0 });
+      setModelRunHistory([]);
+      setLastRunTime(null);
+      await loadPersistedAccountState();
+    } catch (err) {
+      setRunHistoryError(err instanceof Error ? err.message : "Saved analysis data could not be cleared.");
+    } finally {
+      setIsClearingAnalysisData(false);
+    }
+  };
   
   // Scroll to top whenever tab changes
   useEffect(() => {
@@ -598,26 +653,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
     let cancelled = false;
 
     const loadAccountState = async () => {
-      try {
-        const token = localStorage.getItem("gtt_token");
-        const authHeader: Record<string, string> = {};
-        if (token) authHeader["Authorization"] = `Bearer ${token}`;
-        const response = await fetch(`${API_BASE}/api/account/state`, { headers: authHeader });
-        if (!response.ok) {
-          if (!cancelled) {
-            setRunHistoryError("Saved account data could not be loaded. The backend may be missing the latest migration or deploy.");
-          }
-          return;
-        }
-        const payload = await response.json();
-        if (!cancelled && payload.ok) {
-          applyPersistedAccountState(payload);
-        }
-      } catch {
-        if (!cancelled) {
-          setRunHistoryError("Saved account data could not be loaded. The backend may be unavailable right now.");
-        }
-      }
+      await loadPersistedAccountState();
     };
 
     loadAccountState();
@@ -1316,6 +1352,17 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                         Total spent: £{modelRunHistory.reduce((sum, run) => sum + run.cost, 0).toFixed(2)}
                       </div>
                     )}
+                    <button
+                      onClick={handleClearAnalysisData}
+                      disabled={isClearingAnalysisData}
+                      className={`mt-3 inline-flex items-center rounded-lg px-3 py-2 text-xs transition-colors ${
+                        isClearingAnalysisData
+                          ? "cursor-not-allowed bg-slate-200 text-slate-500"
+                          : "bg-rose-50 text-rose-700 hover:bg-rose-100"
+                      }`}
+                    >
+                      {isClearingAnalysisData ? "Clearing..." : "Clear Saved Analysis Data"}
+                    </button>
                   </div>
                 </div>
               </div>
