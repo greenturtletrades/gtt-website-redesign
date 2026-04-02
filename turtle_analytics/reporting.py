@@ -373,17 +373,10 @@ def _calculate_best_policy_performance(sim_df: pd.DataFrame | None, best_policy:
         "total_r": float(sim_r.sum()) if len(sim_r) > 0 else fallback.get("total_r"),
     }
 
-    pnl_metadata = _build_currency_pnl_metadata(sim_df)
-    if pnl_metadata.get("currency_pnl_available") and pnl_metadata.get("values") is not None and "R" in sim_df.columns:
-        actual_currency = pd.to_numeric(pnl_metadata["values"], errors="coerce")
-        actual_r = pd.to_numeric(sim_df["R"], errors="coerce")
-        sim_r_full = pd.to_numeric(sim_df["sim_R"], errors="coerce")
-        cash_risk = actual_currency.divide(actual_r.replace(0, np.nan))
-        sim_currency = cash_risk * sim_r_full
-        sim_currency = sim_currency.replace([np.inf, -np.inf], np.nan)
-        if sim_currency.notna().sum() > 0:
-            performance["total_currency_pnl"] = float(sim_currency.fillna(0.0).sum())
-            performance["avg_currency_pnl"] = float(sim_currency.dropna().mean())
+    sim_currency = _infer_simulated_currency_series(sim_df)
+    if sim_currency is not None and sim_currency.notna().sum() > 0:
+        performance["total_currency_pnl"] = float(sim_currency.fillna(0.0).sum())
+        performance["avg_currency_pnl"] = float(sim_currency.dropna().mean())
 
     return performance
 
@@ -402,14 +395,9 @@ def _build_optimized_equity_curve(df: pd.DataFrame, sim_df: pd.DataFrame | None)
 
     cum = sim_r.cumsum().reset_index(drop=True)
     cumulative_pnl = None
-    pnl_metadata = _build_currency_pnl_metadata(sim_df)
-    if pnl_metadata.get("currency_pnl_available") and pnl_metadata.get("values") is not None and "R" in sim_df.columns:
-        actual_currency = pd.to_numeric(pnl_metadata["values"], errors="coerce").reset_index(drop=True)
-        actual_r = pd.to_numeric(sim_df["R"], errors="coerce").reset_index(drop=True)
-        sim_r_full = pd.to_numeric(sim_df["sim_R"], errors="coerce").reset_index(drop=True)
-        cash_risk = actual_currency.divide(actual_r.replace(0, np.nan))
-        sim_currency = (cash_risk * sim_r_full).replace([np.inf, -np.inf], np.nan).fillna(0.0)
-        cumulative_pnl = sim_currency.cumsum()
+    sim_currency = _infer_simulated_currency_series(sim_df)
+    if sim_currency is not None and sim_currency.notna().sum() > 0:
+        cumulative_pnl = sim_currency.fillna(0.0).reset_index(drop=True).cumsum()
 
     n = len(cum)
     step = max(1, n // 19)
@@ -423,6 +411,41 @@ def _build_optimized_equity_curve(df: pd.DataFrame, sim_df: pd.DataFrame | None)
             "cumulative_pnl": round(float(cumulative_pnl.iloc[idx]), 2) if cumulative_pnl is not None else None,
         })
     return curve
+
+
+def _infer_simulated_currency_series(sim_df: pd.DataFrame) -> pd.Series | None:
+    pnl_metadata = _build_currency_pnl_metadata(sim_df)
+    if not (pnl_metadata.get("currency_pnl_available") and pnl_metadata.get("values") is not None and "R" in sim_df.columns and "sim_R" in sim_df.columns):
+        return None
+
+    actual_currency = pd.to_numeric(pnl_metadata["values"], errors="coerce").reset_index(drop=True)
+    actual_r = pd.to_numeric(sim_df["R"], errors="coerce").reset_index(drop=True)
+    sim_r_full = pd.to_numeric(sim_df["sim_R"], errors="coerce").reset_index(drop=True)
+
+    stable_mask = actual_currency.notna() & actual_r.notna() & (actual_r.abs() >= 0.05)
+    if stable_mask.sum() == 0:
+        return None
+
+    inferred_cash_risk = (actual_currency[stable_mask].abs() / actual_r[stable_mask].abs()).replace([np.inf, -np.inf], np.nan).dropna()
+    inferred_cash_risk = inferred_cash_risk[inferred_cash_risk > 0]
+    if len(inferred_cash_risk) == 0:
+        return None
+
+    lower = inferred_cash_risk.quantile(0.05)
+    upper = inferred_cash_risk.quantile(0.95)
+    filtered_cash_risk = inferred_cash_risk[(inferred_cash_risk >= lower) & (inferred_cash_risk <= upper)]
+    if len(filtered_cash_risk) == 0:
+        filtered_cash_risk = inferred_cash_risk
+
+    fallback_risk = float(filtered_cash_risk.median())
+    risk_per_trade = pd.Series(fallback_risk, index=sim_df.index, dtype="float")
+    stable_indices = stable_mask[stable_mask].index
+    risk_per_trade.loc[stable_indices] = (actual_currency.loc[stable_indices].abs() / actual_r.loc[stable_indices].abs()).replace([np.inf, -np.inf], np.nan)
+    risk_per_trade = risk_per_trade.fillna(fallback_risk).clip(lower=lower if np.isfinite(lower) else 0, upper=upper if np.isfinite(upper) else None)
+
+    sim_currency = risk_per_trade * sim_r_full
+    sim_currency = sim_currency.replace([np.inf, -np.inf], np.nan)
+    return sim_currency
 
 
 def _sorted_trade_frame(df: pd.DataFrame) -> pd.DataFrame:

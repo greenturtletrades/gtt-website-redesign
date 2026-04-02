@@ -120,9 +120,12 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         : typeof bestTotalR === "number" && typeof orig.total_r === "number"
           ? bestTotalR - orig.total_r
           : null;
-    const impPct = orig.avg_r && orig.avg_r !== 0
-      ? (((bestAvgR - orig.avg_r) / Math.abs(orig.avg_r)) * 100).toFixed(1)
-      : "0.0";
+    const impPct =
+      totalCurrencyPnl !== null && optimisedCurrencyPnl !== null && totalCurrencyPnl !== 0
+        ? (((optimisedCurrencyPnl - totalCurrencyPnl) / Math.abs(totalCurrencyPnl)) * 100).toFixed(1)
+        : orig.avg_r && orig.avg_r !== 0
+          ? (((bestAvgR - orig.avg_r) / Math.abs(orig.avg_r)) * 100).toFixed(1)
+          : "0.0";
     const ciVal = conf.ci_95_upper && conf.ci_95_lower
       ? ((conf.ci_95_upper - conf.ci_95_lower) / 2).toFixed(2)
       : "0.08";
