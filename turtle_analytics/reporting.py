@@ -942,14 +942,20 @@ def _compute_trade_analytics(df: pd.DataFrame) -> dict[str, Any]:
     # ── Consecutive loss analysis ──────────────────────────────────────────────
     if len(r_col) > 0:
         r_list = r_col.tolist()
+        pnl_metadata_for_streaks = _build_currency_pnl_metadata(df)
+        streak_basis_values = (
+            pd.to_numeric(pnl_metadata_for_streaks.get("values"), errors="coerce").fillna(0.0).tolist()
+            if pnl_metadata_for_streaks.get("currency_pnl_available") and pnl_metadata_for_streaks.get("values") is not None
+            else r_list
+        )
         streaks: dict[int, list] = {}
         consecutive_losses = 0
-        for r_value in r_list:
+        for streak_basis, r_value in zip(streak_basis_values, r_list):
             if consecutive_losses > 0:
                 key = min(consecutive_losses, 4)
                 streaks.setdefault(key, []).append(r_value)
 
-            if r_value < 0:
+            if streak_basis < 0:
                 consecutive_losses += 1
             else:
                 consecutive_losses = 0

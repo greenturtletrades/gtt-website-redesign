@@ -23,9 +23,9 @@ class ReportingLossStreakTests(unittest.TestCase):
         }
 
         expected = {
-            "1 Loss": {"occurrences": 65, "next_wins": 41, "next_win_rate": 0.631, "next_avg_r": 0.399},
-            "2 Losses": {"occurrences": 24, "next_wins": 11, "next_win_rate": 0.458, "next_avg_r": 0.116},
-            "3 Losses": {"occurrences": 12, "next_wins": 8, "next_win_rate": 0.667, "next_avg_r": 0.578},
+            "1 Loss": {"occurrences": 64, "next_wins": 39, "next_win_rate": 0.609, "next_avg_r": 0.360},
+            "2 Losses": {"occurrences": 26, "next_wins": 12, "next_win_rate": 0.462, "next_avg_r": 0.127},
+            "3 Losses": {"occurrences": 14, "next_wins": 10, "next_win_rate": 0.714, "next_avg_r": 0.716},
             "4+ Losses": {"occurrences": 8, "next_wins": 3, "next_win_rate": 0.375, "next_avg_r": 0.084},
         }
 
