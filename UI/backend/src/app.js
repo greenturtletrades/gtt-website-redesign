@@ -3517,6 +3517,20 @@ app.get("/api/trades", authRequired, async (req, res, next) => {
 app.delete("/api/account/analysis-data", authRequired, async (req, res, next) => {
   try {
     await prisma.$transaction(async (tx) => {
+      const brokerAccounts = await tx.brokerAccount.findMany({
+        where: { userId: req.user.id },
+        select: { id: true },
+      });
+      const brokerAccountIds = brokerAccounts.map((account) => account.id);
+
+      if (brokerAccountIds.length > 0) {
+        await tx.eaEvent.deleteMany({
+          where: {
+            brokerAccountId: { in: brokerAccountIds },
+          },
+        });
+      }
+
       await tx.analysisRun.deleteMany({
         where: { userId: req.user.id },
       });
@@ -3532,7 +3546,7 @@ app.delete("/api/account/analysis-data", authRequired, async (req, res, next) =>
 
     return res.json({
       ok: true,
-      message: "Saved analysis runs, snapshots, and stored trade history were cleared for this account.",
+      message: "Saved analysis runs, snapshots, stored trade history, and MetaTrader event history were cleared for this account.",
     });
   } catch (err) {
     return next(err);
