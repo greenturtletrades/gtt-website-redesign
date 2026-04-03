@@ -563,10 +563,50 @@ def _format_optimization_results(opt_results: dict) -> dict[str, Any]:
                 if len(real_rows) >= 8:
                     break
             formatted["trial_rows"] = real_rows
+            trailing_rows = []
+            trailing_df = trials_df.copy()
+            if "trail_pct" in trailing_df.columns:
+                trailing_df["_trail_key"] = trailing_df["trail_pct"].apply(
+                    lambda value: None if pd.isna(value) else round(float(value), 3)
+                )
+                grouped = []
+                for trail_key, grp in trailing_df.groupby("_trail_key", dropna=False):
+                    if len(grp) == 0:
+                        continue
+                    best_row = grp.sort_values("avg_R", ascending=False, kind="stable").iloc[0]
+                    grouped.append({
+                        "trail_pct": 0.0 if trail_key is None else float(trail_key),
+                        "avg_r": float(best_row.get("avg_R", 0.0)),
+                        "win_rate": None
+                        if pd.isna(best_row.get("win_rate", best_row.get("winrate")))
+                        else float(best_row.get("win_rate", best_row.get("winrate"))),
+                        "max_hold_minutes": None if pd.isna(best_row.get("max_hold_minutes")) else best_row.get("max_hold_minutes"),
+                        "count": int(len(grp)),
+                    })
+                grouped.sort(key=lambda row: row["avg_r"], reverse=True)
+                baseline = next((row for row in grouped if abs(row["trail_pct"]) < 1e-9), None)
+                best_trailing = next((row for row in grouped if row["trail_pct"] > 0), None)
+                for row in grouped[:5]:
+                    status = "Observed"
+                    if baseline and abs(row["trail_pct"] - baseline["trail_pct"]) < 1e-9:
+                        status = "Current"
+                    if best_trailing and abs(row["trail_pct"] - best_trailing["trail_pct"]) < 1e-9:
+                        status = "Recommended"
+                    trailing_rows.append({
+                        "trail_pct": row["trail_pct"],
+                        "avg_r": row["avg_r"],
+                        "win_rate": row["win_rate"],
+                        "max_hold_minutes": row["max_hold_minutes"],
+                        "count": row["count"],
+                        "status": status,
+                    })
+            formatted["trailing_stop_rows"] = trailing_rows
         else:
             formatted["trial_rows"] = []
+            formatted["trailing_stop_rows"] = []
     else:
         formatted["trial_rows"] = []
+        formatted["trailing_stop_rows"] = []
     
     return formatted
 

@@ -414,6 +414,21 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         };
       });
     })();
+    const trailingStopResults = (() => {
+      const rows = reportData.optimization_results?.trailing_stop_rows;
+      if (!Array.isArray(rows) || rows.length === 0) return [];
+      return rows.map((row: any) => ({
+        threshold:
+          typeof row.trail_pct === "number" && row.trail_pct > 0
+            ? `${(row.trail_pct * 100).toFixed(1)}%`
+            : "No trailing",
+        avgR: Number(row.avg_r ?? 0).toFixed(2),
+        winRate: typeof row.win_rate === "number" ? `${Math.round(row.win_rate * 100)}%` : "—",
+        maxHold: row.max_hold_minutes == null ? "None" : `${row.max_hold_minutes}m`,
+        policies: typeof row.count === "number" ? row.count.toString() : "—",
+        status: row.status ?? "Observed",
+      }));
+    })();
     const topRecommendation = recs[0]
       ? `${recs[0].bold}${recs[0].rest}`
       : policy.sl_mult || policy.tp_mult
@@ -504,6 +519,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       mfeAnalysis,
       mfeMaePoints,
       counterfactualResults,
+      trailingStopResults,
     };
   }, [formatAccountMetric, reportData]);
   const [isEditingTradeCount, setIsEditingTradeCount] = useState(false);
@@ -979,6 +995,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   
   // All chart/table data comes from the latest completed analysis report.
   const counterfactualResults = derived.counterfactualResults;
+  const trailingStopResults = derived.trailingStopResults;
   const mfeAnalysis = derived.mfeAnalysis;
   const marketRegimes = derived.marketRegimes;
   const holdTimeResults = derived.holdTimeResults;
@@ -1003,6 +1020,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       : null;
   const recommendationCards = derived.recs.slice(0, 3);
   const hasCounterfactualResults = counterfactualResults.length > 0;
+  const hasTrailingStopResults = trailingStopResults.length > 0;
   const hasMfeMaeAnalysis = mfeAnalysis.length > 0;
   const hasMfeMaePoints = derived.mfeMaePoints.length > 0;
   const hasMarketRegimes = marketRegimes.length > 0;
@@ -2104,9 +2122,42 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
               <p className="text-slate-600 text-sm mb-6">
                 This view is only shown when the report includes explicit trailing-stop test results.
               </p>
-              <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 text-sm text-slate-600">
-                No trailing-stop optimisation table is available in the current report output.
-              </div>
+              {hasTrailingStopResults ? (
+                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Trail Threshold</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Avg R</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Win Rate</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Max Hold</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Policies</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {trailingStopResults.map((row, idx) => (
+                        <tr key={idx} className={`border-t border-slate-100 ${row.status === 'Recommended' ? 'bg-teal-50' : row.status === 'Current' ? 'bg-blue-50' : ''}`}>
+                          <td className="py-3 px-4 text-sm">{row.threshold}</td>
+                          <td className="py-3 px-4 text-sm font-semibold">{row.avgR}</td>
+                          <td className="py-3 px-4 text-sm">{row.winRate}</td>
+                          <td className="py-3 px-4 text-sm">{row.maxHold}</td>
+                          <td className="py-3 px-4 text-sm">{row.policies}</td>
+                          <td className="py-3 px-4 text-sm">
+                            <span className={row.status === 'Recommended' ? 'text-teal-700 font-medium' : row.status === 'Current' ? 'text-blue-700 font-medium' : 'text-slate-600'}>
+                              {row.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 text-sm text-slate-600">
+                  No trailing-stop optimisation table is available in the current report output.
+                </div>
+              )}
             </div>
               </div>
             )}
