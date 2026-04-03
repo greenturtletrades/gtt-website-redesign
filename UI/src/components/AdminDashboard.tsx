@@ -1,4 +1,4 @@
-import { Users, TrendingUp, Activity, Shield, Search, BarChart3, Brain, Eye, Filter, Calendar, UserX, BookOpen, UserPlus } from "lucide-react";
+import { Users, TrendingUp, Activity, Shield, Search, BarChart3, Brain, Eye, Filter, Calendar, UserX, BookOpen, UserPlus, DollarSign } from "lucide-react";
 import { useEffect, useState } from "react";
 import { TraderDetailsModal } from "./TraderDetailsModal";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
