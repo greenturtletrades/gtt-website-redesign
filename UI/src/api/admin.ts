@@ -33,6 +33,7 @@ export interface AdminTrader {
   brokerAccountsCount: number;
   activeBrokerAccountsCount: number;
   apiKeysCount: number;
+  analysisRunCount: number;
   tradeEventCount: number;
   historyExportCount: number;
   lastEaSyncAt: string | null;

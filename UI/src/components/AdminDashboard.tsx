@@ -90,7 +90,8 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   }, []);
 
   // Calculate stats
-  const totalMLAnalyses = traders.reduce((sum, trader) => sum + trader.historyExportCount, 0);
+  const totalHistoryExports = traders.reduce((sum, trader) => sum + trader.historyExportCount, 0);
+  const totalAnalysisRuns = traders.reduce((sum, trader) => sum + trader.analysisRunCount, 0);
   const totalTraders = traders.length;
   const activeTraders = traders.filter((trader) => trader.accountStatus === "ACTIVE").length;
   const premiumCount = traders.filter((trader) => trader.plan === "premium").length;
@@ -486,7 +487,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 {/* User Growth Chart and Stats */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="lg:col-span-2">
-                    <h3 className="text-sm text-slate-700 mb-3">User Growth Trend</h3>
+                    <h3 className="text-sm text-slate-700 mb-3">Trader Account Growth</h3>
                     <ResponsiveContainer width="100%" height={250}>
                       <LineChart data={userGrowthTrend}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -494,29 +495,29 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         <YAxis stroke="#64748b" style={{ fontSize: '12px' }} />
                         <Tooltip 
                           contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
-                          formatter={(value: number) => [`${value}`, 'Users']}
+                          formatter={(value: number) => [`${value}`, 'Trader accounts']}
                         />
                         <Line type="monotone" dataKey="users" stroke="#0d9488" strokeWidth={2} dot={{ fill: '#0d9488', r: 4 }} />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
                   <div>
-                    <h3 className="text-sm text-slate-700 mb-3">User Engagement</h3>
+                    <h3 className="text-sm text-slate-700 mb-3">Account Engagement</h3>
                     <div className="space-y-4">
                       <div className="bg-slate-50 rounded-lg p-3">
-                        <div className="text-xs text-slate-600 mb-1">Avg. Trades per User</div>
+                        <div className="text-xs text-slate-600 mb-1">Avg. Stored Trades per Trader</div>
                         <div className="text-xl text-slate-900">{totalTraders > 0 ? (traders.reduce((sum, trader) => sum + trader.tradeEventCount, 0) / totalTraders).toFixed(0) : "0"}</div>
                       </div>
                       <div className="bg-slate-50 rounded-lg p-3">
-                        <div className="text-xs text-slate-600 mb-1">Avg. ML Uses per User</div>
-                        <div className="text-xl text-slate-900">{totalTraders > 0 ? (totalMLAnalyses / totalTraders).toFixed(0) : "0"}</div>
+                        <div className="text-xs text-slate-600 mb-1">Avg. Analysis Runs per Trader</div>
+                        <div className="text-xl text-slate-900">{totalTraders > 0 ? (totalAnalysisRuns / totalTraders).toFixed(0) : "0"}</div>
                       </div>
                       <div className="bg-slate-50 rounded-lg p-3">
                         <div className="text-xs text-slate-600 mb-1">Premium Traders</div>
                         <div className="text-xl text-teal-600">{totalTraders > 0 ? ((premiumCount / totalTraders) * 100).toFixed(0) : "0"}%</div>
                       </div>
                       <div className="bg-slate-50 rounded-lg p-3">
-                        <div className="text-xs text-slate-600 mb-1">Retention Rate</div>
+                        <div className="text-xs text-slate-600 mb-1">Active Account Rate</div>
                         <div className="text-xl text-green-600">{totalTraders > 0 ? ((activeTraders / totalTraders) * 100).toFixed(0) : "0"}%</div>
                       </div>
                     </div>
@@ -537,12 +538,12 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                   <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 border border-purple-200 rounded-lg p-4">
                     <div className="text-slate-600 text-sm mb-1">History Exports</div>
-                    <div className="text-3xl text-slate-900 mb-1">{totalMLAnalyses.toLocaleString()}</div>
+                    <div className="text-3xl text-slate-900 mb-1">{totalHistoryExports.toLocaleString()}</div>
                     <div className="text-xs text-purple-600">Real HISTORY_EXPORT events</div>
                   </div>
                   <div className="bg-gradient-to-br from-pink-50 to-rose-50 border border-pink-200 rounded-lg p-4">
                     <div className="text-slate-600 text-sm mb-1">Avg. Exports per Trader</div>
-                    <div className="text-3xl text-slate-900 mb-1">{totalTraders > 0 ? (totalMLAnalyses / totalTraders).toFixed(0) : "0"}</div>
+                    <div className="text-3xl text-slate-900 mb-1">{totalTraders > 0 ? (totalHistoryExports / totalTraders).toFixed(0) : "0"}</div>
                     <div className="text-xs text-slate-600">Across tracked trader records</div>
                   </div>
                   <div className="bg-gradient-to-br from-cyan-50 to-sky-50 border border-cyan-200 rounded-lg p-4">
@@ -646,7 +647,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Analysis Status</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Country</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Broker Accounts</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Trade Events</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Stored Trades</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Exports</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Last EA Sync</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Actions</th>

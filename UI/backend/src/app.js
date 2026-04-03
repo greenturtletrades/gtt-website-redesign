@@ -2727,6 +2727,7 @@ app.get("/api/admin/traders", authRequired, adminRequired, async (req, res, next
             select: {
               apiKeys: true,
               storedTrades: true,
+              analysisRuns: true,
             },
           },
         },
@@ -2787,6 +2788,7 @@ app.get("/api/admin/traders", authRequired, adminRequired, async (req, res, next
           brokerAccountsCount: brokerAccounts.length,
           activeBrokerAccountsCount: brokerAccounts.filter((account) => account.isActive).length,
           apiKeysCount: user?._count?.apiKeys || 0,
+          analysisRunCount: user?._count?.analysisRuns || 0,
           tradeEventCount: user?._count?.storedTrades || 0,
           historyExportCount,
           lastEaSyncAt: lastEaSyncAt ? lastEaSyncAt.toISOString() : null,
