@@ -90,6 +90,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         mfeAnalysis: [],
         mfeMaePoints: [],
         counterfactualResults: [],
+        trailingStopResults: [],
       };
     }
 
