@@ -133,30 +133,30 @@ def add_extended_features(df: pd.DataFrame) -> pd.DataFrame:
     else:
         entry_hour = pd.Series(np.nan, index=df.index)
 
-        def _bucket_hour(h):
-            if pd.isna(h):
-                return "Unknown"
-            h = int(h)
-            if 7 <= h < 10:
-                return "London_open"
-            if 13 <= h < 16:
-                return "NY_open"
-            if 0 <= h < 7:
-                return "Overnight"
-            if 16 <= h < 22:
-                return "US_session"
-            return "Other"
+    def _bucket_hour(h):
+        if pd.isna(h):
+            return "Unknown"
+        h = int(h)
+        if 6 <= h < 10:
+            return "Early Session"
+        if 10 <= h < 14:
+            return "Midday"
+        if 14 <= h < 18:
+            return "Afternoon"
+        if 18 <= h < 22:
+            return "Evening"
+        return "Overnight"
 
-        df["time_of_day_bucket"] = entry_hour.apply(_bucket_hour)
+    df["time_of_day_bucket"] = entry_hour.apply(_bucket_hour)
 
-        def _time_range_bucket(h):
-            if pd.isna(h):
-                return "Unknown"
-            start = int(h) // 2 * 2
-            end = (start + 2) % 24
-            return f"{start:02d}:00-{end:02d}:00"
+    def _time_range_bucket(h):
+        if pd.isna(h):
+            return "Unknown"
+        start = int(h) // 4 * 4
+        end = (start + 4) % 24
+        return f"{start:02d}:00-{end:02d}:00"
 
-        df["time_range_bucket"] = entry_hour.apply(_time_range_bucket)
+    df["time_range_bucket"] = entry_hour.apply(_time_range_bucket)
 
     # --- 3. Volatility buckets ---------------------------------------------
 

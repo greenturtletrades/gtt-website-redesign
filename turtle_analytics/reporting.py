@@ -817,8 +817,8 @@ def _compute_trade_analytics(df: pd.DataFrame) -> dict[str, Any]:
             def _time_range_bucket_from_hour(h: float) -> str:
                 if pd.isna(h):
                     return "Unknown"
-                start = int(h) // 2 * 2
-                end = (start + 2) % 24
+                start = int(h) // 4 * 4
+                end = (start + 4) % 24
                 return f"{start:02d}:00-{end:02d}:00"
 
             df_session["time_range_bucket"] = entry_source.dt.hour.apply(_time_range_bucket_from_hour)
