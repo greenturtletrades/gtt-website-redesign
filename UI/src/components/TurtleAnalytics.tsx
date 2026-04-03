@@ -98,8 +98,14 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
     const best = reportData.summary?.best_performance ?? {};
     const policy = reportData.global_policy?.best_policy ?? {};
     const conf = reportData.global_policy?.confidence ?? {};
+    const originalAvgR = typeof orig.avg_r === "number" ? orig.avg_r : 0;
     const n = orig.n_trades ?? 0;
-    const bestAvgR = best.avg_r ?? orig.avg_r ?? 0;
+    const bestAvgR =
+      typeof reportData.global_policy?.performance?.avg_r === "number"
+        ? reportData.global_policy.performance.avg_r
+        : typeof best.avg_r === "number"
+          ? best.avg_r
+          : originalAvgR;
     const bestTotalR =
       typeof reportData.global_policy?.performance?.total_r === "number"
         ? reportData.global_policy.performance.total_r
@@ -125,15 +131,15 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
     const impPct =
       totalCurrencyPnl !== null && optimisedCurrencyPnl !== null && totalCurrencyPnl !== 0
         ? (((optimisedCurrencyPnl - totalCurrencyPnl) / Math.abs(totalCurrencyPnl)) * 100).toFixed(1)
-        : orig.avg_r && orig.avg_r !== 0
-          ? (((bestAvgR - orig.avg_r) / Math.abs(orig.avg_r)) * 100).toFixed(1)
+        : originalAvgR !== 0
+          ? (((bestAvgR - originalAvgR) / Math.abs(originalAvgR)) * 100).toFixed(1)
           : "0.0";
     const ciVal = conf.ci_95_upper && conf.ci_95_lower
       ? ((conf.ci_95_upper - conf.ci_95_lower) / 2).toFixed(2)
       : "0.08";
     const slM = policy.sl_mult?.toFixed(1) ?? "1.0";
     const tpM = policy.tp_mult?.toFixed(1) ?? "2.0";
-    const optimisationFoundEdge = bestAvgR > (orig.avg_r ?? 0) && bestAvgR > 0;
+    const optimisationFoundEdge = bestAvgR > originalAvgR && bestAvgR > 0;
 
     const allRecs: Array<{ text: string; source: string }> = [
       ...(reportData.regimes?.recommendations ?? []).map((text: string) => ({ text, source: "Regime clustering" })),
@@ -152,7 +158,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
     const strategyIsUnprofitable =
       (typeof totalCurrencyPnl === "number" && totalCurrencyPnl < 0) ||
       (typeof orig.total_r === "number" && orig.total_r < 0) ||
-      (typeof orig.avg_r === "number" && orig.avg_r < 0);
+      originalAvgR < 0;
 
     const profitabilityRecommendation = strategyIsUnprofitable
       ? {
@@ -447,13 +453,13 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       gainPnl: optimisationFoundEdge
         ? (gain !== null
             ? (optimisedCurrencyPnl !== null && totalCurrencyPnl !== null ? formatAccountMetric(gain) : `${gain.toFixed(2)}R`)
-            : `${Math.abs(bestAvgR - (orig.avg_r ?? 0)).toFixed(2)}R/trade`)
+            : `${Math.abs(bestAvgR - originalAvgR).toFixed(2)}R/trade`)
         : "No reliable uplift",
-      avgR: (orig.avg_r ?? 0).toFixed(2),
+      avgR: originalAvgR.toFixed(2),
       winRate: Math.round((orig.win_rate ?? 0) * 100).toString(),
       bestAvgR: bestAvgR.toFixed(2),
       improvementPct: impPct,
-      avgPerTrade: totalCurrencyPnl !== null && n > 0 ? formatAccountMetric(totalCurrencyPnl / n) : (orig.avg_r ?? 0).toFixed(2),
+      avgPerTrade: totalCurrencyPnl !== null && n > 0 ? formatAccountMetric(totalCurrencyPnl / n) : originalAvgR.toFixed(2),
       bestAvgPerTrade: optimisationFoundEdge
         ? (optimisedCurrencyPnl !== null && n > 0 ? formatAccountMetric(optimisedCurrencyPnl / n) : `${bestAvgR.toFixed(2)}R`)
         : "Not reliable",
@@ -467,7 +473,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       improvementDisplay: optimisationFoundEdge
         ? (gain !== null
             ? (optimisedCurrencyPnl !== null && totalCurrencyPnl !== null ? formatAccountMetric(gain) : `${gain.toFixed(2)}R`)
-            : `${Math.abs(bestAvgR - (orig.avg_r ?? 0)).toFixed(2)}R/trade`)
+            : `${Math.abs(bestAvgR - originalAvgR).toFixed(2)}R/trade`)
         : "No improvement confirmed",
       improvementSubtext: optimisationFoundEdge
         ? `+${impPct}% better performance`
@@ -479,8 +485,8 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
           ? formatAccountMetric(totalCurrencyPnl)
           : `${(orig.total_r ?? 0).toFixed(2)}R`,
       comparisonCurrentSubtext: optimisationComparisonUsesR
-        ? `Average trade outcome ${(orig.avg_r ?? 0).toFixed(2)}R`
-        : `Average trade outcome ${totalCurrencyPnl !== null && n > 0 ? formatAccountMetric(totalCurrencyPnl / n) : (orig.avg_r ?? 0).toFixed(2)} (${(orig.avg_r ?? 0).toFixed(2)}R)`,
+        ? `Average trade outcome ${originalAvgR.toFixed(2)}R`
+        : `Average trade outcome ${totalCurrencyPnl !== null && n > 0 ? formatAccountMetric(totalCurrencyPnl / n) : originalAvgR.toFixed(2)} (${originalAvgR.toFixed(2)}R)`,
       comparisonOptimisedValue: optimisationFoundEdge
         ? optimisationComparisonUsesR
           ? (typeof bestTotalR === "number" ? `${bestTotalR.toFixed(2)}R` : `${bestAvgR.toFixed(2)}R avg`)
@@ -490,10 +496,10 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         ? optimisationComparisonUsesR
           ? (typeof bestTotalR === "number" && typeof orig.total_r === "number"
               ? `${(bestTotalR - orig.total_r).toFixed(2)}R`
-              : `${Math.abs(bestAvgR - (orig.avg_r ?? 0)).toFixed(2)}R/trade`)
+              : `${Math.abs(bestAvgR - originalAvgR).toFixed(2)}R/trade`)
           : (gain !== null
               ? (optimisedCurrencyPnl !== null && totalCurrencyPnl !== null ? formatAccountMetric(gain) : `${gain.toFixed(2)}R`)
-              : `${Math.abs(bestAvgR - (orig.avg_r ?? 0)).toFixed(2)}R/trade`)
+              : `${Math.abs(bestAvgR - originalAvgR).toFixed(2)}R/trade`)
         : "No improvement confirmed",
       comparisonEquityLabel: optimisationComparisonUsesR ? "Cumulative R" : (totalCurrencyPnl !== null ? "Cumulative Account P/L" : "Cumulative R"),
       recs: profitabilityRecommendation
@@ -1036,6 +1042,20 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   const equityUsesCurrency = derived.equityLabel === "Cumulative Account P/L";
   const formatEquityValue = (value: number) =>
     equityUsesCurrency ? formatAccountMetric(value) : `${value.toFixed(2)}R`;
+  const displayedStats = {
+    tradesAnalysed:
+      reportData?.summary?.original_performance?.n_trades ??
+      statsData.tradesAnalysed,
+    policiesTested:
+      reportData?.metadata?.simulations_run ??
+      statsData.simulationsRun,
+    regimesFound:
+      reportData?.regimes?.n_regimes ??
+      statsData.regimesFound,
+    avgRMultiple:
+      reportData?.summary?.original_performance?.avg_r ??
+      statsData.avgRMultiple,
+  };
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -1139,19 +1159,19 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
               <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                 <div className="text-slate-500 text-xs mb-1">Trades Analysed</div>
-                <div className="text-slate-900 text-2xl">{statsData.tradesAnalysed.toLocaleString()}</div>
+                <div className="text-slate-900 text-2xl">{displayedStats.tradesAnalysed.toLocaleString()}</div>
               </div>
               <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                 <div className="text-slate-500 text-xs mb-1">Policies Tested</div>
-                <div className="text-slate-900 text-2xl">{statsData.simulationsRun.toLocaleString()}</div>
+                <div className="text-slate-900 text-2xl">{displayedStats.policiesTested.toLocaleString()}</div>
               </div>
               <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                 <div className="text-slate-500 text-xs mb-1">Regimes Found</div>
-                <div className="text-slate-900 text-2xl">{statsData.regimesFound}</div>
+                <div className="text-slate-900 text-2xl">{displayedStats.regimesFound}</div>
               </div>
               <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                 <div className="text-slate-500 text-xs mb-1">Avg R-Multiple</div>
-                <div className="text-slate-900 text-2xl">{statsData.avgRMultiple.toFixed(2)}</div>
+                <div className="text-slate-900 text-2xl">{displayedStats.avgRMultiple.toFixed(2)}</div>
               </div>
             </div>
 
