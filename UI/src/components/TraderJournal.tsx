@@ -166,14 +166,19 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
 
     if (editingEntry && hasLiveEntries) {
       try {
+        const token = localStorage.getItem("gtt_token");
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+
         const response = await fetch(
           `${apiBase}/api/trades/${encodeURIComponent(editingEntry.id)}/journal`,
           {
             method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            credentials: "include",
+            headers,
             body: JSON.stringify({
               notes: newEntry.notes,
               emotions: newEntry.emotions,
