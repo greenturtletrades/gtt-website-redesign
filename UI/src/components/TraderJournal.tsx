@@ -183,6 +183,13 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
               notes: newEntry.notes,
               emotions: newEntry.emotions,
               lessonsLearned: newEntry.lessonsLearned,
+              pair: newEntry.pair,
+              direction: newEntry.direction,
+              date: newEntry.date,
+              entryTime: newEntry.entryTime,
+              exitTime: newEntry.exitTime,
+              entryPrice: newEntry.entryPrice,
+              exitPrice: newEntry.exitPrice,
             }),
           }
         );

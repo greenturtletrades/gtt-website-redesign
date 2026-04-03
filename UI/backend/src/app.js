@@ -514,6 +514,18 @@ function storedTradeToJournalEntry(storedTrade) {
   };
 }
 
+function buildJournalEntryMatchKey(entry) {
+  return [
+    String(entry.pair || "").trim().toUpperCase(),
+    String(entry.direction || "").trim().toLowerCase(),
+    String(entry.date || ""),
+    String(entry.entryTime || ""),
+    String(entry.exitTime || ""),
+    Number(entry.entryPrice || 0).toFixed(5),
+    Number(entry.exitPrice || 0).toFixed(5),
+  ].join("|");
+}
+
 function formatAnalysisRun(run) {
   return {
     id: run.id,
@@ -3538,7 +3550,7 @@ app.patch("/api/trades/:tradeIdentity/journal", authRequired, async (req, res, n
     const lessonsLearned =
       typeof req.body?.lessonsLearned === "string" ? req.body.lessonsLearned.trim() : "";
 
-    const storedTrade = await prisma.storedTrade.findUnique({
+    let storedTrade = await prisma.storedTrade.findUnique({
       where: {
         userId_tradeIdentity: {
           userId: req.user.id,
@@ -3546,6 +3558,29 @@ app.patch("/api/trades/:tradeIdentity/journal", authRequired, async (req, res, n
         },
       },
     });
+
+    if (!storedTrade) {
+      const requestedMatchKey = buildJournalEntryMatchKey({
+        pair: req.body?.pair,
+        direction: req.body?.direction,
+        date: req.body?.date,
+        entryTime: req.body?.entryTime,
+        exitTime: req.body?.exitTime,
+        entryPrice: req.body?.entryPrice,
+        exitPrice: req.body?.exitPrice,
+      });
+
+      const candidateTrades = await prisma.storedTrade.findMany({
+        where: { userId: req.user.id },
+        orderBy: [{ exitTime: "desc" }, { updatedAt: "desc" }],
+      });
+
+      storedTrade =
+        candidateTrades.find(
+          (candidate) =>
+            buildJournalEntryMatchKey(storedTradeToJournalEntry(candidate)) === requestedMatchKey
+        ) || null;
+    }
 
     if (!storedTrade) {
       return res.status(404).json({ ok: false, error: "Trade not found." });
