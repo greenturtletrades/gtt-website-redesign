@@ -74,6 +74,12 @@ REQUIRED_TRADE_COLUMNS: Dict[str, ColumnSpec] = {
 
 # Optional columns: nice-to-have, used if present
 OPTIONAL_TRADE_COLUMNS: Dict[str, ColumnSpec] = {
+    "trade_identity": ColumnSpec(
+        name="trade_identity",
+        dtype="string",
+        required=False,
+        description="Stable internal trade identity used to map saved account notes back to a stored trade."
+    ),
     "trade_id": ColumnSpec(
         name="trade_id",
         dtype="string",

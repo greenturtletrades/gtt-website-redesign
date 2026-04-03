@@ -1054,9 +1054,44 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   const hasOptimisedEquityCurve = derived.hasOptimisedEquityCurve === true;
   const consecutiveLossData = derived.consecutiveLossData;
   const reportJournalEntries = reportData?.trade_analytics?.journal_entries ?? [];
+  const storedJournalEntryMap = new Map(
+    storedJournalEntries.map((entry: any) => [
+      [
+        String(entry.pair || "").trim().toUpperCase(),
+        String(entry.direction || "").trim().toLowerCase(),
+        String(entry.date || ""),
+        String(entry.entryTime || ""),
+        String(entry.exitTime || ""),
+        Number(entry.entryPrice || 0).toFixed(5),
+        Number(entry.exitPrice || 0).toFixed(5),
+      ].join("|"),
+      entry,
+    ])
+  );
   const journalEntries =
     reportJournalEntries.length > 0
-      ? reportJournalEntries
+      ? reportJournalEntries.map((entry: any) => {
+          const matchKey = [
+            String(entry.pair || "").trim().toUpperCase(),
+            String(entry.direction || "").trim().toLowerCase(),
+            String(entry.date || ""),
+            String(entry.entryTime || ""),
+            String(entry.exitTime || ""),
+            Number(entry.entryPrice || 0).toFixed(5),
+            Number(entry.exitPrice || 0).toFixed(5),
+          ].join("|");
+          const storedMatch = storedJournalEntryMap.get(matchKey);
+          if (!storedMatch) {
+            return entry;
+          }
+          return {
+            ...entry,
+            id: storedMatch.id || entry.id,
+            notes: storedMatch.notes ?? entry.notes,
+            emotions: storedMatch.emotions ?? entry.emotions,
+            lessonsLearned: storedMatch.lessonsLearned ?? entry.lessonsLearned,
+          };
+        })
       : storedJournalEntries;
   const journalPnlMeta =
     reportJournalEntries.length > 0
