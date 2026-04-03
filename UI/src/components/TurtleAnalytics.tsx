@@ -2115,13 +2115,13 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
             <div className="mb-16">
               <h2 className="text-slate-900 mb-4 text-2xl flex items-center gap-2">
                 <Activity className="w-6 h-6 text-teal-600" />
-                Trailing Stop Strategy (Survival Analysis)
+                Trailing Stop Testing
               </h2>
               <p className="text-slate-600 text-sm mb-2">
-                <strong>What this analysis does:</strong> Using survival analysis, we tested when to activate a trailing stop loss to maximise your profit while protecting gains.
+                <strong>What this analysis does:</strong> We grouped the optimiser's tested policies by trailing-stop threshold to show which trailing settings performed best on your analysed trades.
               </p>
               <p className="text-slate-600 text-sm mb-6">
-                This view is only shown when the report includes explicit trailing-stop test results.
+                These rows are drawn from the optimisation trials in this run, not from a separate standalone trailing-stop model.
               </p>
               {hasTrailingStopResults ? (
                 <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
