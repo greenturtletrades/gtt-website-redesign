@@ -985,14 +985,15 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   const equityCurveComparison = derived.equityCurveData;
   const hasOptimisedEquityCurve = derived.hasOptimisedEquityCurve === true;
   const consecutiveLossData = derived.consecutiveLossData;
+  const reportJournalEntries = reportData?.trade_analytics?.journal_entries ?? [];
   const journalEntries =
-    storedJournalEntries.length > 0
-      ? storedJournalEntries
-      : reportData?.trade_analytics?.journal_entries ?? [];
+    reportJournalEntries.length > 0
+      ? reportJournalEntries
+      : storedJournalEntries;
   const journalPnlMeta =
-    storedJournalEntries.length > 0
-      ? storedJournalPnlMeta
-      : reportData?.trade_analytics?.pnl_metadata ?? null;
+    reportJournalEntries.length > 0
+      ? reportData?.trade_analytics?.pnl_metadata ?? null
+      : storedJournalPnlMeta;
   const pnlWarning =
     journalPnlMeta?.currency_pnl_available === false && journalPnlMeta?.message
       ? journalPnlMeta.message
