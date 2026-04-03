@@ -439,6 +439,7 @@ function storedTradeToAnalysisTrade(storedTrade) {
       ? rawTrade.exit_time.trim()
       : storedTrade.exitTime.toISOString();
   return {
+    trade_identity: storedTrade.tradeIdentity,
     trade_id: storedTrade.externalTradeId,
     entry_time: storedTrade.entryTime.toISOString(),
     exit_time: storedTrade.exitTime.toISOString(),

@@ -1184,7 +1184,7 @@ def _build_journal_entries(
                 currency_result = round(float(raw_currency_result), 2)
 
         entries.append({
-            "id": f"trade-{idx + 1}",
+            "id": str(row.get("trade_identity") or row.get("trade_id") or f"trade-{idx + 1}"),
             "date": entry_time.strftime("%Y-%m-%d") if pd.notna(entry_time) else "",
             "pair": pair,
             "direction": "long" if str(row.get("side", "")).upper() == "LONG" else "short",

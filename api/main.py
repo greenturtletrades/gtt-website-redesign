@@ -89,6 +89,7 @@ executor = ThreadPoolExecutor(max_workers=4)
 # ---------------------------------------------------------------------------
 
 class TradeRecord(BaseModel):
+    trade_identity: Optional[str] = None
     trade_id: Optional[str] = None
     entry_time: str
     exit_time: str
