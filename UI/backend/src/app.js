@@ -506,9 +506,9 @@ function storedTradeToJournalEntry(storedTrade) {
     exitType,
     result,
     rMultiple,
-    notes: "",
-    emotions: "",
-    lessonsLearned: "",
+    notes: storedTrade.notes || "",
+    emotions: storedTrade.emotions || "",
+    lessonsLearned: storedTrade.lessonsLearned || "",
     marketConditions: storedTrade.session || "",
   };
 }
@@ -3520,6 +3520,49 @@ app.get("/api/trades", authRequired, async (req, res, next) => {
   try {
     const { trades, pnlMeta } = await buildAccountStatePayload(req.user.id);
     return res.json({ ok: true, trades, pnlMeta });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.patch("/api/trades/:tradeIdentity/journal", authRequired, async (req, res, next) => {
+  try {
+    const tradeIdentity = decodeURIComponent(req.params.tradeIdentity || "");
+    if (!tradeIdentity) {
+      return res.status(400).json({ ok: false, error: "Trade identity is required." });
+    }
+
+    const notes = typeof req.body?.notes === "string" ? req.body.notes.trim() : "";
+    const emotions = typeof req.body?.emotions === "string" ? req.body.emotions.trim() : "";
+    const lessonsLearned =
+      typeof req.body?.lessonsLearned === "string" ? req.body.lessonsLearned.trim() : "";
+
+    const storedTrade = await prisma.storedTrade.findUnique({
+      where: {
+        userId_tradeIdentity: {
+          userId: req.user.id,
+          tradeIdentity,
+        },
+      },
+    });
+
+    if (!storedTrade) {
+      return res.status(404).json({ ok: false, error: "Trade not found." });
+    }
+
+    const updatedTrade = await prisma.storedTrade.update({
+      where: { id: storedTrade.id },
+      data: {
+        notes: notes || null,
+        emotions: emotions || null,
+        lessonsLearned: lessonsLearned || null,
+      },
+    });
+
+    return res.json({
+      ok: true,
+      trade: storedTradeToJournalEntry(updatedTrade),
+    });
   } catch (err) {
     return next(err);
   }

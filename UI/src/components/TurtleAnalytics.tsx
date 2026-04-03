@@ -1269,7 +1269,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
 
       {/* Conditional Content Based on Active Tab */}
       {activeTab === "journal" ? (
-        <TraderJournal entries={journalEntries} pnlMeta={journalPnlMeta} />
+        <TraderJournal entries={journalEntries} pnlMeta={journalPnlMeta} apiBase={API_BASE} />
       ) : activeTab === "settings" ? (
         <SettingsPage
           userName={currentUserName}

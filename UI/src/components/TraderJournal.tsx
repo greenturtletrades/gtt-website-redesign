@@ -32,6 +32,7 @@ interface TraderJournalProps {
     message?: string | null;
     source_column?: string | null;
   };
+  apiBase?: string;
 }
 
 function toSafeNumber(value: unknown, fallback = 0): number {
@@ -90,7 +91,7 @@ function extractBaseAsset(pair: string): string | null {
   return symbol;
 }
 
-export function TraderJournal({ entries: liveEntries = [], pnlMeta }: TraderJournalProps) {
+export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = "" }: TraderJournalProps) {
   const numberFormatter = new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -136,7 +137,7 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta }: TraderJour
     marketConditions: ""
   });
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.pair || !formData.entryPrice || !formData.exitPrice) {
       alert("Please fill in all required fields");
       return;
@@ -164,7 +165,34 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta }: TraderJour
     });
 
     if (editingEntry && hasLiveEntries) {
-      setLiveOverrides((prev) => ({ ...prev, [editingEntry.id]: newEntry }));
+      try {
+        const response = await fetch(
+          `${apiBase}/api/trades/${encodeURIComponent(editingEntry.id)}/journal`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              notes: newEntry.notes,
+              emotions: newEntry.emotions,
+              lessonsLearned: newEntry.lessonsLearned,
+            }),
+          }
+        );
+
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(payload?.error || "Failed to save journal notes.");
+        }
+
+        const savedTrade = payload?.trade ? normalizeJournalEntry(payload.trade) : newEntry;
+        setLiveOverrides((prev) => ({ ...prev, [editingEntry.id]: savedTrade }));
+      } catch (error) {
+        alert(error instanceof Error ? error.message : "Failed to save journal notes.");
+        return;
+      }
     } else if (editingEntry) {
       setEntries(entries.map(e => e.id === editingEntry.id ? newEntry : e));
     } else {

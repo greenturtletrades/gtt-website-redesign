@@ -223,6 +223,9 @@ model StoredTrade {
   profit          Float?
   commission      Float?
   swap            Float?
+  notes           String?
+  emotions        String?
+  lessonsLearned  String?
   rawTrade        Json
   firstSeenAt     DateTime      @default(now())
   lastSeenAt      DateTime      @default(now())
