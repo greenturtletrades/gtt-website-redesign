@@ -294,16 +294,6 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta }: TraderJour
     value: count,
   }));
   const totalAssetTrades = assetBreakdown.reduce((sum, item) => sum + item.value, 0);
-  const baseAssetCounts = activeEntries.reduce((acc, entry) => {
-    const baseAsset = extractBaseAsset(entry.pair);
-    if (!baseAsset) return acc;
-    acc[baseAsset] = (acc[baseAsset] ?? 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-  const baseAssetBreakdown = Object.entries(baseAssetCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 6)
-    .map(([name, value]) => ({ name, value }));
   const averageDuration =
     activeEntries.length > 0
       ? Math.round(activeEntries.reduce((sum, entry) => sum + entry.duration, 0) / activeEntries.length)
@@ -529,20 +519,6 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta }: TraderJour
                         ))}
                       </div>
                     </div>
-
-                    {baseAssetBreakdown.length > 0 && (
-                      <div className="mb-6">
-                        <div className="text-slate-700 text-sm mb-3">Most Active Base Currencies / Assets</div>
-                        <div className="space-y-2">
-                          {baseAssetBreakdown.map((item) => (
-                            <div key={item.name} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
-                              <span className="text-slate-800">{item.name}</span>
-                              <span className="text-slate-500">{item.value} trades</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
 
                     {longestHeldTrade && (
                       <div>
