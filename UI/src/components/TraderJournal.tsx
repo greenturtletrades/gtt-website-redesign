@@ -448,10 +448,26 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta }: TraderJour
                             <div className="text-slate-800">{entry.duration}m</div>
                           </div>
                         </div>
-                        {entry.notes.trim() && (
-                          <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                            <div className="text-slate-500 text-xs mb-1">Notes</div>
-                            <div className="text-slate-700 text-sm line-clamp-3">{entry.notes}</div>
+                        {(entry.notes.trim() || entry.emotions.trim() || entry.lessonsLearned.trim()) && (
+                          <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 space-y-3">
+                            {entry.notes.trim() && (
+                              <div>
+                                <div className="text-slate-500 text-xs mb-1">Trade Notes</div>
+                                <div className="text-slate-700 text-sm line-clamp-3">{entry.notes}</div>
+                              </div>
+                            )}
+                            {entry.emotions.trim() && (
+                              <div>
+                                <div className="text-slate-500 text-xs mb-1">Emotions During Trade</div>
+                                <div className="text-slate-700 text-sm line-clamp-3">{entry.emotions}</div>
+                              </div>
+                            )}
+                            {entry.lessonsLearned.trim() && (
+                              <div>
+                                <div className="text-slate-500 text-xs mb-1">Lessons Learned</div>
+                                <div className="text-slate-700 text-sm line-clamp-3">{entry.lessonsLearned}</div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </button>
