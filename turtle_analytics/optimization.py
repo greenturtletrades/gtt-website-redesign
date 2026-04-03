@@ -34,7 +34,7 @@ except ImportError:
     )
 
 from .policies import PolicyParams
-from .simulator import run_simulation, calculate_policy_metrics
+from .simulator import run_simulation, calculate_policy_metrics, compare_original_vs_simulated
 
 
 def optimize_policy(
@@ -160,6 +160,10 @@ def optimize_policy(
             for key, value in metrics.items():
                 if isinstance(value, (int, float, np.floating)) and np.isfinite(value):
                     trial.set_user_attr(key, float(value))
+            comparison = compare_original_vs_simulated(sim_df)
+            pct_changed = comparison.get("pct_changed")
+            if isinstance(pct_changed, (int, float, np.floating)) and np.isfinite(pct_changed):
+                trial.set_user_attr("pct_changed", float(pct_changed))
             
             # Get objective value
             objective_value = metrics.get(objective_metric, 0.0)
@@ -209,6 +213,7 @@ def optimize_policy(
             "std_R": trial.user_attrs.get("std_R"),
             "n_trades": trial.user_attrs.get("n_trades"),
             "total_R": trial.user_attrs.get("total_R"),
+            "pct_changed": trial.user_attrs.get("pct_changed"),
         }
         trials_data.append(trial_data)
     

@@ -539,9 +539,11 @@ def _format_optimization_results(opt_results: dict) -> dict[str, Any]:
                     "max_hold_minutes": None if pd.isna(row.get("max_hold_minutes")) else row.get("max_hold_minutes"),
                     "risk_fraction": float(row.get("risk_fraction", 0.0)) if pd.notna(row.get("risk_fraction")) else None,
                     "avg_r": float(row.get("avg_R", 0.0)),
+                    "total_r": None if pd.isna(row.get("total_R")) else float(row.get("total_R")),
                     "win_rate": None
                     if pd.isna(row.get("win_rate", row.get("winrate")))
                     else float(row.get("win_rate", row.get("winrate"))),
+                    "pct_changed": None if pd.isna(row.get("pct_changed")) else float(row.get("pct_changed")),
                     "ci_lower": None if pd.isna(row.get("ci_lower")) else float(row.get("ci_lower")),
                     "ci_upper": None if pd.isna(row.get("ci_upper")) else float(row.get("ci_upper")),
                 })

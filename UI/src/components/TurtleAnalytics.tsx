@@ -397,13 +397,16 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
             ? ((row.ci_upper - row.ci_lower) / 2).toFixed(2)
             : ciVal;
         return {
-          sl: `${Number(row.sl_mult ?? 0).toFixed(2)}R`,
-          tp: `${Number(row.tp_mult ?? 0).toFixed(2)}R`,
+          sl: `${Number(row.sl_mult ?? 0).toFixed(3)}R`,
+          tp: `${Number(row.tp_mult ?? 0).toFixed(3)}R`,
           trail: typeof row.trail_pct === "number" ? `${(row.trail_pct * 100).toFixed(1)}%` : "—",
           maxHold: row.max_hold_minutes == null ? "None" : `${row.max_hold_minutes}m`,
           avgR: Number(row.avg_r ?? 0).toFixed(2),
+          totalR: typeof row.total_r === "number" ? `${row.total_r.toFixed(2)}R` : "—",
           winRate:
             typeof row.win_rate === "number" ? `${Math.round(row.win_rate * 100)}%` : "—",
+          changedTrades:
+            typeof row.pct_changed === "number" ? `${Math.round(row.pct_changed * 100)}%` : "—",
           confidence: `±${ciHalfWidth}`,
           status: idx === 0 ? "Best tested policy" : "Observed trial",
           isCurrent: false,
@@ -1907,7 +1910,9 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">Trail</th>
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">Max Hold</th>
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">Avg R</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Total R</th>
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">Win Rate</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">% Changed</th>
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">95% CI</th>
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">Result</th>
                       </tr>
@@ -1920,7 +1925,9 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                           <td className="py-3 px-4 text-sm">{row.trail}</td>
                           <td className="py-3 px-4 text-sm">{row.maxHold}</td>
                           <td className="py-3 px-4 text-sm font-semibold">{row.avgR}</td>
+                          <td className="py-3 px-4 text-sm">{row.totalR}</td>
                           <td className="py-3 px-4 text-sm">{row.winRate}</td>
+                          <td className="py-3 px-4 text-sm">{row.changedTrades}</td>
                           <td className="py-3 px-4 text-sm text-slate-500">{row.confidence}</td>
                           <td className="py-3 px-4 text-sm">
                             <span className={row.isRecommended ? 'text-teal-700 font-medium' : row.isCurrent ? 'text-blue-700 font-medium' : 'text-slate-600'}>
@@ -1940,12 +1947,12 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
               <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-lg">
                 <div className="flex items-start gap-2">
                   <Brain className="w-5 h-5 text-slate-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <div className="text-slate-900 text-sm mb-1">How This Works:</div>
-                    <p className="text-slate-600 text-xs">
-                      When the report includes counterfactual rows, each line shows how the analysed trades would have performed under one tested policy combination from the optimiser. The visible columns show the management settings that differ between those top-ranked policies.
-                    </p>
-                  </div>
+                    <div>
+                      <div className="text-slate-900 text-sm mb-1">How This Works:</div>
+                      <p className="text-slate-600 text-xs">
+                      Each line is a real optimiser trial. `Avg R` ranks the policies, `Total R` shows cumulative outcome across the analysed trades, and `% Changed` shows how many trades would have exited differently from your original history.
+                      </p>
+                    </div>
                 </div>
               </div>
             </div>
