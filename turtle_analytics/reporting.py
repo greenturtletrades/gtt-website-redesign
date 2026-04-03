@@ -943,7 +943,8 @@ def _calculate_risk_recommendations(
         avg_loss = abs(losers.mean())
         
         if avg_win > 0:
-            full_kelly = (win_rate * avg_win - loss_rate * avg_loss) / (avg_win + avg_loss)
+            denom = avg_win + avg_loss
+            full_kelly = (win_rate * avg_win - loss_rate * avg_loss) / denom if denom != 0 else 0.0
             full_kelly = max(0, min(full_kelly, 0.25))  # Cap at 25%
         else:
             full_kelly = 0.01
