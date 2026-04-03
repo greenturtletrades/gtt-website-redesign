@@ -2199,14 +2199,14 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                 Time-of-Day Performance
               </h2>
               <p className="text-slate-600 text-sm mb-6">
-                Session stats below are only shown when the run includes trade timing data.
+                Time ranges below are grouped from the trade timestamps exactly as recorded in the trading account or uploaded file.
               </p>
               {hasSessionPerformance ? (
                 <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                   <table className="w-full">
                     <thead className="bg-slate-50">
                       <tr>
-                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Session</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Time Range</th>
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">Avg R</th>
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">Trades</th>
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">Win Rate</th>

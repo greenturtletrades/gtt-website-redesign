@@ -126,8 +126,12 @@ def add_extended_features(df: pd.DataFrame) -> pd.DataFrame:
 
     # --- 2. Time-of-day buckets --------------------------------------------
 
-    if "entry_time" in df.columns:
+    if "entry_time_local" in df.columns and df["entry_time_local"].notna().any():
+        entry_hour = pd.to_datetime(df["entry_time_local"], errors="coerce").dt.hour
+    elif "entry_time" in df.columns:
         entry_hour = pd.to_datetime(df["entry_time"], errors="coerce").dt.hour
+    else:
+        entry_hour = pd.Series(np.nan, index=df.index)
 
         def _bucket_hour(h):
             if pd.isna(h):
@@ -144,6 +148,15 @@ def add_extended_features(df: pd.DataFrame) -> pd.DataFrame:
             return "Other"
 
         df["time_of_day_bucket"] = entry_hour.apply(_bucket_hour)
+
+        def _time_range_bucket(h):
+            if pd.isna(h):
+                return "Unknown"
+            start = int(h) // 2 * 2
+            end = (start + 2) % 24
+            return f"{start:02d}:00-{end:02d}:00"
+
+        df["time_range_bucket"] = entry_hour.apply(_time_range_bucket)
 
     # --- 3. Volatility buckets ---------------------------------------------
 
@@ -169,4 +182,3 @@ def add_extended_features(df: pd.DataFrame) -> pd.DataFrame:
             df["volatility_bucket"] = "unknown"
 
     return df
-

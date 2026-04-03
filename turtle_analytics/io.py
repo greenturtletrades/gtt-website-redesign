@@ -80,6 +80,18 @@ OPTIONAL_TRADE_COLUMNS: Dict[str, ColumnSpec] = {
         required=False,
         description="Broker/dealer trade identifier."
     ),
+    "entry_time_local": ColumnSpec(
+        name="entry_time_local",
+        dtype="datetime64[ns]",
+        required=False,
+        description="Entry timestamp exactly as recorded by the trading account."
+    ),
+    "exit_time_local": ColumnSpec(
+        name="exit_time_local",
+        dtype="datetime64[ns]",
+        required=False,
+        description="Exit timestamp exactly as recorded by the trading account."
+    ),
     "mfe": ColumnSpec(
         name="mfe",
         dtype="float",

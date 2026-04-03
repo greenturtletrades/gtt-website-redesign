@@ -429,10 +429,21 @@ function normalizeTradeForStorage(trade) {
 }
 
 function storedTradeToAnalysisTrade(storedTrade) {
+  const rawTrade = storedTrade.rawTrade && typeof storedTrade.rawTrade === "object" ? storedTrade.rawTrade : {};
+  const entryTimeLocal =
+    typeof rawTrade.entry_time === "string" && rawTrade.entry_time.trim()
+      ? rawTrade.entry_time.trim()
+      : storedTrade.entryTime.toISOString();
+  const exitTimeLocal =
+    typeof rawTrade.exit_time === "string" && rawTrade.exit_time.trim()
+      ? rawTrade.exit_time.trim()
+      : storedTrade.exitTime.toISOString();
   return {
     trade_id: storedTrade.externalTradeId,
     entry_time: storedTrade.entryTime.toISOString(),
     exit_time: storedTrade.exitTime.toISOString(),
+    entry_time_local: entryTimeLocal,
+    exit_time_local: exitTimeLocal,
     side: storedTrade.side,
     entry_price: storedTrade.entryPrice,
     exit_price: storedTrade.exitPrice,

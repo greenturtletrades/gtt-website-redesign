@@ -92,6 +92,8 @@ class TradeRecord(BaseModel):
     trade_id: Optional[str] = None
     entry_time: str
     exit_time: str
+    entry_time_local: Optional[str] = None
+    exit_time_local: Optional[str] = None
     side: str               # "LONG" or "SHORT"
     entry_price: float
     exit_price: float

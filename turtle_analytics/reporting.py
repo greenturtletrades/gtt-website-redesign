@@ -799,7 +799,9 @@ def _compute_trade_analytics(df: pd.DataFrame) -> dict[str, Any]:
 
     # ── Session performance ────────────────────────────────────────────────────
     session_column = None
-    if "session" in df.columns and df["session"].notna().any():
+    if "time_range_bucket" in df.columns and df["time_range_bucket"].notna().any():
+        session_column = "time_range_bucket"
+    elif "session" in df.columns and df["session"].notna().any():
         session_column = "session"
     elif "time_of_day_bucket" in df.columns and df["time_of_day_bucket"].notna().any():
         session_column = "time_of_day_bucket"
@@ -1069,7 +1071,11 @@ def _format_market_conditions(row: pd.Series) -> str:
     if pd.notna(session) and str(session).strip():
         parts.append(str(session).strip())
     else:
-        bucket = row.get("time_of_day_bucket")
+        bucket = row.get("time_range_bucket")
+        if pd.notna(bucket) and str(bucket).strip():
+            parts.append(str(bucket).strip())
+        else:
+            bucket = row.get("time_of_day_bucket")
         if pd.notna(bucket) and str(bucket).strip():
             parts.append(str(bucket).replace("_", " ").strip())
 
