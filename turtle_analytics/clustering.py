@@ -562,26 +562,20 @@ def create_regime_summary(
     def _base_regime_type(chars: dict[str, Any]) -> str:
         trend_strength = float(chars.get("trend_strength", 0.5) or 0.0)
         volatility = float(chars.get("volatility_recent", 0.0) or 0.0)
+        range_tightness = float(chars.get("range_tightness", 0.5) or 0.0)
 
-        if trend_strength >= 0.8:
-            trend_label = "Strong Trend"
-        elif trend_strength >= 0.6:
-            trend_label = "Trending"
-        elif trend_strength >= 0.35:
-            trend_label = "Mixed"
-        else:
-            trend_label = "Ranging"
-
-        if volatility >= 0.05:
-            vol_label = "Extreme Volatility"
-        elif volatility >= 0.02:
-            vol_label = "High Volatility"
-        elif volatility >= 0.008:
-            vol_label = "Moderate Volatility"
-        else:
-            vol_label = "Low Volatility"
-
-        return f"{trend_label} / {vol_label}"
+        # Trader-facing labels:
+        # - Trending: clear directional movement
+        # - Sideways / Ranging: horizontal or mixed movement
+        # - Volatile: high-speed, erratic movement
+        # - Thin / Low Volume: quiet / compressed conditions
+        if volatility >= 0.05 and trend_strength < 0.55:
+            return "Volatile"
+        if trend_strength >= 0.55:
+            return "Trending"
+        if volatility <= 0.008 or range_tightness >= 0.75:
+            return "Thin / Low Volume"
+        return "Sideways / Ranging"
 
     raw_regimes: list[tuple[int, dict[str, Any], float, float]] = []
 
@@ -624,9 +618,16 @@ def create_regime_summary(
             continue
 
         grouped.sort(key=lambda item: (item[2], item[3], item[1]["performance"]["avg_r"]), reverse=True)
-        descriptors = ["Higher Momentum", "Balanced", "Lower Momentum", "Lowest Momentum"]
-        for idx, (regime_id, regime_info, _, _) in enumerate(grouped):
-            descriptor = descriptors[idx] if idx < len(descriptors) else f"Variant {idx + 1}"
+        for regime_id, regime_info, trend_strength, volatility in grouped:
+            if regime_info["regime_type"] == "Trending":
+                descriptor = "Higher Momentum" if trend_strength >= 0.75 else "Moderate Momentum" if trend_strength >= 0.6 else "Emerging Trend"
+            elif regime_info["regime_type"] == "Sideways / Ranging":
+                descriptor = "Higher Volatility" if volatility >= 0.02 else "Balanced" if volatility >= 0.008 else "Tight Range"
+            elif regime_info["regime_type"] == "Volatile":
+                descriptor = "Higher Momentum" if trend_strength >= 0.35 else "Erratic Swings"
+            else:
+                descriptor = "Compressed Range" if volatility <= 0.004 else "Quiet Flow"
+
             regime_info["regime_type"] = f"{regime_info['regime_type']} ({descriptor})"
             summary["regimes"][regime_id] = regime_info
     
