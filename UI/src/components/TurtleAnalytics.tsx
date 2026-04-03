@@ -141,20 +141,6 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
     const tpM = policy.tp_mult?.toFixed(1) ?? "2.0";
     const optimisationFoundEdge = bestAvgR > originalAvgR && bestAvgR > 0;
 
-    const allRecs: Array<{ text: string; source: string }> = [
-      ...(reportData.regimes?.recommendations ?? []).map((text: string) => ({ text, source: "Regime clustering" })),
-      ...(reportData.hold_time_insights?.recommendations ?? []).map((text: string) => ({ text, source: "Hold-time analysis" })),
-      ...(reportData.risk_recommendations?.recommendations ?? []).map((text: string) => ({ text, source: "Risk analysis" })),
-    ];
-    const recs = allRecs.slice(0, 3).map(({ text, source }) => {
-      const r = text;
-      const idx = r.indexOf(" — ");
-      if (idx > -1) return { bold: r.slice(0, idx), rest: " — " + r.slice(idx + 3), source };
-      const idx2 = r.indexOf(" - ");
-      if (idx2 > -1) return { bold: r.slice(0, idx2), rest: " — " + r.slice(idx2 + 3), source };
-      return { bold: r, rest: "", source };
-    });
-
     const strategyIsUnprofitable =
       (typeof totalCurrencyPnl === "number" && totalCurrencyPnl < 0) ||
       (typeof orig.total_r === "number" && orig.total_r < 0) ||
@@ -217,6 +203,8 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         });
       })()
       : [];
+    const bestRegimeCard = marketRegimes.find((regime: any) => regime.isBest) ?? null;
+    const worstRegimeCard = marketRegimes.find((regime: any) => regime.isWorst) ?? null;
 
     const rMultipleData = reportData.trade_analytics?.r_distribution?.length
       ? reportData.trade_analytics.r_distribution
@@ -424,6 +412,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         };
       });
     })();
+    const bestTrialRow = counterfactualResults[0] ?? null;
     const trailingStopResults = (() => {
       const rows = reportData.optimization_results?.trailing_stop_rows;
       if (!Array.isArray(rows) || rows.length === 0) return [];
@@ -439,8 +428,57 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         status: row.status ?? "Observed",
       }));
     })();
-    const topRecommendation = recs[0]
-      ? `${recs[0].bold}${recs[0].rest}`
+    const recommendationCards = (() => {
+      const cards: Array<{ bold: string; rest: string; source: string }> = [];
+
+      if (strategyIsUnprofitable && profitabilityRecommendation) {
+        cards.push(profitabilityRecommendation);
+      }
+
+      if (bestTrialRow && optimisationFoundEdge) {
+        cards.push({
+          bold: `Best tested policy: ${bestTrialRow.sl} SL / ${bestTrialRow.tp} TP / ${bestTrialRow.trail} trail`,
+          rest: ` — Averaged ${bestTrialRow.avgR}R per trade across ${statsData.tradesAnalysed.toLocaleString()} analysed trades, with ${bestTrialRow.changedTrades} of trades exiting differently.`,
+          source: "Policy optimisation",
+        });
+      }
+
+      if (bestRegimeCard) {
+        cards.push({
+          bold: `Best performance in ${bestRegimeCard.regime}`,
+          rest: ` — ${bestRegimeCard.avgR}R avg across ${bestRegimeCard.trades} trades with ${bestRegimeCard.winRate} win rate. ${bestRegimeCard.bestSL} / ${bestRegimeCard.bestTP} was the strongest regime-specific SL/TP pair.`,
+          source: "Regime clustering",
+        });
+      }
+
+      if (worstRegimeCard) {
+        cards.push({
+          bold: `Avoid ${worstRegimeCard.regime} conditions when possible`,
+          rest: ` — This regime averaged ${worstRegimeCard.avgR}R across ${worstRegimeCard.trades} trades and was the weakest segment in this run.`,
+          source: "Regime clustering",
+        });
+      }
+
+      if (cards.length < 3) {
+        const holdTimeText = reportData.hold_time_insights?.recommendations?.[0];
+        if (typeof holdTimeText === "string" && holdTimeText.trim()) {
+          cards.push({
+            bold: holdTimeText.split(" — ")[0].split(" - ")[0],
+            rest: holdTimeText.includes(" — ")
+              ? ` — ${holdTimeText.split(" — ").slice(1).join(" — ")}`
+              : holdTimeText.includes(" - ")
+                ? ` — ${holdTimeText.split(" - ").slice(1).join(" - ")}`
+                : "",
+            source: "Hold-time analysis",
+          });
+        }
+      }
+
+      return cards.slice(0, 3);
+    })();
+
+    const topRecommendation = recommendationCards[0]
+      ? `${recommendationCards[0].bold}${recommendationCards[0].rest}`
       : policy.sl_mult || policy.tp_mult
         ? `Use ${slM}R SL / ${tpM}R TP`
         : "Review the latest model recommendations";
@@ -502,14 +540,12 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
               : `${Math.abs(bestAvgR - originalAvgR).toFixed(2)}R/trade`)
         : "No improvement confirmed",
       comparisonEquityLabel: optimisationComparisonUsesR ? "Cumulative R" : (totalCurrencyPnl !== null ? "Cumulative Account P/L" : "Cumulative R"),
-      recs: profitabilityRecommendation
-        ? [profitabilityRecommendation, ...recs].slice(0, 3)
-        : recs.length > 0 ? recs : [
+      recs: recommendationCards.length > 0 ? recommendationCards : [
         optimisationFoundEdge
           ? { bold: `Use ${slM}R SL / ${tpM}R TP`, rest: ` — Best tested policy improved on your baseline in this run`, source: "Policy optimisation" }
           : { bold: "No consistent optimisation edge found", rest: " — The tested policies did not outperform your baseline in this run", source: "Policy optimisation" },
-        { bold: "Review hold time", rest: " — Survival analysis output is shown only when the run supports it", source: "Hold-time analysis" },
-        { bold: "Adapt by regime", rest: " — Regime recommendations are shown only when clustering data is available", source: "Regime clustering" },
+        { bold: "Review hold time", rest: " — Hold-time insights appear when the run has enough duration signal", source: "Hold-time analysis" },
+        { bold: "Adapt by regime", rest: " — Regime recommendations appear when clustering data is available", source: "Regime clustering" },
       ],
       bestRegimeAvgR,
       topActionLabel: topRecommendation,
