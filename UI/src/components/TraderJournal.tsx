@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Plus, Edit2, Trash2, Search, Calendar, TrendingUp, TrendingDown, BookOpen, Save, X } from "lucide-react";
 import { Activity } from "lucide-react";
 import React from "react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 interface JournalEntry {
   id: string;
@@ -77,6 +78,16 @@ function normalizeJournalEntry(entry: Partial<JournalEntry>): JournalEntry {
     lessonsLearned: cleanImportedText(entry.lessonsLearned),
     marketConditions: toSafeString(entry.marketConditions),
   };
+}
+
+function extractCurrencies(pair: string): string[] {
+  const symbol = toSafeString(pair).toUpperCase().trim();
+  if (!symbol) return [];
+  const fxLike = symbol.replace(/[^A-Z]/g, "");
+  if (fxLike.length >= 6) {
+    return [fxLike.slice(0, 3), fxLike.slice(3, 6)];
+  }
+  return [symbol];
 }
 
 export function TraderJournal({ entries: liveEntries = [], pnlMeta }: TraderJournalProps) {
@@ -270,6 +281,34 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta }: TraderJour
       return bTime - aTime;
     })
     .slice(0, 5);
+  const instrumentCounts = activeEntries.reduce((acc, entry) => {
+    acc[entry.pair] = (acc[entry.pair] ?? 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  const topInstruments = Object.entries(instrumentCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([pair, count]) => ({ pair, count }));
+  const currencyCounts = activeEntries.reduce((acc, entry) => {
+    for (const currency of extractCurrencies(entry.pair)) {
+      acc[currency] = (acc[currency] ?? 0) + 1;
+    }
+    return acc;
+  }, {} as Record<string, number>);
+  const currencyBreakdown = Object.entries(currencyCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([name, value]) => ({ name, value }));
+  const totalCurrencyTaggedTrades = currencyBreakdown.reduce((sum, item) => sum + item.value, 0);
+  const averageDuration =
+    activeEntries.length > 0
+      ? Math.round(activeEntries.reduce((sum, entry) => sum + entry.duration, 0) / activeEntries.length)
+      : 0;
+  const longestHeldTrade = activeEntries.reduce<JournalEntry | null>((longest, entry) => {
+    if (!longest || entry.duration > longest.duration) return entry;
+    return longest;
+  }, null);
+  const pieColors = ["#0f766e", "#0ea5e9", "#14b8a6", "#f59e0b", "#ef4444", "#64748b"];
 
   return (
     <>
@@ -336,85 +375,177 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta }: TraderJour
 
           {recentEntries.length > 0 && (
             <div className="mt-8">
-              <h3 className="text-slate-900 mb-4 text-xl flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-teal-600" />
-                Recent Trades
-              </h3>
-              <div className="space-y-3">
-                {recentEntries.map((entry) => (
-                  <button
-                    key={`recent-${entry.id}`}
-                    onClick={() => handleEdit(entry)}
-                    className="w-full bg-white border border-slate-200 rounded-lg p-4 shadow-sm text-left hover:border-teal-300 transition-colors"
-                  >
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          isWinningTrade(entry) ? "bg-teal-100" : isLosingTrade(entry) ? "bg-red-100" : "bg-slate-100"
-                        }`}>
-                          {isWinningTrade(entry) ? (
-                            <TrendingUp className="w-5 h-5 text-teal-600" />
-                          ) : isLosingTrade(entry) ? (
-                            <TrendingDown className="w-5 h-5 text-red-600" />
-                          ) : (
-                            <Activity className="w-5 h-5 text-slate-500" />
-                          )}
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+                <div className="xl:col-span-2">
+                  <h3 className="text-slate-900 mb-4 text-xl flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-teal-600" />
+                    Recent Trades
+                  </h3>
+                  <div className="space-y-3">
+                    {recentEntries.map((entry) => (
+                      <button
+                        key={`recent-${entry.id}`}
+                        onClick={() => handleEdit(entry)}
+                        className="w-full bg-white border border-slate-200 rounded-lg p-4 shadow-sm text-left hover:border-teal-300 transition-colors"
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                              isWinningTrade(entry) ? "bg-teal-100" : isLosingTrade(entry) ? "bg-red-100" : "bg-slate-100"
+                            }`}>
+                              {isWinningTrade(entry) ? (
+                                <TrendingUp className="w-5 h-5 text-teal-600" />
+                              ) : isLosingTrade(entry) ? (
+                                <TrendingDown className="w-5 h-5 text-red-600" />
+                              ) : (
+                                <Activity className="w-5 h-5 text-slate-500" />
+                              )}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-slate-900">{entry.pair}</span>
+                                <span className={`text-xs px-2 py-0.5 rounded ${
+                                  entry.direction === "long"
+                                    ? "bg-teal-100 text-teal-700"
+                                    : "bg-red-100 text-red-700"
+                                }`}>
+                                  {entry.direction.toUpperCase()}
+                                </span>
+                              </div>
+                              <div className="text-slate-600 text-xs">
+                                {new Date(entry.date).toLocaleDateString("en-US", {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                })} • {entry.entryTime} to {entry.exitTime}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className={`text-sm ${
+                              entry.result === null ? "text-slate-500" : entry.result >= 0 ? "text-teal-600" : "text-red-600"
+                            }`}>
+                              Account P/L {formatPnl(entry.result)}
+                            </div>
+                            <div className={`text-xs ${entry.rMultiple >= 0 ? "text-teal-600" : "text-red-600"}`}>
+                              {entry.rMultiple.toFixed(2)}R
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-slate-900">{entry.pair}</span>
+                        <div className="mt-3 grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
+                          <div>
+                            <div className="text-slate-500">Entry</div>
+                            <div className="text-slate-800">{entry.entryPrice.toFixed(4)}</div>
+                          </div>
+                          <div>
+                            <div className="text-slate-500">Exit</div>
+                            <div className="text-slate-800">{entry.exitPrice.toFixed(4)}</div>
+                          </div>
+                          <div>
+                            <div className="text-slate-500">SL</div>
+                            <div className="text-slate-800">{entry.stopLoss.toFixed(4)}</div>
+                          </div>
+                          <div>
+                            <div className="text-slate-500">TP</div>
+                            <div className="text-slate-800">{entry.takeProfit.toFixed(4)}</div>
+                          </div>
+                          <div>
+                            <div className="text-slate-500">Duration</div>
+                            <div className="text-slate-800">{entry.duration}m</div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="xl:col-span-1">
+                  <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                    <h3 className="text-slate-900 mb-4 text-xl">Asset Summary</h3>
+
+                    <div className="grid grid-cols-2 gap-3 mb-5">
+                      <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                        <div className="text-slate-500 text-xs mb-1">Unique Assets</div>
+                        <div className="text-slate-900 text-xl">{Object.keys(instrumentCounts).length}</div>
+                      </div>
+                      <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                        <div className="text-slate-500 text-xs mb-1">Avg Duration</div>
+                        <div className="text-slate-900 text-xl">{averageDuration}m</div>
+                      </div>
+                    </div>
+
+                    {currencyBreakdown.length > 0 && (
+                      <div className="mb-6">
+                        <div className="text-slate-700 text-sm mb-3">Most Traded Currencies / Symbols</div>
+                        <ResponsiveContainer width="100%" height={220}>
+                          <PieChart>
+                            <Pie
+                              data={currencyBreakdown}
+                              dataKey="value"
+                              nameKey="name"
+                              innerRadius={48}
+                              outerRadius={80}
+                              paddingAngle={2}
+                            >
+                              {currencyBreakdown.map((entry, index) => (
+                                <Cell key={`currency-slice-${entry.name}`} fill={pieColors[index % pieColors.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip formatter={(value: number, name: string) => [`${value} trades`, name]} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                        <div className="space-y-2 mt-3">
+                          {currencyBreakdown.map((item, index) => (
+                            <div key={item.name} className="flex items-center justify-between text-sm">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="w-3 h-3 rounded-full"
+                                  style={{ backgroundColor: pieColors[index % pieColors.length] }}
+                                />
+                                <span className="text-slate-700">{item.name}</span>
+                              </div>
+                              <span className="text-slate-500">
+                                {item.value} trades
+                                {totalCurrencyTaggedTrades > 0 ? ` • ${Math.round((item.value / totalCurrencyTaggedTrades) * 100)}%` : ""}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="mb-6">
+                      <div className="text-slate-700 text-sm mb-3">Top Assets Traded</div>
+                      <div className="space-y-2">
+                        {topInstruments.map((item) => (
+                          <div key={item.pair} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+                            <span className="text-slate-800">{item.pair}</span>
+                            <span className="text-slate-500">{item.count} trades</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {longestHeldTrade && (
+                      <div>
+                        <div className="text-slate-700 text-sm mb-3">Longest Held Trade</div>
+                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-slate-900">{longestHeldTrade.pair}</span>
                             <span className={`text-xs px-2 py-0.5 rounded ${
-                              entry.direction === "long"
+                              longestHeldTrade.direction === "long"
                                 ? "bg-teal-100 text-teal-700"
                                 : "bg-red-100 text-red-700"
                             }`}>
-                              {entry.direction.toUpperCase()}
+                              {longestHeldTrade.direction.toUpperCase()}
                             </span>
                           </div>
-                          <div className="text-slate-600 text-xs">
-                            {new Date(entry.date).toLocaleDateString("en-US", {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            })} • {entry.entryTime} to {entry.exitTime}
-                          </div>
+                          <div className="text-slate-600 text-sm">{longestHeldTrade.duration} minutes</div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className={`text-sm ${
-                          entry.result === null ? "text-slate-500" : entry.result >= 0 ? "text-teal-600" : "text-red-600"
-                        }`}>
-                          Account P/L {formatPnl(entry.result)}
-                        </div>
-                        <div className={`text-xs ${entry.rMultiple >= 0 ? "text-teal-600" : "text-red-600"}`}>
-                          {entry.rMultiple.toFixed(2)}R
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-3 grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
-                      <div>
-                        <div className="text-slate-500">Entry</div>
-                        <div className="text-slate-800">{entry.entryPrice.toFixed(4)}</div>
-                      </div>
-                      <div>
-                        <div className="text-slate-500">Exit</div>
-                        <div className="text-slate-800">{entry.exitPrice.toFixed(4)}</div>
-                      </div>
-                      <div>
-                        <div className="text-slate-500">SL</div>
-                        <div className="text-slate-800">{entry.stopLoss.toFixed(4)}</div>
-                      </div>
-                      <div>
-                        <div className="text-slate-500">TP</div>
-                        <div className="text-slate-800">{entry.takeProfit.toFixed(4)}</div>
-                      </div>
-                      <div>
-                        <div className="text-slate-500">Duration</div>
-                        <div className="text-slate-800">{entry.duration}m</div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           )}
