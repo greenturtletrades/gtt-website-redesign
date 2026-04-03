@@ -494,15 +494,15 @@ function storedTradeToJournalEntry(storedTrade) {
 
   return {
     id: storedTrade.tradeIdentity,
-    date: storedTrade.exitTime.toISOString().slice(0, 10),
+    date: storedTrade.entryTime.toISOString().slice(0, 10),
     pair: storedTrade.symbol || "Trade",
     direction: storedTrade.side === "SHORT" ? "short" : "long",
     entryPrice: storedTrade.entryPrice,
     exitPrice: storedTrade.exitPrice,
     stopLoss: storedTrade.stopLoss,
     takeProfit: storedTrade.takeProfit,
-    entryTime: storedTrade.entryTime.toISOString(),
-    exitTime: storedTrade.exitTime.toISOString(),
+    entryTime: storedTrade.entryTime.toISOString().slice(11, 16),
+    exitTime: storedTrade.exitTime.toISOString().slice(11, 16),
     duration: durationMinutes,
     exitType,
     result,
