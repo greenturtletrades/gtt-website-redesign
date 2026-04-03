@@ -2726,6 +2726,7 @@ app.get("/api/admin/traders", authRequired, adminRequired, async (req, res, next
           _count: {
             select: {
               apiKeys: true,
+              storedTrades: true,
             },
           },
         },
@@ -2766,6 +2767,7 @@ app.get("/api/admin/traders", authRequired, adminRequired, async (req, res, next
         const lastName = user?.profile?.lastName?.trim() || "";
         const profileName = `${firstName} ${lastName}`.trim();
         const applicationName = application?.fullName?.trim() || "";
+        const latestBrokerAccount = brokerAccounts.find((account) => account.isActive) || brokerAccounts[0] || null;
         const derivedName =
           profileName ||
           applicationName ||
@@ -2780,12 +2782,12 @@ app.get("/api/admin/traders", authRequired, adminRequired, async (req, res, next
           plan: user?.stripeSubscriptionId ? "premium" : "payg",
           joinedAt: (user?.createdAt || application?.submittedAt || new Date()).toISOString(),
           country: application?.country || null,
-          platform: application?.platform || null,
+          platform: application?.platform || latestBrokerAccount?.platform || null,
           experienceLevel: application?.experienceLevel || null,
           brokerAccountsCount: brokerAccounts.length,
           activeBrokerAccountsCount: brokerAccounts.filter((account) => account.isActive).length,
           apiKeysCount: user?._count?.apiKeys || 0,
-          tradeEventCount,
+          tradeEventCount: user?._count?.storedTrades || 0,
           historyExportCount,
           lastEaSyncAt: lastEaSyncAt ? lastEaSyncAt.toISOString() : null,
           hasAccount: Boolean(user),

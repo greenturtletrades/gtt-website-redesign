@@ -186,7 +186,7 @@ export function TraderDetailsModal({ trader, onClose }: TraderDetailsModalProps)
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                   <div className="mb-1 flex items-center gap-2 text-xs text-slate-500">
                     <Activity className="h-4 w-4" />
-                    Trade Events
+                    Stored Trades
                   </div>
                   <div className="text-2xl text-slate-900">{trader.tradeEventCount}</div>
                 </div>
