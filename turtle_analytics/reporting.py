@@ -799,21 +799,39 @@ def _compute_trade_analytics(df: pd.DataFrame) -> dict[str, Any]:
 
     # ── Session performance ────────────────────────────────────────────────────
     session_column = None
-    if "time_range_bucket" in df.columns and df["time_range_bucket"].notna().any():
+    df_session = df.copy()
+    if "time_range_bucket" in df_session.columns and df_session["time_range_bucket"].notna().any():
         session_column = "time_range_bucket"
-    elif "session" in df.columns and df["session"].notna().any():
+    elif "session" in df_session.columns and df_session["session"].notna().any():
         session_column = "session"
-    elif "time_of_day_bucket" in df.columns and df["time_of_day_bucket"].notna().any():
+    elif "time_of_day_bucket" in df_session.columns and df_session["time_of_day_bucket"].notna().any():
         session_column = "time_of_day_bucket"
+    else:
+        entry_source = None
+        if "entry_time_local" in df_session.columns and df_session["entry_time_local"].notna().any():
+            entry_source = pd.to_datetime(df_session["entry_time_local"], errors="coerce")
+        elif "entry_time" in df_session.columns and df_session["entry_time"].notna().any():
+            entry_source = pd.to_datetime(df_session["entry_time"], errors="coerce")
+
+        if entry_source is not None and entry_source.notna().any():
+            def _time_range_bucket_from_hour(h: float) -> str:
+                if pd.isna(h):
+                    return "Unknown"
+                start = int(h) // 2 * 2
+                end = (start + 2) % 24
+                return f"{start:02d}:00-{end:02d}:00"
+
+            df_session["time_range_bucket"] = entry_source.dt.hour.apply(_time_range_bucket_from_hour)
+            session_column = "time_range_bucket"
 
     if session_column and len(r_col) > 0:
         pnl_metadata = _build_currency_pnl_metadata(df)
         session_columns = [session_column, "R"]
         if pnl_metadata.get("currency_pnl_available"):
-            df2 = df[[session_column, "R"]].copy()
+            df2 = df_session[[session_column, "R"]].copy()
             df2["_currency_pnl"] = pd.to_numeric(pnl_metadata.get("values"), errors="coerce")
         else:
-            df2 = df[[session_column, "R"]].copy()
+            df2 = df_session[[session_column, "R"]].copy()
             df2["_currency_pnl"] = np.nan
         df2 = df2.dropna(subset=[session_column, "R"])
         session_rows = []
