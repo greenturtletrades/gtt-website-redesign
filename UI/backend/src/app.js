@@ -3548,8 +3548,29 @@ app.post("/api/analyse/csv", authRequired, async (req, res, next) => {
   try {
     const tradeCount = 500;
     const mode = "trades";
+    const replaceDataset =
+      req.query.replace === "1" ||
+      req.query.replace === "true" ||
+      req.query.replace === "yes";
     const brokerAccountId = await getPreferredBrokerAccountId(req.user.id);
     const parsedTrades = await parseCsvTradesFromPython(req);
+
+    if (replaceDataset) {
+      await prisma.$transaction(async (tx) => {
+        await tx.analysisRun.deleteMany({
+          where: { userId: req.user.id },
+        });
+
+        await tx.analysisSnapshot.deleteMany({
+          where: { userId: req.user.id },
+        });
+
+        await tx.storedTrade.deleteMany({
+          where: { userId: req.user.id },
+        });
+      });
+    }
+
     const persistSummary = await persistTradesToMemory(req.user.id, parsedTrades, {
       brokerAccountId,
       source: "csv_import",
@@ -3567,7 +3588,7 @@ app.post("/api/analyse/csv", authRequired, async (req, res, next) => {
         requestedTrades: parsedTrades.length,
         tradesAnalysed: 0,
         cost: 0,
-        periodDescription: "CSV import",
+        periodDescription: replaceDataset ? "CSV import (replaced account dataset)" : "CSV import",
         error: "This CSV did not add any new trades that still need analysing.",
       });
       return res.status(400).json({
@@ -3593,7 +3614,7 @@ app.post("/api/analyse/csv", authRequired, async (req, res, next) => {
         requestedTrades: parsedTrades.length,
         tradesAnalysed: allTrades.length,
         cost: estimatedCost,
-        periodDescription: "CSV import",
+        periodDescription: replaceDataset ? "CSV import (replaced account dataset)" : "CSV import",
         dateRangeStart: csvDateRange.start,
         dateRangeEnd: csvDateRange.end,
       },

@@ -26,6 +26,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   const [selectedMonths, setSelectedMonths] = useState(12);
   const [analysisMode, setAnalysisMode] = useState<"trades" | "months" | "csv">("trades");
   const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [replaceCsvDataset, setReplaceCsvDataset] = useState(false);
   const [statsData, setStatsData] = useState({ tradesAnalysed: 0, simulationsRun: 0, regimesFound: 0, avgRMultiple: 0 });
   const [reportData, setReportData] = useState<any>(null);
   const [modelRunError, setModelRunError] = useState<string | null>(null);
@@ -794,7 +795,11 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       if (analysisMode === "csv" && csvFile) {
         const formData = new FormData();
         formData.append("file", csvFile);
-        startRes = await fetch(`${API_BASE}/api/analyse/csv`, { method: "POST", headers: authHeader, body: formData });
+        const csvUrl = new URL(`${API_BASE}/api/analyse/csv`);
+        if (replaceCsvDataset) {
+          csvUrl.searchParams.set("replace", "1");
+        }
+        startRes = await fetch(csvUrl.toString(), { method: "POST", headers: authHeader, body: formData });
       } else {
         startRes = await fetch(`${API_BASE}/api/analyse`, {
           method: "POST",
@@ -2498,6 +2503,20 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                       )}
                     </label>
                   </div>
+                  <label className="mt-4 flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={replaceCsvDataset}
+                      onChange={(e) => setReplaceCsvDataset(e.target.checked)}
+                      className="mt-1 h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                    />
+                    <div>
+                      <div className="text-sm text-slate-900">Replace account dataset with this CSV</div>
+                      <div className="text-xs text-slate-500 mt-1">
+                        Clears saved analysis runs, snapshots, and remembered journal trades before importing this file.
+                      </div>
+                    </div>
+                  </label>
                 </div>
               )}
 
