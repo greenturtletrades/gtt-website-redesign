@@ -272,6 +272,10 @@ def _map_csv_columns(df: pd.DataFrame) -> list[dict]:
     profit_col = find("profit", "pnl", "net_pnl", "realized_pnl", "realised_pnl")
     commission_col = find("commission", "fees", "fee")
     swap_col = find("swap", "financing", "rollover")
+    mfe_col = find("mfe", "max_favorable_excursion", "maximum_favorable_excursion")
+    mae_col = find("mae", "max_adverse_excursion", "maximum_adverse_excursion")
+    entry_time_local_col = find("entry_time_local", "local_entry_time")
+    exit_time_local_col = find("exit_time_local", "local_exit_time")
 
     missing = []
     if entry_time is None:  missing.append("entry_time/entry_date")
@@ -311,6 +315,8 @@ def _map_csv_columns(df: pd.DataFrame) -> list[dict]:
             trades.append({
                 "entry_time":  fmt(str(entry_time.iloc[i])),
                 "exit_time":   fmt(str(exit_time.iloc[i])),
+                "entry_time_local": fmt(str(entry_time_local_col.iloc[i])) if entry_time_local_col is not None and pd.notna(entry_time_local_col.iloc[i]) else None,
+                "exit_time_local": fmt(str(exit_time_local_col.iloc[i])) if exit_time_local_col is not None and pd.notna(exit_time_local_col.iloc[i]) else None,
                 "side":        str(sides[i]).upper(),
                 "entry_price": float(ep.iloc[i]),
                 "exit_price":  float(xp.iloc[i]),
@@ -322,6 +328,8 @@ def _map_csv_columns(df: pd.DataFrame) -> list[dict]:
                 "profit":      float(pd.to_numeric(profit_col.iloc[i], errors="coerce")) if profit_col is not None and pd.notna(pd.to_numeric(profit_col.iloc[i], errors="coerce")) else None,
                 "commission":  float(pd.to_numeric(commission_col.iloc[i], errors="coerce")) if commission_col is not None and pd.notna(pd.to_numeric(commission_col.iloc[i], errors="coerce")) else None,
                 "swap":        float(pd.to_numeric(swap_col.iloc[i], errors="coerce")) if swap_col is not None and pd.notna(pd.to_numeric(swap_col.iloc[i], errors="coerce")) else None,
+                "mfe":         float(pd.to_numeric(mfe_col.iloc[i], errors="coerce")) if mfe_col is not None and pd.notna(pd.to_numeric(mfe_col.iloc[i], errors="coerce")) else None,
+                "mae":         float(pd.to_numeric(mae_col.iloc[i], errors="coerce")) if mae_col is not None and pd.notna(pd.to_numeric(mae_col.iloc[i], errors="coerce")) else None,
             })
         except Exception:
             continue  # skip malformed rows
