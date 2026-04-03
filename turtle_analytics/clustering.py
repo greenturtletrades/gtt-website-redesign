@@ -577,7 +577,7 @@ def create_regime_summary(
             return "Thin / Low Volume"
         return "Sideways / Ranging"
 
-    raw_regimes: list[tuple[int, dict[str, Any], float, float]] = []
+    raw_regimes: list[tuple[int, dict[str, Any], float, float, float]] = []
 
     # Characterize each regime
     for regime_id in regime_ids:
@@ -605,31 +605,57 @@ def create_regime_summary(
             regime_info,
             float(chars.get("trend_strength", 0.0) or 0.0),
             float(chars.get("volatility_recent", 0.0) or 0.0),
+            float(chars.get("range_tightness", 0.0) or 0.0),
         ))
 
-    label_groups: dict[str, list[tuple[int, dict[str, Any], float, float]]] = {}
-    for regime_id, regime_info, trend_strength, volatility in raw_regimes:
-        label_groups.setdefault(regime_info["regime_type"], []).append((regime_id, regime_info, trend_strength, volatility))
+    if len(raw_regimes) == 4:
+        remaining = raw_regimes[:]
 
-    for _, grouped in label_groups.items():
-        if len(grouped) == 1:
-            regime_id, regime_info, _, _ = grouped[0]
+        def _pick_best(rows, key_fn):
+            best = max(rows, key=key_fn)
+            rows.remove(best)
+            return best
+
+        trending = _pick_best(
+            remaining,
+            lambda item: (item[2], item[1]["performance"]["avg_r"], item[3]),
+        )
+        thin = _pick_best(
+            remaining,
+            lambda item: (item[4], -item[3], item[1]["performance"]["avg_r"]),
+        )
+        volatile = _pick_best(
+            remaining,
+            lambda item: (item[3], -item[4], item[1]["performance"]["avg_r"]),
+        )
+        sideways = remaining[0]
+
+        for label, item in [
+            ("Trending", trending),
+            ("Thin / Low Volume", thin),
+            ("Volatile", volatile),
+            ("Sideways / Ranging", sideways),
+        ]:
+            regime_id, regime_info, _, _, _ = item
+            regime_info["regime_type"] = label
             summary["regimes"][regime_id] = regime_info
-            continue
+    else:
+        label_groups: dict[str, list[tuple[int, dict[str, Any], float, float, float]]] = {}
+        for regime_id, regime_info, trend_strength, volatility, range_tightness in raw_regimes:
+            label_groups.setdefault(regime_info["regime_type"], []).append((regime_id, regime_info, trend_strength, volatility, range_tightness))
 
-        grouped.sort(key=lambda item: (item[2], item[3], item[1]["performance"]["avg_r"]), reverse=True)
-        for regime_id, regime_info, trend_strength, volatility in grouped:
-            if regime_info["regime_type"] == "Trending":
-                descriptor = "Higher Momentum" if trend_strength >= 0.75 else "Moderate Momentum" if trend_strength >= 0.6 else "Emerging Trend"
-            elif regime_info["regime_type"] == "Sideways / Ranging":
-                descriptor = "Higher Volatility" if volatility >= 0.02 else "Balanced" if volatility >= 0.008 else "Tight Range"
-            elif regime_info["regime_type"] == "Volatile":
-                descriptor = "Higher Momentum" if trend_strength >= 0.35 else "Erratic Swings"
-            else:
-                descriptor = "Compressed Range" if volatility <= 0.004 else "Quiet Flow"
+        for _, grouped in label_groups.items():
+            if len(grouped) == 1:
+                regime_id, regime_info, _, _, _ = grouped[0]
+                summary["regimes"][regime_id] = regime_info
+                continue
 
-            regime_info["regime_type"] = f"{regime_info['regime_type']} ({descriptor})"
-            summary["regimes"][regime_id] = regime_info
+            grouped.sort(key=lambda item: (item[2], item[3], item[1]["performance"]["avg_r"]), reverse=True)
+            descriptors = ["Higher Momentum", "Balanced", "Lower Momentum", "Lowest Momentum"]
+            for idx, (regime_id, regime_info, _, _, _) in enumerate(grouped):
+                descriptor = descriptors[idx] if idx < len(descriptors) else f"Variant {idx + 1}"
+                regime_info["regime_type"] = f"{regime_info['regime_type']} ({descriptor})"
+                summary["regimes"][regime_id] = regime_info
     
     # Add optimized policies if provided
     if regime_policies:
