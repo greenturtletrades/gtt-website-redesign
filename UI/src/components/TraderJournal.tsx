@@ -80,14 +80,14 @@ function normalizeJournalEntry(entry: Partial<JournalEntry>): JournalEntry {
   };
 }
 
-function extractCurrencies(pair: string): string[] {
+function extractBaseAsset(pair: string): string | null {
   const symbol = toSafeString(pair).toUpperCase().trim();
-  if (!symbol) return [];
+  if (!symbol) return null;
   const fxLike = symbol.replace(/[^A-Z]/g, "");
   if (fxLike.length >= 6) {
-    return [fxLike.slice(0, 3), fxLike.slice(3, 6)];
+    return fxLike.slice(0, 3);
   }
-  return [symbol];
+  return symbol;
 }
 
 export function TraderJournal({ entries: liveEntries = [], pnlMeta }: TraderJournalProps) {
@@ -289,17 +289,21 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta }: TraderJour
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
     .map(([pair, count]) => ({ pair, count }));
-  const currencyCounts = activeEntries.reduce((acc, entry) => {
-    for (const currency of extractCurrencies(entry.pair)) {
-      acc[currency] = (acc[currency] ?? 0) + 1;
-    }
+  const assetBreakdown = topInstruments.map(({ pair, count }) => ({
+    name: pair,
+    value: count,
+  }));
+  const totalAssetTrades = assetBreakdown.reduce((sum, item) => sum + item.value, 0);
+  const baseAssetCounts = activeEntries.reduce((acc, entry) => {
+    const baseAsset = extractBaseAsset(entry.pair);
+    if (!baseAsset) return acc;
+    acc[baseAsset] = (acc[baseAsset] ?? 0) + 1;
     return acc;
   }, {} as Record<string, number>);
-  const currencyBreakdown = Object.entries(currencyCounts)
+  const baseAssetBreakdown = Object.entries(baseAssetCounts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 6)
     .map(([name, value]) => ({ name, value }));
-  const totalCurrencyTaggedTrades = currencyBreakdown.reduce((sum, item) => sum + item.value, 0);
   const averageDuration =
     activeEntries.length > 0
       ? Math.round(activeEntries.reduce((sum, entry) => sum + entry.duration, 0) / activeEntries.length)
@@ -375,8 +379,8 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta }: TraderJour
 
           {recentEntries.length > 0 && (
             <div className="mt-8">
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
-                <div className="xl:col-span-2">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                <div className="lg:col-span-2">
                   <h3 className="text-slate-900 mb-4 text-xl flex items-center gap-2">
                     <BookOpen className="w-5 h-5 text-teal-600" />
                     Recent Trades
@@ -459,7 +463,7 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta }: TraderJour
                   </div>
                 </div>
 
-                <div className="xl:col-span-1">
+                <div className="lg:col-span-1">
                   <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                     <h3 className="text-slate-900 mb-4 text-xl">Asset Summary</h3>
 
@@ -474,28 +478,28 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta }: TraderJour
                       </div>
                     </div>
 
-                    {currencyBreakdown.length > 0 && (
+                    {assetBreakdown.length > 0 && (
                       <div className="mb-6">
-                        <div className="text-slate-700 text-sm mb-3">Most Traded Currencies / Symbols</div>
+                        <div className="text-slate-700 text-sm mb-3">Most Traded Assets</div>
                         <ResponsiveContainer width="100%" height={220}>
                           <PieChart>
                             <Pie
-                              data={currencyBreakdown}
+                              data={assetBreakdown}
                               dataKey="value"
                               nameKey="name"
                               innerRadius={48}
                               outerRadius={80}
                               paddingAngle={2}
                             >
-                              {currencyBreakdown.map((entry, index) => (
-                                <Cell key={`currency-slice-${entry.name}`} fill={pieColors[index % pieColors.length]} />
+                              {assetBreakdown.map((entry, index) => (
+                                <Cell key={`asset-slice-${entry.name}`} fill={pieColors[index % pieColors.length]} />
                               ))}
                             </Pie>
                             <Tooltip formatter={(value: number, name: string) => [`${value} trades`, name]} />
                           </PieChart>
                         </ResponsiveContainer>
                         <div className="space-y-2 mt-3">
-                          {currencyBreakdown.map((item, index) => (
+                          {assetBreakdown.map((item, index) => (
                             <div key={item.name} className="flex items-center justify-between text-sm">
                               <div className="flex items-center gap-2">
                                 <span
@@ -506,7 +510,7 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta }: TraderJour
                               </div>
                               <span className="text-slate-500">
                                 {item.value} trades
-                                {totalCurrencyTaggedTrades > 0 ? ` • ${Math.round((item.value / totalCurrencyTaggedTrades) * 100)}%` : ""}
+                                {totalAssetTrades > 0 ? ` • ${Math.round((item.value / totalAssetTrades) * 100)}%` : ""}
                               </span>
                             </div>
                           ))}
@@ -525,6 +529,20 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta }: TraderJour
                         ))}
                       </div>
                     </div>
+
+                    {baseAssetBreakdown.length > 0 && (
+                      <div className="mb-6">
+                        <div className="text-slate-700 text-sm mb-3">Most Active Base Currencies / Assets</div>
+                        <div className="space-y-2">
+                          {baseAssetBreakdown.map((item) => (
+                            <div key={item.name} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+                              <span className="text-slate-800">{item.name}</span>
+                              <span className="text-slate-500">{item.value} trades</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {longestHeldTrade && (
                       <div>
