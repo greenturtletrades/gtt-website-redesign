@@ -530,9 +530,10 @@ def _format_optimization_results(opt_results: dict) -> dict[str, Any]:
                 "improvement_per_trial": float(trials_df["avg_R"].max() / len(trials_df)),
             }
             real_rows = []
-            sorted_trials = trials_df.sort_values("avg_R", ascending=False, kind="stable").head(8)
+            seen_rows: set[tuple] = set()
+            sorted_trials = trials_df.sort_values("avg_R", ascending=False, kind="stable").head(25)
             for _, row in sorted_trials.iterrows():
-                real_rows.append({
+                row_payload = {
                     "sl_mult": float(row.get("sl_mult", 0.0)),
                     "tp_mult": float(row.get("tp_mult", 0.0)),
                     "trail_pct": float(row.get("trail_pct", 0.0)) if pd.notna(row.get("trail_pct")) else None,
@@ -546,7 +547,21 @@ def _format_optimization_results(opt_results: dict) -> dict[str, Any]:
                     "pct_changed": None if pd.isna(row.get("pct_changed")) else float(row.get("pct_changed")),
                     "ci_lower": None if pd.isna(row.get("ci_lower")) else float(row.get("ci_lower")),
                     "ci_upper": None if pd.isna(row.get("ci_upper")) else float(row.get("ci_upper")),
-                })
+                }
+                uniqueness_key = (
+                    round(row_payload["sl_mult"], 3),
+                    round(row_payload["tp_mult"], 3),
+                    None if row_payload["trail_pct"] is None else round(row_payload["trail_pct"], 3),
+                    row_payload["max_hold_minutes"],
+                    None if row_payload["total_r"] is None else round(row_payload["total_r"], 2),
+                    None if row_payload["pct_changed"] is None else round(row_payload["pct_changed"], 2),
+                )
+                if uniqueness_key in seen_rows:
+                    continue
+                seen_rows.add(uniqueness_key)
+                real_rows.append(row_payload)
+                if len(real_rows) >= 8:
+                    break
             formatted["trial_rows"] = real_rows
         else:
             formatted["trial_rows"] = []
