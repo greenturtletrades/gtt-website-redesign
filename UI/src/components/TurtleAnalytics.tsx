@@ -1,6 +1,6 @@
 import { TrendingUp, TrendingDown, Activity, Target, Clock, AlertTriangle, Zap, RefreshCw, Brain, CheckCircle, Award, Shield, XCircle, Calendar, Percent, BarChart3, TrendingUpDown, Layers, Settings, GitBranch, Filter, BookOpen, Sparkles, Lock, ChevronRight, Maximize2, Minimize2, X, PoundSterling, ChevronDown, ChevronUp } from "lucide-react";
 import { UserType } from "../App";
-import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Cell, PieChart, Pie, ScatterChart, Scatter, ComposedChart, ReferenceLine } from "recharts";
+import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Cell, PieChart, Pie, ComposedChart, ReferenceLine } from "recharts";
 import { useState, useEffect, useMemo } from "react";
 import { TraderJournal } from "./TraderJournal";
 import { motion } from "motion/react";
@@ -362,6 +362,9 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
     const mfeAnalysis = reportData.trade_analytics?.mfe_mae_analysis?.length
       ? reportData.trade_analytics.mfe_mae_analysis.map((r: any) => ({
           category: r.category,
+          avgRRaw: Number(r.avg_r ?? 0),
+          avgMFERaw: r.avg_mfe != null ? Number(r.avg_mfe) : null,
+          avgMAERaw: r.avg_mae != null ? Number(r.avg_mae) : null,
           avgMFE: r.avg_mfe != null ? `${r.avg_mfe.toFixed(2)}R` : "N/A",
           avgMAE: r.avg_mae != null ? `${r.avg_mae.toFixed(2)}R` : "N/A",
           count: r.count,
@@ -380,14 +383,14 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
           mfe: Number(point.mfe ?? 0),
           result: point.result === "Win" ? "Win" : point.result === "Breakeven" ? "Breakeven" : "Loss",
           r: Number(point.r ?? 0),
-          color:
-            point.result === "Win"
-              ? "#0d9488"
-              : point.result === "Breakeven"
-                ? "#64748b"
-                : "#ef4444",
         }))
       : [];
+    const exitEfficiencyChartData = mfeAnalysis.map((item: any) => ({
+      category: item.category,
+      realisedR: item.avgRRaw,
+      avgMFE: item.avgMFERaw,
+      avgMAE: item.avgMAERaw,
+    }));
 
     const counterfactualResults = (() => {
       const trialRows = reportData.optimization_results?.trial_rows;
@@ -519,6 +522,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       consecutiveLossData,
       mfeAnalysis,
       mfeMaePoints,
+      exitEfficiencyChartData,
       counterfactualResults,
       trailingStopResults,
     };
@@ -998,6 +1002,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   const counterfactualResults = derived.counterfactualResults;
   const trailingStopResults = derived.trailingStopResults;
   const mfeAnalysis = derived.mfeAnalysis;
+  const exitEfficiencyChartData = derived.exitEfficiencyChartData;
   const marketRegimes = derived.marketRegimes;
   const holdTimeResults = derived.holdTimeResults;
   const sessionPerformance = derived.sessionPerformance;
@@ -1023,7 +1028,6 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   const hasCounterfactualResults = counterfactualResults.length > 0;
   const hasTrailingStopResults = trailingStopResults.length > 0;
   const hasMfeMaeAnalysis = mfeAnalysis.length > 0;
-  const hasMfeMaePoints = derived.mfeMaePoints.length > 0;
   const hasMarketRegimes = marketRegimes.length > 0;
   const hasSessionPerformance = sessionPerformance.length > 0;
   const hasHoldTimeResults = holdTimeResults.length > 0;
@@ -2047,48 +2051,32 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                     ))}
                   </div>
 
-                  {hasMfeMaePoints ? (
+                  {exitEfficiencyChartData.length > 0 ? (
                     <div className="bg-white rounded-xl border border-slate-200 p-6">
-                      <div className="text-sm text-slate-700 mb-4">MFE vs MAE Scatter Plot (each dot = one trade)</div>
+                      <div className="text-sm text-slate-700 mb-4">Exit Efficiency Comparison</div>
                       <ResponsiveContainer width="100%" height={300}>
-                        <ScatterChart>
+                        <ComposedChart data={exitEfficiencyChartData}>
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis 
-                            type="number" 
-                            dataKey="mae" 
-                            name="MAE" 
-                            label={{ value: "Max Adverse Excursion (R)", position: "insideBottom", offset: -5 }}
-                          />
-                          <YAxis 
-                            type="number" 
-                            dataKey="mfe" 
-                            name="MFE"
-                            label={{ value: "Max Favorable Excursion (R)", angle: -90, position: "insideLeft" }}
-                          />
+                          <XAxis dataKey="category" />
+                          <YAxis label={{ value: "R-Multiple", angle: -90, position: "insideLeft" }} />
+                          <ReferenceLine y={0} stroke="#94a3b8" />
                           <Tooltip 
-                            cursor={{ strokeDasharray: '3 3' }}
-                            formatter={(value: number, name: string, payload: any) => {
-                              if (name === "mfe") return [`${value.toFixed(2)}R`, "MFE"];
-                              if (name === "mae") return [`${value.toFixed(2)}R`, "MAE"];
+                            formatter={(value: number, name: string) => {
+                              if (name === "realisedR") return [`${value.toFixed(2)}R`, "Realised Avg R"];
+                              if (name === "avgMFE") return [value == null ? "N/A" : `${value.toFixed(2)}R`, "Avg MFE"];
+                              if (name === "avgMAE") return [value == null ? "N/A" : `${value.toFixed(2)}R`, "Avg MAE"];
                               return [value, name];
                             }}
-                            labelFormatter={(_, payload) => {
-                              const point = payload?.[0]?.payload;
-                              if (!point) return "Trade";
-                              return point.tradeId ? `Trade ${point.tradeId}` : `Trade result: ${point.result}`;
-                            }}
                           />
-                          <Scatter name="Trades" data={derived.mfeMaePoints} fill="#0d9488">
-                            {derived.mfeMaePoints.map((entry: any, index: number) => (
-                              <Cell key={`mfe-mae-${index}`} fill={entry.color} opacity={0.7} />
-                            ))}
-                          </Scatter>
-                        </ScatterChart>
+                          <Bar dataKey="realisedR" name="realisedR" fill="#0f766e" radius={[4, 4, 0, 0]} />
+                          <Line type="monotone" dataKey="avgMFE" name="avgMFE" stroke="#2563eb" strokeWidth={2} dot={{ r: 4 }} />
+                          <Line type="monotone" dataKey="avgMAE" name="avgMAE" stroke="#ef4444" strokeWidth={2} dot={{ r: 4 }} />
+                        </ComposedChart>
                       </ResponsiveContainer>
                     </div>
                   ) : (
                     <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 text-sm text-slate-600">
-                      Your imported trade data did not include per-trade MFE/MAE values, so this chart cannot be drawn for this run. Summary excursion metrics are shown instead.
+                      This run did not include enough excursion data to compare realised R against average MFE and MAE by trade outcome.
                     </div>
                   )}
 
@@ -2098,7 +2086,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                       <div>
                         <div className="text-teal-900 text-sm mb-1">Key Insight:</div>
                         <p className="text-teal-700 text-xs">
-                          Review the excursion categories above to compare how far winning and losing trades moved before exit.
+                          Compare realised R against average MFE and MAE to see whether winners are leaving meaningful upside on the table or losers are giving back too much before exit.
                         </p>
                       </div>
                     </div>
