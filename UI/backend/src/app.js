@@ -144,6 +144,52 @@ function formatReferralCode(referralCode) {
   };
 }
 
+function calculateReferralExpiry(durationDays) {
+  const now = new Date();
+  return new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
+}
+
+async function getActiveReferralCode(code) {
+  if (!code || typeof code !== "string" || !code.trim()) {
+    return null;
+  }
+
+  const normalizedCode = code.trim().toUpperCase();
+  const referralCode = await prisma.referralCode.findUnique({
+    where: { code: normalizedCode },
+  });
+
+  if (!referralCode || !referralCode.isActive) {
+    return null;
+  }
+
+  return referralCode;
+}
+
+function getActiveUserDiscounts(user) {
+  const now = Date.now();
+  const expiryTs = user?.referralDiscountExpiresAt
+    ? new Date(user.referralDiscountExpiresAt).getTime()
+    : 0;
+  const referralActive = expiryTs > now;
+
+  return {
+    referralActive,
+    accountDiscountPercent:
+      referralActive && typeof user?.accountDiscountPercent === "number"
+        ? Math.max(0, Math.min(100, user.accountDiscountPercent))
+        : 0,
+    mlRunDiscountPercent:
+      referralActive && typeof user?.mlRunDiscountPercent === "number"
+        ? Math.max(0, Math.min(100, user.mlRunDiscountPercent))
+        : 0,
+    referralDiscountExpiresAt:
+      referralActive && user?.referralDiscountExpiresAt
+        ? new Date(user.referralDiscountExpiresAt)
+        : null,
+  };
+}
+
 function getTraderAnalysisStatus({ latestSnapshot, tradeEventCount, historyExportCount }) {
   if (latestSnapshot) {
     return "ANALYSIS_READY";
@@ -729,12 +775,15 @@ function formatAnalysisRun(run) {
 async function estimateAnalysisCost(userId, tradesAnalysed) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { stripeSubscriptionId: true },
+    select: {
+      mlRunDiscountPercent: true,
+      referralDiscountExpiresAt: true,
+    },
   });
-  if (user?.stripeSubscriptionId) {
-    return 0;
-  }
-  return Math.max(0, Number(tradesAnalysed) || 0) * 0.2;
+  const baseCost = Math.max(0, Number(tradesAnalysed) || 0) * 0.2;
+  const discounts = getActiveUserDiscounts(user);
+  const discountedCost = baseCost * (1 - discounts.mlRunDiscountPercent / 100);
+  return Number(Math.max(0, discountedCost).toFixed(2));
 }
 
 async function getPreferredBrokerAccountId(userId) {
@@ -912,6 +961,14 @@ async function syncStoredTradesFromMt(userId, brokerAccountIds, { requestFresh =
 }
 
 async function buildAnalysisOptionsPayload(userId, { requestFresh = false, syncStoredTrades = false } = {}) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      appliedReferralCode: { select: { code: true } },
+      mlRunDiscountPercent: true,
+      referralDiscountExpiresAt: true,
+    },
+  });
   const brokerAccounts = await prisma.brokerAccount.findMany({
     where: { userId, isActive: true },
     select: { id: true },
@@ -941,11 +998,15 @@ async function buildAnalysisOptionsPayload(userId, { requestFresh = false, syncS
     typeof latestSnapshot.report.metadata === "object"
       ? latestSnapshot.report.metadata
       : null;
+  const discounts = getActiveUserDiscounts(user);
 
   return {
     availableTradeCount: pendingStoredTradeCount,
     minimumTradeCount: 10,
     recommendedTradeCount: Math.min(200, pendingStoredTradeCount || 200),
+    mlRunDiscountPercent: discounts.mlRunDiscountPercent,
+    accountDiscountPercent: discounts.accountDiscountPercent,
+    referralCode: discounts.referralActive ? user?.appliedReferralCode?.code || null : null,
     latestAnalysis: latestSnapshot
       ? {
           id: latestSnapshot.id,
@@ -2202,7 +2263,7 @@ app.post("/api/auth/register", rateLimit({
   message: "Too many registration attempts. Please try again later.",
 }), async (req, res) => {
   try {
-    const { email, password, name, metaTraderUsername, brokerName } = req.body || {};
+    const { email, password, name, metaTraderUsername, brokerName, referralCode } = req.body || {};
 
     if (!email || typeof email !== "string") {
       return res.status(400).json({ ok: false, error: "Email is required" });
@@ -2236,11 +2297,28 @@ app.post("/api/auth/register", rateLimit({
       typeof brokerName === "string" && brokerName.trim()
         ? brokerName.trim()
         : null;
+    const appliedReferralCode = await getActiveReferralCode(referralCode);
+    const normalizedReferralCode =
+      typeof referralCode === "string" && referralCode.trim()
+        ? referralCode.trim().toUpperCase()
+        : "";
+
+    if (normalizedReferralCode && !appliedReferralCode) {
+      return res.status(400).json({ ok: false, error: "Referral code is invalid or inactive" });
+    }
+
+    const referralDiscountExpiresAt = appliedReferralCode
+      ? calculateReferralExpiry(appliedReferralCode.durationDays)
+      : null;
 
     const user = await prisma.user.create({
       data: {
         email: normalizedEmail,
         passwordHash,
+        appliedReferralCodeId: appliedReferralCode?.id || null,
+        accountDiscountPercent: appliedReferralCode?.accountDiscountPercent ?? null,
+        mlRunDiscountPercent: appliedReferralCode?.mlRunDiscountPercent ?? null,
+        referralDiscountExpiresAt,
         profile: trimmedName
           ? {
               create: {
@@ -2274,6 +2352,14 @@ app.post("/api/auth/register", rateLimit({
         role: user.role,
         status: user.status,
       },
+      referralApplied: appliedReferralCode
+        ? {
+            code: appliedReferralCode.code,
+            accountDiscountPercent: appliedReferralCode.accountDiscountPercent,
+            mlRunDiscountPercent: appliedReferralCode.mlRunDiscountPercent,
+            expiresAt: referralDiscountExpiresAt ? referralDiscountExpiresAt.toISOString() : null,
+          }
+        : null,
     });
   } catch (err) {
     console.error("Register error:", err);
@@ -4243,6 +4329,7 @@ app.post("/api/analyse/csv", authRequired, async (req, res, next) => {
       ok: true,
       jobId: job_id,
       analysisRunId: analysisRun.id,
+      estimatedCost,
       availableTradeCount: allTrades.length,
       pendingTradeCount: pendingTrades.length,
       duplicateTradeCount: persistSummary.updated,
@@ -4455,6 +4542,7 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
       ok: true,
       jobId: job_id,
       analysisRunId: analysisRun.id,
+      estimatedCost,
       availableTradeCount: uniqueTradeCount,
       pendingTradeCount: pendingTrades.length,
       duplicateTradeCount,
@@ -4486,6 +4574,14 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
 app.get("/api/analyse/:jobId", authRequired, async (req, res, next) => {
   try {
     const { jobId } = req.params;
+    const jobContext = analysisJobContext.get(jobId) || null;
+    const analysisRunSummary =
+      jobContext?.analysisRunId
+        ? await prisma.analysisRun.findUnique({
+            where: { id: jobContext.analysisRunId },
+            select: { cost: true },
+          })
+        : null;
 
     const pythonRes = await fetch(`${PYTHON_SERVICE_URL}/results/${jobId}`);
 
@@ -4494,7 +4590,6 @@ app.get("/api/analyse/:jobId", authRequired, async (req, res, next) => {
     }
 
     if (!pythonRes.ok) {
-      const jobContext = analysisJobContext.get(jobId) || null;
       if (jobContext?.analysisRunId) {
         await prisma.analysisRun.update({
           where: { id: jobContext.analysisRunId },
@@ -4514,7 +4609,6 @@ app.get("/api/analyse/:jobId", authRequired, async (req, res, next) => {
       const originalPerformance = data.report.summary?.original_performance ?? {};
       const riskMetrics = data.report.risk_recommendations?.risk_metrics ?? {};
 
-      const jobContext = analysisJobContext.get(jobId) || null;
       const snapshotReport = buildSnapshotReport(data.report, {
         trade_fingerprint: jobContext?.tradeFingerprint ?? null,
         unique_trade_count: jobContext?.uniqueTradeCount ?? data.trades_analysed ?? originalPerformance.n_trades ?? null,
@@ -4586,7 +4680,6 @@ app.get("/api/analyse/:jobId", authRequired, async (req, res, next) => {
         });
       }
     } else if (data.status === "error") {
-      const jobContext = analysisJobContext.get(jobId) || null;
       if (jobContext?.analysisRunId) {
         await prisma.analysisRun.update({
           where: { id: jobContext.analysisRunId },
@@ -4607,6 +4700,7 @@ app.get("/api/analyse/:jobId", authRequired, async (req, res, next) => {
       simulationsRun: data.simulations_run,
       regimesFound: data.regimes_found,
       avgRMultiple: data.avg_r_multiple,
+      cost: analysisRunSummary?.cost ?? null,
       report: data.report || null,
     });
   } catch (err) {
@@ -4640,7 +4734,14 @@ app.post("/api/create-checkout-session", authRequired, async (req, res, next) =>
 
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      select: { id: true, email: true, stripeCustomerId: true },
+      select: {
+        id: true,
+        email: true,
+        stripeCustomerId: true,
+        appliedReferralCode: { select: { code: true } },
+        accountDiscountPercent: true,
+        referralDiscountExpiresAt: true,
+      },
     });
 
     if (!user) {
@@ -4659,12 +4760,34 @@ app.post("/api/create-checkout-session", authRequired, async (req, res, next) =>
     }
 
     const appUrl = process.env.APP_URL || "http://localhost:5173";
+    const discounts = getActiveUserDiscounts(user);
+    let discountsPayload = undefined;
+
+    if (discounts.accountDiscountPercent > 0) {
+      const durationMonths = Math.max(
+        1,
+        Math.ceil(
+          (discounts.referralDiscountExpiresAt.getTime() - Date.now()) /
+            (30 * 24 * 60 * 60 * 1000)
+        )
+      );
+      const coupon = await stripe.coupons.create({
+        percent_off: discounts.accountDiscountPercent,
+        duration: "repeating",
+        duration_in_months: durationMonths,
+        name: user.appliedReferralCode?.code
+          ? `${user.appliedReferralCode.code} account discount`
+          : "Referral account discount",
+      });
+      discountsPayload = [{ coupon: coupon.id }];
+    }
 
     const session = await stripe.checkout.sessions.create({
       customer: stripeCustomerId,
       client_reference_id: user.id,
       metadata: {
         userId: user.id,
+        referralCode: user.appliedReferralCode?.code || "",
       },
       payment_method_types: ["card"],
       line_items: [
@@ -4677,6 +4800,7 @@ app.post("/api/create-checkout-session", authRequired, async (req, res, next) =>
         },
       ],
       mode: "subscription",
+      discounts: discountsPayload,
       success_url: `${appUrl}?checkout=success`,
       cancel_url: `${appUrl}?checkout=cancelled`,
     });

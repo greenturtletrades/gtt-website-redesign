@@ -40,11 +40,17 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
     availableTradeCount: number;
     minimumTradeCount: number;
     recommendedTradeCount: number;
+    mlRunDiscountPercent: number;
+    accountDiscountPercent: number;
+    referralCode: string | null;
     latestAnalysis: { updatedAt?: string | null; tradesAnalysed?: number | null } | null;
   }>({
     availableTradeCount: 0,
     minimumTradeCount: 10,
     recommendedTradeCount: 200,
+    mlRunDiscountPercent: 0,
+    accountDiscountPercent: 0,
+    referralCode: null,
     latestAnalysis: null,
   });
 
@@ -631,6 +637,9 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
       availableTradeCount: payload.analysisOptions?.availableTradeCount ?? 0,
       minimumTradeCount: payload.analysisOptions?.minimumTradeCount ?? 10,
       recommendedTradeCount: payload.analysisOptions?.recommendedTradeCount ?? 200,
+      mlRunDiscountPercent: payload.analysisOptions?.mlRunDiscountPercent ?? 0,
+      accountDiscountPercent: payload.analysisOptions?.accountDiscountPercent ?? 0,
+      referralCode: payload.analysisOptions?.referralCode ?? null,
       latestAnalysis: payload.analysisOptions?.latestAnalysis ?? null,
     });
 
@@ -794,6 +803,9 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
             availableTradeCount: payload.availableTradeCount ?? 0,
             minimumTradeCount: payload.minimumTradeCount ?? 10,
             recommendedTradeCount: payload.recommendedTradeCount ?? 200,
+            mlRunDiscountPercent: payload.mlRunDiscountPercent ?? 0,
+            accountDiscountPercent: payload.accountDiscountPercent ?? 0,
+            referralCode: payload.referralCode ?? null,
             latestAnalysis: payload.latestAnalysis ?? null,
           });
         }
@@ -813,6 +825,11 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
   const maxTradeSelection = Math.max(minTradeSelection, analysisOptions.availableTradeCount || minTradeSelection);
   const effectiveTradeCount = Math.min(Math.max(selectedTradeCount, minTradeSelection), maxTradeSelection);
   const canRunTradeAnalysis = analysisOptions.availableTradeCount >= minTradeSelection;
+  const referralDiscountFactor = Math.max(0, 1 - (analysisOptions.mlRunDiscountPercent || 0) / 100);
+  const estimatedModalCost =
+    analysisMode === "trades"
+      ? effectiveTradeCount * 0.2 * referralDiscountFactor
+      : Math.round(selectedMonths * 47) * 0.2 * referralDiscountFactor;
 
   useEffect(() => {
     if (analysisMode !== "trades") return;
@@ -828,7 +845,6 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
 
     const now = new Date();
     const tradesCount = analysisMode === "trades" ? effectiveTradeCount : Math.round(selectedMonths * 47);
-    const estimatedCost = tradesCount * 0.20;
 
     const tempRunId = `pending-${Date.now()}`;
     let currentRunEntryId = tempRunId;
@@ -844,7 +860,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         ? new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000)
         : new Date(now.getTime() - selectedMonths * 30 * 24 * 60 * 60 * 1000),
       dateRangeEnd: now,
-      cost: subscriptionTier === "payg" ? estimatedCost : 0,
+      cost: 0,
       status: "running",
     };
 
@@ -889,7 +905,14 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         throw new Error((body as any).error || (body as any).detail || "Failed to start analysis");
       }
 
-      const { jobId, analysisRunId } = await startRes.json();
+      const { jobId, analysisRunId, estimatedCost } = await startRes.json();
+      if (typeof estimatedCost === "number") {
+        setModelRunHistory((prev) =>
+          prev.map((entry) =>
+            entry.id === currentRunEntryId ? { ...entry, cost: estimatedCost } : entry
+          )
+        );
+      }
       if (analysisRunId) {
         currentRunEntryId = analysisRunId;
         setModelRunHistory((prev) =>
@@ -912,9 +935,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
         if (result.status === "complete") {
           const tradesAnalysed = result.tradesAnalysed ?? result.trades_analysed;
           const actualCost =
-            subscriptionTier === "payg"
-              ? (tradesAnalysed ?? newLogEntry.tradesAnalysed) * 0.20
-              : 0;
+            typeof result.cost === "number" ? result.cost : newLogEntry.cost;
           const simulationsRun = result.simulationsRun ?? result.simulations_run;
           const regimesFound = result.regimesFound ?? result.regimes_found;
           const avgRMultiple = result.avgRMultiple ?? result.avg_r_multiple;
@@ -2991,13 +3012,18 @@ export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSign
                       <div className="text-amber-900 text-sm mb-1">Estimated Cost</div>
                       <p className="text-amber-700 text-xs mb-2">
                         {analysisMode === "trades" 
-                          ? `£${(effectiveTradeCount * 0.20).toFixed(2)} for ${effectiveTradeCount} trades`
-                          : `£${(Math.round(selectedMonths * 47) * 0.20).toFixed(2)} for ~${Math.round(selectedMonths * 47)} trades (${selectedMonths} months)`
+                          ? `£${estimatedModalCost.toFixed(2)} for ${effectiveTradeCount} trades`
+                          : `£${estimatedModalCost.toFixed(2)} for ~${Math.round(selectedMonths * 47)} trades (${selectedMonths} months)`
                         }
                       </p>
                       <div className="text-amber-600 text-xs">
-                        Final cost is calculated after the run using the actual number of trades analysed at £0.20 per trade.
+                        Final cost is calculated from your account pricing and any active ML-run referral discount.
                       </div>
+                      {analysisOptions.referralCode && analysisOptions.mlRunDiscountPercent > 0 && (
+                        <div className="mt-2 text-amber-700 text-xs">
+                          Referral code `{analysisOptions.referralCode}` is active: {analysisOptions.mlRunDiscountPercent}% off ML runs.
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

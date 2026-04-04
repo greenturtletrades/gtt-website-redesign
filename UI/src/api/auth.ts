@@ -29,6 +29,7 @@ export function register(input: {
   name?: string;
   metaTraderUsername?: string;
   brokerName?: string;
+  referralCode?: string;
 }) {
   return apiPost<AuthResponse>("/api/auth/register", input);
 }

@@ -43,6 +43,7 @@ export function AuthModal({ type, onClose, onComplete, initialMode = "signup" }:
             password: formData.password,
             name: formData.name,
             metaTraderUsername: formData.metaTraderUsername,
+            referralCode: formData.referralCode,
           })
         : await login(formData.email, formData.password);
 
