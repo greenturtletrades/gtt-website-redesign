@@ -378,7 +378,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               }`}
             >
               <UserX className="w-5 h-5" />
-              <span>Account Health</span>
+              <span>Churn Data</span>
             </button>
             <button
               onClick={() => setActiveSection("signups")}
@@ -932,6 +932,13 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         {/* FEEDBACK AND CHURN SECTION */}
         {activeSection === "churn" && (
           <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+              <h2 className="text-lg text-slate-900">Churn Data</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Live cancellation reasons, churn trend, and account-exit feedback from platform users.
+              </p>
+            </div>
+
             {/* Churn Overview */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
