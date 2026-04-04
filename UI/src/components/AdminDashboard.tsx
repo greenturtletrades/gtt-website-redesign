@@ -90,28 +90,29 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   }, []);
 
   // Calculate stats
-  const totalHistoryExports = traders.reduce((sum, trader) => sum + trader.historyExportCount, 0);
-  const totalAnalysisRuns = traders.reduce((sum, trader) => sum + trader.analysisRunCount, 0);
-  const totalTraders = traders.length;
-  const activeTraders = traders.filter((trader) => trader.accountStatus === "ACTIVE").length;
-  const premiumCount = traders.filter((trader) => trader.plan === "premium").length;
-  const paygCount = traders.filter((trader) => trader.plan === "payg").length;
-  const activeEaConnections = traders.filter((trader) => trader.lastEaSyncAt !== null).length;
+  const accountTraders = traders.filter((trader) => trader.hasAccount);
+  const totalHistoryExports = accountTraders.reduce((sum, trader) => sum + trader.historyExportCount, 0);
+  const totalAnalysisRuns = accountTraders.reduce((sum, trader) => sum + trader.analysisRunCount, 0);
+  const totalTraders = accountTraders.length;
+  const activeTraders = accountTraders.filter((trader) => trader.accountStatus === "ACTIVE").length;
+  const premiumCount = accountTraders.filter((trader) => trader.plan === "premium").length;
+  const paygCount = accountTraders.filter((trader) => trader.plan === "payg").length;
+  const activeEaConnections = accountTraders.filter((trader) => trader.lastEaSyncAt !== null).length;
   const displayTotalUsers = totalTraders;
   const displayActiveUsers = activeTraders;
   const displayInactiveUsers = Math.max(displayTotalUsers - displayActiveUsers, 0);
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
-  const displayNewUsers = traders.filter((trader) => {
+  const displayNewUsers = accountTraders.filter((trader) => {
     const joinedAt = new Date(trader.joinedAt);
     return joinedAt.getMonth() === currentMonth && joinedAt.getFullYear() === currentYear;
   }).length;
-  const disabledTraders = traders.filter((trader) => trader.accountStatus === "DISABLED").length;
-  const tradersWithApiKeys = traders.filter((trader) => trader.apiKeysCount > 0).length;
+  const disabledTraders = accountTraders.filter((trader) => trader.accountStatus === "DISABLED").length;
+  const tradersWithApiKeys = accountTraders.filter((trader) => trader.apiKeysCount > 0).length;
   const userGrowthTrend = Array.from({ length: 5 }, (_, index) => {
     const monthDate = new Date(currentYear, currentMonth - (4 - index), 1);
     const label = monthDate.toLocaleDateString(undefined, { month: "short" });
-    const users = traders.filter((trader) => {
+    const users = accountTraders.filter((trader) => {
       const joinedAt = new Date(trader.joinedAt);
       return (
         joinedAt.getFullYear() < monthDate.getFullYear() ||
@@ -126,8 +127,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     const monthDate = new Date(currentYear, currentMonth - (4 - index), 1);
     const nextMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 1);
     const label = monthDate.toLocaleDateString(undefined, { month: "short" });
-    const newAccounts = traders.filter((trader) => {
-      if (!trader.hasAccount) return false;
+    const newAccounts = accountTraders.filter((trader) => {
       const joinedAt = new Date(trader.joinedAt);
       return joinedAt >= monthDate && joinedAt < nextMonth;
     }).length;
@@ -480,7 +480,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-4">
                     <div className="text-slate-600 text-sm mb-1">Connected EA Accounts</div>
                     <div className="text-3xl text-slate-900 mb-1">{activeEaConnections}</div>
-                    <div className="text-xs text-amber-600">Records with EA activity</div>
+                    <div className="text-xs text-amber-600">Trader accounts with EA activity</div>
                   </div>
                 </div>
 
@@ -506,7 +506,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     <div className="space-y-4">
                       <div className="bg-slate-50 rounded-lg p-3">
                         <div className="text-xs text-slate-600 mb-1">Avg. Stored Trades per Trader</div>
-                        <div className="text-xl text-slate-900">{totalTraders > 0 ? (traders.reduce((sum, trader) => sum + trader.tradeEventCount, 0) / totalTraders).toFixed(0) : "0"}</div>
+                        <div className="text-xl text-slate-900">{totalTraders > 0 ? (accountTraders.reduce((sum, trader) => sum + trader.tradeEventCount, 0) / totalTraders).toFixed(0) : "0"}</div>
                       </div>
                       <div className="bg-slate-50 rounded-lg p-3">
                         <div className="text-xs text-slate-600 mb-1">Avg. Analysis Runs per Trader</div>
@@ -560,7 +560,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
                 {/* ML Usage Chart */}
                 <div>
-                  <h3 className="text-sm text-slate-700 mb-3">Trader Account Signup Trend</h3>
+                  <h3 className="text-sm text-slate-700 mb-3">Trader Account Creation Trend</h3>
                   <ResponsiveContainer width="100%" height={250}>
                     <BarChart data={activityChartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -606,7 +606,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       >
                         <option value="all">All Traders</option>
                         <option value="most-exports">Most Exports</option>
-                        <option value="most-trades">Most Trade Events</option>
+                        <option value="most-trades">Most Stored Trades</option>
                         <option value="needs-analysis">Needs Analysis</option>
                       </select>
                     </div>
