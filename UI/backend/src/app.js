@@ -222,6 +222,165 @@ function toIsoOrNull(dateLike) {
   return value.toISOString();
 }
 
+function toCurrencyAmount(minorUnits) {
+  if (typeof minorUnits !== "number" || !Number.isFinite(minorUnits)) {
+    return null;
+  }
+  return minorUnits / 100;
+}
+
+function stripeTimestampToDate(value) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return null;
+  }
+  return new Date(value * 1000);
+}
+
+async function findUserByStripeLink({ stripeCustomerId, stripeSubscriptionId }) {
+  if (stripeCustomerId) {
+    const byCustomer = await prisma.user.findFirst({
+      where: { stripeCustomerId },
+      select: { id: true, stripeCustomerId: true, stripeSubscriptionId: true },
+    });
+    if (byCustomer) return byCustomer;
+  }
+
+  if (stripeSubscriptionId) {
+    const bySubscription = await prisma.user.findFirst({
+      where: { stripeSubscriptionId },
+      select: { id: true, stripeCustomerId: true, stripeSubscriptionId: true },
+    });
+    if (bySubscription) return bySubscription;
+  }
+
+  return null;
+}
+
+function getStripeBillingEventData(event) {
+  const object = event?.data?.object || {};
+  const eventType = event?.type || "unknown";
+  let stripeCustomerId = typeof object.customer === "string" ? object.customer : null;
+  let stripeSubscriptionId = typeof object.subscription === "string" ? object.subscription : null;
+  let stripeInvoiceId = typeof object.id === "string" && object.object === "invoice" ? object.id : null;
+  let status = null;
+  let currency = typeof object.currency === "string" ? object.currency.toUpperCase() : null;
+  let amount = null;
+  let amountSubtotal = null;
+  let amountTax = null;
+  let amountPaid = null;
+  let periodStart = stripeTimestampToDate(object.current_period_start);
+  let periodEnd = stripeTimestampToDate(object.current_period_end);
+  let occurredAt = stripeTimestampToDate(event.created) || new Date();
+
+  if (eventType.startsWith("customer.subscription.")) {
+    stripeSubscriptionId = typeof object.id === "string" ? object.id : stripeSubscriptionId;
+    status = object.status === "active" ? "ACTIVE" : object.status === "canceled" ? "CANCELLED" : "INACTIVE";
+    amount = toCurrencyAmount(object.items?.data?.[0]?.price?.unit_amount ?? null);
+  } else if (eventType.startsWith("invoice.")) {
+    const firstLine = object.lines?.data?.[0] || null;
+    const linePeriod = firstLine?.period || null;
+    periodStart = stripeTimestampToDate(linePeriod?.start) || periodStart;
+    periodEnd = stripeTimestampToDate(linePeriod?.end) || periodEnd;
+    status =
+      eventType === "invoice.paid"
+        ? "PAID"
+        : eventType === "invoice.payment_failed"
+          ? "FAILED"
+          : typeof object.status === "string"
+            ? String(object.status).toUpperCase()
+            : "PENDING";
+    amount = toCurrencyAmount(object.amount_due);
+    amountSubtotal = toCurrencyAmount(object.subtotal);
+    amountTax = toCurrencyAmount(object.tax);
+    amountPaid = toCurrencyAmount(object.amount_paid);
+    occurredAt = stripeTimestampToDate(object.status_transitions?.paid_at) || occurredAt;
+  } else if (eventType === "checkout.session.completed") {
+    status = object.payment_status === "paid" ? "PAID" : "PENDING";
+    amount = toCurrencyAmount(object.amount_total);
+    amountSubtotal = toCurrencyAmount(object.amount_subtotal);
+    stripeSubscriptionId = typeof object.subscription === "string" ? object.subscription : stripeSubscriptionId;
+  }
+
+  return {
+    eventType,
+    stripeCustomerId,
+    stripeSubscriptionId,
+    stripeInvoiceId,
+    status,
+    currency,
+    amount,
+    amountSubtotal,
+    amountTax,
+    amountPaid,
+    periodStart,
+    periodEnd,
+    occurredAt,
+  };
+}
+
+async function persistStripeBillingEvent(event) {
+  const eventData = getStripeBillingEventData(event);
+  const linkedUser = await findUserByStripeLink({
+    stripeCustomerId: eventData.stripeCustomerId,
+    stripeSubscriptionId: eventData.stripeSubscriptionId,
+  });
+
+  if (linkedUser) {
+    const nextStripeCustomerId = eventData.stripeCustomerId || linkedUser.stripeCustomerId || null;
+    const nextStripeSubscriptionId =
+      event.type === "customer.subscription.deleted"
+        ? null
+        : eventData.stripeSubscriptionId || linkedUser.stripeSubscriptionId || null;
+
+    await prisma.user.update({
+      where: { id: linkedUser.id },
+      data: {
+        stripeCustomerId: nextStripeCustomerId,
+        stripeSubscriptionId: nextStripeSubscriptionId,
+      },
+    });
+  }
+
+  await prisma.billingEvent.upsert({
+    where: { stripeEventId: event.id },
+    update: {
+      userId: linkedUser?.id || null,
+      stripeCustomerId: eventData.stripeCustomerId,
+      stripeSubscriptionId: eventData.stripeSubscriptionId,
+      stripeInvoiceId: eventData.stripeInvoiceId,
+      eventType: eventData.eventType,
+      status: eventData.status,
+      currency: eventData.currency,
+      amount: eventData.amount,
+      amountSubtotal: eventData.amountSubtotal,
+      amountTax: eventData.amountTax,
+      amountPaid: eventData.amountPaid,
+      periodStart: eventData.periodStart,
+      periodEnd: eventData.periodEnd,
+      occurredAt: eventData.occurredAt,
+      payload: event,
+    },
+    create: {
+      stripeEventId: event.id,
+      userId: linkedUser?.id || null,
+      stripeCustomerId: eventData.stripeCustomerId,
+      stripeSubscriptionId: eventData.stripeSubscriptionId,
+      stripeInvoiceId: eventData.stripeInvoiceId,
+      eventType: eventData.eventType,
+      status: eventData.status,
+      currency: eventData.currency,
+      amount: eventData.amount,
+      amountSubtotal: eventData.amountSubtotal,
+      amountTax: eventData.amountTax,
+      amountPaid: eventData.amountPaid,
+      periodStart: eventData.periodStart,
+      periodEnd: eventData.periodEnd,
+      occurredAt: eventData.occurredAt,
+      payload: event,
+    },
+  });
+}
+
 function buildEaConnectionStatus(events) {
   const latestHeartbeat = events.find((event) => event.type === "HEARTBEAT") || null;
   const latestHistoryExport = events.find((event) => event.type === "HISTORY_EXPORT") || null;
@@ -1738,6 +1897,43 @@ app.use(
   })
 );
 
+app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async (req, res, next) => {
+  try {
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    if (!stripeSecretKey || !stripeWebhookSecret) {
+      return res.status(500).send("Stripe webhook not configured");
+    }
+
+    const signature = req.headers["stripe-signature"];
+    if (typeof signature !== "string" || !signature.trim()) {
+      return res.status(400).send("Missing Stripe signature");
+    }
+
+    const stripe = Stripe(stripeSecretKey);
+    const event = stripe.webhooks.constructEvent(req.body, signature, stripeWebhookSecret);
+
+    if (
+      event.type === "checkout.session.completed" ||
+      event.type === "invoice.paid" ||
+      event.type === "invoice.payment_failed" ||
+      event.type === "customer.subscription.created" ||
+      event.type === "customer.subscription.updated" ||
+      event.type === "customer.subscription.deleted"
+    ) {
+      await persistStripeBillingEvent(event);
+    }
+
+    return res.json({ received: true });
+  } catch (err) {
+    if (err?.type === "StripeSignatureVerificationError") {
+      return res.status(400).send("Invalid Stripe signature");
+    }
+    return next(err);
+  }
+});
+
 // Parse JSON bodies
 app.use(express.json());
 
@@ -3066,7 +3262,7 @@ app.get("/api/admin/signups", authRequired, adminRequired, async (req, res, next
 app.get("/api/admin/finance", authRequired, adminRequired, async (req, res, next) => {
   try {
     const traders = await prisma.user.findMany({
-      where: { role: "TRADER" },
+      where: { role: "TRADER", status: { in: ["ACTIVE", "PENDING", "DISABLED"] } },
       orderBy: { createdAt: "desc" },
       include: {
         profile: true,
@@ -3076,6 +3272,20 @@ app.get("/api/admin/finance", authRequired, adminRequired, async (req, res, next
           select: {
             cost: true,
             completedAt: true,
+          },
+        },
+        billingEvents: {
+          where: {
+            eventType: "invoice.paid",
+            status: "PAID",
+          },
+          orderBy: { occurredAt: "desc" },
+          select: {
+            amountPaid: true,
+            occurredAt: true,
+            periodStart: true,
+            periodEnd: true,
+            stripeInvoiceId: true,
           },
         },
       },
@@ -3088,11 +3298,18 @@ app.get("/api/admin/finance", authRequired, adminRequired, async (req, res, next
     const activeSubscriptions = traders.filter((user) => Boolean(user.stripeSubscriptionId)).length;
 
     const allCompletedRuns = traders.flatMap((user) => user.analysisRuns);
+    const allPaidInvoices = traders.flatMap((user) => user.billingEvents);
     const completedAnalysisRuns = allCompletedRuns.length;
     const estimatedAnalysisRevenue = allCompletedRuns.reduce(
       (sum, run) => sum + (typeof run.cost === "number" ? run.cost : 0),
       0
     );
+    const paidSubscriptionInvoices = allPaidInvoices.length;
+    const recognizedSubscriptionRevenue = allPaidInvoices.reduce(
+      (sum, invoice) => sum + (typeof invoice.amountPaid === "number" ? invoice.amountPaid : 0),
+      0
+    );
+    const totalRecognizedRevenue = recognizedSubscriptionRevenue + estimatedAnalysisRevenue;
     const averageRevenuePerRun =
       completedAnalysisRuns > 0 ? estimatedAnalysisRevenue / completedAnalysisRuns : 0;
 
@@ -3104,13 +3321,25 @@ app.get("/api/admin/finance", authRequired, adminRequired, async (req, res, next
         if (!run.completedAt) return false;
         return run.completedAt >= monthDate && run.completedAt < nextMonth;
       });
+      const monthInvoices = allPaidInvoices.filter((invoice) => {
+        return invoice.occurredAt >= monthDate && invoice.occurredAt < nextMonth;
+      });
+      const analysisRevenue = monthRuns.reduce(
+        (sum, run) => sum + (typeof run.cost === "number" ? run.cost : 0),
+        0
+      );
+      const subscriptionRevenue = monthInvoices.reduce(
+        (sum, invoice) => sum + (typeof invoice.amountPaid === "number" ? invoice.amountPaid : 0),
+        0
+      );
 
       return {
         month: monthDate.toLocaleDateString(undefined, { month: "short" }),
-        revenue: Number(
-          monthRuns.reduce((sum, run) => sum + (typeof run.cost === "number" ? run.cost : 0), 0).toFixed(2)
-        ),
+        analysisRevenue: Number(analysisRevenue.toFixed(2)),
+        subscriptionRevenue: Number(subscriptionRevenue.toFixed(2)),
+        revenue: Number((analysisRevenue + subscriptionRevenue).toFixed(2)),
         runs: monthRuns.length,
+        invoices: monthInvoices.length,
       };
     });
 
@@ -3128,6 +3357,10 @@ app.get("/api/admin/finance", authRequired, adminRequired, async (req, res, next
           (sum, run) => sum + (typeof run.cost === "number" ? run.cost : 0),
           0
         );
+        const subscriptionRevenue = user.billingEvents.reduce(
+          (sum, invoice) => sum + (typeof invoice.amountPaid === "number" ? invoice.amountPaid : 0),
+          0
+        );
         return {
           userId: user.id,
           email: user.email,
@@ -3137,10 +3370,14 @@ app.get("/api/admin/finance", authRequired, adminRequired, async (req, res, next
           stripeSubscriptionLinked: Boolean(user.stripeSubscriptionId),
           completedRuns: user.analysisRuns.length,
           estimatedRevenue: Number(estimatedRevenue.toFixed(2)),
+          subscriptionRevenue: Number(subscriptionRevenue.toFixed(2)),
+          totalRevenue: Number((estimatedRevenue + subscriptionRevenue).toFixed(2)),
+          paidSubscriptionInvoices: user.billingEvents.length,
+          latestPaymentAt: user.billingEvents[0]?.occurredAt ? user.billingEvents[0].occurredAt.toISOString() : null,
           latestRunAt: user.analysisRuns[0]?.completedAt ? user.analysisRuns[0].completedAt.toISOString() : null,
         };
       })
-      .sort((a, b) => b.estimatedRevenue - a.estimatedRevenue);
+      .sort((a, b) => b.totalRevenue - a.totalRevenue);
 
     return res.json({
       ok: true,
@@ -3151,8 +3388,11 @@ app.get("/api/admin/finance", authRequired, adminRequired, async (req, res, next
           premiumAccounts,
           stripeCustomers,
           activeSubscriptions,
+          paidSubscriptionInvoices,
+          recognizedSubscriptionRevenue: Number(recognizedSubscriptionRevenue.toFixed(2)),
           completedAnalysisRuns,
           estimatedAnalysisRevenue: Number(estimatedAnalysisRevenue.toFixed(2)),
+          totalRecognizedRevenue: Number(totalRecognizedRevenue.toFixed(2)),
           averageRevenuePerRun: Number(averageRevenuePerRun.toFixed(2)),
         },
         monthlyRevenue,
@@ -4310,6 +4550,10 @@ app.post("/api/create-checkout-session", authRequired, async (req, res, next) =>
 
     const session = await stripe.checkout.sessions.create({
       customer: stripeCustomerId,
+      client_reference_id: user.id,
+      metadata: {
+        userId: user.id,
+      },
       payment_method_types: ["card"],
       line_items: [
         {

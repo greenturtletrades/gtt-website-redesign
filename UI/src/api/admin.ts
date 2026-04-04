@@ -105,15 +105,21 @@ export interface AdminFinanceSummary {
   premiumAccounts: number;
   stripeCustomers: number;
   activeSubscriptions: number;
+  paidSubscriptionInvoices: number;
+  recognizedSubscriptionRevenue: number;
   completedAnalysisRuns: number;
   estimatedAnalysisRevenue: number;
+  totalRecognizedRevenue: number;
   averageRevenuePerRun: number;
 }
 
 export interface AdminFinanceRevenuePoint {
   month: string;
+  analysisRevenue: number;
+  subscriptionRevenue: number;
   revenue: number;
   runs: number;
+  invoices: number;
 }
 
 export interface AdminFinancePlanMixItem {
@@ -128,8 +134,12 @@ export interface AdminFinanceAccountItem {
   plan: "payg" | "premium";
   stripeCustomerLinked: boolean;
   stripeSubscriptionLinked: boolean;
+  paidSubscriptionInvoices: number;
+  subscriptionRevenue: number;
   completedRuns: number;
   estimatedRevenue: number;
+  totalRevenue: number;
+  latestPaymentAt: string | null;
   latestRunAt: string | null;
 }
 

@@ -41,6 +41,15 @@ enum AnalysisRunStatus {
   FAILED
 }
 
+enum BillingEventStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  ACTIVE
+  INACTIVE
+}
+
 model User {
   id             String          @id @default(cuid())
   email          String          @unique
@@ -56,6 +65,7 @@ model User {
   analysisSnapshots    AnalysisSnapshot[]
   analysisRuns         AnalysisRun[]
   storedTrades         StoredTrade[]
+  billingEvents        BillingEvent[]
   stripeCustomerId     String?
   stripeSubscriptionId String?
 }
@@ -239,4 +249,33 @@ model StoredTrade {
   @@unique([userId, tradeIdentity])
   @@index([userId, exitTime])
   @@index([brokerAccountId, exitTime])
+}
+
+model BillingEvent {
+  id                   String             @id @default(cuid())
+  userId               String?
+  stripeEventId        String?            @unique
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  stripeInvoiceId      String?
+  eventType            String
+  status               BillingEventStatus?
+  currency             String?
+  amount               Float?
+  amountSubtotal       Float?
+  amountTax            Float?
+  amountPaid           Float?
+  periodStart          DateTime?
+  periodEnd            DateTime?
+  occurredAt           DateTime
+  payload              Json
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  user                 User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, occurredAt])
+  @@index([stripeCustomerId, occurredAt])
+  @@index([stripeSubscriptionId, occurredAt])
+  @@index([stripeInvoiceId])
+  @@index([eventType, occurredAt])
 }

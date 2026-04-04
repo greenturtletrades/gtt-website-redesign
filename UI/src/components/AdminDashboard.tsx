@@ -170,8 +170,11 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     premiumAccounts: 0,
     stripeCustomers: 0,
     activeSubscriptions: 0,
+    paidSubscriptionInvoices: 0,
+    recognizedSubscriptionRevenue: 0,
     completedAnalysisRuns: 0,
     estimatedAnalysisRevenue: 0,
+    totalRecognizedRevenue: 0,
     averageRevenuePerRun: 0,
   };
   const financeMonthlyRevenue = financeData?.monthlyRevenue ?? [];
@@ -736,28 +739,25 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
               <h2 className="text-lg text-slate-900">Finance</h2>
               <p className="mt-1 text-sm text-slate-600">
-                Live finance data from trader accounts, Stripe linkage fields, and completed billable analysis runs stored in the platform.
-              </p>
-              <p className="mt-2 text-xs text-slate-500">
-                This section does not show settled Stripe invoices yet because invoice and payment records are not currently persisted in the database.
+                Live finance data from trader accounts, paid Stripe subscription invoices, and completed billable analysis runs stored in the platform.
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-                <div className="text-slate-600 text-sm mb-1">Estimated Analysis Revenue</div>
+                <div className="text-slate-600 text-sm mb-1">Platform Access Revenue</div>
+                <div className="text-3xl text-slate-900">{formatCurrency(financeSummary.recognizedSubscriptionRevenue)}</div>
+                <div className="text-xs text-slate-500 mt-1">Paid Stripe subscription invoices</div>
+              </div>
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+                <div className="text-slate-600 text-sm mb-1">ML Run Revenue</div>
                 <div className="text-3xl text-slate-900">{formatCurrency(financeSummary.estimatedAnalysisRevenue)}</div>
-                <div className="text-xs text-slate-500 mt-1">From completed billable analysis runs</div>
+                <div className="text-xs text-slate-500 mt-1">Completed billable analysis runs</div>
               </div>
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-                <div className="text-slate-600 text-sm mb-1">Completed Analysis Runs</div>
-                <div className="text-3xl text-slate-900">{financeSummary.completedAnalysisRuns}</div>
-                <div className="text-xs text-slate-500 mt-1">Runs with stored cost values</div>
-              </div>
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-                <div className="text-slate-600 text-sm mb-1">Average Revenue per Run</div>
-                <div className="text-3xl text-slate-900">{formatCurrency(financeSummary.averageRevenuePerRun)}</div>
-                <div className="text-xs text-slate-500 mt-1">Completed runs only</div>
+                <div className="text-slate-600 text-sm mb-1">Total Revenue</div>
+                <div className="text-3xl text-slate-900">{formatCurrency(financeSummary.totalRecognizedRevenue)}</div>
+                <div className="text-xs text-slate-500 mt-1">Platform access plus ML runs</div>
               </div>
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
                 <div className="text-slate-600 text-sm mb-1">Active Stripe Subscriptions</div>
@@ -768,7 +768,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-slate-200 p-6">
-                <h3 className="text-slate-900 text-lg mb-4">Estimated Revenue by Month</h3>
+                <h3 className="text-slate-900 text-lg mb-4">Revenue by Month</h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={financeMonthlyRevenue}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -776,12 +776,17 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     <YAxis stroke="#64748b" style={{ fontSize: "12px" }} />
                     <Tooltip
                       contentStyle={{ backgroundColor: "#fff", border: "1px solid #e2e8f0", borderRadius: "8px" }}
-                      formatter={(value: number, name: string) =>
-                        name === "revenue" ? [formatCurrency(value), "Estimated Revenue"] : [`${value}`, "Completed Runs"]
-                      }
+                      formatter={(value: number, name: string) => {
+                        if (name === "subscriptionRevenue") return [formatCurrency(value), "Platform Access Revenue"];
+                        if (name === "analysisRevenue") return [formatCurrency(value), "ML Run Revenue"];
+                        if (name === "revenue") return [formatCurrency(value), "Total Revenue"];
+                        if (name === "runs") return [`${value}`, "Completed Runs"];
+                        return [`${value}`, "Paid Invoices"];
+                      }}
                     />
                     <Legend />
-                    <Bar dataKey="revenue" fill="#0d9488" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="subscriptionRevenue" stackId="revenue" fill="#0d9488" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="analysisRevenue" stackId="revenue" fill="#0f172a" radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -833,9 +838,24 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+                <div className="text-slate-600 text-sm mb-1">Completed Analysis Runs</div>
+                <div className="text-3xl text-slate-900">{financeSummary.completedAnalysisRuns}</div>
+              </div>
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+                <div className="text-slate-600 text-sm mb-1">Average Revenue per ML Run</div>
+                <div className="text-3xl text-slate-900">{formatCurrency(financeSummary.averageRevenuePerRun)}</div>
+              </div>
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+                <div className="text-slate-600 text-sm mb-1">Paid Subscription Invoices</div>
+                <div className="text-3xl text-slate-900">{financeSummary.paidSubscriptionInvoices}</div>
+              </div>
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
                 <div className="text-slate-600 text-sm mb-1">Trader Accounts</div>
                 <div className="text-3xl text-slate-900">{financeSummary.traderAccounts}</div>
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
                 <div className="text-slate-600 text-sm mb-1">PAYG Accounts</div>
                 <div className="text-3xl text-slate-900">{financeSummary.paygAccounts}</div>
@@ -847,6 +867,10 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
                 <div className="text-slate-600 text-sm mb-1">Stripe Customers Linked</div>
                 <div className="text-3xl text-slate-900">{financeSummary.stripeCustomers}</div>
+              </div>
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+                <div className="text-slate-600 text-sm mb-1">Active Stripe Subscriptions</div>
+                <div className="text-3xl text-slate-900">{financeSummary.activeSubscriptions}</div>
               </div>
             </div>
 
@@ -865,8 +889,12 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Plan</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Stripe Customer</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Subscription</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Paid Invoices</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Platform Revenue</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Completed Runs</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Estimated Revenue</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">ML Run Revenue</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Total Revenue</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Latest Payment</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Latest Run</th>
                     </tr>
                   </thead>
@@ -886,8 +914,12 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         </td>
                         <td className="py-4 px-4 text-slate-900 text-sm">{account.stripeCustomerLinked ? "Linked" : "Not linked"}</td>
                         <td className="py-4 px-4 text-slate-900 text-sm">{account.stripeSubscriptionLinked ? "Active link" : "No link"}</td>
+                        <td className="py-4 px-4 text-slate-900 text-sm">{account.paidSubscriptionInvoices}</td>
+                        <td className="py-4 px-4 text-slate-900 text-sm">{formatCurrency(account.subscriptionRevenue)}</td>
                         <td className="py-4 px-4 text-slate-900 text-sm">{account.completedRuns}</td>
                         <td className="py-4 px-4 text-slate-900 text-sm">{formatCurrency(account.estimatedRevenue)}</td>
+                        <td className="py-4 px-4 text-slate-900 text-sm">{formatCurrency(account.totalRevenue)}</td>
+                        <td className="py-4 px-4 text-slate-900 text-sm">{formatDate(account.latestPaymentAt)}</td>
                         <td className="py-4 px-4 text-slate-900 text-sm">{formatDate(account.latestRunAt)}</td>
                       </tr>
                     ))}
