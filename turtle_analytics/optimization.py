@@ -164,6 +164,15 @@ def optimize_policy(
             pct_changed = comparison.get("pct_changed")
             if isinstance(pct_changed, (int, float, np.floating)) and np.isfinite(pct_changed):
                 trial.set_user_attr("pct_changed", float(pct_changed))
+            original_winrate = comparison.get("original_winrate")
+            if isinstance(original_winrate, (int, float, np.floating)) and np.isfinite(original_winrate):
+                trial.set_user_attr("original_winrate", float(original_winrate))
+            simulated_winrate = comparison.get("simulated_winrate")
+            if isinstance(simulated_winrate, (int, float, np.floating)) and np.isfinite(simulated_winrate):
+                trial.set_user_attr("simulated_winrate", float(simulated_winrate))
+            delta_winrate = comparison.get("delta_winrate")
+            if isinstance(delta_winrate, (int, float, np.floating)) and np.isfinite(delta_winrate):
+                trial.set_user_attr("delta_winrate", float(delta_winrate))
             
             # Get objective value
             objective_value = metrics.get(objective_metric, 0.0)
@@ -214,6 +223,9 @@ def optimize_policy(
             "n_trades": trial.user_attrs.get("n_trades"),
             "total_R": trial.user_attrs.get("total_R"),
             "pct_changed": trial.user_attrs.get("pct_changed"),
+            "original_winrate": trial.user_attrs.get("original_winrate"),
+            "simulated_winrate": trial.user_attrs.get("simulated_winrate"),
+            "delta_winrate": trial.user_attrs.get("delta_winrate"),
         }
         trials_data.append(trial_data)
     

@@ -544,6 +544,12 @@ def _format_optimization_results(opt_results: dict) -> dict[str, Any]:
                     "win_rate": None
                     if pd.isna(row.get("win_rate", row.get("winrate")))
                     else float(row.get("win_rate", row.get("winrate"))),
+                    "original_win_rate": None
+                    if pd.isna(row.get("original_winrate"))
+                    else float(row.get("original_winrate")),
+                    "delta_win_rate": None
+                    if pd.isna(row.get("delta_winrate"))
+                    else float(row.get("delta_winrate")),
                     "pct_changed": None if pd.isna(row.get("pct_changed")) else float(row.get("pct_changed")),
                     "ci_lower": None if pd.isna(row.get("ci_lower")) else float(row.get("ci_lower")),
                     "ci_upper": None if pd.isna(row.get("ci_upper")) else float(row.get("ci_upper")),
