@@ -99,6 +99,47 @@ export interface GroupedAdminSignupItem {
   entryCount: number;
 }
 
+export interface AdminFinanceSummary {
+  traderAccounts: number;
+  paygAccounts: number;
+  premiumAccounts: number;
+  stripeCustomers: number;
+  activeSubscriptions: number;
+  completedAnalysisRuns: number;
+  estimatedAnalysisRevenue: number;
+  averageRevenuePerRun: number;
+}
+
+export interface AdminFinanceRevenuePoint {
+  month: string;
+  revenue: number;
+  runs: number;
+}
+
+export interface AdminFinancePlanMixItem {
+  name: string;
+  value: number;
+}
+
+export interface AdminFinanceAccountItem {
+  userId: string;
+  email: string;
+  name: string;
+  plan: "payg" | "premium";
+  stripeCustomerLinked: boolean;
+  stripeSubscriptionLinked: boolean;
+  completedRuns: number;
+  estimatedRevenue: number;
+  latestRunAt: string | null;
+}
+
+export interface AdminFinanceData {
+  summary: AdminFinanceSummary;
+  monthlyRevenue: AdminFinanceRevenuePoint[];
+  planMix: AdminFinancePlanMixItem[];
+  accounts: AdminFinanceAccountItem[];
+}
+
 export function adminLogin(email: string, password: string) {
   return apiPost<AdminLoginResponse>("/api/admin/login", { email, password });
 }
@@ -142,4 +183,8 @@ export function fetchAdminSignups() {
     ok: boolean;
     items: AdminSignupItem[];
   }>("/api/admin/signups");
+}
+
+export function fetchAdminFinance() {
+  return apiGet<{ ok: boolean; finance: AdminFinanceData }>("/api/admin/finance");
 }

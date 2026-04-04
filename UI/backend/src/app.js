@@ -3063,6 +3063,108 @@ app.get("/api/admin/signups", authRequired, adminRequired, async (req, res, next
   }
 });
 
+app.get("/api/admin/finance", authRequired, adminRequired, async (req, res, next) => {
+  try {
+    const traders = await prisma.user.findMany({
+      where: { role: "TRADER" },
+      orderBy: { createdAt: "desc" },
+      include: {
+        profile: true,
+        analysisRuns: {
+          where: { status: "COMPLETED" },
+          orderBy: { completedAt: "desc" },
+          select: {
+            cost: true,
+            completedAt: true,
+          },
+        },
+      },
+    });
+
+    const traderAccounts = traders.length;
+    const premiumAccounts = traders.filter((user) => Boolean(user.stripeSubscriptionId)).length;
+    const paygAccounts = Math.max(traderAccounts - premiumAccounts, 0);
+    const stripeCustomers = traders.filter((user) => Boolean(user.stripeCustomerId)).length;
+    const activeSubscriptions = traders.filter((user) => Boolean(user.stripeSubscriptionId)).length;
+
+    const allCompletedRuns = traders.flatMap((user) => user.analysisRuns);
+    const completedAnalysisRuns = allCompletedRuns.length;
+    const estimatedAnalysisRevenue = allCompletedRuns.reduce(
+      (sum, run) => sum + (typeof run.cost === "number" ? run.cost : 0),
+      0
+    );
+    const averageRevenuePerRun =
+      completedAnalysisRuns > 0 ? estimatedAnalysisRevenue / completedAnalysisRuns : 0;
+
+    const now = new Date();
+    const monthlyRevenue = Array.from({ length: 6 }, (_, index) => {
+      const monthDate = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+      const nextMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 1);
+      const monthRuns = allCompletedRuns.filter((run) => {
+        if (!run.completedAt) return false;
+        return run.completedAt >= monthDate && run.completedAt < nextMonth;
+      });
+
+      return {
+        month: monthDate.toLocaleDateString(undefined, { month: "short" }),
+        revenue: Number(
+          monthRuns.reduce((sum, run) => sum + (typeof run.cost === "number" ? run.cost : 0), 0).toFixed(2)
+        ),
+        runs: monthRuns.length,
+      };
+    });
+
+    const planMix = [
+      { name: "PAYG", value: paygAccounts },
+      { name: "Premium", value: premiumAccounts },
+    ];
+
+    const accounts = traders
+      .map((user) => {
+        const firstName = user.profile?.firstName?.trim() || "";
+        const lastName = user.profile?.lastName?.trim() || "";
+        const profileName = `${firstName} ${lastName}`.trim();
+        const estimatedRevenue = user.analysisRuns.reduce(
+          (sum, run) => sum + (typeof run.cost === "number" ? run.cost : 0),
+          0
+        );
+        return {
+          userId: user.id,
+          email: user.email,
+          name: profileName || user.email.split("@")[0],
+          plan: user.stripeSubscriptionId ? "premium" : "payg",
+          stripeCustomerLinked: Boolean(user.stripeCustomerId),
+          stripeSubscriptionLinked: Boolean(user.stripeSubscriptionId),
+          completedRuns: user.analysisRuns.length,
+          estimatedRevenue: Number(estimatedRevenue.toFixed(2)),
+          latestRunAt: user.analysisRuns[0]?.completedAt ? user.analysisRuns[0].completedAt.toISOString() : null,
+        };
+      })
+      .sort((a, b) => b.estimatedRevenue - a.estimatedRevenue);
+
+    return res.json({
+      ok: true,
+      finance: {
+        summary: {
+          traderAccounts,
+          paygAccounts,
+          premiumAccounts,
+          stripeCustomers,
+          activeSubscriptions,
+          completedAnalysisRuns,
+          estimatedAnalysisRevenue: Number(estimatedAnalysisRevenue.toFixed(2)),
+          averageRevenuePerRun: Number(averageRevenuePerRun.toFixed(2)),
+        },
+        monthlyRevenue,
+        planMix,
+        accounts,
+      },
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 // Broker accounts
 app.post("/api/broker-accounts", authRequired, async (req, res, next) => {
   try {

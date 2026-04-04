@@ -1,14 +1,16 @@
-import { Users, TrendingUp, Activity, Shield, Search, BarChart3, Brain, Eye, Filter, Calendar, UserX, BookOpen, UserPlus, DollarSign } from "lucide-react";
+import { Users, TrendingUp, Activity, Shield, Search, BarChart3, Brain, Eye, Filter, Calendar, UserX, BookOpen, UserPlus, DollarSign, CreditCard, PoundSterling } from "lucide-react";
 import { useEffect, useState } from "react";
 import { TraderDetailsModal } from "./TraderDetailsModal";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
 import {
   fetchAdminChurnFeedback,
+  fetchAdminFinance,
   fetchAdminSignups,
   fetchAdminStaff,
   fetchAdminTraders,
   inviteAdmin,
   type AdminChurnFeedbackItem,
+  type AdminFinanceData,
   type AdminChurnFeedbackSummary,
   type AdminStaffMember,
   type AdminSignupItem,
@@ -21,7 +23,7 @@ interface AdminDashboardProps {
 }
 
 export function AdminDashboard({ onLogout }: AdminDashboardProps) {
-  const [activeSection, setActiveSection] = useState<"overview" | "signups" | "staff" | "churn" | "guide">("overview");
+  const [activeSection, setActiveSection] = useState<"overview" | "signups" | "finance" | "staff" | "churn" | "guide">("overview");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTrader, setSelectedTrader] = useState<AdminTrader | null>(null);
   const [traderFilter, setTraderFilter] = useState<"all" | "most-exports" | "most-trades" | "needs-analysis">("all");
@@ -36,6 +38,8 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [churnError, setChurnError] = useState<string | null>(null);
   const [signupItems, setSignupItems] = useState<AdminSignupItem[]>([]);
   const [signupError, setSignupError] = useState<string | null>(null);
+  const [financeData, setFinanceData] = useState<AdminFinanceData | null>(null);
+  const [financeError, setFinanceError] = useState<string | null>(null);
   const [signupSearchQuery, setSignupSearchQuery] = useState("");
   const [signupFilter, setSignupFilter] = useState<"all" | AdminSignupItem["sourceType"]>("all");
   const [showInviteStaff, setShowInviteStaff] = useState(false);
@@ -49,11 +53,12 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     let isMounted = true;
     const loadAdminData = async () => {
       try {
-        const [traderResponse, staffResponse, churnResponse, signupResponse] = await Promise.all([
+        const [traderResponse, staffResponse, churnResponse, signupResponse, financeResponse] = await Promise.all([
           fetchAdminTraders(),
           fetchAdminStaff(),
           fetchAdminChurnFeedback(),
           fetchAdminSignups(),
+          fetchAdminFinance(),
         ]);
         if (!isMounted) return;
         setTraders(traderResponse.items);
@@ -61,10 +66,12 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         setChurnItems(churnResponse.items);
         setChurnSummary(churnResponse.summary);
         setSignupItems(signupResponse.items);
+        setFinanceData(financeResponse.finance);
         setTradersError(null);
         setStaffError(null);
         setChurnError(null);
         setSignupError(null);
+        setFinanceError(null);
       } catch (error) {
         if (!isMounted) return;
         setTraders([]);
@@ -72,10 +79,12 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         setChurnItems([]);
         setChurnSummary([]);
         setSignupItems([]);
+        setFinanceData(null);
         setTradersError(error instanceof Error ? error.message : "Unable to load trader accounts.");
         setStaffError(error instanceof Error ? error.message : "Unable to load staff members.");
         setChurnError(error instanceof Error ? error.message : "Unable to load churn feedback.");
         setSignupError(error instanceof Error ? error.message : "Unable to load signups.");
+        setFinanceError(error instanceof Error ? error.message : "Unable to load finance data.");
       } finally {
         if (isMounted) {
           setTradersLoading(false);
@@ -155,6 +164,22 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const traderApplicationSignupCount = new Set(signupItems.filter((item) => item.sourceType === "trader_application").map((item) => item.email.toLowerCase())).size;
   const traderAccountSignupCount = new Set(signupItems.filter((item) => item.sourceType === "trader_account").map((item) => item.email.toLowerCase())).size;
   const uniqueSignupCount = new Set(signupItems.map((item) => item.email.toLowerCase())).size;
+  const financeSummary = financeData?.summary ?? {
+    traderAccounts: 0,
+    paygAccounts: 0,
+    premiumAccounts: 0,
+    stripeCustomers: 0,
+    activeSubscriptions: 0,
+    completedAnalysisRuns: 0,
+    estimatedAnalysisRevenue: 0,
+    averageRevenuePerRun: 0,
+  };
+  const financeMonthlyRevenue = financeData?.monthlyRevenue ?? [];
+  const financePlanMix = financeData?.planMix ?? [];
+  const financeAccounts = financeData?.accounts ?? [];
+
+  const formatCurrency = (value: number) =>
+    `£${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   // Filter and sort traders
   let filteredTraders = traders.filter(trader => 
@@ -390,6 +415,17 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
             >
               <Users className="w-5 h-5" />
               <span>Signups</span>
+            </button>
+            <button
+              onClick={() => setActiveSection("finance")}
+              className={`min-w-max py-4 px-6 rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
+                activeSection === "finance"
+                  ? "bg-teal-600 text-white shadow-md"
+                  : "text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              <CreditCard className="w-5 h-5" />
+              <span>Finance</span>
             </button>
             <button
               onClick={() => setActiveSection("staff")}
@@ -690,6 +726,176 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                   <p className="text-slate-600">{tradersLoading ? "Loading trader accounts..." : tradersError || "No traders found"}</p>
                 </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeSection === "finance" && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+              <h2 className="text-lg text-slate-900">Finance</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Live finance data from trader accounts, Stripe linkage fields, and completed billable analysis runs stored in the platform.
+              </p>
+              <p className="mt-2 text-xs text-slate-500">
+                This section does not show settled Stripe invoices yet because invoice and payment records are not currently persisted in the database.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+                <div className="text-slate-600 text-sm mb-1">Estimated Analysis Revenue</div>
+                <div className="text-3xl text-slate-900">{formatCurrency(financeSummary.estimatedAnalysisRevenue)}</div>
+                <div className="text-xs text-slate-500 mt-1">From completed billable analysis runs</div>
+              </div>
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+                <div className="text-slate-600 text-sm mb-1">Completed Analysis Runs</div>
+                <div className="text-3xl text-slate-900">{financeSummary.completedAnalysisRuns}</div>
+                <div className="text-xs text-slate-500 mt-1">Runs with stored cost values</div>
+              </div>
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+                <div className="text-slate-600 text-sm mb-1">Average Revenue per Run</div>
+                <div className="text-3xl text-slate-900">{formatCurrency(financeSummary.averageRevenuePerRun)}</div>
+                <div className="text-xs text-slate-500 mt-1">Completed runs only</div>
+              </div>
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+                <div className="text-slate-600 text-sm mb-1">Active Stripe Subscriptions</div>
+                <div className="text-3xl text-slate-900">{financeSummary.activeSubscriptions}</div>
+                <div className="text-xs text-slate-500 mt-1">Users with `stripeSubscriptionId` linked</div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+                <h3 className="text-slate-900 text-lg mb-4">Estimated Revenue by Month</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={financeMonthlyRevenue}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="month" stroke="#64748b" style={{ fontSize: "12px" }} />
+                    <YAxis stroke="#64748b" style={{ fontSize: "12px" }} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: "#fff", border: "1px solid #e2e8f0", borderRadius: "8px" }}
+                      formatter={(value: number, name: string) =>
+                        name === "revenue" ? [formatCurrency(value), "Estimated Revenue"] : [`${value}`, "Completed Runs"]
+                      }
+                    />
+                    <Legend />
+                    <Bar dataKey="revenue" fill="#0d9488" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+                <h3 className="text-slate-900 text-lg mb-4">Plan Mix</h3>
+                {financePlanMix.length > 0 ? (
+                  <>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <PieChart>
+                        <Pie
+                          data={financePlanMix}
+                          dataKey="value"
+                          nameKey="name"
+                          innerRadius={52}
+                          outerRadius={84}
+                          paddingAngle={3}
+                        >
+                          {financePlanMix.map((item, index) => (
+                            <Cell
+                              key={`finance-plan-${item.name}`}
+                              fill={index === 0 ? "#64748b" : "#0d9488"}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value: number, name: string) => [`${value} accounts`, name]} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="space-y-2 mt-4">
+                      {financePlanMix.map((item, index) => (
+                        <div key={item.name} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: index === 0 ? "#64748b" : "#0d9488" }}
+                            />
+                            <span className="text-slate-700">{item.name}</span>
+                          </div>
+                          <span className="text-slate-500">{item.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-sm text-slate-600">No plan data available.</div>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+                <div className="text-slate-600 text-sm mb-1">Trader Accounts</div>
+                <div className="text-3xl text-slate-900">{financeSummary.traderAccounts}</div>
+              </div>
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+                <div className="text-slate-600 text-sm mb-1">PAYG Accounts</div>
+                <div className="text-3xl text-slate-900">{financeSummary.paygAccounts}</div>
+              </div>
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+                <div className="text-slate-600 text-sm mb-1">Premium Accounts</div>
+                <div className="text-3xl text-slate-900">{financeSummary.premiumAccounts}</div>
+              </div>
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+                <div className="text-slate-600 text-sm mb-1">Stripe Customers Linked</div>
+                <div className="text-3xl text-slate-900">{financeSummary.stripeCustomers}</div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200">
+              <div className="border-b border-slate-200 bg-slate-50 p-4">
+                <h3 className="text-slate-900 text-lg flex items-center gap-2">
+                  <PoundSterling className="w-5 h-5 text-teal-600" />
+                  Accounts and Billing Linkage
+                </h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Trader</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Plan</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Stripe Customer</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Subscription</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Completed Runs</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Estimated Revenue</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Latest Run</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {financeAccounts.map((account) => (
+                      <tr key={account.userId} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td className="py-4 px-4">
+                          <div>
+                            <div className="text-slate-900">{account.name}</div>
+                            <div className="text-slate-600 text-xs">{account.email}</div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className={`px-2 py-1 text-xs rounded-full ${account.plan === "premium" ? "bg-teal-100 text-teal-700" : "bg-slate-100 text-slate-700"}`}>
+                            {account.plan === "premium" ? "Premium" : "PAYG"}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-slate-900 text-sm">{account.stripeCustomerLinked ? "Linked" : "Not linked"}</td>
+                        <td className="py-4 px-4 text-slate-900 text-sm">{account.stripeSubscriptionLinked ? "Active link" : "No link"}</td>
+                        <td className="py-4 px-4 text-slate-900 text-sm">{account.completedRuns}</td>
+                        <td className="py-4 px-4 text-slate-900 text-sm">{formatCurrency(account.estimatedRevenue)}</td>
+                        <td className="py-4 px-4 text-slate-900 text-sm">{formatDate(account.latestRunAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {financeAccounts.length === 0 && (
+                <div className="p-6 text-sm text-slate-600">{financeError || "No finance-linked trader accounts found yet."}</div>
               )}
             </div>
           </div>
