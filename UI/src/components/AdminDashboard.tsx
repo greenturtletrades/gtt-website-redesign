@@ -1,10 +1,12 @@
 import { Users, TrendingUp, Activity, Shield, Search, BarChart3, Brain, Eye, Filter, Calendar, UserX, BookOpen, UserPlus, DollarSign, CreditCard, PoundSterling } from "lucide-react";
 import { useEffect, useState } from "react";
 import { TraderDetailsModal } from "./TraderDetailsModal";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import {
+  createAdminReferralCode,
   fetchAdminChurnFeedback,
   fetchAdminFinance,
+  fetchAdminReferralCodes,
   fetchAdminSignups,
   fetchAdminStaff,
   fetchAdminTraders,
@@ -12,6 +14,7 @@ import {
   type AdminChurnFeedbackItem,
   type AdminFinanceData,
   type AdminChurnFeedbackSummary,
+  type AdminReferralCode,
   type AdminStaffMember,
   type AdminSignupItem,
   type AdminTrader,
@@ -40,6 +43,15 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [signupError, setSignupError] = useState<string | null>(null);
   const [financeData, setFinanceData] = useState<AdminFinanceData | null>(null);
   const [financeError, setFinanceError] = useState<string | null>(null);
+  const [referralCodes, setReferralCodes] = useState<AdminReferralCode[]>([]);
+  const [referralError, setReferralError] = useState<string | null>(null);
+  const [referralSubmitting, setReferralSubmitting] = useState(false);
+  const [referralMessage, setReferralMessage] = useState<string | null>(null);
+  const [referralCode, setReferralCode] = useState("");
+  const [referralAccountDiscount, setReferralAccountDiscount] = useState("0");
+  const [referralMlRunDiscount, setReferralMlRunDiscount] = useState("0");
+  const [referralDurationDays, setReferralDurationDays] = useState("30");
+  const [referralActive, setReferralActive] = useState(true);
   const [signupSearchQuery, setSignupSearchQuery] = useState("");
   const [signupFilter, setSignupFilter] = useState<"all" | AdminSignupItem["sourceType"]>("all");
   const [showInviteStaff, setShowInviteStaff] = useState(false);
@@ -53,12 +65,13 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     let isMounted = true;
     const loadAdminData = async () => {
       try {
-        const [traderResponse, staffResponse, churnResponse, signupResponse, financeResponse] = await Promise.all([
+        const [traderResponse, staffResponse, churnResponse, signupResponse, financeResponse, referralResponse] = await Promise.all([
           fetchAdminTraders(),
           fetchAdminStaff(),
           fetchAdminChurnFeedback(),
           fetchAdminSignups(),
           fetchAdminFinance(),
+          fetchAdminReferralCodes(),
         ]);
         if (!isMounted) return;
         setTraders(traderResponse.items);
@@ -67,11 +80,13 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         setChurnSummary(churnResponse.summary);
         setSignupItems(signupResponse.items);
         setFinanceData(financeResponse.finance);
+        setReferralCodes(referralResponse.items);
         setTradersError(null);
         setStaffError(null);
         setChurnError(null);
         setSignupError(null);
         setFinanceError(null);
+        setReferralError(null);
       } catch (error) {
         if (!isMounted) return;
         setTraders([]);
@@ -80,11 +95,13 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         setChurnSummary([]);
         setSignupItems([]);
         setFinanceData(null);
+        setReferralCodes([]);
         setTradersError(error instanceof Error ? error.message : "Unable to load trader accounts.");
         setStaffError(error instanceof Error ? error.message : "Unable to load staff members.");
         setChurnError(error instanceof Error ? error.message : "Unable to load churn feedback.");
         setSignupError(error instanceof Error ? error.message : "Unable to load signups.");
         setFinanceError(error instanceof Error ? error.message : "Unable to load finance data.");
+        setReferralError(error instanceof Error ? error.message : "Unable to load referral codes.");
       } finally {
         if (isMounted) {
           setTradersLoading(false);
@@ -178,11 +195,12 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     averageRevenuePerRun: 0,
   };
   const financeMonthlyRevenue = financeData?.monthlyRevenue ?? [];
-  const financePlanMix = financeData?.planMix ?? [];
   const financeAccounts = financeData?.accounts ?? [];
 
   const formatCurrency = (value: number) =>
     `£${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  const formatPercent = (value: number) => `${value.toFixed(0)}%`;
 
   // Filter and sort traders
   let filteredTraders = traders.filter(trader => 
@@ -358,6 +376,42 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       setInviteError(error instanceof Error ? error.message : "Unable to invite admin.");
     } finally {
       setInviteSubmitting(false);
+    }
+  };
+
+  const reloadReferralCodes = async () => {
+    const response = await fetchAdminReferralCodes();
+    setReferralCodes(response.items);
+    setReferralError(null);
+  };
+
+  const handleReferralSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (referralSubmitting) return;
+
+    setReferralSubmitting(true);
+    setReferralMessage(null);
+    setReferralError(null);
+
+    try {
+      const response = await createAdminReferralCode({
+        code: referralCode,
+        accountDiscountPercent: Number(referralAccountDiscount),
+        mlRunDiscountPercent: Number(referralMlRunDiscount),
+        durationDays: Number(referralDurationDays),
+        isActive: referralActive,
+      });
+      await reloadReferralCodes();
+      setReferralMessage(`Referral code ${response.referralCode.code} created.`);
+      setReferralCode("");
+      setReferralAccountDiscount("0");
+      setReferralMlRunDiscount("0");
+      setReferralDurationDays("30");
+      setReferralActive(true);
+    } catch (error) {
+      setReferralError(error instanceof Error ? error.message : "Unable to create referral code.");
+    } finally {
+      setReferralSubmitting(false);
     }
   };
 
@@ -766,8 +820,9 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+              <div className="grid grid-cols-1 gap-6">
+                <div>
                 <h3 className="text-slate-900 text-lg mb-4">Revenue by Month</h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={financeMonthlyRevenue}>
@@ -789,50 +844,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     <Bar dataKey="analysisRevenue" stackId="revenue" fill="#0f172a" radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
-              </div>
-
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
-                <h3 className="text-slate-900 text-lg mb-4">Plan Mix</h3>
-                {financePlanMix.length > 0 ? (
-                  <>
-                    <ResponsiveContainer width="100%" height={220}>
-                      <PieChart>
-                        <Pie
-                          data={financePlanMix}
-                          dataKey="value"
-                          nameKey="name"
-                          innerRadius={52}
-                          outerRadius={84}
-                          paddingAngle={3}
-                        >
-                          {financePlanMix.map((item, index) => (
-                            <Cell
-                              key={`finance-plan-${item.name}`}
-                              fill={index === 0 ? "#64748b" : "#0d9488"}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={(value: number, name: string) => [`${value} accounts`, name]} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="space-y-2 mt-4">
-                      {financePlanMix.map((item, index) => (
-                        <div key={item.name} className="flex items-center justify-between text-sm">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: index === 0 ? "#64748b" : "#0d9488" }}
-                            />
-                            <span className="text-slate-700">{item.name}</span>
-                          </div>
-                          <span className="text-slate-500">{item.value}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-sm text-slate-600">No plan data available.</div>
-                )}
+                </div>
               </div>
             </div>
 
@@ -928,6 +940,127 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               </div>
               {financeAccounts.length === 0 && (
                 <div className="p-6 text-sm text-slate-600">{financeError || "No finance-linked trader accounts found yet."}</div>
+              )}
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200">
+              <div className="border-b border-slate-200 bg-slate-50 p-4">
+                <h3 className="text-slate-900 text-lg flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-teal-600" />
+                  Referral Codes
+                </h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  Create account-access and ML-run discount codes with a fixed duration.
+                </p>
+              </div>
+              <div className="p-6 border-b border-slate-200 bg-slate-50">
+                <form onSubmit={handleReferralSubmit} className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+                  <div>
+                    <label className="mb-2 block text-sm text-slate-700">Code</label>
+                    <input
+                      type="text"
+                      value={referralCode}
+                      onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-teal-500"
+                      placeholder="SEAN20"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm text-slate-700">Account Discount</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={referralAccountDiscount}
+                      onChange={(e) => setReferralAccountDiscount(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-teal-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm text-slate-700">ML Run Discount</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={referralMlRunDiscount}
+                      onChange={(e) => setReferralMlRunDiscount(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-teal-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm text-slate-700">Duration (Days)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="3650"
+                      step="1"
+                      value={referralDurationDays}
+                      onChange={(e) => setReferralDurationDays(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-teal-500"
+                      required
+                    />
+                  </div>
+                  <div className="flex flex-col justify-end gap-3">
+                    <label className="flex items-center gap-2 text-sm text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={referralActive}
+                        onChange={(e) => setReferralActive(e.target.checked)}
+                        className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                      />
+                      Active on creation
+                    </label>
+                    <button
+                      type="submit"
+                      disabled={referralSubmitting}
+                      className="rounded-lg bg-teal-600 px-4 py-2 text-sm text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {referralSubmitting ? "Creating..." : "Create Referral Code"}
+                    </button>
+                  </div>
+                </form>
+                {referralMessage && <p className="mt-3 text-sm text-green-700">{referralMessage}</p>}
+                {referralError && <p className="mt-3 text-sm text-red-700">{referralError}</p>}
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Code</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Account Discount</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">ML Run Discount</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Duration</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Status</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Created By</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Created</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {referralCodes.map((item) => (
+                      <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td className="py-4 px-4 text-slate-900 font-medium">{item.code}</td>
+                        <td className="py-4 px-4 text-slate-900 text-sm">{formatPercent(item.accountDiscountPercent)}</td>
+                        <td className="py-4 px-4 text-slate-900 text-sm">{formatPercent(item.mlRunDiscountPercent)}</td>
+                        <td className="py-4 px-4 text-slate-900 text-sm">{item.durationDays} days</td>
+                        <td className="py-4 px-4 text-sm">
+                          <span className={`px-2 py-1 rounded-full text-xs ${item.isActive ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"}`}>
+                            {item.isActive ? "Active" : "Inactive"}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-slate-900 text-sm">{item.createdBy?.name || item.createdBy?.email || "Env admin"}</td>
+                        <td className="py-4 px-4 text-slate-900 text-sm">{formatDate(item.createdAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {referralCodes.length === 0 && (
+                <div className="p-6 text-sm text-slate-600">{referralError || "No referral codes created yet."}</div>
               )}
             </div>
           </div>

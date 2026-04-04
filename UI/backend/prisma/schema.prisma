@@ -66,6 +66,7 @@ model User {
   analysisRuns         AnalysisRun[]
   storedTrades         StoredTrade[]
   billingEvents        BillingEvent[]
+  referralCodesCreated ReferralCode[]    @relation("ReferralCodeCreatedBy")
   stripeCustomerId     String?
   stripeSubscriptionId String?
 }
@@ -278,4 +279,19 @@ model BillingEvent {
   @@index([stripeSubscriptionId, occurredAt])
   @@index([stripeInvoiceId])
   @@index([eventType, occurredAt])
+}
+
+model ReferralCode {
+  id                     String   @id @default(cuid())
+  code                   String   @unique
+  accountDiscountPercent Float
+  mlRunDiscountPercent   Float
+  durationDays           Int
+  isActive               Boolean  @default(true)
+  createdByUserId        String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  createdBy              User?    @relation("ReferralCodeCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([isActive, createdAt])
 }

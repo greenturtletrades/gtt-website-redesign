@@ -150,6 +150,21 @@ export interface AdminFinanceData {
   accounts: AdminFinanceAccountItem[];
 }
 
+export interface AdminReferralCode {
+  id: string;
+  code: string;
+  accountDiscountPercent: number;
+  mlRunDiscountPercent: number;
+  durationDays: number;
+  isActive: boolean;
+  createdAt: string;
+  createdBy: {
+    id: string;
+    email: string;
+    name: string;
+  } | null;
+}
+
 export function adminLogin(email: string, password: string) {
   return apiPost<AdminLoginResponse>("/api/admin/login", { email, password });
 }
@@ -197,4 +212,18 @@ export function fetchAdminSignups() {
 
 export function fetchAdminFinance() {
   return apiGet<{ ok: boolean; finance: AdminFinanceData }>("/api/admin/finance");
+}
+
+export function fetchAdminReferralCodes() {
+  return apiGet<{ ok: boolean; items: AdminReferralCode[] }>("/api/admin/referral-codes");
+}
+
+export function createAdminReferralCode(input: {
+  code: string;
+  accountDiscountPercent: number;
+  mlRunDiscountPercent: number;
+  durationDays: number;
+  isActive: boolean;
+}) {
+  return apiPost<{ ok: boolean; referralCode: AdminReferralCode }>("/api/admin/referral-codes", input);
 }

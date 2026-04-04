@@ -121,6 +121,29 @@ function buildAdminStaffMember(user) {
   };
 }
 
+function formatReferralCode(referralCode) {
+  const creatorFirstName = referralCode.createdBy?.profile?.firstName?.trim() || "";
+  const creatorLastName = referralCode.createdBy?.profile?.lastName?.trim() || "";
+  const creatorName = `${creatorFirstName} ${creatorLastName}`.trim();
+
+  return {
+    id: referralCode.id,
+    code: referralCode.code,
+    accountDiscountPercent: referralCode.accountDiscountPercent,
+    mlRunDiscountPercent: referralCode.mlRunDiscountPercent,
+    durationDays: referralCode.durationDays,
+    isActive: referralCode.isActive,
+    createdAt: referralCode.createdAt.toISOString(),
+    createdBy: referralCode.createdBy
+      ? {
+          id: referralCode.createdBy.id,
+          email: referralCode.createdBy.email,
+          name: creatorName || referralCode.createdBy.email.split("@")[0],
+        }
+      : null,
+  };
+}
+
 function getTraderAnalysisStatus({ latestSnapshot, tradeEventCount, historyExportCount }) {
   if (latestSnapshot) {
     return "ANALYSIS_READY";
@@ -3399,6 +3422,95 @@ app.get("/api/admin/finance", authRequired, adminRequired, async (req, res, next
         planMix,
         accounts,
       },
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.get("/api/admin/referral-codes", authRequired, adminRequired, async (req, res, next) => {
+  try {
+    const referralCodes = await prisma.referralCode.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        createdBy: {
+          include: { profile: true },
+        },
+      },
+    });
+
+    return res.json({
+      ok: true,
+      items: referralCodes.map(formatReferralCode),
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.post("/api/admin/referral-codes", authRequired, adminRequired, staffWriteRequired, async (req, res, next) => {
+  try {
+    const {
+      code,
+      accountDiscountPercent,
+      mlRunDiscountPercent,
+      durationDays,
+      isActive,
+    } = req.body || {};
+
+    if (!code || typeof code !== "string" || !code.trim()) {
+      return res.status(400).json({ ok: false, error: "Referral code is required" });
+    }
+
+    const normalizedCode = code.trim().toUpperCase();
+    if (!/^[A-Z0-9_-]{4,32}$/.test(normalizedCode)) {
+      return res.status(400).json({ ok: false, error: "Referral code must be 4-32 characters using letters, numbers, hyphens, or underscores" });
+    }
+
+    const accountDiscount = Number(accountDiscountPercent);
+    const mlRunDiscount = Number(mlRunDiscountPercent);
+    const duration = Number(durationDays);
+
+    if (!Number.isFinite(accountDiscount) || accountDiscount < 0 || accountDiscount > 100) {
+      return res.status(400).json({ ok: false, error: "Account discount must be between 0 and 100" });
+    }
+
+    if (!Number.isFinite(mlRunDiscount) || mlRunDiscount < 0 || mlRunDiscount > 100) {
+      return res.status(400).json({ ok: false, error: "ML run discount must be between 0 and 100" });
+    }
+
+    if (!Number.isInteger(duration) || duration < 1 || duration > 3650) {
+      return res.status(400).json({ ok: false, error: "Duration must be between 1 and 3650 days" });
+    }
+
+    const existing = await prisma.referralCode.findUnique({
+      where: { code: normalizedCode },
+      select: { id: true },
+    });
+
+    if (existing) {
+      return res.status(409).json({ ok: false, error: "Referral code already exists" });
+    }
+
+    const referralCode = await prisma.referralCode.create({
+      data: {
+        code: normalizedCode,
+        accountDiscountPercent: accountDiscount,
+        mlRunDiscountPercent: mlRunDiscount,
+        durationDays: duration,
+        isActive: isActive === undefined ? true : Boolean(isActive),
+        createdByUserId: req.user?.id === "env-admin" ? null : req.user.id,
+      },
+      include: {
+        createdBy: {
+          include: { profile: true },
+        },
+      },
+    });
+
+    return res.json({
+      ok: true,
+      referralCode: formatReferralCode(referralCode),
     });
   } catch (err) {
     return next(err);
