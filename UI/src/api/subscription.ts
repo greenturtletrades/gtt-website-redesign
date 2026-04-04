@@ -7,3 +7,7 @@ export function submitChurnFeedback(reason: string, feedback: string, plan: "pay
     plan,
   });
 }
+
+export function createCheckoutSession() {
+  return apiPost<{ ok: boolean; url: string }>("/api/create-checkout-session", {});
+}

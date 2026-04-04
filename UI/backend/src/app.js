@@ -450,6 +450,151 @@ async function persistStripeBillingEvent(event) {
   });
 }
 
+async function getOrCreateStripeCustomerId(user) {
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+  if (!stripeSecretKey) {
+    throw new Error("Stripe not configured");
+  }
+
+  const stripe = Stripe(stripeSecretKey);
+  if (user?.stripeCustomerId) {
+    return { stripe, stripeCustomerId: user.stripeCustomerId };
+  }
+
+  const customer = await stripe.customers.create({ email: user.email });
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { stripeCustomerId: customer.id },
+  });
+
+  return { stripe, stripeCustomerId: customer.id };
+}
+
+function formatStripePaymentMethod(paymentMethod) {
+  if (!paymentMethod || paymentMethod.object !== "payment_method" || paymentMethod.type !== "card") {
+    return null;
+  }
+
+  return {
+    brand: paymentMethod.card?.brand || null,
+    last4: paymentMethod.card?.last4 || null,
+    expMonth: paymentMethod.card?.exp_month || null,
+    expYear: paymentMethod.card?.exp_year || null,
+    funding: paymentMethod.card?.funding || null,
+    country: paymentMethod.card?.country || null,
+  };
+}
+
+async function buildUserBillingSummary(userId) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      stripeCustomerId: true,
+      stripeSubscriptionId: true,
+      appliedReferralCode: { select: { code: true } },
+      accountDiscountPercent: true,
+      mlRunDiscountPercent: true,
+      referralDiscountExpiresAt: true,
+      billingEvents: {
+        where: {
+          eventType: {
+            in: ["invoice.paid", "invoice.payment_failed"],
+          },
+        },
+        orderBy: { occurredAt: "desc" },
+        take: 12,
+      },
+    },
+  });
+
+  if (!user) {
+    return null;
+  }
+
+  const discounts = getActiveUserDiscounts(user);
+  let subscriptionStatus = user.stripeSubscriptionId ? "active" : "not_started";
+  let currentBillingMethod = null;
+  let currentPeriodEnd = null;
+  let currentPeriodStart = null;
+  let stripeConfigured = Boolean(process.env.STRIPE_SECRET_KEY);
+
+  if (process.env.STRIPE_SECRET_KEY && (user.stripeCustomerId || user.stripeSubscriptionId)) {
+    try {
+      const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+      let subscription = null;
+      if (user.stripeSubscriptionId) {
+        subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId, {
+          expand: ["default_payment_method"],
+        });
+      }
+
+      let paymentMethod =
+        subscription?.default_payment_method &&
+        typeof subscription.default_payment_method === "object"
+          ? subscription.default_payment_method
+          : null;
+
+      if (!paymentMethod && user.stripeCustomerId) {
+        const customer = await stripe.customers.retrieve(user.stripeCustomerId, {
+          expand: ["invoice_settings.default_payment_method"],
+        });
+        if (!customer.deleted) {
+          paymentMethod =
+            customer.invoice_settings?.default_payment_method &&
+            typeof customer.invoice_settings.default_payment_method === "object"
+              ? customer.invoice_settings.default_payment_method
+              : null;
+        }
+      }
+
+      currentBillingMethod = formatStripePaymentMethod(paymentMethod);
+
+      if (subscription) {
+        subscriptionStatus = typeof subscription.status === "string" ? subscription.status : subscriptionStatus;
+        currentPeriodStart = stripeTimestampToDate(subscription.current_period_start);
+        currentPeriodEnd = stripeTimestampToDate(subscription.current_period_end);
+      }
+    } catch (error) {
+      console.error("Unable to load Stripe billing summary", error);
+      stripeConfigured = true;
+    }
+  }
+
+  return {
+    ok: true,
+    billing: {
+      plan: "payg",
+      subscriptionStatus,
+      stripeConfigured,
+      stripeCustomerLinked: Boolean(user.stripeCustomerId),
+      stripeSubscriptionLinked: Boolean(user.stripeSubscriptionId),
+      currentPeriodStart: toIsoOrNull(currentPeriodStart),
+      currentPeriodEnd: toIsoOrNull(currentPeriodEnd),
+      currentBillingMethod,
+      referralCode: discounts.referralActive ? user.appliedReferralCode?.code || null : null,
+      accountDiscountPercent: discounts.accountDiscountPercent,
+      mlRunDiscountPercent: discounts.mlRunDiscountPercent,
+      discountExpiresAt: toIsoOrNull(discounts.referralDiscountExpiresAt),
+      recentInvoices: user.billingEvents.map((event) => ({
+        id: event.id,
+        stripeInvoiceId: event.stripeInvoiceId,
+        eventType: event.eventType,
+        status: event.status,
+        currency: event.currency,
+        amount: event.amount,
+        amountSubtotal: event.amountSubtotal,
+        amountTax: event.amountTax,
+        amountPaid: event.amountPaid,
+        periodStart: toIsoOrNull(event.periodStart),
+        periodEnd: toIsoOrNull(event.periodEnd),
+        occurredAt: event.occurredAt.toISOString(),
+      })),
+    },
+  };
+}
+
 function buildEaConnectionStatus(events) {
   const latestHeartbeat = events.find((event) => event.type === "HEARTBEAT") || null;
   const latestHistoryExport = events.find((event) => event.type === "HISTORY_EXPORT") || null;
@@ -2612,6 +2757,55 @@ app.get("/api/me", authRequired, async (req, res, next) => {
         profile: user.profile,
       },
     });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.get("/api/me/billing", authRequired, async (req, res, next) => {
+  try {
+    if (req.user?.id === "env-admin" && req.user?.role === "ADMIN") {
+      return res.status(403).json({ ok: false, error: "Billing settings are not available for env admin" });
+    }
+
+    const payload = await buildUserBillingSummary(req.user.id);
+    if (!payload) {
+      return res.status(404).json({ ok: false, error: "User not found" });
+    }
+
+    return res.json(payload);
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.post("/api/billing/portal-session", authRequired, async (req, res, next) => {
+  try {
+    if (req.user?.id === "env-admin" && req.user?.role === "ADMIN") {
+      return res.status(403).json({ ok: false, error: "Billing portal is not available for env admin" });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: {
+        id: true,
+        email: true,
+        stripeCustomerId: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ ok: false, error: "User not found" });
+    }
+
+    const { stripe, stripeCustomerId } = await getOrCreateStripeCustomerId(user);
+    const appUrl = process.env.APP_URL || "http://localhost:5173";
+    const session = await stripe.billingPortal.sessions.create({
+      customer: stripeCustomerId,
+      return_url: `${appUrl}?settings=billing`,
+    });
+
+    return res.json({ ok: true, url: session.url });
   } catch (err) {
     return next(err);
   }

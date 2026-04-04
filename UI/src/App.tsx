@@ -7,7 +7,6 @@ import { TurtleAnalytics } from "./components/TurtleAnalytics";
 import { TurtleAnalyticsWelcome } from "./components/TurtleAnalyticsWelcome";
 import { EACodePage } from "./components/EACodePage";
 import { SubscriptionModal } from "./components/SubscriptionModal";
-import { PaymentModal } from "./components/PaymentModal";
 import { WelcomeScreen } from "./components/WelcomeScreen";
 import { SettingsPage } from "./components/SettingsPage";
 import { TermsOfService } from "./components/TermsOfService";
@@ -18,7 +17,7 @@ import { AdminDashboard } from "./components/AdminDashboard";
 import { TraderApplicationForm } from "./components/onboarding/TraderApplicationForm";
 import { TraderApplicationStatus } from "./components/onboarding/TraderApplicationStatus";
 import { me } from "./api/auth";
-import { submitChurnFeedback } from "./api/subscription";
+import { createCheckoutSession, submitChurnFeedback } from "./api/subscription";
 import { type TraderApplicationStatus as ApplicationStatus } from "./api/traderApplication";
 
 export type UserType = "trader" | "admin" | null;
@@ -42,7 +41,6 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showAdminLoginModal, setShowAdminLoginModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [authMode, setAuthMode] = useState<"signup" | "login">("signup");
   const [turtleAnalyticsAuthed, setTurtleAnalyticsAuthed] = useState(false);
   const [pendingUserName, setPendingUserName] = useState<string>("");
@@ -190,33 +188,20 @@ export default function App() {
   const handleSubscriptionComplete = (plan: "payg") => {
     setSelectedSubscriptionPlan(plan);
     setShowSubscriptionModal(false);
-    
-    // Show payment modal to collect card details
-    setShowPaymentModal(true);
-  };
 
-  const handlePaymentComplete = () => {
-    setShowPaymentModal(false);
-    
-    // Start onboarding flow with welcome screen
-    setOnboardingStage("welcome");
-    setUserType("trader");
-    setTurtleAnalyticsAuthed(true);
-    
-    // In a real app, you would:
-    // 1. Send card details to Stripe/payment processor
-    // 2. Create subscription with selected plan
-    // 3. Wait for payment confirmation webhook
-    // 4. Create user account in backend
-    // 5. Send confirmation email
-    // 6. Then grant access to Turtle Analytics
-  };
-
-  const handlePaymentBack = () => {
-    // Go back to subscription plan selection
-    setShowPaymentModal(false);
-    setShowSubscriptionModal(true);
-    // Keep the pendingUserName so user doesn't lose their info
+    createCheckoutSession()
+      .then((response) => {
+        if (response.url) {
+          window.location.assign(response.url);
+          return;
+        }
+        throw new Error("Checkout session did not return a URL.");
+      })
+      .catch((error) => {
+        const message = error instanceof Error ? error.message : "Unable to start checkout.";
+        alert(`Unable to start secure Stripe checkout.\n\n${message}`);
+        setShowSubscriptionModal(true);
+      });
   };
 
   const handleLogout = () => {
@@ -451,16 +436,6 @@ export default function App() {
           onClose={() => setShowSubscriptionModal(false)}
           userName={pendingUserName}
           onSelectPlan={handleSubscriptionComplete}
-        />
-      )}
-
-      {!isAdminRoute && showPaymentModal && selectedSubscriptionPlan && (
-        <PaymentModal
-          onClose={() => setShowPaymentModal(false)}
-          onComplete={handlePaymentComplete}
-          onBack={handlePaymentBack}
-          selectedPlan={selectedSubscriptionPlan}
-          userName={pendingUserName}
         />
       )}
 

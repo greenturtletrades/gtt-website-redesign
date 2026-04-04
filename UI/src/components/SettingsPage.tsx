@@ -18,11 +18,13 @@ import {
 } from "lucide-react";
 import { me } from "../api/auth";
 import {
+  createBillingPortalSession,
   changeTraderPassword,
   createApiKey,
   createBrokerAccount,
   deleteMyAccount,
   downloadEaFile,
+  fetchBillingSummary,
   fetchEaDiagnostics,
   fetchEaStatus,
   fetchApiKeys,
@@ -31,6 +33,7 @@ import {
   updateBrokerAccount,
   updateProfile,
   type ApiKeyRecord,
+  type BillingSummaryResponse,
   type BrokerAccount,
   type EaDiagnosticsResponse,
   type EaStatusResponse,
@@ -87,6 +90,9 @@ export function SettingsPage({
   const [downloadingEaPlatform, setDownloadingEaPlatform] = useState<"MT4" | "MT5" | null>(null);
   const [eaStatus, setEaStatus] = useState<EaStatusResponse | null>(null);
   const [eaDiagnostics, setEaDiagnostics] = useState<EaDiagnosticsResponse | null>(null);
+  const [billingSummary, setBillingSummary] = useState<BillingSummaryResponse["billing"] | null>(null);
+  const [billingLoading, setBillingLoading] = useState(true);
+  const [openingBillingPortal, setOpeningBillingPortal] = useState(false);
   const [refreshingEaHealth, setRefreshingEaHealth] = useState(false);
   const [copiedValue, setCopiedValue] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -108,12 +114,13 @@ export function SettingsPage({
 
     const load = async () => {
       try {
-        const [session, brokerResponse, apiKeyResponse, eaStatusResponse, eaDiagnosticsResponse] = await Promise.all([
+        const [session, brokerResponse, apiKeyResponse, eaStatusResponse, eaDiagnosticsResponse, billingResponse] = await Promise.all([
           me(),
           fetchBrokerAccounts(),
           fetchApiKeys(),
           fetchEaStatus(),
           fetchEaDiagnostics(),
+          fetchBillingSummary(),
         ]);
 
         if (cancelled) return;
@@ -131,6 +138,7 @@ export function SettingsPage({
         setApiKeys(apiKeyResponse.apiKeys);
         setEaStatus(eaStatusResponse);
         setEaDiagnostics(eaDiagnosticsResponse);
+        setBillingSummary(billingResponse.billing);
         setPageError(null);
       } catch (error) {
         if (!cancelled) {
@@ -139,6 +147,7 @@ export function SettingsPage({
       } finally {
         if (!cancelled) {
           setLoading(false);
+          setBillingLoading(false);
         }
       }
     };
@@ -307,6 +316,52 @@ export function SettingsPage({
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  const formatMoney = (value: number | null, currency: string | null = "GBP") => {
+    if (typeof value !== "number" || !Number.isFinite(value)) return "—";
+    const normalizedCurrency = typeof currency === "string" && currency ? currency.toUpperCase() : "GBP";
+    try {
+      return new Intl.NumberFormat("en-GB", {
+        style: "currency",
+        currency: normalizedCurrency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(value);
+    } catch {
+      return `£${value.toFixed(2)}`;
+    }
+  };
+
+  const formatBillingMethod = () => {
+    const method = billingSummary?.currentBillingMethod;
+    if (!method?.brand || !method?.last4) return "No payment method on file";
+    const brand = method.brand.charAt(0).toUpperCase() + method.brand.slice(1);
+    const expiry =
+      method.expMonth && method.expYear ? ` • Expires ${String(method.expMonth).padStart(2, "0")}/${method.expYear}` : "";
+    return `${brand} ending ${method.last4}${expiry}`;
+  };
+
+  const liveSubscriptionStatus = (() => {
+    if (billingSummary?.subscriptionStatus) {
+      const status = billingSummary.subscriptionStatus.toLowerCase();
+      if (status === "active" || status === "trialing") return "active";
+      if (status === "paused") return "paused";
+      return status;
+    }
+    return subscriptionStatus;
+  })();
+
+  const handleUpdateBillingMethod = async () => {
+    setOpeningBillingPortal(true);
+    setPageError(null);
+    try {
+      const response = await createBillingPortalSession();
+      window.location.assign(response.url);
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : "Unable to open secure billing portal.");
+      setOpeningBillingPortal(false);
+    }
   };
 
   const eaHealthTone = eaStatus?.eaConnected
@@ -518,7 +573,9 @@ export function SettingsPage({
                     <div className="space-y-6">
                       <div>
                         <h2 className="text-xl text-slate-900">Subscription & Billing</h2>
-                        <p className="mt-1 text-sm text-slate-600">Your plan status is live in the app. Cancellation feedback is sent to the backend.</p>
+                        <p className="mt-1 text-sm text-slate-600">
+                          Billing details below come from your linked Stripe customer and saved invoice events when billing is configured.
+                        </p>
                       </div>
 
                       <div className="rounded-lg border border-teal-200 bg-gradient-to-br from-teal-50 to-cyan-50 p-6">
@@ -530,46 +587,97 @@ export function SettingsPage({
                             </div>
                             <p className="mt-2 text-sm text-slate-600">£10/month + £0.20 per trade analysed</p>
                           </div>
-                          <span className={`rounded-full px-3 py-1 text-sm ${subscriptionStatus === "paused" ? "bg-amber-100 text-amber-700" : "bg-teal-600 text-white"}`}>
-                            {subscriptionStatus === "paused" ? "Paused" : "Active"}
+                          <span className={`rounded-full px-3 py-1 text-sm ${liveSubscriptionStatus === "paused" ? "bg-amber-100 text-amber-700" : liveSubscriptionStatus === "active" || liveSubscriptionStatus === "trialing" ? "bg-teal-600 text-white" : "bg-slate-200 text-slate-700"}`}>
+                            {liveSubscriptionStatus === "paused"
+                              ? "Paused"
+                              : liveSubscriptionStatus === "active" || liveSubscriptionStatus === "trialing"
+                                ? "Active"
+                                : liveSubscriptionStatus === "not_started"
+                                  ? "Not Started"
+                                  : liveSubscriptionStatus}
                           </span>
+                        </div>
+                        {billingSummary?.currentPeriodEnd && (
+                          <p className="mt-4 text-sm text-slate-700">
+                            Current billing period ends {formatTimestamp(billingSummary.currentPeriodEnd)}.
+                          </p>
+                        )}
+                        {billingSummary?.referralCode && (
+                          <p className="mt-2 text-sm text-slate-700">
+                            Referral code `{billingSummary.referralCode}` is active: {billingSummary.accountDiscountPercent}% off account billing and {billingSummary.mlRunDiscountPercent}% off ML runs.
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="rounded-lg border border-slate-200 bg-white p-5">
+                          <div className="text-sm text-slate-500">Current Billing Method</div>
+                          <div className="mt-2 text-slate-900">{billingLoading ? "Loading..." : formatBillingMethod()}</div>
+                          <p className="mt-2 text-sm text-slate-600">
+                            Payment methods are managed securely in Stripe. Your full card details are never stored in this app.
+                          </p>
+                        </div>
+
+                        <div className="rounded-lg border border-slate-200 bg-white p-5">
+                          <div className="text-sm text-slate-500">Billing Actions</div>
+                          <div className="mt-3 flex flex-wrap gap-3">
+                            <button
+                              onClick={handleUpdateBillingMethod}
+                              disabled={openingBillingPortal || billingSummary?.stripeConfigured === false}
+                              className="rounded-lg bg-teal-600 px-4 py-2 text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
+                            >
+                              {openingBillingPortal ? "Opening..." : billingSummary?.currentBillingMethod ? "Update Billing Method" : "Add Billing Method"}
+                            </button>
+                          </div>
+                          <p className="mt-2 text-sm text-slate-600">
+                            Use the secure Stripe billing portal to update the card or payment method used for platform access charges.
+                          </p>
                         </div>
                       </div>
 
                       <div className="flex flex-wrap gap-3">
-                        {subscriptionStatus === "paused" ? (
-                          <button
-                            onClick={onResumeSubscription}
-                            className="rounded-lg bg-teal-600 px-4 py-2 text-white transition-colors hover:bg-teal-700"
-                          >
-                            Resume Subscription
-                          </button>
-                        ) : (
-                          <button
-                            onClick={onPauseSubscription}
-                            className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-amber-700 transition-colors hover:bg-amber-100"
-                          >
-                            Pause Subscription
-                          </button>
-                        )}
                         <button
                           onClick={() => setShowCancelModal(true)}
                           className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-red-600 transition-colors hover:bg-red-100"
                         >
-                          Cancel Subscription
+                          Send Cancellation Feedback
                         </button>
                       </div>
 
                       <div className="rounded-lg border border-slate-200 bg-slate-50 p-6">
-                        <div className="flex items-start gap-3">
-                          <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-600" />
-                          <div>
-                            <h3 className="text-slate-900">Billing History</h3>
-                            <p className="mt-2 text-sm text-slate-600">
-                              There is no live backend dataset for billing history yet, so this section stays empty until that backend exists.
-                            </p>
+                        <h3 className="text-slate-900">Billing History</h3>
+                        {!billingSummary?.recentInvoices?.length ? (
+                          <p className="mt-2 text-sm text-slate-600">
+                            No paid or failed subscription invoices have been recorded for this account yet.
+                          </p>
+                        ) : (
+                          <div className="mt-4 overflow-x-auto">
+                            <table className="min-w-full text-left text-sm">
+                              <thead className="text-slate-500">
+                                <tr>
+                                  <th className="pb-2 pr-4">Date</th>
+                                  <th className="pb-2 pr-4">Status</th>
+                                  <th className="pb-2 pr-4">Amount</th>
+                                  <th className="pb-2 pr-4">Period</th>
+                                </tr>
+                              </thead>
+                              <tbody className="text-slate-700">
+                                {billingSummary.recentInvoices.map((invoice) => (
+                                  <tr key={invoice.id} className="border-t border-slate-200">
+                                    <td className="py-3 pr-4">{formatTimestamp(invoice.occurredAt)}</td>
+                                    <td className="py-3 pr-4">{invoice.status || "Unknown"}</td>
+                                    <td className="py-3 pr-4">{formatMoney(invoice.amountPaid ?? invoice.amount, invoice.currency)}</td>
+                                    <td className="py-3 pr-4">
+                                      {invoice.periodStart && invoice.periodEnd
+                                        ? `${formatTimestamp(invoice.periodStart)} to ${formatTimestamp(invoice.periodEnd)}`
+                                        : "—"}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
-                        </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -786,11 +894,13 @@ export function SettingsPage({
                       <h2 className="text-xl text-slate-900">Referrals</h2>
                       <div className="rounded-lg border border-slate-200 bg-slate-50 p-6">
                         <div className="flex items-start gap-3">
-                          <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-600" />
+                          <Gift className="mt-0.5 h-5 w-5 text-teal-600" />
                           <div>
-                            <p className="text-slate-900">This section no longer shows mock data.</p>
+                            <p className="text-slate-900">Referral discounts are now account-linked.</p>
                             <p className="mt-2 text-sm text-slate-600">
-                              There is no live backend dataset for referral tracking yet, so the UI intentionally stays empty until that backend exists.
+                              {billingSummary?.referralCode
+                                ? `Your account currently has referral code ${billingSummary.referralCode} applied.`
+                                : "No active referral discount is currently linked to this account."}
                             </p>
                           </div>
                         </div>

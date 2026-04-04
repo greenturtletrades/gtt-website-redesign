@@ -76,6 +76,49 @@ export interface EaDiagnosticsResponse {
   hints: string[];
 }
 
+export interface BillingMethodSummary {
+  brand: string | null;
+  last4: string | null;
+  expMonth: number | null;
+  expYear: number | null;
+  funding: string | null;
+  country: string | null;
+}
+
+export interface BillingInvoiceRecord {
+  id: string;
+  stripeInvoiceId: string | null;
+  eventType: string;
+  status: string | null;
+  currency: string | null;
+  amount: number | null;
+  amountSubtotal: number | null;
+  amountTax: number | null;
+  amountPaid: number | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+  occurredAt: string;
+}
+
+export interface BillingSummaryResponse {
+  ok: boolean;
+  billing: {
+    plan: "payg";
+    subscriptionStatus: string;
+    stripeConfigured: boolean;
+    stripeCustomerLinked: boolean;
+    stripeSubscriptionLinked: boolean;
+    currentPeriodStart: string | null;
+    currentPeriodEnd: string | null;
+    currentBillingMethod: BillingMethodSummary | null;
+    referralCode: string | null;
+    accountDiscountPercent: number;
+    mlRunDiscountPercent: number;
+    discountExpiresAt: string | null;
+    recentInvoices: BillingInvoiceRecord[];
+  };
+}
+
 export function updateProfile(fullName: string, email: string) {
   return apiPatch<{ ok: boolean; user: AuthUser }>("/api/me/profile", {
     fullName,
@@ -143,4 +186,12 @@ export function fetchEaStatus() {
 
 export function fetchEaDiagnostics() {
   return apiGet<EaDiagnosticsResponse>("/api/ea/diagnostics");
+}
+
+export function fetchBillingSummary() {
+  return apiGet<BillingSummaryResponse>("/api/me/billing");
+}
+
+export function createBillingPortalSession() {
+  return apiPost<{ ok: boolean; url: string }>("/api/billing/portal-session", {});
 }
