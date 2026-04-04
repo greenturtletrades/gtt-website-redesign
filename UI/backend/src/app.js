@@ -2274,6 +2274,20 @@ app.post("/api/subscription/churn-feedback", authRequired, async (req, res, next
 
 app.get("/api/me", authRequired, async (req, res, next) => {
   try {
+    if (req.user?.id === "env-admin" && req.user?.role === "ADMIN") {
+      const envEmail = (process.env.ADMIN_EMAIL || "greenturtlrtraders26@gmail.com").trim().toLowerCase();
+      return res.json({
+        ok: true,
+        user: {
+          id: "env-admin",
+          email: envEmail,
+          role: "ADMIN",
+          status: "ACTIVE",
+          profile: null,
+        },
+      });
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
       include: { profile: true },
