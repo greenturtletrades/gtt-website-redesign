@@ -4096,6 +4096,88 @@ app.post("/api/admin/staff/invite", authRequired, staffWriteRequired, async (req
   }
 });
 
+app.post("/api/admin/traders/create-test-user", authRequired, staffWriteRequired, async (req, res, next) => {
+  try {
+    const { email, password, fullName, metaTraderUsername, brokerName } = req.body || {};
+
+    if (!email || typeof email !== "string") {
+      return res.status(400).json({ ok: false, error: "Email is required" });
+    }
+
+    if (!password || typeof password !== "string" || password.trim().length < 8) {
+      return res.status(400).json({ ok: false, error: "Password must be at least 8 characters" });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const existing = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+      select: { id: true },
+    });
+
+    if (existing) {
+      return res.status(409).json({ ok: false, error: "Email already exists" });
+    }
+
+    const trimmedName = typeof fullName === "string" ? fullName.trim() : "";
+    const [firstName, ...restName] = trimmedName ? trimmedName.split(/\s+/) : [];
+    const lastName = restName.join(" ");
+    const normalizedMetaTraderUsername =
+      typeof metaTraderUsername === "string" && metaTraderUsername.trim()
+        ? metaTraderUsername.trim()
+        : null;
+    const normalizedBrokerName =
+      typeof brokerName === "string" && brokerName.trim()
+        ? brokerName.trim()
+        : null;
+
+    const user = await prisma.user.create({
+      data: {
+        email: normalizedEmail,
+        passwordHash: await bcrypt.hash(password.trim(), 10),
+        role: "TRADER",
+        status: "ACTIVE",
+        billingExempt: true,
+        billingExemptReason: "Internal test user created from admin panel",
+        profile: trimmedName
+          ? {
+              create: {
+                firstName: firstName || null,
+                lastName: lastName || null,
+              },
+            }
+          : undefined,
+        brokerAccounts: normalizedMetaTraderUsername
+          ? {
+              create: {
+                platform: "MT5",
+                brokerName: normalizedBrokerName,
+                accountNumber: normalizedMetaTraderUsername,
+                label: "Primary MetaTrader",
+                isActive: true,
+              },
+            }
+          : undefined,
+      },
+      include: { profile: true },
+    });
+
+    return res.json({
+      ok: true,
+      trader: {
+        id: user.id,
+        email: user.email,
+        name:
+          `${user.profile?.firstName || ""} ${user.profile?.lastName || ""}`.trim() ||
+          user.email.split("@")[0],
+        billingExempt: true,
+        billingExemptReason: user.billingExemptReason,
+      },
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 app.get("/api/admin/signups", authRequired, adminRequired, async (req, res, next) => {
   try {
     const [waitlistEntries, traderApplications, traderUsers] = await Promise.all([
@@ -5499,24 +5581,6 @@ app.get("/api/analyse/:jobId", authRequired, async (req, res, next) => {
 
 app.post("/api/create-checkout-session", authRequired, async (req, res, next) => {
   try {
-    if (process.env.PAYMENTS_ACTIVE !== "true") {
-      return res.status(403).json({ ok: false, error: "Payments not active" });
-    }
-
-    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-    if (!stripeSecretKey) {
-      return res.status(500).json({ ok: false, error: "Stripe not configured" });
-    }
-
-    const monthlyPriceId = process.env.STRIPE_PRICE_MONTHLY;
-    const perTradePriceId = process.env.STRIPE_PRICE_PER_TRADE;
-
-    if (!monthlyPriceId || !perTradePriceId) {
-      return res.status(500).json({ ok: false, error: "Stripe prices not configured" });
-    }
-
-    const stripe = Stripe(stripeSecretKey);
-
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
       select: {
@@ -5541,6 +5605,24 @@ app.post("/api/create-checkout-session", authRequired, async (req, res, next) =>
         internalAccount: true,
       });
     }
+
+    if (process.env.PAYMENTS_ACTIVE !== "true") {
+      return res.status(403).json({ ok: false, error: "Payments not active" });
+    }
+
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeSecretKey) {
+      return res.status(500).json({ ok: false, error: "Stripe not configured" });
+    }
+
+    const monthlyPriceId = process.env.STRIPE_PRICE_MONTHLY;
+    const perTradePriceId = process.env.STRIPE_PRICE_PER_TRADE;
+
+    if (!monthlyPriceId || !perTradePriceId) {
+      return res.status(500).json({ ok: false, error: "Stripe prices not configured" });
+    }
+
+    const stripe = Stripe(stripeSecretKey);
 
     // Reuse existing Stripe customer or create a new one
     let stripeCustomerId = user.stripeCustomerId;

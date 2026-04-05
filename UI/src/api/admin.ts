@@ -62,6 +62,14 @@ export interface AdminStaffMember {
   source: "database" | "environment";
 }
 
+export interface AdminTestTrader {
+  id: string;
+  email: string;
+  name: string;
+  billingExempt: boolean;
+  billingExemptReason: string | null;
+}
+
 export interface AdminChurnFeedbackItem {
   id: string;
   userId: string;
@@ -189,6 +197,16 @@ export function inviteAdmin(email: string, temporaryCode: string) {
     email,
     temporaryCode,
   });
+}
+
+export function createAdminTestTrader(input: {
+  email: string;
+  password: string;
+  fullName?: string;
+  metaTraderUsername?: string;
+  brokerName?: string;
+}) {
+  return apiPost<{ ok: boolean; trader: AdminTestTrader }>("/api/admin/traders/create-test-user", input);
 }
 
 export function changeAdminPassword(currentPassword: string, newPassword: string) {

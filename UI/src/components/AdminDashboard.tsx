@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { TraderDetailsModal } from "./TraderDetailsModal";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import {
+  createAdminTestTrader,
   fetchAdminAccountDeletionAudits,
   createAdminReferralCode,
   fetchAdminChurnFeedback,
@@ -19,6 +20,7 @@ import {
   type AdminReferralCode,
   type AdminStaffMember,
   type AdminSignupItem,
+  type AdminTestTrader,
   type AdminTrader,
   type GroupedAdminSignupItem,
 } from "../api/admin";
@@ -64,6 +66,15 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [inviteMessage, setInviteMessage] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSubmitting, setInviteSubmitting] = useState(false);
+  const [showCreateTestTrader, setShowCreateTestTrader] = useState(false);
+  const [testTraderEmail, setTestTraderEmail] = useState("");
+  const [testTraderPassword, setTestTraderPassword] = useState("");
+  const [testTraderFullName, setTestTraderFullName] = useState("");
+  const [testTraderMtUsername, setTestTraderMtUsername] = useState("");
+  const [testTraderBrokerName, setTestTraderBrokerName] = useState("");
+  const [testTraderMessage, setTestTraderMessage] = useState<string | null>(null);
+  const [testTraderError, setTestTraderError] = useState<string | null>(null);
+  const [testTraderSubmitting, setTestTraderSubmitting] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -366,6 +377,12 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     setStaffError(null);
   };
 
+  const reloadTraders = async () => {
+    const traderResponse = await fetchAdminTraders();
+    setTraders(traderResponse.items);
+    setTradersError(null);
+  };
+
   const handleInviteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (inviteSubmitting) return;
@@ -385,6 +402,40 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       setInviteError(error instanceof Error ? error.message : "Unable to invite admin.");
     } finally {
       setInviteSubmitting(false);
+    }
+  };
+
+  const handleCreateTestTraderSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (testTraderSubmitting) return;
+
+    setTestTraderSubmitting(true);
+    setTestTraderMessage(null);
+    setTestTraderError(null);
+
+    try {
+      const response = await createAdminTestTrader({
+        email: testTraderEmail,
+        password: testTraderPassword,
+        fullName: testTraderFullName || undefined,
+        metaTraderUsername: testTraderMtUsername || undefined,
+        brokerName: testTraderBrokerName || undefined,
+      });
+      await reloadTraders();
+      const createdTrader: AdminTestTrader = response.trader;
+      setTestTraderMessage(
+        `${createdTrader.email} created as a billing-exempt internal test trader. They can sign in directly without Stripe checkout.`,
+      );
+      setTestTraderEmail("");
+      setTestTraderPassword("");
+      setTestTraderFullName("");
+      setTestTraderMtUsername("");
+      setTestTraderBrokerName("");
+      setShowCreateTestTrader(false);
+    } catch (error) {
+      setTestTraderError(error instanceof Error ? error.message : "Unable to create test trader.");
+    } finally {
+      setTestTraderSubmitting(false);
     }
   };
 
@@ -1090,21 +1141,118 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         {activeSection === "staff" && (
           <div className="bg-white rounded-lg shadow-sm border border-slate-200">
             <div className="border-b border-slate-200 bg-slate-50 p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-lg text-slate-900">Admin Staff</h2>
-                <button
-                  onClick={() => {
-                    setShowInviteStaff((current) => !current);
-                    setInviteMessage(null);
-                    setInviteError(null);
-                  }}
-                  className="flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm text-white transition-colors hover:bg-teal-700"
-                >
-                  <UserPlus className="h-4 w-4" />
-                  Invite Admin
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => {
+                      setShowCreateTestTrader((current) => !current);
+                      setTestTraderMessage(null);
+                      setTestTraderError(null);
+                    }}
+                    className="flex items-center gap-2 rounded-lg border border-teal-200 bg-white px-4 py-2 text-sm text-teal-700 transition-colors hover:bg-teal-50"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    Create Test Trader
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowInviteStaff((current) => !current);
+                      setInviteMessage(null);
+                      setInviteError(null);
+                    }}
+                    className="flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm text-white transition-colors hover:bg-teal-700"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    Invite Admin
+                  </button>
+                </div>
               </div>
             </div>
+
+            {showCreateTestTrader && (
+              <div className="border-b border-slate-200 bg-teal-50/40 p-4">
+                <div className="mb-4">
+                  <h3 className="text-base text-slate-900">Create Internal Test Trader</h3>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Test traders created here are billing-exempt and can sign in directly without Stripe checkout.
+                  </p>
+                </div>
+                <form onSubmit={handleCreateTestTraderSubmit} className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+                  <div>
+                    <label className="mb-2 block text-sm text-slate-700">Email</label>
+                    <input
+                      type="email"
+                      value={testTraderEmail}
+                      onChange={(e) => setTestTraderEmail(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-teal-500"
+                      placeholder="tester@greenturtletrades.com"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm text-slate-700">Password</label>
+                    <input
+                      type="password"
+                      value={testTraderPassword}
+                      onChange={(e) => setTestTraderPassword(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-teal-500"
+                      placeholder="Minimum 8 characters"
+                      minLength={8}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm text-slate-700">Full Name</label>
+                    <input
+                      type="text"
+                      value={testTraderFullName}
+                      onChange={(e) => setTestTraderFullName(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-teal-500"
+                      placeholder="Green Turtle Test"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm text-slate-700">MetaTrader ID</label>
+                    <input
+                      type="text"
+                      value={testTraderMtUsername}
+                      onChange={(e) => setTestTraderMtUsername(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-teal-500"
+                      placeholder="Optional"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm text-slate-700">Broker Name</label>
+                    <input
+                      type="text"
+                      value={testTraderBrokerName}
+                      onChange={(e) => setTestTraderBrokerName(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-teal-500"
+                      placeholder="Optional"
+                    />
+                  </div>
+                  <div className="lg:col-span-5 flex flex-wrap items-center gap-2">
+                    <button
+                      type="submit"
+                      disabled={testTraderSubmitting}
+                      className="rounded-lg bg-teal-600 px-4 py-2 text-sm text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {testTraderSubmitting ? "Creating..." : "Create Test Trader"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateTestTrader(false)}
+                      className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-100"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+                {testTraderMessage && <p className="mt-3 text-sm text-green-700">{testTraderMessage}</p>}
+                {testTraderError && <p className="mt-3 text-sm text-red-700">{testTraderError}</p>}
+              </div>
+            )}
 
             {showInviteStaff && (
               <div className="border-b border-slate-200 bg-slate-50 p-4">
