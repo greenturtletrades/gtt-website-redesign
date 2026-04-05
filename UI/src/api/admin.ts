@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from "./client";
+import { apiDelete, apiGet, apiPost } from "./client";
 
 export interface AdminLoginResponse {
   ok: boolean;
@@ -22,6 +22,8 @@ export interface AdminTrader {
   id: string;
   name: string;
   email: string;
+  billingExempt: boolean;
+  billingExemptReason: string | null;
   accountStatus: "ACTIVE" | "PENDING" | "DISABLED" | "NO_ACCOUNT";
   applicationStatus: "PENDING" | "APPROVED" | "REJECTED" | "NONE";
   analysisStatus: "ANALYSIS_READY" | "NEEDS_ANALYSIS" | "NO_TRADE_DATA";
@@ -223,6 +225,10 @@ export function fetchAdminMetrics() {
 
 export function fetchAdminTraders() {
   return apiGet<{ ok: boolean; items: AdminTrader[] }>("/api/admin/traders");
+}
+
+export function deleteAdminTestTrader(id: string) {
+  return apiDelete<{ ok: boolean }>(`/api/admin/test-traders/${id}`);
 }
 
 export function fetchAdminStaff() {

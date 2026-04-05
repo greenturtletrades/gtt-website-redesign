@@ -19,7 +19,10 @@ const staffPortalRoles = new Set(["ADMIN"]);
 const staffWriteRoles = new Set(["ADMIN"]);
 const rateLimitStore = new Map();
 const rateLimitCleanupIntervalMs = 5 * 60 * 1000;
-const internalCompanyEmails = new Set(["greenturtletraders26@gmail.com"]);
+const internalCompanyEmails = new Set([
+  "greenturtletraders26@gmail.com",
+  "greengurtletraders26@gmail.com",
+]);
 let redisRateLimitClient = null;
 let redisRateLimitReady = false;
 let redisRateLimitInitPromise = null;
@@ -371,6 +374,13 @@ function calculateReferralExpiry(durationDays) {
 
 function isInternalCompanyEmail(email) {
   return typeof email === "string" && internalCompanyEmails.has(email.trim().toLowerCase());
+}
+
+function getInternalCompanyEmailGroup(email) {
+  if (!isInternalCompanyEmail(email)) {
+    return null;
+  }
+  return "greenturtle-company";
 }
 
 function isBillingExemptUser(user) {
@@ -3874,6 +3884,8 @@ app.get("/api/admin/traders", authRequired, adminRequired, async (req, res, next
           id: user?.id || application?.id,
           name: derivedName,
           email,
+          billingExempt: Boolean(user?.billingExempt),
+          billingExemptReason: user?.billingExemptReason || null,
           accountStatus: user ? user.status : "NO_ACCOUNT",
           applicationStatus: application ? application.status : "NONE",
           plan: user?.stripeSubscriptionId ? "premium" : "payg",
@@ -4043,6 +4055,62 @@ app.post("/api/admin/test-traders/:id/access", authRequired, staffWriteRequired,
         billingExemptReason: updated.billingExemptReason || null,
       },
     });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.delete("/api/admin/test-traders/:id", authRequired, staffWriteRequired, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const existing = await prisma.user.findUnique({
+      where: { id },
+      include: {
+        brokerAccounts: {
+          include: {
+            eaEvents: {
+              select: { id: true },
+              take: 1,
+            },
+          },
+        },
+        _count: {
+          select: {
+            storedTrades: true,
+            analysisRuns: true,
+            analysisSnapshots: true,
+            apiKeys: true,
+          },
+        },
+      },
+    });
+
+    if (!existing || existing.role !== "TRADER" || !existing.billingExempt) {
+      return res.status(404).json({ ok: false, error: "Test trader not found" });
+    }
+
+    const hasEaEvents = existing.brokerAccounts.some((account) => account.eaEvents.length > 0);
+    const hasBrokerAccounts = existing.brokerAccounts.length > 0;
+    const hasData =
+      existing._count.storedTrades > 0 ||
+      existing._count.analysisRuns > 0 ||
+      existing._count.analysisSnapshots > 0 ||
+      existing._count.apiKeys > 0 ||
+      hasEaEvents;
+
+    if (hasData || hasBrokerAccounts) {
+      return res.status(409).json({
+        ok: false,
+        error: "Only empty internal test accounts can be removed. Disable the login instead for accounts that already have connected data.",
+      });
+    }
+
+    await prisma.user.delete({
+      where: { id },
+    });
+
+    return res.json({ ok: true });
   } catch (err) {
     return next(err);
   }
@@ -4237,6 +4305,27 @@ app.post("/api/admin/traders/create-test-user", authRequired, staffWriteRequired
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+    const internalEmailGroup = getInternalCompanyEmailGroup(normalizedEmail);
+
+    if (internalEmailGroup) {
+      const existingInternalCompanyAccount = await prisma.user.findFirst({
+        where: {
+          billingExempt: true,
+          email: {
+            in: Array.from(internalCompanyEmails),
+          },
+        },
+        select: { id: true, email: true },
+      });
+
+      if (existingInternalCompanyAccount) {
+        return res.status(409).json({
+          ok: false,
+          error: `Internal company account already exists for ${existingInternalCompanyAccount.email}`,
+        });
+      }
+    }
+
     const existing = await prisma.user.findUnique({
       where: { email: normalizedEmail },
       select: { id: true },

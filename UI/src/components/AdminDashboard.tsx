@@ -4,6 +4,7 @@ import { TraderDetailsModal } from "./TraderDetailsModal";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import {
   createAdminTestTrader,
+  deleteAdminTestTrader,
   fetchAdminAccountDeletionAudits,
   createAdminReferralCode,
   fetchAdminChurnFeedback,
@@ -467,6 +468,30 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     }
   };
 
+  const handleDeleteEmptyTestTrader = async (trader: AdminTrader) => {
+    if (testTraderActionPendingId) return;
+
+    const confirmed = window.confirm(
+      `Remove ${trader.email} permanently?\n\nThis only works for empty internal test accounts with no stored trades, broker data, ML runs, or API keys.`,
+    );
+    if (!confirmed) return;
+
+    setTestTraderActionPendingId(trader.id);
+    setTestTraderActionError(null);
+    setTestTraderMessage(null);
+
+    try {
+      await deleteAdminTestTrader(trader.id);
+      setTraders((prev) => prev.filter((item) => item.id !== trader.id));
+      setStaffMembers((prev) => prev.filter((item) => item.id !== trader.id));
+      setTestTraderMessage(`${trader.email} removed.`);
+    } catch (error) {
+      setTestTraderActionError(error instanceof Error ? error.message : "Unable to remove test trader.");
+    } finally {
+      setTestTraderActionPendingId(null);
+    }
+  };
+
   const reloadReferralCodes = async () => {
     const response = await fetchAdminReferralCodes();
     setReferralCodes(response.items);
@@ -863,13 +888,26 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         <td className="py-4 px-4 text-slate-900">{trader.historyExportCount}</td>
                         <td className="py-4 px-4 text-slate-900">{formatDate(trader.lastEaSyncAt)}</td>
                         <td className="py-4 px-4">
-                          <button
-                            onClick={() => setSelectedTrader(trader)}
-                            className="p-1.5 text-teal-600 hover:bg-teal-50 rounded transition-colors"
-                            title="View Details"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setSelectedTrader(trader)}
+                              className="p-1.5 text-teal-600 hover:bg-teal-50 rounded transition-colors"
+                              title="View Details"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            {trader.billingExempt && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteEmptyTestTrader(trader)}
+                                disabled={testTraderActionPendingId === trader.id}
+                                className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1 text-xs text-red-700 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-70"
+                                title="Remove empty test account"
+                              >
+                                {testTraderActionPendingId === trader.id ? "Removing..." : "Remove"}
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
