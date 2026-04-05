@@ -1,6 +1,7 @@
 import { X, Shield, Lock, Mail } from "lucide-react";
 import { useState } from "react";
 import { adminLogin, changeAdminPassword } from "../api/admin";
+import { setStoredToken } from "../api/client";
 
 interface AdminLoginModalProps {
   onClose: () => void;
@@ -30,6 +31,9 @@ export function AdminLoginModal({ onClose, onSuccess }: AdminLoginModalProps) {
 
     try {
       const response = await adminLogin(formData.email, formData.password);
+      if (response?.token) {
+        setStoredToken(response.token);
+      }
       if (response.mustChangePassword) {
         setMustChangePassword(true);
       } else {

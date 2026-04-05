@@ -17,7 +17,7 @@ import { AdminDashboard } from "./components/AdminDashboard";
 import { TraderApplicationForm } from "./components/onboarding/TraderApplicationForm";
 import { TraderApplicationStatus } from "./components/onboarding/TraderApplicationStatus";
 import { logout } from "./api/auth";
-import { clearStoredToken } from "./api/client";
+import { ApiError, clearStoredToken } from "./api/client";
 import { fetchAccountState } from "./api/settings";
 import { cancelSubscription, createCheckoutSession, pauseSubscription, resumeSubscription } from "./api/subscription";
 import { type TraderApplicationStatus as ApplicationStatus } from "./api/traderApplication";
@@ -108,13 +108,15 @@ export default function App() {
           setUserType(null);
           setTurtleAnalyticsAuthed(false);
         }
-      } catch {
+      } catch (error) {
         if (cancelled) return;
-        clearStoredToken();
-        setUserType(null);
-        setTurtleAnalyticsAuthed(false);
-        setCurrentUserName("");
-        setCurrentUserEmail("");
+        if (error instanceof ApiError && error.status === 401) {
+          clearStoredToken();
+          setUserType(null);
+          setTurtleAnalyticsAuthed(false);
+          setCurrentUserName("");
+          setCurrentUserEmail("");
+        }
       }
     };
 

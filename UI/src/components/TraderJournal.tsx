@@ -3,7 +3,7 @@ import { Plus, Edit2, Trash2, Search, Calendar, TrendingUp, TrendingDown, BookOp
 import { Activity } from "lucide-react";
 import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { clearStoredToken } from "../api/client";
+import { clearStoredToken, getAuthHeaders } from "../api/client";
 
 interface JournalEntry {
   id: string;
@@ -167,16 +167,12 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
 
     if (editingEntry && hasLiveEntries) {
       try {
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json",
-        };
-
         const response = await fetch(
           `${apiBase}/api/trades/${encodeURIComponent(editingEntry.id)}/journal`,
           {
             method: "PATCH",
             credentials: "include",
-            headers,
+            headers: getAuthHeaders({ "Content-Type": "application/json" }),
             body: JSON.stringify({
               notes: newEntry.notes,
               emotions: newEntry.emotions,

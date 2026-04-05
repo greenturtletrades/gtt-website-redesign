@@ -6,7 +6,7 @@ import { TraderJournal } from "./TraderJournal";
 import { motion } from "motion/react";
 import { ProfileDropdown } from "./ProfileDropdown";
 import { SettingsPage } from "./SettingsPage";
-import { clearStoredToken } from "../api/client";
+import { ApiError, clearStoredToken, getAuthHeaders } from "../api/client";
 import { fetchAccountState } from "../api/settings";
 
 interface TurtleAnalyticsProps {
@@ -19,6 +19,8 @@ interface TurtleAnalyticsProps {
 
 export function TurtleAnalytics({ userType, subscriptionTier = "payg", onSignUp, onLogout }: TurtleAnalyticsProps) {
   const API_BASE = (import.meta.env.VITE_API_BASE as string) || "";
+  const authHeaders = getAuthHeaders();
+  const authJsonHeaders = getAuthHeaders({ "Content-Type": "application/json" });
   const [activeTab, setActiveTab] = useState<"analytics" | "journal" | "history" | "settings" | "guide">("analytics");
   const [isRunningModel, setIsRunningModel] = useState(false);
   const [lastRunTime, setLastRunTime] = useState<Date | null>(null);
@@ -691,6 +693,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "payg", onSignUp,
     try {
       const response = await fetch(`${API_BASE}/api/account/state`, {
         credentials: "include",
+        headers: authHeaders,
       });
       if (!response.ok) {
         if (response.status === 401) {
@@ -722,6 +725,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "payg", onSignUp,
       const response = await fetch(`${API_BASE}/api/account/analysis-data`, {
         method: "DELETE",
         credentials: "include",
+        headers: authHeaders,
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || !payload.ok) {
@@ -760,10 +764,12 @@ export function TurtleAnalytics({ userType, subscriptionTier = "payg", onSignUp,
           setCurrentUserName(fullName || accountState.account.email.split("@")[0]);
           setCurrentUserEmail(accountState.account.email);
         }
-      } catch {
+      } catch (error) {
         if (!cancelled) {
-          setCurrentUserName("Trader");
-          setCurrentUserEmail("");
+          if (error instanceof ApiError && error.status === 401) {
+            setCurrentUserName("Trader");
+            setCurrentUserEmail("");
+          }
         }
       }
     };
@@ -798,6 +804,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "payg", onSignUp,
       try {
         const response = await fetch(`${API_BASE}/api/analyse/options`, {
           credentials: "include",
+          headers: authHeaders,
         });
         if (!response.ok) return;
         const payload = await response.json();
@@ -883,13 +890,14 @@ export function TurtleAnalytics({ userType, subscriptionTier = "payg", onSignUp,
         startRes = await fetch(csvUrl.toString(), {
           method: "POST",
           credentials: "include",
+          headers: authHeaders,
           body: formData,
         });
       } else {
         startRes = await fetch(`${API_BASE}/api/analyse`, {
           method: "POST",
           credentials: "include",
-          headers: { "Content-Type": "application/json" },
+          headers: authJsonHeaders,
           body: JSON.stringify({ mode: analysisMode, tradeCount: effectiveTradeCount, months: selectedMonths }),
         });
       }
@@ -931,7 +939,10 @@ export function TurtleAnalytics({ userType, subscriptionTier = "payg", onSignUp,
       while (Date.now() - started < 10 * 60 * 1000) {
         await new Promise(resolve => setTimeout(resolve, 3000));
 
-        const pollRes = await fetch(`${API_BASE}/api/analyse/${jobId}`, { headers: authHeader });
+        const pollRes = await fetch(`${API_BASE}/api/analyse/${jobId}`, {
+          credentials: "include",
+          headers: authHeaders,
+        });
         if (!pollRes.ok) continue;
 
         const result = await pollRes.json();

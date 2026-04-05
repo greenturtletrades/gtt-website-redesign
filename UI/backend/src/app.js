@@ -211,12 +211,19 @@ function signToken(user) {
 function authRequired(req, res, next) {
   const cookies = parseCookies(req);
   const cookieToken = cookies[getSessionCookieName()];
-  if (!cookieToken) {
+  const authHeader = getHeaderValue(req.headers.authorization);
+  const bearerToken =
+    authHeader && authHeader.startsWith("Bearer ")
+      ? authHeader.slice("Bearer ".length).trim()
+      : null;
+  const token = cookieToken || bearerToken;
+
+  if (!token) {
     return res.status(401).json({ ok: false, error: "Unauthorized" });
   }
 
   try {
-    const payload = jwt.verify(cookieToken, getJwtSecret());
+    const payload = jwt.verify(token, getJwtSecret());
     req.user = { id: payload.sub, role: payload.role };
     return next();
   } catch (err) {
