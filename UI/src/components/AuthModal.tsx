@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { X, Mail, Lock, User, Key, Gift } from "lucide-react";
 import { login, register } from "../api/auth";
-import { setStoredToken } from "../api/client";
 
 interface AuthModalProps {
   type: "trader" | "admin";
@@ -52,7 +51,6 @@ export function AuthModal({ type, onClose, onComplete, initialMode = "signup" }:
         throw new Error("Authentication failed");
       }
 
-      setStoredToken(authResponse.token);
       onComplete(type, {
         name: formData.name,
         email: formData.email,

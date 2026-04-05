@@ -17,6 +17,21 @@ const applicationStatuses = new Set(["PENDING", "APPROVED", "REJECTED"]);
 const staffPortalRoles = new Set(["ADMIN"]);
 const staffWriteRoles = new Set(["ADMIN"]);
 const rateLimitStore = new Map();
+const rateLimitCleanupIntervalMs = 5 * 60 * 1000;
+
+function cleanupRateLimitStore() {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitStore.entries()) {
+    if (!entry || entry.expiresAt <= now) {
+      rateLimitStore.delete(key);
+    }
+  }
+}
+
+const rateLimitCleanupTimer = setInterval(cleanupRateLimitStore, rateLimitCleanupIntervalMs);
+if (typeof rateLimitCleanupTimer.unref === "function") {
+  rateLimitCleanupTimer.unref();
+}
 
 function parseCookies(req) {
   const header = req.headers.cookie;
@@ -3151,6 +3166,8 @@ app.delete("/api/me", authRequired, async (req, res, next) => {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
       select: {
+        id: true,
+        email: true,
         stripeCustomerId: true,
         stripeSubscriptionId: true,
         billingEvents: {
@@ -3176,11 +3193,37 @@ app.delete("/api/me", authRequired, async (req, res, next) => {
       });
     }
 
-    await prisma.user.delete({
-      where: { id: req.user.id },
-    });
+    const deletedEmail = `deleted+${user.id}.${Date.now()}@deleted.local`;
+    const replacementPasswordHash = await bcrypt.hash(crypto.randomUUID(), 10);
 
-    return res.json({ ok: true });
+    await prisma.$transaction([
+      prisma.apiKey.updateMany({
+        where: { userId: req.user.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+      prisma.brokerAccount.updateMany({
+        where: { userId: req.user.id, isActive: true },
+        data: { isActive: false },
+      }),
+      prisma.user.update({
+        where: { id: req.user.id },
+        data: {
+          email: deletedEmail,
+          passwordHash: replacementPasswordHash,
+          status: "DISABLED",
+          stripeCustomerId: null,
+          stripeSubscriptionId: null,
+          appliedReferralCodeId: null,
+          accountDiscountPercent: null,
+          mlRunDiscountPercent: null,
+          referralDiscountExpiresAt: null,
+        },
+      }),
+    ]);
+
+    clearSessionCookie(res);
+
+    return res.json({ ok: true, softDeleted: true });
   } catch (err) {
     return next(err);
   }
