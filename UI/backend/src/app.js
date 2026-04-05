@@ -3917,19 +3917,50 @@ app.get("/api/admin/traders", authRequired, adminRequired, async (req, res, next
 
 app.get("/api/admin/staff", authRequired, adminRequired, async (req, res, next) => {
   try {
-    const adminUsers = await prisma.user.findMany({
-      where: {
-        role: {
-          in: Array.from(staffPortalRoles),
+    const [adminUsers, testUsers] = await Promise.all([
+      prisma.user.findMany({
+        where: {
+          role: {
+            in: Array.from(staffPortalRoles),
+          },
         },
-      },
-      orderBy: { createdAt: "desc" },
-      include: {
-        profile: true,
-      },
-    });
+        orderBy: { createdAt: "desc" },
+        include: {
+          profile: true,
+        },
+      }),
+      prisma.user.findMany({
+        where: {
+          role: "TRADER",
+          billingExempt: true,
+        },
+        orderBy: { createdAt: "desc" },
+        include: {
+          profile: true,
+        },
+      }),
+    ]);
 
-    const items = adminUsers.map(buildAdminStaffMember);
+    const items = [
+      ...adminUsers.map(buildAdminStaffMember),
+      ...testUsers.map((user) => {
+        const firstName = user.profile?.firstName?.trim() || "";
+        const lastName = user.profile?.lastName?.trim() || "";
+        const profileName = `${firstName} ${lastName}`.trim();
+
+        return {
+          id: user.id,
+          name: profileName || user.email.split("@")[0],
+          email: user.email,
+          role: "test_trader",
+          status: user.status,
+          joinDate: user.createdAt.toISOString(),
+          lastActive: user.updatedAt?.toISOString?.() || null,
+          source: "test_trader",
+          billingExemptReason: user.billingExemptReason || null,
+        };
+      }),
+    ];
 
     const envEmail = (process.env.ADMIN_EMAIL || "greenturtlrtraders26@gmail.com").trim().toLowerCase();
     if (envEmail && !items.some((item) => item.email === envEmail)) {
@@ -3946,6 +3977,72 @@ app.get("/api/admin/staff", authRequired, adminRequired, async (req, res, next) 
     }
 
     return res.json({ ok: true, items });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.post("/api/admin/test-traders/:id/access", authRequired, staffWriteRequired, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { enabled } = req.body || {};
+
+    if (typeof enabled !== "boolean") {
+      return res.status(400).json({ ok: false, error: "enabled must be a boolean" });
+    }
+
+    const existing = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        role: true,
+        billingExempt: true,
+        profile: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
+        email: true,
+        createdAt: true,
+        updatedAt: true,
+        status: true,
+        billingExemptReason: true,
+      },
+    });
+
+    if (!existing || existing.role !== "TRADER" || !existing.billingExempt) {
+      return res.status(404).json({ ok: false, error: "Test trader not found" });
+    }
+
+    const updated = await prisma.user.update({
+      where: { id },
+      data: {
+        status: enabled ? "ACTIVE" : "DISABLED",
+      },
+      include: {
+        profile: true,
+      },
+    });
+
+    const firstName = updated.profile?.firstName?.trim() || "";
+    const lastName = updated.profile?.lastName?.trim() || "";
+    const profileName = `${firstName} ${lastName}`.trim();
+
+    return res.json({
+      ok: true,
+      staffMember: {
+        id: updated.id,
+        name: profileName || updated.email.split("@")[0],
+        email: updated.email,
+        role: "test_trader",
+        status: updated.status,
+        joinDate: updated.createdAt.toISOString(),
+        lastActive: updated.updatedAt?.toISOString?.() || null,
+        source: "test_trader",
+        billingExemptReason: updated.billingExemptReason || null,
+      },
+    });
   } catch (err) {
     return next(err);
   }

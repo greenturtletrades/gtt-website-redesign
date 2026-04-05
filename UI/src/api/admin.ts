@@ -55,11 +55,12 @@ export interface AdminStaffMember {
   id: string;
   name: string;
   email: string;
-  role: "admin";
+  role: "admin" | "test_trader";
   status: "ACTIVE" | "PENDING" | "DISABLED";
   joinDate: string;
   lastActive: string | null;
-  source: "database" | "environment";
+  source: "database" | "environment" | "test_trader";
+  billingExemptReason?: string | null;
 }
 
 export interface AdminTestTrader {
@@ -226,6 +227,12 @@ export function fetchAdminTraders() {
 
 export function fetchAdminStaff() {
   return apiGet<{ ok: boolean; items: AdminStaffMember[] }>("/api/admin/staff");
+}
+
+export function setAdminTestTraderAccess(id: string, enabled: boolean) {
+  return apiPost<{ ok: boolean; staffMember: AdminStaffMember }>(`/api/admin/test-traders/${id}/access`, {
+    enabled,
+  });
 }
 
 export function fetchAdminChurnFeedback() {

@@ -11,6 +11,7 @@ import {
   fetchAdminReferralCodes,
   fetchAdminSignups,
   fetchAdminStaff,
+  setAdminTestTraderAccess,
   fetchAdminTraders,
   inviteAdmin,
   type AdminChurnFeedbackItem,
@@ -75,6 +76,8 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [testTraderMessage, setTestTraderMessage] = useState<string | null>(null);
   const [testTraderError, setTestTraderError] = useState<string | null>(null);
   const [testTraderSubmitting, setTestTraderSubmitting] = useState(false);
+  const [testTraderActionError, setTestTraderActionError] = useState<string | null>(null);
+  const [testTraderActionPendingId, setTestTraderActionPendingId] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -279,8 +282,10 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const getRoleBadge = (role: string) => {
     const roleColors = {
       admin: "bg-red-100 text-red-700",
+      test_trader: "bg-teal-100 text-teal-700",
     };
-    return <span className={`px-2 py-1 text-xs rounded-full ${roleColors[role as keyof typeof roleColors]}`}>{role.charAt(0).toUpperCase() + role.slice(1)}</span>;
+    const label = role === "test_trader" ? "Test Trader" : `${role.charAt(0).toUpperCase()}${role.slice(1)}`;
+    return <span className={`px-2 py-1 text-xs rounded-full ${roleColors[role as keyof typeof roleColors]}`}>{label}</span>;
   };
 
   const getSignupSourceLabel = (sourceType: AdminSignupItem["sourceType"]) => {
@@ -436,6 +441,29 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       setTestTraderError(error instanceof Error ? error.message : "Unable to create test trader.");
     } finally {
       setTestTraderSubmitting(false);
+    }
+  };
+
+  const handleToggleTestTraderAccess = async (staff: AdminStaffMember) => {
+    if (staff.source !== "test_trader" || testTraderActionPendingId) return;
+
+    const enabling = staff.status !== "ACTIVE";
+    setTestTraderActionPendingId(staff.id);
+    setTestTraderActionError(null);
+    setTestTraderMessage(null);
+
+    try {
+      const response = await setAdminTestTraderAccess(staff.id, enabling);
+      setStaffMembers((prev) =>
+        prev.map((item) => (item.id === staff.id ? response.staffMember : item))
+      );
+      setTestTraderMessage(
+        `${staff.email} ${enabling ? "enabled" : "disabled"}.`
+      );
+    } catch (error) {
+      setTestTraderActionError(error instanceof Error ? error.message : "Unable to update test trader access.");
+    } finally {
+      setTestTraderActionPendingId(null);
     }
   };
 
@@ -1302,6 +1330,13 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               </div>
             )}
 
+            {(testTraderMessage || testTraderActionError) && (
+              <div className="border-b border-slate-200 px-4 py-3">
+                {testTraderMessage && <p className="text-sm text-green-700">{testTraderMessage}</p>}
+                {testTraderActionError && <p className="text-sm text-red-700">{testTraderActionError}</p>}
+              </div>
+            )}
+
             {/* Staff Table */}
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -1329,9 +1364,33 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       <td className="py-4 px-4 text-slate-900 text-sm">{formatDate(staff.joinDate)}</td>
                       <td className="py-4 px-4 text-slate-600 text-sm">{formatDate(staff.lastActive)}</td>
                       <td className="py-4 px-4">
-                        <span className="text-xs text-slate-500">
-                          {staff.source === "environment" ? "Env admin" : "Database admin"}
-                        </span>
+                        {staff.source === "test_trader" ? (
+                          <div className="flex flex-col items-start gap-2">
+                            <span className="text-xs text-slate-500">
+                              {staff.billingExemptReason || "Billing-exempt internal test account"}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleTestTraderAccess(staff)}
+                              disabled={testTraderActionPendingId === staff.id}
+                              className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${
+                                staff.status === "ACTIVE"
+                                  ? "border border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                                  : "border border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
+                              } disabled:cursor-not-allowed disabled:opacity-70`}
+                            >
+                              {testTraderActionPendingId === staff.id
+                                ? "Updating..."
+                                : staff.status === "ACTIVE"
+                                  ? "Disable Login"
+                                  : "Enable Login"}
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-500">
+                            {staff.source === "environment" ? "Env admin" : "Database admin"}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -1341,7 +1400,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
             <div className="bg-amber-50 border-t border-amber-200 p-3">
               <p className="text-amber-800 text-xs">
-                <strong>Note:</strong> Invited admins are real `ADMIN` users with a one-time code. They must change it on first login.
+                <strong>Note:</strong> Invited admins are real `ADMIN` users with a one-time code. Billing-exempt test traders also appear here so their access can be disabled or restored directly.
               </p>
             </div>
             {staffMembers.length === 0 && (
