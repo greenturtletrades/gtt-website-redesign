@@ -220,6 +220,8 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   };
   const financeMonthlyRevenue = financeData?.monthlyRevenue ?? [];
   const financeAccounts = financeData?.accounts ?? [];
+  const adminStaffMembers = staffMembers.filter((staff) => staff.role === "admin");
+  const testTraderStaffMembers = staffMembers.filter((staff) => staff.role === "test_trader");
 
   const formatCurrency = (value: number) =>
     `£${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -1208,7 +1210,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
           <div className="bg-white rounded-lg shadow-sm border border-slate-200">
             <div className="border-b border-slate-200 bg-slate-50 p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="text-lg text-slate-900">Admin Staff</h2>
+                <h2 className="text-lg text-slate-900">Staff Management</h2>
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => {
@@ -1376,33 +1378,80 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
             )}
 
             {/* Staff Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Staff Member</th>
-                    <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Role</th>
-                    <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Status</th>
-                    <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Join Date</th>
-                    <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Last Active</th>
-                    <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {staffMembers.map((staff) => (
-                    <tr key={staff.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                      <td className="py-4 px-4">
-                        <div>
-                          <div className="text-slate-900">{staff.name}</div>
-                          <div className="text-slate-600 text-xs">{staff.email}</div>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">{getRoleBadge(staff.role)}</td>
-                      <td className="py-4 px-4">{getStatusBadge(staff.status)}</td>
-                      <td className="py-4 px-4 text-slate-900 text-sm">{formatDate(staff.joinDate)}</td>
-                      <td className="py-4 px-4 text-slate-600 text-sm">{formatDate(staff.lastActive)}</td>
-                      <td className="py-4 px-4">
-                        {staff.source === "test_trader" ? (
+            <div className="border-t border-slate-200">
+              <div className="border-b border-slate-200 bg-slate-50/60 px-4 py-3">
+                <h3 className="text-sm text-slate-900">Admin Accounts</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Staff Member</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Role</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Status</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Join Date</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Last Active</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adminStaffMembers.map((staff) => (
+                      <tr key={staff.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td className="py-4 px-4">
+                          <div>
+                            <div className="text-slate-900">{staff.name}</div>
+                            <div className="text-slate-600 text-xs">{staff.email}</div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">{getRoleBadge(staff.role)}</td>
+                        <td className="py-4 px-4">{getStatusBadge(staff.status)}</td>
+                        <td className="py-4 px-4 text-slate-900 text-sm">{formatDate(staff.joinDate)}</td>
+                        <td className="py-4 px-4 text-slate-600 text-sm">{formatDate(staff.lastActive)}</td>
+                        <td className="py-4 px-4">
+                          <span className="text-xs text-slate-500">
+                            {staff.source === "environment" ? "Env admin" : "Database admin"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {adminStaffMembers.length === 0 && (
+                <div className="p-6 text-sm text-slate-600">No admin staff records found.</div>
+              )}
+            </div>
+
+            <div className="border-t border-slate-200">
+              <div className="border-b border-slate-200 bg-slate-50/60 px-4 py-3">
+                <h3 className="text-sm text-slate-900">Test Traders</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Trader</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Role</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Status</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Join Date</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Last Active</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {testTraderStaffMembers.map((staff) => (
+                      <tr key={staff.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td className="py-4 px-4">
+                          <div>
+                            <div className="text-slate-900">{staff.name}</div>
+                            <div className="text-slate-600 text-xs">{staff.email}</div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">{getRoleBadge(staff.role)}</td>
+                        <td className="py-4 px-4">{getStatusBadge(staff.status)}</td>
+                        <td className="py-4 px-4 text-slate-900 text-sm">{formatDate(staff.joinDate)}</td>
+                        <td className="py-4 px-4 text-slate-600 text-sm">{formatDate(staff.lastActive)}</td>
+                        <td className="py-4 px-4">
                           <div className="flex flex-col items-start gap-2">
                             <span className="text-xs text-slate-500">
                               {staff.billingExemptReason || "Billing-exempt internal test account"}
@@ -1424,16 +1473,15 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                   : "Enable Login"}
                             </button>
                           </div>
-                        ) : (
-                          <span className="text-xs text-slate-500">
-                            {staff.source === "environment" ? "Env admin" : "Database admin"}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {testTraderStaffMembers.length === 0 && (
+                <div className="p-6 text-sm text-slate-600">No internal test traders created yet.</div>
+              )}
             </div>
 
             <div className="bg-amber-50 border-t border-amber-200 p-3">
@@ -1442,7 +1490,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               </p>
             </div>
             {staffMembers.length === 0 && (
-              <div className="p-6 text-sm text-slate-600">{staffError || "No admin staff records found."}</div>
+              <div className="p-6 text-sm text-slate-600">{staffError || "No admin or test staff records found."}</div>
             )}
           </div>
         )}
