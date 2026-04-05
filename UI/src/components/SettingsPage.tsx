@@ -341,6 +341,9 @@ export function SettingsPage({
     return `${brand} ending ${method.last4}${expiry}`;
   };
 
+  const mlChargesDueDisplay = formatMoney(billingSummary?.mlRunChargesDue ?? null, "GBP");
+  const totalPaidBillingDisplay = formatMoney(billingSummary?.totalPaidBilling ?? null, "GBP");
+
   const liveSubscriptionStatus = (() => {
     if (billingSummary?.subscriptionStatus) {
       const status = billingSummary.subscriptionStatus.toLowerCase();
@@ -634,6 +637,24 @@ export function SettingsPage({
                         </div>
                       </div>
 
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
+                          <div className="text-sm text-amber-700">ML Usage Charges Due</div>
+                          <div className="mt-2 text-2xl text-slate-900">{billingLoading ? "Loading..." : mlChargesDueDisplay}</div>
+                          <p className="mt-2 text-sm text-slate-600">
+                            Completed ML analysis runs currently recorded against this account.
+                          </p>
+                        </div>
+
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5">
+                          <div className="text-sm text-emerald-700">Total Billing Paid</div>
+                          <div className="mt-2 text-2xl text-slate-900">{billingLoading ? "Loading..." : totalPaidBillingDisplay}</div>
+                          <p className="mt-2 text-sm text-slate-600">
+                            Paid Stripe subscription invoices recorded for this account so far.
+                          </p>
+                        </div>
+                      </div>
+
                       <div className="flex flex-wrap gap-3">
                         {(liveSubscriptionStatus === "active" || liveSubscriptionStatus === "trialing") && onPauseSubscription && (
                           <button
@@ -660,10 +681,44 @@ export function SettingsPage({
                       </div>
 
                       <div className="rounded-lg border border-slate-200 bg-slate-50 p-6">
+                        <h3 className="text-slate-900">ML Run Charges</h3>
+                        {!billingSummary?.recentMlRunCharges?.length ? (
+                          <p className="mt-2 text-sm text-slate-600">
+                            No completed ML run charges have been recorded for this account yet.
+                          </p>
+                        ) : (
+                          <div className="mt-4 overflow-x-auto">
+                            <table className="min-w-full text-left text-sm">
+                              <thead className="text-slate-500">
+                                <tr>
+                                  <th className="pb-2 pr-4">Date</th>
+                                  <th className="pb-2 pr-4">Mode</th>
+                                  <th className="pb-2 pr-4">Trades</th>
+                                  <th className="pb-2 pr-4">Amount</th>
+                                  <th className="pb-2 pr-4">Status</th>
+                                </tr>
+                              </thead>
+                              <tbody className="text-slate-700">
+                                {billingSummary.recentMlRunCharges.map((run) => (
+                                  <tr key={run.id} className="border-t border-slate-200">
+                                    <td className="py-3 pr-4">{formatTimestamp(run.completedAt || run.createdAt)}</td>
+                                    <td className="py-3 pr-4">{run.mode}</td>
+                                    <td className="py-3 pr-4">{run.tradesAnalysed ?? "—"}</td>
+                                    <td className="py-3 pr-4">{formatMoney(run.amount, "GBP")}</td>
+                                    <td className="py-3 pr-4">Due</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-6">
                         <h3 className="text-slate-900">Billing History</h3>
                         {!billingSummary?.recentInvoices?.length ? (
                           <p className="mt-2 text-sm text-slate-600">
-                            No paid or failed subscription invoices have been recorded for this account yet.
+                            No paid or failed Stripe billing records have been recorded for this account yet.
                           </p>
                         ) : (
                           <div className="mt-4 overflow-x-auto">

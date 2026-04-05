@@ -100,6 +100,16 @@ export interface BillingInvoiceRecord {
   occurredAt: string;
 }
 
+export interface MlRunChargeRecord {
+  id: string;
+  status: "due";
+  mode: string;
+  tradesAnalysed: number | null;
+  amount: number | null;
+  createdAt: string;
+  completedAt: string | null;
+}
+
 export interface BillingSummaryResponse {
   ok: boolean;
   billing: {
@@ -115,6 +125,9 @@ export interface BillingSummaryResponse {
     accountDiscountPercent: number;
     mlRunDiscountPercent: number;
     discountExpiresAt: string | null;
+    mlRunChargesDue: number;
+    totalPaidBilling: number;
+    recentMlRunCharges: MlRunChargeRecord[];
     recentInvoices: BillingInvoiceRecord[];
   };
 }

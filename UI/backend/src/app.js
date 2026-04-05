@@ -724,6 +724,22 @@ async function buildUserBillingSummary(userId) {
         orderBy: { occurredAt: "desc" },
         take: 12,
       },
+      analysisRuns: {
+        where: {
+          status: "COMPLETED",
+          cost: { not: null },
+        },
+        orderBy: { completedAt: "desc" },
+        take: 12,
+        select: {
+          id: true,
+          mode: true,
+          tradesAnalysed: true,
+          cost: true,
+          createdAt: true,
+          completedAt: true,
+        },
+      },
     },
   });
 
@@ -786,6 +802,15 @@ async function buildUserBillingSummary(userId) {
     }
   }
 
+  const mlRunChargesDue = user.analysisRuns.reduce(
+    (sum, run) => sum + (typeof run.cost === "number" ? run.cost : 0),
+    0
+  );
+  const totalPaidBilling = user.billingEvents.reduce(
+    (sum, event) => sum + (typeof event.amountPaid === "number" ? event.amountPaid : 0),
+    0
+  );
+
   return {
     ok: true,
     billing: {
@@ -802,6 +827,17 @@ async function buildUserBillingSummary(userId) {
       accountDiscountPercent: discounts.accountDiscountPercent,
       mlRunDiscountPercent: discounts.mlRunDiscountPercent,
       discountExpiresAt: toIsoOrNull(discounts.referralDiscountExpiresAt),
+      mlRunChargesDue: Number(mlRunChargesDue.toFixed(2)),
+      totalPaidBilling: Number(totalPaidBilling.toFixed(2)),
+      recentMlRunCharges: user.analysisRuns.map((run) => ({
+        id: run.id,
+        status: "due",
+        mode: run.mode,
+        tradesAnalysed: run.tradesAnalysed ?? null,
+        amount: typeof run.cost === "number" ? Number(run.cost.toFixed(2)) : null,
+        createdAt: run.createdAt.toISOString(),
+        completedAt: run.completedAt ? run.completedAt.toISOString() : null,
+      })),
       recentInvoices: user.billingEvents.map((event) => ({
         id: event.id,
         stripeInvoiceId: event.stripeInvoiceId,
