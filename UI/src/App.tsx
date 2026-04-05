@@ -205,6 +205,12 @@ export default function App() {
 
     createCheckoutSession()
       .then((response) => {
+        if (response.bypass) {
+          setUserType("trader");
+          setTurtleAnalyticsAuthed(true);
+          setCurrentView("turtle-analytics");
+          return;
+        }
         if (response.url) {
           window.location.assign(response.url);
           return;

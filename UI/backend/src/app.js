@@ -19,6 +19,7 @@ const staffPortalRoles = new Set(["ADMIN"]);
 const staffWriteRoles = new Set(["ADMIN"]);
 const rateLimitStore = new Map();
 const rateLimitCleanupIntervalMs = 5 * 60 * 1000;
+const internalCompanyEmails = new Set(["greenturtletraders26@gmail.com"]);
 let redisRateLimitClient = null;
 let redisRateLimitReady = false;
 let redisRateLimitInitPromise = null;
@@ -337,6 +338,14 @@ function calculateReferralExpiry(durationDays) {
   return new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
 }
 
+function isInternalCompanyEmail(email) {
+  return typeof email === "string" && internalCompanyEmails.has(email.trim().toLowerCase());
+}
+
+function isBillingExemptUser(user) {
+  return Boolean(user?.billingExempt);
+}
+
 async function getActiveReferralCode(code) {
   if (!code || typeof code !== "string" || !code.trim()) {
     return null;
@@ -355,6 +364,15 @@ async function getActiveReferralCode(code) {
 }
 
 function getActiveUserDiscounts(user) {
+  if (isBillingExemptUser(user)) {
+    return {
+      referralActive: true,
+      accountDiscountPercent: 100,
+      mlRunDiscountPercent: 100,
+      referralDiscountExpiresAt: null,
+    };
+  }
+
   const now = Date.now();
   const expiryTs = user?.referralDiscountExpiresAt
     ? new Date(user.referralDiscountExpiresAt).getTime()
@@ -711,6 +729,8 @@ async function buildUserBillingSummary(userId) {
       email: true,
       stripeCustomerId: true,
       stripeSubscriptionId: true,
+      billingExempt: true,
+      billingExemptReason: true,
       appliedReferralCode: { select: { code: true } },
       accountDiscountPercent: true,
       mlRunDiscountPercent: true,
@@ -815,10 +835,12 @@ async function buildUserBillingSummary(userId) {
     ok: true,
     billing: {
       plan: "payg",
-      subscriptionStatus,
+      subscriptionStatus: isBillingExemptUser(user) ? "internal" : subscriptionStatus,
       stripeConfigured,
       stripeCustomerLinked: Boolean(user.stripeCustomerId),
       stripeSubscriptionLinked: Boolean(user.stripeSubscriptionId),
+      billingExempt: isBillingExemptUser(user),
+      billingExemptReason: user.billingExemptReason || null,
       cancelAtPeriodEnd: subscriptionStatus === "cancelling",
       currentPeriodStart: toIsoOrNull(currentPeriodStart),
       currentPeriodEnd: toIsoOrNull(currentPeriodEnd),
@@ -1226,8 +1248,12 @@ async function estimateAnalysisCost(userId, tradesAnalysed) {
     select: {
       mlRunDiscountPercent: true,
       referralDiscountExpiresAt: true,
+      billingExempt: true,
     },
   });
+  if (isBillingExemptUser(user)) {
+    return 0;
+  }
   const baseCost = Math.max(0, Number(tradesAnalysed) || 0) * 0.2;
   const discounts = getActiveUserDiscounts(user);
   const discountedCost = baseCost * (1 - discounts.mlRunDiscountPercent / 100);
@@ -2777,11 +2803,14 @@ app.post("/api/auth/register", rateLimit({
     const referralDiscountExpiresAt = appliedReferralCode
       ? calculateReferralExpiry(appliedReferralCode.durationDays)
       : null;
+    const billingExempt = isInternalCompanyEmail(normalizedEmail);
 
     const user = await prisma.user.create({
       data: {
         email: normalizedEmail,
         passwordHash,
+        billingExempt,
+        billingExemptReason: billingExempt ? "Internal Green Turtle Trades company account" : null,
         appliedReferralCodeId: appliedReferralCode?.id || null,
         accountDiscountPercent: appliedReferralCode?.accountDiscountPercent ?? null,
         mlRunDiscountPercent: appliedReferralCode?.mlRunDiscountPercent ?? null,
@@ -2828,6 +2857,7 @@ app.post("/api/auth/register", rateLimit({
             expiresAt: referralDiscountExpiresAt ? referralDiscountExpiresAt.toISOString() : null,
           }
         : null,
+      billingExempt,
     });
   } catch (err) {
     console.error("Register error:", err);
@@ -5493,6 +5523,7 @@ app.post("/api/create-checkout-session", authRequired, async (req, res, next) =>
         id: true,
         email: true,
         stripeCustomerId: true,
+        billingExempt: true,
         appliedReferralCode: { select: { code: true } },
         accountDiscountPercent: true,
         referralDiscountExpiresAt: true,
@@ -5501,6 +5532,14 @@ app.post("/api/create-checkout-session", authRequired, async (req, res, next) =>
 
     if (!user) {
       return res.status(404).json({ ok: false, error: "User not found" });
+    }
+
+    if (isBillingExemptUser(user)) {
+      return res.json({
+        ok: true,
+        bypass: true,
+        internalAccount: true,
+      });
     }
 
     // Reuse existing Stripe customer or create a new one

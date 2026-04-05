@@ -587,18 +587,27 @@ export function SettingsPage({
                               <Sparkles className="h-5 w-5 text-teal-600" />
                               <h3 className="text-lg text-slate-900">Pay-As-You-Go</h3>
                             </div>
-                            <p className="mt-2 text-sm text-slate-600">£10/month + £0.20 per trade analysed</p>
+                            <p className="mt-2 text-sm text-slate-600">
+                              {billingSummary?.billingExempt
+                                ? "Internal company account with billing exemption"
+                                : "£10/month + £0.20 per trade analysed"}
+                            </p>
                           </div>
                           <span className={`rounded-full px-3 py-1 text-sm ${liveSubscriptionStatus === "paused" ? "bg-amber-100 text-amber-700" : liveSubscriptionStatus === "active" || liveSubscriptionStatus === "trialing" ? "bg-teal-600 text-white" : "bg-slate-200 text-slate-700"}`}>
                             {liveSubscriptionStatus === "paused"
                               ? "Paused"
                               : liveSubscriptionStatus === "active" || liveSubscriptionStatus === "trialing"
                                 ? "Active"
+                                : liveSubscriptionStatus === "internal"
+                                  ? "Internal"
                                 : liveSubscriptionStatus === "not_started"
                                   ? "Not Started"
                                   : liveSubscriptionStatus}
                           </span>
                         </div>
+                        {billingSummary?.billingExempt && billingSummary?.billingExemptReason && (
+                          <p className="mt-4 text-sm text-slate-700">{billingSummary.billingExemptReason}</p>
+                        )}
                         {billingSummary?.currentPeriodEnd && (
                           <p className="mt-4 text-sm text-slate-700">
                             Current billing period ends {formatTimestamp(billingSummary.currentPeriodEnd)}.

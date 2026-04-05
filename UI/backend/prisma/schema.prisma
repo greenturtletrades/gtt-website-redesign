@@ -70,6 +70,8 @@ model User {
   referralCodesCreated ReferralCode[]    @relation("ReferralCodeCreatedBy")
   appliedReferralCode  ReferralCode?     @relation("ReferralCodeAppliedToUsers", fields: [appliedReferralCodeId], references: [id], onDelete: SetNull)
   appliedReferralCodeId String?
+  billingExempt       Boolean         @default(false)
+  billingExemptReason String?
   accountDiscountPercent Float?
   mlRunDiscountPercent   Float?
   referralDiscountExpiresAt DateTime?

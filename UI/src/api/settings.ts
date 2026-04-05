@@ -115,6 +115,8 @@ export interface BillingSummaryResponse {
   billing: {
     plan: "payg";
     subscriptionStatus: string;
+    billingExempt?: boolean;
+    billingExemptReason?: string | null;
     stripeConfigured: boolean;
     stripeCustomerLinked: boolean;
     stripeSubscriptionLinked: boolean;
@@ -140,6 +142,7 @@ export interface AccountStateResponse {
     role: "TRADER" | "ADMIN";
     status: "ACTIVE" | "PENDING" | "DISABLED";
     plan: "payg" | null;
+    billingExempt?: boolean;
     profile?: AuthUser["profile"] | null;
     billing: BillingSummaryResponse["billing"] | null;
   };
