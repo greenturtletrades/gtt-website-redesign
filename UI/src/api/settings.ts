@@ -162,8 +162,12 @@ export function changeTraderPassword(currentPassword: string, newPassword: strin
   });
 }
 
-export function deleteMyAccount() {
-  return apiDelete<{ ok: boolean }>("/api/me");
+export function deleteMyAccount(input?: {
+  reason?: string;
+  feedback?: string;
+  plan?: string | null;
+}) {
+  return apiDelete<{ ok: boolean }>("/api/me", input);
 }
 
 export function fetchBrokerAccounts() {

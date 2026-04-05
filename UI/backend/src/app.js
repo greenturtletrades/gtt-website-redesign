@@ -367,6 +367,12 @@ function formatReferralCode(referralCode) {
   };
 }
 
+function getUserDisplayName(user) {
+  const firstName = user?.profile?.firstName?.trim() || "";
+  const lastName = user?.profile?.lastName?.trim() || "";
+  return `${firstName} ${lastName}`.trim() || user?.email?.split("@")[0] || "Trader";
+}
+
 function calculateReferralExpiry(durationDays) {
   const now = new Date();
   return new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
@@ -3113,12 +3119,20 @@ app.post("/api/subscription/churn-feedback", authRequired, async (req, res, next
       return res.status(400).json({ ok: false, error: "Cancellation reason is required" });
     }
 
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: { profile: true },
+    });
+
     const entry = await prisma.churnFeedback.create({
       data: {
         userId: req.user.id,
         reason: reason.trim(),
         feedback: typeof feedback === "string" && feedback.trim() ? feedback.trim() : null,
         plan: typeof plan === "string" && plan.trim() ? plan.trim() : null,
+        userEmailSnapshot: user?.email || null,
+        userNameSnapshot: user ? getUserDisplayName(user) : null,
+        source: "subscription-churn",
       },
     });
 
@@ -3179,6 +3193,10 @@ app.post("/api/subscription/cancel", authRequired, async (req, res, next) => {
     }
 
     const { reason, feedback, plan } = req.body || {};
+    const currentUser = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: { profile: true },
+    });
     const { stripe, subscription } = await getStripeSubscriptionForUser(req.user.id);
     const updated = await stripe.subscriptions.update(subscription.id, {
       cancel_at_period_end: true,
@@ -3192,6 +3210,9 @@ app.post("/api/subscription/cancel", authRequired, async (req, res, next) => {
           reason: reason.trim(),
           feedback: typeof feedback === "string" && feedback.trim() ? feedback.trim() : null,
           plan: typeof plan === "string" && plan.trim() ? plan.trim() : null,
+          userEmailSnapshot: currentUser?.email || null,
+          userNameSnapshot: currentUser ? getUserDisplayName(currentUser) : null,
+          source: "subscription-cancel",
         },
       });
     }
@@ -3449,11 +3470,18 @@ app.post("/api/me/change-password", authRequired, async (req, res, next) => {
 
 app.delete("/api/me", authRequired, async (req, res, next) => {
   try {
+    const { reason, feedback, plan } = req.body || {};
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
       select: {
         id: true,
         email: true,
+        profile: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
         stripeCustomerId: true,
         stripeSubscriptionId: true,
         brokerAccounts: {
@@ -3490,6 +3518,21 @@ app.delete("/api/me", authRequired, async (req, res, next) => {
     const deletedEmail = `deleted+${user.id}.${Date.now()}@deleted.local`;
     const replacementPasswordHash = await bcrypt.hash(crypto.randomUUID(), 10);
 
+    const deletionChurnWrite =
+      reason && typeof reason === "string" && reason.trim()
+        ? prisma.churnFeedback.create({
+            data: {
+              userId: req.user.id,
+              reason: reason.trim(),
+              feedback: typeof feedback === "string" && feedback.trim() ? feedback.trim() : null,
+              plan: typeof plan === "string" && plan.trim() ? plan.trim() : null,
+              userEmailSnapshot: user.email,
+              userNameSnapshot: getUserDisplayName(user),
+              source: "account-delete",
+            },
+          })
+        : null;
+
     await prisma.$transaction([
       prisma.apiKey.updateMany({
         where: { userId: req.user.id, revokedAt: null },
@@ -3512,9 +3555,12 @@ app.delete("/api/me", authRequired, async (req, res, next) => {
           metadata: {
             deletedAt: new Date().toISOString(),
             deletionMode: "self-service-soft-delete",
+            deletionReason: reason && typeof reason === "string" ? reason.trim() : null,
+            deletionFeedback: typeof feedback === "string" && feedback.trim() ? feedback.trim() : null,
           },
         },
       }),
+      ...(deletionChurnWrite ? [deletionChurnWrite] : []),
       prisma.user.update({
         where: { id: req.user.id },
         data: {
@@ -4144,12 +4190,20 @@ app.get("/api/admin/churn-feedback", authRequired, adminRequired, async (req, re
       const firstName = item.user.profile?.firstName?.trim() || "";
       const lastName = item.user.profile?.lastName?.trim() || "";
       const profileName = `${firstName} ${lastName}`.trim();
+      const fallbackEmail =
+        typeof item.userEmailSnapshot === "string" && item.userEmailSnapshot.trim()
+          ? item.userEmailSnapshot.trim()
+          : item.user.email;
+      const fallbackName =
+        typeof item.userNameSnapshot === "string" && item.userNameSnapshot.trim()
+          ? item.userNameSnapshot.trim()
+          : profileName || fallbackEmail.split("@")[0];
 
       return {
         id: item.id,
         userId: item.userId,
-        userName: profileName || item.user.email.split("@")[0],
-        email: item.user.email,
+        userName: fallbackName,
+        email: fallbackEmail,
         plan: item.plan || "unknown",
         reason: item.reason,
         feedback: item.feedback,

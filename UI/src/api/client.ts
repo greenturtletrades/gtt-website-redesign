@@ -86,11 +86,15 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
   return data as T;
 }
 
-export async function apiDelete<T>(path: string): Promise<T> {
+export async function apiDelete<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     method: "DELETE",
     credentials: "include",
-    headers: getAuthHeaders(),
+    headers:
+      typeof body === "undefined"
+        ? getAuthHeaders()
+        : getAuthHeaders({ "Content-Type": "application/json" }),
+    ...(typeof body === "undefined" ? {} : { body: JSON.stringify(body) }),
   });
 
   const data = await res.json().catch(() => ({}));

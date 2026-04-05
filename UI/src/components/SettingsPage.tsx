@@ -98,6 +98,9 @@ export function SettingsPage({
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelFeedback, setCancelFeedback] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleteFeedback, setDeleteFeedback] = useState("");
 
   const primaryBrokerAccount = brokerAccounts[0] || null;
   const activeApiKeys = apiKeys.filter((item) => !item.revokedAt);
@@ -401,11 +404,15 @@ export function SettingsPage({
     }
   };
 
-  const handleDeleteAccount = async () => {
+  const handleDeleteAccount = async (reason: string, feedback: string) => {
     setDeletingAccount(true);
     setPageError(null);
     try {
-      await deleteMyAccount();
+      await deleteMyAccount({
+        reason,
+        feedback,
+        plan: currentPlan,
+      });
       clearStoredToken();
       window.location.href = "/";
     } catch (error) {
@@ -561,7 +568,7 @@ export function SettingsPage({
                           {savingAccount ? "Saving..." : "Save Changes"}
                         </button>
                         <button
-                          onClick={handleDeleteAccount}
+                          onClick={() => setShowDeleteModal(true)}
                           disabled={deletingAccount}
                           className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-red-600 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-70"
                         >
@@ -1058,6 +1065,69 @@ export function SettingsPage({
                 className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
               >
                 Confirm Cancellation
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-xl bg-white p-6">
+            <h3 className="text-xl text-slate-900">Delete Account</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              This permanently disables your account, revokes your access, and stores your exit feedback for the admin panel.
+            </p>
+            <div className="mt-4 space-y-3">
+              {[
+                ["finished-testing", "Finished testing the platform"],
+                ["technical-issues", "Technical issues or bugs"],
+                ["missing-features", "Missing features I need"],
+                ["too-expensive", "Too expensive"],
+                ["other", "Other reason"],
+              ].map(([value, label]) => (
+                <label key={value} className={`flex items-center gap-3 rounded-lg border-2 p-3 ${deleteReason === value ? "border-red-600 bg-red-50" : "border-slate-200"}`}>
+                  <input
+                    type="radio"
+                    checked={deleteReason === value}
+                    onChange={() => setDeleteReason(value)}
+                  />
+                  <span className="text-sm text-slate-900">{label}</span>
+                </label>
+              ))}
+              <textarea
+                rows={4}
+                value={deleteFeedback}
+                onChange={(e) => setDeleteFeedback(e.target.value)}
+                placeholder="Optional feedback"
+                className="w-full rounded-lg border border-slate-300 px-4 py-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
+            </div>
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteReason("");
+                  setDeleteFeedback("");
+                }}
+                className="flex-1 rounded-lg bg-slate-100 px-4 py-2 text-slate-700 hover:bg-slate-200"
+              >
+                Keep Account
+              </button>
+              <button
+                onClick={() => {
+                  if (!deleteReason) {
+                    setPageError("Please select an account deletion reason.");
+                    return;
+                  }
+                  setShowDeleteModal(false);
+                  handleDeleteAccount(deleteReason, deleteFeedback);
+                  setDeleteReason("");
+                  setDeleteFeedback("");
+                }}
+                className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+              >
+                Confirm Delete
               </button>
             </div>
           </div>

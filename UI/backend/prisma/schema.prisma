@@ -186,6 +186,9 @@ model ChurnFeedback {
   reason    String
   feedback  String?
   plan      String?
+  userEmailSnapshot String?
+  userNameSnapshot  String?
+  source           String?
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
