@@ -389,6 +389,16 @@ function getInternalCompanyEmailGroup(email) {
   return "greenturtle-company";
 }
 
+function getNonDeletedUserWhere() {
+  return {
+    email: {
+      not: {
+        endsWith: "@deleted.local",
+      },
+    },
+  };
+}
+
 function isBillingExemptUser(user) {
   return Boolean(user?.billingExempt);
 }
@@ -3855,7 +3865,7 @@ app.get("/api/admin/traders", authRequired, adminRequired, async (req, res, next
   try {
     const [users, applications] = await Promise.all([
       prisma.user.findMany({
-        where: { role: "TRADER" },
+        where: { role: "TRADER", ...getNonDeletedUserWhere() },
         orderBy: { createdAt: "desc" },
         include: {
           profile: true,
@@ -3991,6 +4001,7 @@ app.get("/api/admin/staff", authRequired, adminRequired, async (req, res, next) 
         where: {
           role: "TRADER",
           billingExempt: true,
+          ...getNonDeletedUserWhere(),
         },
         orderBy: { createdAt: "desc" },
         include: {
@@ -4459,7 +4470,7 @@ app.get("/api/admin/signups", authRequired, adminRequired, async (req, res, next
         orderBy: { submittedAt: "desc" },
       }),
       prisma.user.findMany({
-        where: { role: "TRADER" },
+        where: { role: "TRADER", ...getNonDeletedUserWhere() },
         orderBy: { createdAt: "desc" },
         include: { profile: true },
       }),
@@ -4509,7 +4520,11 @@ app.get("/api/admin/signups", authRequired, adminRequired, async (req, res, next
 app.get("/api/admin/finance", authRequired, adminRequired, async (req, res, next) => {
   try {
     const traders = await prisma.user.findMany({
-      where: { role: "TRADER", status: { in: ["ACTIVE", "PENDING", "DISABLED"] } },
+      where: {
+        role: "TRADER",
+        status: { in: ["ACTIVE", "PENDING", "DISABLED"] },
+        ...getNonDeletedUserWhere(),
+      },
       orderBy: { createdAt: "desc" },
       include: {
         profile: true,
