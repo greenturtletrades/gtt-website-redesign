@@ -66,6 +66,7 @@ model User {
   analysisRuns         AnalysisRun[]
   storedTrades         StoredTrade[]
   billingEvents        BillingEvent[]
+  deletionAudits       AccountDeletionAudit[]
   referralCodesCreated ReferralCode[]    @relation("ReferralCodeCreatedBy")
   appliedReferralCode  ReferralCode?     @relation("ReferralCodeAppliedToUsers", fields: [appliedReferralCodeId], references: [id], onDelete: SetNull)
   appliedReferralCodeId String?
@@ -74,6 +75,23 @@ model User {
   referralDiscountExpiresAt DateTime?
   stripeCustomerId     String?
   stripeSubscriptionId String?
+}
+
+model AccountDeletionAudit {
+  id                 String   @id @default(cuid())
+  userId             String
+  previousEmail      String
+  deletedEmail       String
+  deletedAt          DateTime @default(now())
+  stripeCustomerId   String?
+  stripeSubscriptionId String?
+  hadBillingHistory  Boolean  @default(false)
+  hadBrokerAccounts  Boolean  @default(false)
+  hadApiKeys         Boolean  @default(false)
+  metadata           Json?
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, deletedAt])
 }
 
 model Profile {

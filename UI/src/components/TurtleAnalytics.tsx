@@ -7,7 +7,7 @@ import { motion } from "motion/react";
 import { ProfileDropdown } from "./ProfileDropdown";
 import { SettingsPage } from "./SettingsPage";
 import { me } from "../api/auth";
-import { getStoredToken } from "../api/client";
+import { clearStoredToken } from "../api/client";
 
 interface TurtleAnalyticsProps {
   userType: UserType;
@@ -689,14 +689,13 @@ export function TurtleAnalytics({ userType, subscriptionTier = "payg", onSignUp,
 
   const loadPersistedAccountState = async () => {
     try {
-      const token = getStoredToken();
-      const authHeader: Record<string, string> = {};
-      if (token) authHeader["Authorization"] = `Bearer ${token}`;
       const response = await fetch(`${API_BASE}/api/account/state`, {
-        headers: authHeader,
         credentials: "include",
       });
       if (!response.ok) {
+        if (response.status === 401) {
+          clearStoredToken();
+        }
         setRunHistoryError("Saved account data could not be loaded. The backend may be missing the latest migration or deploy.");
         return;
       }
@@ -720,12 +719,8 @@ export function TurtleAnalytics({ userType, subscriptionTier = "payg", onSignUp,
     setModelRunError(null);
 
     try {
-      const token = getStoredToken();
-      const authHeader: Record<string, string> = {};
-      if (token) authHeader["Authorization"] = `Bearer ${token}`;
       const response = await fetch(`${API_BASE}/api/account/analysis-data`, {
         method: "DELETE",
-        headers: authHeader,
         credentials: "include",
       });
       const payload = await response.json().catch(() => ({}));
@@ -801,11 +796,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "payg", onSignUp,
 
     const refreshAnalysisOptions = async () => {
       try {
-        const token = getStoredToken();
-        const authHeader: Record<string, string> = {};
-        if (token) authHeader["Authorization"] = `Bearer ${token}`;
         const response = await fetch(`${API_BASE}/api/analyse/options`, {
-          headers: authHeader,
           credentials: "include",
         });
         if (!response.ok) return;
@@ -880,10 +871,6 @@ export function TurtleAnalytics({ userType, subscriptionTier = "payg", onSignUp,
     let completed = false;
 
     try {
-      const token = getStoredToken();
-      const authHeader: Record<string, string> = {};
-      if (token) authHeader["Authorization"] = `Bearer ${token}`;
-
       // 1. Start the pipeline — CSV upload or EA history
       let startRes: Response;
       if (analysisMode === "csv" && csvFile) {
@@ -896,14 +883,13 @@ export function TurtleAnalytics({ userType, subscriptionTier = "payg", onSignUp,
         startRes = await fetch(csvUrl.toString(), {
           method: "POST",
           credentials: "include",
-          headers: authHeader,
           body: formData,
         });
       } else {
         startRes = await fetch(`${API_BASE}/api/analyse`, {
           method: "POST",
           credentials: "include",
-          headers: { ...authHeader, "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ mode: analysisMode, tradeCount: effectiveTradeCount, months: selectedMonths }),
         });
       }

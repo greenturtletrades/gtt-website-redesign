@@ -184,18 +184,14 @@ function signToken(user) {
 }
 
 function authRequired(req, res, next) {
-  const header = req.headers.authorization || "";
-  const [scheme, token] = header.split(" ");
   const cookies = parseCookies(req);
   const cookieToken = cookies[getSessionCookieName()];
-  const candidateToken = scheme === "Bearer" && token ? token : cookieToken;
-
-  if (!candidateToken) {
+  if (!cookieToken) {
     return res.status(401).json({ ok: false, error: "Unauthorized" });
   }
 
   try {
-    const payload = jwt.verify(candidateToken, getJwtSecret());
+    const payload = jwt.verify(cookieToken, getJwtSecret());
     req.user = { id: payload.sub, role: payload.role };
     return next();
   } catch (err) {
@@ -799,6 +795,32 @@ async function buildUserBillingSummary(userId) {
         periodEnd: toIsoOrNull(event.periodEnd),
         occurredAt: event.occurredAt.toISOString(),
       })),
+    },
+  };
+}
+
+async function buildUserAccountState(userId) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { profile: true },
+  });
+
+  if (!user) {
+    return null;
+  }
+
+  const billingPayload = await buildUserBillingSummary(userId);
+
+  return {
+    ok: true,
+    account: {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+      plan: "payg",
+      profile: user.profile,
+      billing: billingPayload?.billing || null,
     },
   };
 }
@@ -3077,6 +3099,35 @@ app.get("/api/me", authRequired, async (req, res, next) => {
   }
 });
 
+app.get("/api/me/account-state", authRequired, async (req, res, next) => {
+  try {
+    if (req.user?.id === "env-admin" && req.user?.role === "ADMIN") {
+      const envEmail = (process.env.ADMIN_EMAIL || "greenturtlrtraders26@gmail.com").trim().toLowerCase();
+      return res.json({
+        ok: true,
+        account: {
+          id: "env-admin",
+          email: envEmail,
+          role: "ADMIN",
+          status: "ACTIVE",
+          plan: null,
+          profile: null,
+          billing: null,
+        },
+      });
+    }
+
+    const payload = await buildUserAccountState(req.user.id);
+    if (!payload) {
+      return res.status(404).json({ ok: false, error: "User not found" });
+    }
+
+    return res.json(payload);
+  } catch (err) {
+    return next(err);
+  }
+});
+
 app.get("/api/me/billing", authRequired, async (req, res, next) => {
   try {
     if (req.user?.id === "env-admin" && req.user?.role === "ADMIN") {
@@ -3258,6 +3309,14 @@ app.delete("/api/me", authRequired, async (req, res, next) => {
         email: true,
         stripeCustomerId: true,
         stripeSubscriptionId: true,
+        brokerAccounts: {
+          select: { id: true },
+          take: 1,
+        },
+        apiKeys: {
+          select: { id: true },
+          take: 1,
+        },
         billingEvents: {
           where: {
             eventType: {
@@ -3292,6 +3351,22 @@ app.delete("/api/me", authRequired, async (req, res, next) => {
       prisma.brokerAccount.updateMany({
         where: { userId: req.user.id, isActive: true },
         data: { isActive: false },
+      }),
+      prisma.accountDeletionAudit.create({
+        data: {
+          userId: req.user.id,
+          previousEmail: user.email,
+          deletedEmail,
+          stripeCustomerId: user.stripeCustomerId,
+          stripeSubscriptionId: user.stripeSubscriptionId,
+          hadBillingHistory: user.billingEvents.length > 0,
+          hadBrokerAccounts: user.brokerAccounts.length > 0,
+          hadApiKeys: user.apiKeys.length > 0,
+          metadata: {
+            deletedAt: new Date().toISOString(),
+            deletionMode: "self-service-soft-delete",
+          },
+        },
       }),
       prisma.user.update({
         where: { id: req.user.id },

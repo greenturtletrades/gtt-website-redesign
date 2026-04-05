@@ -18,6 +18,7 @@ import { TraderApplicationForm } from "./components/onboarding/TraderApplication
 import { TraderApplicationStatus } from "./components/onboarding/TraderApplicationStatus";
 import { logout, me } from "./api/auth";
 import { clearStoredToken } from "./api/client";
+import { fetchAccountState } from "./api/settings";
 import { cancelSubscription, createCheckoutSession, pauseSubscription, resumeSubscription } from "./api/subscription";
 import { type TraderApplicationStatus as ApplicationStatus } from "./api/traderApplication";
 
@@ -80,10 +81,26 @@ export default function App() {
         const session = await me();
         if (cancelled) return;
         if (session.ok && session.user.role === "TRADER") {
-          const fullName = `${session.user.profile?.firstName || ""} ${session.user.profile?.lastName || ""}`.trim();
-          setCurrentUserName(fullName || pendingUserName || session.user.email.split("@")[0]);
-          setCurrentUserEmail(session.user.email);
-          setSelectedSubscriptionPlan("payg");
+          const accountState = await fetchAccountState();
+          if (cancelled) return;
+          const firstName = accountState.account.profile?.firstName || "";
+          const lastName = accountState.account.profile?.lastName || "";
+          const fullName = `${firstName} ${lastName}`.trim();
+          setCurrentUserName(fullName || pendingUserName || accountState.account.email.split("@")[0]);
+          setCurrentUserEmail(accountState.account.email);
+          setSelectedSubscriptionPlan(accountState.account.plan || "payg");
+          const nextStatus = accountState.account.billing?.subscriptionStatus?.toLowerCase();
+          if (nextStatus === "paused") {
+            setSubscriptionStatus("paused");
+          } else if (nextStatus === "cancelling") {
+            setSubscriptionStatus("cancelling");
+          } else if (nextStatus === "trialing") {
+            setSubscriptionStatus("active");
+          } else if (nextStatus === "active") {
+            setSubscriptionStatus("active");
+          } else {
+            setSubscriptionStatus("not_started");
+          }
           setUserType("trader");
           setTurtleAnalyticsAuthed(true);
         } else if (session.ok && session.user.role === "ADMIN" && session.user.status === "ACTIVE") {

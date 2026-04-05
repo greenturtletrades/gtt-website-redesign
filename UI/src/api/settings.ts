@@ -119,6 +119,19 @@ export interface BillingSummaryResponse {
   };
 }
 
+export interface AccountStateResponse {
+  ok: boolean;
+  account: {
+    id: string;
+    email: string;
+    role: "TRADER" | "ADMIN";
+    status: "ACTIVE" | "PENDING" | "DISABLED";
+    plan: "payg" | null;
+    profile?: AuthUser["profile"] | null;
+    billing: BillingSummaryResponse["billing"] | null;
+  };
+}
+
 export function updateProfile(fullName: string, email: string) {
   return apiPatch<{ ok: boolean; user: AuthUser }>("/api/me/profile", {
     fullName,
@@ -190,6 +203,10 @@ export function fetchEaDiagnostics() {
 
 export function fetchBillingSummary() {
   return apiGet<BillingSummaryResponse>("/api/me/billing");
+}
+
+export function fetchAccountState() {
+  return apiGet<AccountStateResponse>("/api/me/account-state");
 }
 
 export function createBillingPortalSession() {

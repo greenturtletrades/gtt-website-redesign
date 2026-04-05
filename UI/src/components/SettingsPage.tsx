@@ -16,7 +16,6 @@ import {
   Code,
   Activity,
 } from "lucide-react";
-import { me } from "../api/auth";
 import {
   createBillingPortalSession,
   changeTraderPassword,
@@ -24,7 +23,7 @@ import {
   createBrokerAccount,
   deleteMyAccount,
   downloadEaFile,
-  fetchBillingSummary,
+  fetchAccountState,
   fetchEaDiagnostics,
   fetchEaStatus,
   fetchApiKeys,
@@ -115,23 +114,22 @@ export function SettingsPage({
 
     const load = async () => {
       try {
-        const [session, brokerResponse, apiKeyResponse, eaStatusResponse, eaDiagnosticsResponse, billingResponse] = await Promise.all([
-          me(),
+        const [accountState, brokerResponse, apiKeyResponse, eaStatusResponse, eaDiagnosticsResponse] = await Promise.all([
+          fetchAccountState(),
           fetchBrokerAccounts(),
           fetchApiKeys(),
           fetchEaStatus(),
           fetchEaDiagnostics(),
-          fetchBillingSummary(),
         ]);
 
         if (cancelled) return;
 
-        const liveName = getFullName(session.user.profile?.firstName, session.user.profile?.lastName);
+        const liveName = getFullName(accountState.account.profile?.firstName, accountState.account.profile?.lastName);
         const firstBroker = brokerResponse.brokerAccounts[0] || null;
 
         setFormData({
           fullName: liveName || userName,
-          email: session.user.email || userEmail,
+          email: accountState.account.email || userEmail,
           mtUsername: firstBroker?.accountNumber || "",
           broker: firstBroker?.brokerName || "",
         });
@@ -139,7 +137,7 @@ export function SettingsPage({
         setApiKeys(apiKeyResponse.apiKeys);
         setEaStatus(eaStatusResponse);
         setEaDiagnostics(eaDiagnosticsResponse);
-        setBillingSummary(billingResponse.billing);
+        setBillingSummary(accountState.account.billing);
         setPageError(null);
       } catch (error) {
         if (!cancelled) {
