@@ -122,6 +122,30 @@ function parseCookies(req) {
 }
 
 function shouldUseSecureCookies() {
+  if (process.env.COOKIE_SECURE === "true") {
+    return true;
+  }
+
+  const configuredOrigins = [
+    process.env.APP_URL,
+    process.env.FRONTEND_URL,
+    process.env.PUBLIC_FRONTEND_URL,
+  ].filter((value) => typeof value === "string" && value.trim());
+
+  for (const origin of configuredOrigins) {
+    try {
+      const parsed = new URL(origin);
+      const isLocalhost =
+        parsed.hostname === "localhost" ||
+        parsed.hostname === "127.0.0.1";
+      if (parsed.protocol === "https:" && !isLocalhost) {
+        return true;
+      }
+    } catch {
+      // Ignore invalid URLs and keep evaluating.
+    }
+  }
+
   return process.env.NODE_ENV === "production";
 }
 
