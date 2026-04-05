@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { TraderDetailsModal } from "./TraderDetailsModal";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import {
+  fetchAdminAccountDeletionAudits,
   createAdminReferralCode,
   fetchAdminChurnFeedback,
   fetchAdminFinance,
@@ -12,6 +13,7 @@ import {
   fetchAdminTraders,
   inviteAdmin,
   type AdminChurnFeedbackItem,
+  type AdminAccountDeletionAuditItem,
   type AdminFinanceData,
   type AdminChurnFeedbackSummary,
   type AdminReferralCode,
@@ -26,7 +28,7 @@ interface AdminDashboardProps {
 }
 
 export function AdminDashboard({ onLogout }: AdminDashboardProps) {
-  const [activeSection, setActiveSection] = useState<"overview" | "signups" | "finance" | "staff" | "churn" | "guide">("overview");
+  const [activeSection, setActiveSection] = useState<"overview" | "signups" | "finance" | "staff" | "churn" | "audits" | "guide">("overview");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTrader, setSelectedTrader] = useState<AdminTrader | null>(null);
   const [traderFilter, setTraderFilter] = useState<"all" | "most-exports" | "most-trades" | "needs-analysis">("all");
@@ -39,6 +41,8 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [churnItems, setChurnItems] = useState<AdminChurnFeedbackItem[]>([]);
   const [churnSummary, setChurnSummary] = useState<AdminChurnFeedbackSummary[]>([]);
   const [churnError, setChurnError] = useState<string | null>(null);
+  const [deletionAudits, setDeletionAudits] = useState<AdminAccountDeletionAuditItem[]>([]);
+  const [deletionAuditError, setDeletionAuditError] = useState<string | null>(null);
   const [signupItems, setSignupItems] = useState<AdminSignupItem[]>([]);
   const [signupError, setSignupError] = useState<string | null>(null);
   const [financeData, setFinanceData] = useState<AdminFinanceData | null>(null);
@@ -65,10 +69,11 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     let isMounted = true;
     const loadAdminData = async () => {
       try {
-        const [traderResponse, staffResponse, churnResponse, signupResponse, financeResponse, referralResponse] = await Promise.all([
+        const [traderResponse, staffResponse, churnResponse, deletionAuditResponse, signupResponse, financeResponse, referralResponse] = await Promise.all([
           fetchAdminTraders(),
           fetchAdminStaff(),
           fetchAdminChurnFeedback(),
+          fetchAdminAccountDeletionAudits(),
           fetchAdminSignups(),
           fetchAdminFinance(),
           fetchAdminReferralCodes(),
@@ -78,12 +83,14 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         setStaffMembers(staffResponse.items);
         setChurnItems(churnResponse.items);
         setChurnSummary(churnResponse.summary);
+        setDeletionAudits(deletionAuditResponse.items);
         setSignupItems(signupResponse.items);
         setFinanceData(financeResponse.finance);
         setReferralCodes(referralResponse.items);
         setTradersError(null);
         setStaffError(null);
         setChurnError(null);
+        setDeletionAuditError(null);
         setSignupError(null);
         setFinanceError(null);
         setReferralError(null);
@@ -93,12 +100,14 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         setStaffMembers([]);
         setChurnItems([]);
         setChurnSummary([]);
+        setDeletionAudits([]);
         setSignupItems([]);
         setFinanceData(null);
         setReferralCodes([]);
         setTradersError(error instanceof Error ? error.message : "Unable to load trader accounts.");
         setStaffError(error instanceof Error ? error.message : "Unable to load staff members.");
         setChurnError(error instanceof Error ? error.message : "Unable to load churn feedback.");
+        setDeletionAuditError(error instanceof Error ? error.message : "Unable to load account deletion audits.");
         setSignupError(error instanceof Error ? error.message : "Unable to load signups.");
         setFinanceError(error instanceof Error ? error.message : "Unable to load finance data.");
         setReferralError(error instanceof Error ? error.message : "Unable to load referral codes.");
@@ -494,6 +503,17 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
             >
               <Users className="w-5 h-5" />
               <span>Staff Management</span>
+            </button>
+            <button
+              onClick={() => setActiveSection("audits")}
+              className={`min-w-max py-4 px-6 rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
+                activeSection === "audits"
+                  ? "bg-teal-600 text-white shadow-md"
+                  : "text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              <Shield className="w-5 h-5" />
+              <span>Deletion Audits</span>
             </button>
             <button
               onClick={() => setActiveSection("guide")}
@@ -1439,6 +1459,72 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     <li>• <strong>The trend chart is month-based.</strong> As more users submit cancellation feedback, this section will become useful for retention analysis.</li>
                   </ul>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === "audits" && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200">
+              <div className="border-b border-slate-200 bg-slate-50 p-4">
+                <h2 className="text-lg text-slate-900 flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-teal-600" />
+                  Account Deletion Audits
+                </h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  Recent self-service account deletions with retained audit metadata.
+                </p>
+              </div>
+              <div className="p-6">
+                {deletionAuditError ? (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {deletionAuditError}
+                  </div>
+                ) : deletionAudits.length === 0 ? (
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-600">
+                    No account deletion audits recorded yet.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-slate-50">
+                        <tr>
+                          <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">User</th>
+                          <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Deleted At</th>
+                          <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Billing</th>
+                          <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Broker Data</th>
+                          <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">API Keys</th>
+                          <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Stripe Links</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {deletionAudits.map((item) => (
+                          <tr key={item.id} className="border-b border-slate-100">
+                            <td className="py-4 px-4">
+                              <div className="text-slate-900">{item.userName}</div>
+                              <div className="text-xs text-slate-600">{item.previousEmail}</div>
+                              <div className="text-xs text-slate-500">Anonymised to {item.deletedEmail}</div>
+                            </td>
+                            <td className="py-4 px-4 text-sm text-slate-700">{formatDate(item.deletedAt)}</td>
+                            <td className="py-4 px-4 text-sm text-slate-700">
+                              {item.hadBillingHistory ? "Had billing history" : "No billing history"}
+                            </td>
+                            <td className="py-4 px-4 text-sm text-slate-700">
+                              {item.hadBrokerAccounts ? "Broker accounts existed" : "No broker accounts"}
+                            </td>
+                            <td className="py-4 px-4 text-sm text-slate-700">
+                              {item.hadApiKeys ? "API keys revoked" : "No API keys"}
+                            </td>
+                            <td className="py-4 px-4 text-sm text-slate-700">
+                              {item.stripeCustomerId || item.stripeSubscriptionId ? "Stripe linked" : "No Stripe link"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           </div>

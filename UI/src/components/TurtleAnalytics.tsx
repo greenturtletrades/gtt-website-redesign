@@ -6,8 +6,8 @@ import { TraderJournal } from "./TraderJournal";
 import { motion } from "motion/react";
 import { ProfileDropdown } from "./ProfileDropdown";
 import { SettingsPage } from "./SettingsPage";
-import { me } from "../api/auth";
 import { clearStoredToken } from "../api/client";
+import { fetchAccountState } from "../api/settings";
 
 interface TurtleAnalyticsProps {
   userType: UserType;
@@ -752,13 +752,13 @@ export function TurtleAnalytics({ userType, subscriptionTier = "payg", onSignUp,
 
     const loadSessionUser = async () => {
       try {
-        const session = await me();
-        if (!cancelled && session.ok) {
-          const firstName = (session.user.profile as { firstName?: string } | null)?.firstName?.trim() || "";
-          const lastName = (session.user.profile as { lastName?: string } | null)?.lastName?.trim() || "";
+        const accountState = await fetchAccountState();
+        if (!cancelled && accountState.ok) {
+          const firstName = accountState.account.profile?.firstName?.trim() || "";
+          const lastName = accountState.account.profile?.lastName?.trim() || "";
           const fullName = `${firstName} ${lastName}`.trim();
-          setCurrentUserName(fullName || session.user.email.split("@")[0]);
-          setCurrentUserEmail(session.user.email);
+          setCurrentUserName(fullName || accountState.account.email.split("@")[0]);
+          setCurrentUserEmail(accountState.account.email);
         }
       } catch {
         if (!cancelled) {

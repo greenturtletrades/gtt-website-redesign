@@ -78,6 +78,21 @@ export interface AdminChurnFeedbackSummary {
   count: number;
 }
 
+export interface AdminAccountDeletionAuditItem {
+  id: string;
+  userId: string;
+  userName: string;
+  previousEmail: string;
+  deletedEmail: string;
+  deletedAt: string;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+  hadBillingHistory: boolean;
+  hadBrokerAccounts: boolean;
+  hadApiKeys: boolean;
+  metadata: unknown | null;
+}
+
 export interface AdminSignupItem {
   id: string;
   email: string;
@@ -201,6 +216,13 @@ export function fetchAdminChurnFeedback() {
     items: AdminChurnFeedbackItem[];
     summary: AdminChurnFeedbackSummary[];
   }>("/api/admin/churn-feedback");
+}
+
+export function fetchAdminAccountDeletionAudits() {
+  return apiGet<{
+    ok: boolean;
+    items: AdminAccountDeletionAuditItem[];
+  }>("/api/admin/account-deletion-audits");
 }
 
 export function fetchAdminSignups() {

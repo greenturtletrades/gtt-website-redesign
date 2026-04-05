@@ -16,7 +16,7 @@ import { ContactPage } from "./components/ContactPage";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { TraderApplicationForm } from "./components/onboarding/TraderApplicationForm";
 import { TraderApplicationStatus } from "./components/onboarding/TraderApplicationStatus";
-import { logout, me } from "./api/auth";
+import { logout } from "./api/auth";
 import { clearStoredToken } from "./api/client";
 import { fetchAccountState } from "./api/settings";
 import { cancelSubscription, createCheckoutSession, pauseSubscription, resumeSubscription } from "./api/subscription";
@@ -78,11 +78,9 @@ export default function App() {
 
     const validateSession = async () => {
       try {
-        const session = await me();
+        const accountState = await fetchAccountState();
         if (cancelled) return;
-        if (session.ok && session.user.role === "TRADER") {
-          const accountState = await fetchAccountState();
-          if (cancelled) return;
+        if (accountState.ok && accountState.account.role === "TRADER") {
           const firstName = accountState.account.profile?.firstName || "";
           const lastName = accountState.account.profile?.lastName || "";
           const fullName = `${firstName} ${lastName}`.trim();
@@ -103,7 +101,7 @@ export default function App() {
           }
           setUserType("trader");
           setTurtleAnalyticsAuthed(true);
-        } else if (session.ok && session.user.role === "ADMIN" && session.user.status === "ACTIVE") {
+        } else if (accountState.ok && accountState.account.role === "ADMIN" && accountState.account.status === "ACTIVE") {
           setUserType("admin");
           setTurtleAnalyticsAuthed(false);
         } else {

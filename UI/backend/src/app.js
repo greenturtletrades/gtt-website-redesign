@@ -223,6 +223,27 @@ function getHeaderValue(value) {
   return null;
 }
 
+function getTrustedRequestOrigin(req) {
+  const origin = getHeaderValue(req.headers.origin);
+  if (origin && allowedOrigins.includes(origin)) {
+    return origin;
+  }
+
+  const referer = getHeaderValue(req.headers.referer);
+  if (referer) {
+    try {
+      const refererOrigin = new URL(referer).origin;
+      if (allowedOrigins.includes(refererOrigin)) {
+        return refererOrigin;
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
 function getClientIp(req) {
   const forwarded = getHeaderValue(req.headers["x-forwarded-for"]);
   if (forwarded && typeof forwarded === "string") {
@@ -2372,6 +2393,25 @@ app.use(
   })
 );
 
+app.use((req, res, next) => {
+  if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+    return next();
+  }
+
+  const cookies = parseCookies(req);
+  const hasSessionCookie = Boolean(cookies[getSessionCookieName()]);
+  if (!hasSessionCookie) {
+    return next();
+  }
+
+  const trustedOrigin = getTrustedRequestOrigin(req);
+  if (!trustedOrigin) {
+    return res.status(403).json({ ok: false, error: "Blocked by CSRF protection" });
+  }
+
+  return next();
+});
+
 app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async (req, res, next) => {
   try {
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -3860,6 +3900,45 @@ app.get("/api/admin/churn-feedback", authRequired, adminRequired, async (req, re
       items: payload,
       summary: reasonSummary,
     });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.get("/api/admin/account-deletion-audits", authRequired, adminRequired, async (req, res, next) => {
+  try {
+    const audits = await prisma.accountDeletionAudit.findMany({
+      orderBy: { deletedAt: "desc" },
+      take: 100,
+      include: {
+        user: {
+          include: { profile: true },
+        },
+      },
+    });
+
+    const items = audits.map((audit) => {
+      const firstName = audit.user?.profile?.firstName?.trim() || "";
+      const lastName = audit.user?.profile?.lastName?.trim() || "";
+      const profileName = `${firstName} ${lastName}`.trim();
+
+      return {
+        id: audit.id,
+        userId: audit.userId,
+        userName: profileName || audit.previousEmail.split("@")[0],
+        previousEmail: audit.previousEmail,
+        deletedEmail: audit.deletedEmail,
+        deletedAt: audit.deletedAt.toISOString(),
+        stripeCustomerId: audit.stripeCustomerId,
+        stripeSubscriptionId: audit.stripeSubscriptionId,
+        hadBillingHistory: audit.hadBillingHistory,
+        hadBrokerAccounts: audit.hadBrokerAccounts,
+        hadApiKeys: audit.hadApiKeys,
+        metadata: audit.metadata,
+      };
+    });
+
+    return res.json({ ok: true, items });
   } catch (err) {
     return next(err);
   }
