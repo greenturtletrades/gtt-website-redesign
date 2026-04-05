@@ -862,7 +862,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   </div>
                   <div>
                     <div className="text-slate-600 text-xs mb-1">Active Traders</div>
-                    <div className="text-2xl text-green-600">{displayActiveUsers}</div>
+                    <div className="text-2xl text-green-600">{activeTraders}</div>
                   </div>
                   <div>
                     <div className="text-slate-600 text-xs mb-1">Premium</div>
