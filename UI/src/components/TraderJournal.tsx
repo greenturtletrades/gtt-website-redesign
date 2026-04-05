@@ -3,6 +3,7 @@ import { Plus, Edit2, Trash2, Search, Calendar, TrendingUp, TrendingDown, BookOp
 import { Activity } from "lucide-react";
 import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { getStoredToken } from "../api/client";
 
 interface JournalEntry {
   id: string;
@@ -166,7 +167,7 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
 
     if (editingEntry && hasLiveEntries) {
       try {
-        const token = localStorage.getItem("gtt_token");
+        const token = getStoredToken();
         const headers: Record<string, string> = {
           "Content-Type": "application/json",
         };
@@ -178,6 +179,7 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
           `${apiBase}/api/trades/${encodeURIComponent(editingEntry.id)}/journal`,
           {
             method: "PATCH",
+            credentials: "include",
             headers,
             body: JSON.stringify({
               notes: newEntry.notes,

@@ -16,8 +16,9 @@ import { ContactPage } from "./components/ContactPage";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { TraderApplicationForm } from "./components/onboarding/TraderApplicationForm";
 import { TraderApplicationStatus } from "./components/onboarding/TraderApplicationStatus";
-import { me } from "./api/auth";
-import { createCheckoutSession, submitChurnFeedback } from "./api/subscription";
+import { logout, me } from "./api/auth";
+import { clearStoredToken } from "./api/client";
+import { cancelSubscription, createCheckoutSession, pauseSubscription, resumeSubscription } from "./api/subscription";
 import { type TraderApplicationStatus as ApplicationStatus } from "./api/traderApplication";
 
 export type UserType = "trader" | "admin" | null;
@@ -45,7 +46,7 @@ export default function App() {
   const [turtleAnalyticsAuthed, setTurtleAnalyticsAuthed] = useState(false);
   const [pendingUserName, setPendingUserName] = useState<string>("");
   const [selectedSubscriptionPlan, setSelectedSubscriptionPlan] = useState<"payg" | null>(null);
-  const [subscriptionStatus, setSubscriptionStatus] = useState<"active" | "paused">("active");
+  const [subscriptionStatus, setSubscriptionStatus] = useState<"active" | "paused" | "cancelling" | "not_started">("not_started");
   const [onboardingStage, setOnboardingStage] = useState<"none" | "welcome" | "ea-setup" | "complete">("none");
   const [applicationEmail, setApplicationEmail] = useState("");
   const [applicationStatus, setApplicationStatus] = useState<ApplicationStatus | null>(null);
@@ -72,9 +73,6 @@ export default function App() {
   }, [currentView]);
 
   useEffect(() => {
-    const token = localStorage.getItem("gtt_token");
-    if (!token) return;
-
     let cancelled = false;
 
     const validateSession = async () => {
@@ -85,6 +83,7 @@ export default function App() {
           const fullName = `${session.user.profile?.firstName || ""} ${session.user.profile?.lastName || ""}`.trim();
           setCurrentUserName(fullName || pendingUserName || session.user.email.split("@")[0]);
           setCurrentUserEmail(session.user.email);
+          setSelectedSubscriptionPlan("payg");
           setUserType("trader");
           setTurtleAnalyticsAuthed(true);
         } else if (session.ok && session.user.role === "ADMIN" && session.user.status === "ACTIVE") {
@@ -96,7 +95,7 @@ export default function App() {
         }
       } catch {
         if (cancelled) return;
-        localStorage.removeItem("gtt_token");
+        clearStoredToken();
         setUserType(null);
         setTurtleAnalyticsAuthed(false);
         setCurrentUserName("");
@@ -204,8 +203,13 @@ export default function App() {
       });
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("gtt_token");
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch {
+      // Clear client state even if the backend session has already expired.
+    }
+    clearStoredToken();
     setUserType(null);
     setTurtleAnalyticsAuthed(false);
     setCurrentUserName("");
@@ -266,26 +270,35 @@ export default function App() {
     setCurrentView("settings");
   };
 
-  const handlePauseSubscription = () => {
-    // In real app: Make API call to pause subscription
-    setSubscriptionStatus("paused");
-    alert("✅ Subscription paused!\n\nYour subscription and ML analysis will pause from the next billing cycle (January 27, 2025). You can resume anytime.");
-    // Stay on settings page to see the change
+  const handlePauseSubscription = async () => {
+    try {
+      const response = await pauseSubscription();
+      setSubscriptionStatus(response.subscriptionStatus === "paused" ? "paused" : "active");
+      alert("Subscription paused. Future platform billing has been paused in Stripe.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to pause subscription.";
+      alert(`Unable to pause subscription right now.\n\n${message}`);
+    }
   };
 
-  const handleResumeSubscription = () => {
-    // In real app: Make API call to resume subscription
-    setSubscriptionStatus("active");
-    alert("✅ Welcome back!\n\nYour subscription has been resumed. ML analysis will restart immediately!");
-    // Stay on settings page to see the change
+  const handleResumeSubscription = async () => {
+    try {
+      const response = await resumeSubscription();
+      setSubscriptionStatus(response.subscriptionStatus === "paused" ? "paused" : "active");
+      alert("Subscription resumed. Platform billing is active again.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to resume subscription.";
+      alert(`Unable to resume subscription right now.\n\n${message}`);
+    }
   };
 
   const handleCancelSubscription = async (reason: string, feedback: string) => {
     try {
-      await submitChurnFeedback(reason, feedback, selectedSubscriptionPlan);
-      alert("✅ Subscription cancelled.\n\nWe're sorry to see you go. You'll have access until the end of your billing period.\n\nThank you for your feedback!");
+      const response = await cancelSubscription(reason, feedback, selectedSubscriptionPlan);
+      setSubscriptionStatus(response.subscriptionStatus === "cancelling" ? "cancelling" : "active");
+      alert("Subscription cancellation scheduled. Access will remain active until the current billing period ends.");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to store cancellation feedback.";
+      const message = error instanceof Error ? error.message : "Unable to cancel subscription.";
       alert(`Unable to cancel subscription right now.\n\n${message}`);
     }
   };

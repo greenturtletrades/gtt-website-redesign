@@ -18,6 +18,71 @@ const staffPortalRoles = new Set(["ADMIN"]);
 const staffWriteRoles = new Set(["ADMIN"]);
 const rateLimitStore = new Map();
 
+function parseCookies(req) {
+  const header = req.headers.cookie;
+  if (!header || typeof header !== "string") {
+    return {};
+  }
+
+  return header.split(";").reduce((cookies, part) => {
+    const [rawKey, ...rest] = part.split("=");
+    const key = rawKey?.trim();
+    if (!key) return cookies;
+    cookies[key] = decodeURIComponent(rest.join("=").trim() || "");
+    return cookies;
+  }, {});
+}
+
+function shouldUseSecureCookies() {
+  return process.env.NODE_ENV === "production";
+}
+
+function getSessionCookieName() {
+  return "gtt_session";
+}
+
+function buildSessionCookie(token, maxAgeMs = 7 * 24 * 60 * 60 * 1000) {
+  const parts = [
+    `${getSessionCookieName()}=${encodeURIComponent(token)}`,
+    "Path=/",
+    "HttpOnly",
+    `Max-Age=${Math.floor(maxAgeMs / 1000)}`,
+  ];
+
+  if (shouldUseSecureCookies()) {
+    parts.push("Secure", "SameSite=None");
+  } else {
+    parts.push("SameSite=Lax");
+  }
+
+  return parts.join("; ");
+}
+
+function buildExpiredSessionCookie() {
+  const parts = [
+    `${getSessionCookieName()}=`,
+    "Path=/",
+    "HttpOnly",
+    "Max-Age=0",
+  ];
+
+  if (shouldUseSecureCookies()) {
+    parts.push("Secure", "SameSite=None");
+  } else {
+    parts.push("SameSite=Lax");
+  }
+
+  return parts.join("; ");
+}
+
+function setSessionCookie(res, token, maxAgeMs) {
+  res.setHeader("Set-Cookie", buildSessionCookie(token, maxAgeMs));
+}
+
+function clearSessionCookie(res) {
+  res.setHeader("Set-Cookie", buildExpiredSessionCookie());
+}
+
 function getJwtSecret() {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
@@ -34,13 +99,16 @@ function signToken(user) {
 function authRequired(req, res, next) {
   const header = req.headers.authorization || "";
   const [scheme, token] = header.split(" ");
+  const cookies = parseCookies(req);
+  const cookieToken = cookies[getSessionCookieName()];
+  const candidateToken = scheme === "Bearer" && token ? token : cookieToken;
 
-  if (scheme !== "Bearer" || !token) {
+  if (!candidateToken) {
     return res.status(401).json({ ok: false, error: "Unauthorized" });
   }
 
   try {
-    const payload = jwt.verify(token, getJwtSecret());
+    const payload = jwt.verify(candidateToken, getJwtSecret());
     req.user = { id: payload.sub, role: payload.role };
     return next();
   } catch (err) {
@@ -470,6 +538,36 @@ async function getOrCreateStripeCustomerId(user) {
   return { stripe, stripeCustomerId: customer.id };
 }
 
+async function getStripeSubscriptionForUser(userId) {
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+  if (!stripeSecretKey) {
+    throw new Error("Stripe not configured");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      stripeSubscriptionId: true,
+    },
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  if (!user.stripeSubscriptionId) {
+    throw new Error("No active Stripe subscription is linked to this account");
+  }
+
+  const stripe = Stripe(stripeSecretKey);
+  const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId, {
+    expand: ["default_payment_method"],
+  });
+
+  return { stripe, user, subscription };
+}
+
 function formatStripePaymentMethod(paymentMethod) {
   if (!paymentMethod || paymentMethod.object !== "payment_method" || paymentMethod.type !== "card") {
     return null;
@@ -552,7 +650,13 @@ async function buildUserBillingSummary(userId) {
       currentBillingMethod = formatStripePaymentMethod(paymentMethod);
 
       if (subscription) {
-        subscriptionStatus = typeof subscription.status === "string" ? subscription.status : subscriptionStatus;
+        if (subscription.pause_collection) {
+          subscriptionStatus = "paused";
+        } else if (subscription.cancel_at_period_end) {
+          subscriptionStatus = "cancelling";
+        } else {
+          subscriptionStatus = typeof subscription.status === "string" ? subscription.status : subscriptionStatus;
+        }
         currentPeriodStart = stripeTimestampToDate(subscription.current_period_start);
         currentPeriodEnd = stripeTimestampToDate(subscription.current_period_end);
       }
@@ -570,6 +674,7 @@ async function buildUserBillingSummary(userId) {
       stripeConfigured,
       stripeCustomerLinked: Boolean(user.stripeCustomerId),
       stripeSubscriptionLinked: Boolean(user.stripeSubscriptionId),
+      cancelAtPeriodEnd: subscriptionStatus === "cancelling",
       currentPeriodStart: toIsoOrNull(currentPeriodStart),
       currentPeriodEnd: toIsoOrNull(currentPeriodEnd),
       currentBillingMethod,
@@ -2138,7 +2243,7 @@ app.use(
       }
       return callback(new Error("Not allowed by CORS"));
     },
-    credentials: false,
+    credentials: true,
   })
 );
 
@@ -2503,6 +2608,7 @@ app.post("/api/auth/register", rateLimit({
     });
 
     const token = signToken(user);
+    setSessionCookie(res, token);
 
     return res.json({
       ok: true,
@@ -2566,6 +2672,7 @@ app.post("/api/auth/login", rateLimit({
     }
 
     const token = signToken(user);
+    setSessionCookie(res, token);
 
     return res.json({
       ok: true,
@@ -2616,6 +2723,7 @@ app.post("/api/admin/login", rateLimit({
       password === envPassword
     ) {
       const token = signToken({ id: "env-admin", role: "ADMIN" });
+      setSessionCookie(res, token);
 
       return res.json({
         ok: true,
@@ -2650,6 +2758,7 @@ app.post("/api/admin/login", rateLimit({
       }
 
       const token = signToken(adminUser);
+      setSessionCookie(res, token);
 
       return res.json({
         ok: true,
@@ -2668,6 +2777,15 @@ app.post("/api/admin/login", rateLimit({
   } catch (err) {
     console.error("Admin login error:", err);
     return res.status(500).json({ ok: false, error: "Internal server error" });
+  }
+});
+
+app.post("/api/auth/logout", authRequired, async (req, res, next) => {
+  try {
+    clearSessionCookie(res);
+    return res.json({ ok: true });
+  } catch (err) {
+    return next(err);
   }
 });
 
@@ -2733,6 +2851,84 @@ app.post("/api/subscription/churn-feedback", authRequired, async (req, res, next
     });
 
     return res.json({ ok: true, id: entry.id });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.post("/api/subscription/pause", authRequired, async (req, res, next) => {
+  try {
+    if (req.user?.id === "env-admin" && req.user?.role === "ADMIN") {
+      return res.status(403).json({ ok: false, error: "Subscription actions are not available for env admin" });
+    }
+
+    const { stripe, subscription } = await getStripeSubscriptionForUser(req.user.id);
+    const updated = await stripe.subscriptions.update(subscription.id, {
+      pause_collection: {
+        behavior: "keep_as_draft",
+      },
+      cancel_at_period_end: false,
+    });
+
+    return res.json({
+      ok: true,
+      subscriptionStatus: updated.pause_collection ? "paused" : updated.status,
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.post("/api/subscription/resume", authRequired, async (req, res, next) => {
+  try {
+    if (req.user?.id === "env-admin" && req.user?.role === "ADMIN") {
+      return res.status(403).json({ ok: false, error: "Subscription actions are not available for env admin" });
+    }
+
+    const { stripe, subscription } = await getStripeSubscriptionForUser(req.user.id);
+    const updated = await stripe.subscriptions.update(subscription.id, {
+      pause_collection: null,
+      cancel_at_period_end: false,
+    });
+
+    return res.json({
+      ok: true,
+      subscriptionStatus: updated.pause_collection ? "paused" : updated.status,
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.post("/api/subscription/cancel", authRequired, async (req, res, next) => {
+  try {
+    if (req.user?.id === "env-admin" && req.user?.role === "ADMIN") {
+      return res.status(403).json({ ok: false, error: "Subscription actions are not available for env admin" });
+    }
+
+    const { reason, feedback, plan } = req.body || {};
+    const { stripe, subscription } = await getStripeSubscriptionForUser(req.user.id);
+    const updated = await stripe.subscriptions.update(subscription.id, {
+      cancel_at_period_end: true,
+      pause_collection: null,
+    });
+
+    if (reason && typeof reason === "string" && reason.trim()) {
+      await prisma.churnFeedback.create({
+        data: {
+          userId: req.user.id,
+          reason: reason.trim(),
+          feedback: typeof feedback === "string" && feedback.trim() ? feedback.trim() : null,
+          plan: typeof plan === "string" && plan.trim() ? plan.trim() : null,
+        },
+      });
+    }
+
+    return res.json({
+      ok: true,
+      subscriptionStatus: updated.cancel_at_period_end ? "cancelling" : updated.status,
+      currentPeriodEnd: stripeTimestampToDate(updated.current_period_end)?.toISOString() || null,
+    });
   } catch (err) {
     return next(err);
   }

@@ -38,12 +38,13 @@ import {
   type EaDiagnosticsResponse,
   type EaStatusResponse,
 } from "../api/settings";
+import { clearStoredToken } from "../api/client";
 
 interface SettingsPageProps {
   userName: string;
   userEmail: string;
   currentPlan: "payg";
-  subscriptionStatus?: "active" | "paused";
+  subscriptionStatus?: "active" | "paused" | "cancelling" | "not_started" | "trialing";
   onPauseSubscription?: () => void;
   onResumeSubscription?: () => void;
   onCancelSubscription: (reason: string, feedback: string) => void;
@@ -404,7 +405,7 @@ export function SettingsPage({
     setPageError(null);
     try {
       await deleteMyAccount();
-      localStorage.removeItem("gtt_token");
+      clearStoredToken();
       window.location.href = "/";
     } catch (error) {
       setPageError(error instanceof Error ? error.message : "Unable to delete account.");
@@ -636,11 +637,27 @@ export function SettingsPage({
                       </div>
 
                       <div className="flex flex-wrap gap-3">
+                        {(liveSubscriptionStatus === "active" || liveSubscriptionStatus === "trialing") && onPauseSubscription && (
+                          <button
+                            onClick={onPauseSubscription}
+                            className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-amber-700 transition-colors hover:bg-amber-100"
+                          >
+                            Pause Subscription
+                          </button>
+                        )}
+                        {liveSubscriptionStatus === "paused" && onResumeSubscription && (
+                          <button
+                            onClick={onResumeSubscription}
+                            className="rounded-lg border border-teal-200 bg-teal-50 px-4 py-2 text-teal-700 transition-colors hover:bg-teal-100"
+                          >
+                            Resume Subscription
+                          </button>
+                        )}
                         <button
                           onClick={() => setShowCancelModal(true)}
                           className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-red-600 transition-colors hover:bg-red-100"
                         >
-                          Send Cancellation Feedback
+                          Cancel Subscription
                         </button>
                       </div>
 
@@ -930,7 +947,9 @@ export function SettingsPage({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-lg rounded-xl bg-white p-6">
             <h3 className="text-xl text-slate-900">Cancel Subscription</h3>
-            <p className="mt-2 text-sm text-slate-600">This sends your cancellation feedback to the backend for the admin panel.</p>
+            <p className="mt-2 text-sm text-slate-600">
+              This schedules cancellation at period end and stores your feedback for the admin panel.
+            </p>
             <div className="mt-4 space-y-3">
               {[
                 ["too-expensive", "Too expensive"],

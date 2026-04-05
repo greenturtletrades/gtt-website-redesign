@@ -23,6 +23,10 @@ interface MeResponse {
   user: AuthUser;
 }
 
+export function logout() {
+  return apiPost<{ ok: boolean }>("/api/auth/logout", {});
+}
+
 export function register(input: {
   email: string;
   password: string;
