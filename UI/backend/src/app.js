@@ -616,7 +616,7 @@ function buildEaConnectionStatus(events) {
 
 function parseTradeTimestamp(value) {
   if (typeof value !== "string" || !value.trim()) {
-    return 0;
+    return null;
   }
   const trimmed = value.trim();
   const normalizedDate = trimmed.replace(
@@ -627,22 +627,38 @@ function parseTradeTimestamp(value) {
     ? normalizedDate
     : normalizedDate.replace(" ", "T");
   const parsed = Date.parse(normalized);
-  return Number.isFinite(parsed) ? parsed : 0;
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function normalizeTradeTimestampText(value) {
   const timestamp = parseTradeTimestamp(value);
-  if (!timestamp) {
+  if (timestamp === null) {
     return typeof value === "string" ? value.trim() : "";
   }
   return new Date(timestamp).toISOString();
 }
 
+function normalizeTradeIdentityValue(value, decimals = null) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return decimals === null ? String(value) : value.toFixed(decimals);
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+    const numeric = Number(trimmed);
+    if (Number.isFinite(numeric)) {
+      return decimals === null ? String(numeric) : numeric.toFixed(decimals);
+    }
+    return trimmed;
+  }
+  return "";
+}
+
 function sortTradesByRecency(trades) {
   return trades.slice().sort((a, b) => {
-    const exitDiff = parseTradeTimestamp(b?.exit_time) - parseTradeTimestamp(a?.exit_time);
+    const exitDiff = (parseTradeTimestamp(b?.exit_time) ?? 0) - (parseTradeTimestamp(a?.exit_time) ?? 0);
     if (exitDiff !== 0) return exitDiff;
-    return parseTradeTimestamp(b?.entry_time) - parseTradeTimestamp(a?.entry_time);
+    return (parseTradeTimestamp(b?.entry_time) ?? 0) - (parseTradeTimestamp(a?.entry_time) ?? 0);
   });
 }
 
@@ -664,13 +680,13 @@ function buildTradeIdentity(trade, brokerAccountId = "account") {
 
   const parts = [
     brokerAccountId,
-    trade.symbol || "",
-    trade.side || "",
+    normalizeTradeIdentityValue(trade.symbol),
+    normalizeTradeIdentityValue(trade.side),
     normalizeTradeTimestampText(trade.entry_time),
     normalizeTradeTimestampText(trade.exit_time),
-    trade.entry_price ?? "",
-    trade.exit_price ?? "",
-    trade.volume ?? "",
+    normalizeTradeIdentityValue(trade.entry_price, 8),
+    normalizeTradeIdentityValue(trade.exit_price, 8),
+    normalizeTradeIdentityValue(trade.volume, 4),
   ];
 
   return parts.join("|");
@@ -691,7 +707,7 @@ function dedupeTrades(tradeRows) {
 
   const deduped = Array.from(latestByIdentity.values());
   deduped.sort((a, b) => {
-    const exitDiff = parseTradeTimestamp(b.trade?.exit_time) - parseTradeTimestamp(a.trade?.exit_time);
+    const exitDiff = (parseTradeTimestamp(b.trade?.exit_time) ?? 0) - (parseTradeTimestamp(a.trade?.exit_time) ?? 0);
     if (exitDiff !== 0) return exitDiff;
     return b.receivedAt.getTime() - a.receivedAt.getTime();
   });
@@ -1255,8 +1271,8 @@ function mergeTradesForAnalysis(...tradeGroups) {
       if (!identity) continue;
 
       const existing = latestByIdentity.get(identity);
-      const existingExit = existing ? parseTradeTimestamp(existing.exit_time) : 0;
-      const nextExit = parseTradeTimestamp(trade.exit_time);
+      const existingExit = existing ? parseTradeTimestamp(existing.exit_time) ?? 0 : 0;
+      const nextExit = parseTradeTimestamp(trade.exit_time) ?? 0;
 
       if (!existing || nextExit >= existingExit) {
         latestByIdentity.set(identity, trade);
@@ -2936,6 +2952,34 @@ app.post("/api/me/change-password", authRequired, async (req, res, next) => {
 
 app.delete("/api/me", authRequired, async (req, res, next) => {
   try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: {
+        stripeCustomerId: true,
+        stripeSubscriptionId: true,
+        billingEvents: {
+          where: {
+            eventType: {
+              in: ["invoice.paid", "invoice.payment_failed", "customer.subscription.created", "customer.subscription.updated"],
+            },
+          },
+          take: 1,
+          select: { id: true },
+        },
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ ok: false, error: "User not found" });
+    }
+
+    if (user.stripeCustomerId || user.stripeSubscriptionId || user.billingEvents.length > 0) {
+      return res.status(409).json({
+        ok: false,
+        error: "Cancel and clear billing for this account before deletion.",
+      });
+    }
+
     await prisma.user.delete({
       where: { id: req.user.id },
     });

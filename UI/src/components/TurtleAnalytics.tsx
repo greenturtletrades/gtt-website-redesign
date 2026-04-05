@@ -16,7 +16,7 @@ interface TurtleAnalyticsProps {
   onSettings?: () => void;
 }
 
-export function TurtleAnalytics({ userType, subscriptionTier = "premium", onSignUp, onLogout }: TurtleAnalyticsProps) {
+export function TurtleAnalytics({ userType, subscriptionTier = "payg", onSignUp, onLogout }: TurtleAnalyticsProps) {
   const API_BASE = (import.meta.env.VITE_API_BASE as string) || "";
   const [activeTab, setActiveTab] = useState<"analytics" | "journal" | "history" | "settings" | "guide">("analytics");
   const [isRunningModel, setIsRunningModel] = useState(false);
