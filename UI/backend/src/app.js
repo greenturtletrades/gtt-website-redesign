@@ -5,6 +5,7 @@ const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
+const { createClient } = require("redis");
 const Stripe = require("stripe");
 const { prisma } = require("./prisma");
 const { sendEmail } = require("./email");
@@ -18,6 +19,9 @@ const staffPortalRoles = new Set(["ADMIN"]);
 const staffWriteRoles = new Set(["ADMIN"]);
 const rateLimitStore = new Map();
 const rateLimitCleanupIntervalMs = 5 * 60 * 1000;
+let redisRateLimitClient = null;
+let redisRateLimitReady = false;
+let redisRateLimitInitPromise = null;
 
 function cleanupRateLimitStore() {
   const now = Date.now();
@@ -31,6 +35,74 @@ function cleanupRateLimitStore() {
 const rateLimitCleanupTimer = setInterval(cleanupRateLimitStore, rateLimitCleanupIntervalMs);
 if (typeof rateLimitCleanupTimer.unref === "function") {
   rateLimitCleanupTimer.unref();
+}
+
+async function getRedisRateLimitClient() {
+  if (!process.env.REDIS_URL) {
+    return null;
+  }
+
+  if (redisRateLimitReady && redisRateLimitClient) {
+    return redisRateLimitClient;
+  }
+
+  if (redisRateLimitInitPromise) {
+    return redisRateLimitInitPromise;
+  }
+
+  const client = createClient({
+    url: process.env.REDIS_URL,
+    socket: {
+      reconnectStrategy: false,
+    },
+  });
+
+  client.on("error", (error) => {
+    redisRateLimitReady = false;
+    console.error("Redis rate limit client error:", error?.message || error);
+  });
+
+  redisRateLimitInitPromise = client
+    .connect()
+    .then(() => {
+      redisRateLimitClient = client;
+      redisRateLimitReady = true;
+      return client;
+    })
+    .catch((error) => {
+      redisRateLimitClient = null;
+      redisRateLimitReady = false;
+      console.error("Redis rate limit connection failed:", error?.message || error);
+      return null;
+    })
+    .finally(() => {
+      redisRateLimitInitPromise = null;
+    });
+
+  return redisRateLimitInitPromise;
+}
+
+async function incrementRedisRateLimit(key, windowMs) {
+  const client = await getRedisRateLimitClient();
+  if (!client) {
+    return null;
+  }
+
+  const count = await client.incr(key);
+  if (count === 1) {
+    await client.pExpire(key, windowMs);
+  }
+
+  let ttlMs = await client.pTTL(key);
+  if (ttlMs < 0) {
+    ttlMs = windowMs;
+    await client.pExpire(key, windowMs);
+  }
+
+  return {
+    count,
+    expiresAt: Date.now() + ttlMs,
+  };
 }
 
 function parseCookies(req) {
@@ -164,25 +236,41 @@ function getClientIp(req) {
 }
 
 function rateLimit({ windowMs, max, keyPrefix, message }) {
-  return (req, res, next) => {
-    const now = Date.now();
-    const key = `${keyPrefix}:${getClientIp(req)}`;
-    const entry = rateLimitStore.get(key);
+  return async (req, res, next) => {
+    try {
+      const now = Date.now();
+      const key = `${keyPrefix}:${getClientIp(req)}`;
+      const redisEntry = await incrementRedisRateLimit(key, windowMs);
 
-    if (!entry || entry.expiresAt <= now) {
-      rateLimitStore.set(key, { count: 1, expiresAt: now + windowMs });
+      if (redisEntry) {
+        if (redisEntry.count > max) {
+          const retryAfter = Math.max(1, Math.ceil((redisEntry.expiresAt - now) / 1000));
+          res.set("Retry-After", String(retryAfter));
+          return res.status(429).json({ ok: false, error: message });
+        }
+
+        return next();
+      }
+
+      const entry = rateLimitStore.get(key);
+
+      if (!entry || entry.expiresAt <= now) {
+        rateLimitStore.set(key, { count: 1, expiresAt: now + windowMs });
+        return next();
+      }
+
+      if (entry.count >= max) {
+        const retryAfter = Math.max(1, Math.ceil((entry.expiresAt - now) / 1000));
+        res.set("Retry-After", String(retryAfter));
+        return res.status(429).json({ ok: false, error: message });
+      }
+
+      entry.count += 1;
+      rateLimitStore.set(key, entry);
       return next();
+    } catch (err) {
+      return next(err);
     }
-
-    if (entry.count >= max) {
-      const retryAfter = Math.max(1, Math.ceil((entry.expiresAt - now) / 1000));
-      res.set("Retry-After", String(retryAfter));
-      return res.status(429).json({ ok: false, error: message });
-    }
-
-    entry.count += 1;
-    rateLimitStore.set(key, entry);
-    return next();
   };
 }
 
