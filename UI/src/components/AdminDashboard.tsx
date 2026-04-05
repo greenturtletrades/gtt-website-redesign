@@ -148,21 +148,32 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const premiumCount = accountTraders.filter((trader) => trader.plan === "premium").length;
   const paygCount = accountTraders.filter((trader) => trader.plan === "payg").length;
   const activeEaConnections = accountTraders.filter((trader) => trader.lastEaSyncAt !== null).length;
+  const deletedAccountsCount = deletionAudits.length;
   const displayTotalUsers = totalTraders;
-  const displayActiveUsers = activeTraders;
-  const displayInactiveUsers = Math.max(displayTotalUsers - displayActiveUsers, 0);
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
   const displayNewUsers = accountTraders.filter((trader) => {
     const joinedAt = new Date(trader.joinedAt);
     return joinedAt.getMonth() === currentMonth && joinedAt.getFullYear() === currentYear;
   }).length;
-  const disabledTraders = accountTraders.filter((trader) => trader.accountStatus === "DISABLED").length;
+  const deletedThisMonth = deletionAudits.filter((audit) => {
+    const deletedAt = new Date(audit.deletedAt);
+    return deletedAt.getMonth() === currentMonth && deletedAt.getFullYear() === currentYear;
+  }).length;
   const tradersWithApiKeys = accountTraders.filter((trader) => trader.apiKeysCount > 0).length;
   const userGrowthTrend = Array.from({ length: 5 }, (_, index) => {
     const monthDate = new Date(currentYear, currentMonth - (4 - index), 1);
+    const nextMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 1);
     const label = monthDate.toLocaleDateString(undefined, { month: "short" });
-    const users = accountTraders.filter((trader) => {
+    const createdAccounts = accountTraders.filter((trader) => {
+      const joinedAt = new Date(trader.joinedAt);
+      return joinedAt >= monthDate && joinedAt < nextMonth;
+    }).length;
+    const deletedAccounts = deletionAudits.filter((audit) => {
+      const deletedAt = new Date(audit.deletedAt);
+      return deletedAt >= monthDate && deletedAt < nextMonth;
+    }).length;
+    const currentAccounts = accountTraders.filter((trader) => {
       const joinedAt = new Date(trader.joinedAt);
       return (
         joinedAt.getFullYear() < monthDate.getFullYear() ||
@@ -170,7 +181,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
           joinedAt.getMonth() <= monthDate.getMonth())
       );
     }).length;
-    return { month: label, users };
+    return { month: label, createdAccounts, deletedAccounts, currentAccounts };
   });
 
   const activityChartData = Array.from({ length: 5 }, (_, index) => {
@@ -674,19 +685,19 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               <div className="p-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
                   <div className="bg-gradient-to-br from-teal-50 to-cyan-50 border border-teal-200 rounded-lg p-4">
-                    <div className="text-slate-600 text-sm mb-1">Total Users</div>
+                    <div className="text-slate-600 text-sm mb-1">Current Traders</div>
                     <div className="text-3xl text-slate-900 mb-1">{displayTotalUsers}</div>
-                    <div className="text-xs text-teal-600">Registered traders</div>
-                  </div>
-                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
-                    <div className="text-slate-600 text-sm mb-1">Active Users</div>
-                    <div className="text-3xl text-slate-900 mb-1">{displayActiveUsers}</div>
-                    <div className="text-xs text-green-600">{displayTotalUsers > 0 ? ((displayActiveUsers / displayTotalUsers) * 100).toFixed(0) : 0}% of total</div>
+                    <div className="text-xs text-teal-600">Non-deleted trader accounts</div>
                   </div>
                   <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
                     <div className="text-slate-600 text-sm mb-1">New This Month</div>
                     <div className="text-3xl text-slate-900 mb-1">{displayNewUsers}</div>
                     <div className="text-xs text-blue-600">Trader accounts created this month</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 rounded-lg p-4">
+                    <div className="text-slate-600 text-sm mb-1">Deleted Accounts</div>
+                    <div className="text-3xl text-slate-900 mb-1">{deletedAccountsCount}</div>
+                    <div className="text-xs text-slate-600">{deletedThisMonth} deleted this month</div>
                   </div>
                   <div className="bg-gradient-to-br from-red-50 to-rose-50 border border-red-200 rounded-lg p-4">
                     <div className="text-slate-600 text-sm mb-1 flex items-center gap-1">
@@ -714,9 +725,18 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         <YAxis stroke="#64748b" style={{ fontSize: '12px' }} />
                         <Tooltip 
                           contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
-                          formatter={(value: number) => [`${value}`, 'Trader accounts']}
+                          formatter={(value: number, name: string) => [
+                            `${value}`,
+                            name === "createdAccounts"
+                              ? "Accounts created"
+                              : name === "deletedAccounts"
+                                ? "Accounts deleted"
+                                : "Current traders",
+                          ]}
                         />
-                        <Line type="monotone" dataKey="users" stroke="#0d9488" strokeWidth={2} dot={{ fill: '#0d9488', r: 4 }} />
+                        <Legend />
+                        <Line type="monotone" dataKey="currentAccounts" name="Current Traders" stroke="#0d9488" strokeWidth={2} dot={{ fill: '#0d9488', r: 4 }} />
+                        <Line type="monotone" dataKey="deletedAccounts" name="Deleted Accounts" stroke="#dc2626" strokeWidth={2} dot={{ fill: '#dc2626', r: 4 }} />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
@@ -736,8 +756,8 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         <div className="text-xl text-teal-600">{totalTraders > 0 ? ((premiumCount / totalTraders) * 100).toFixed(0) : "0"}%</div>
                       </div>
                       <div className="bg-slate-50 rounded-lg p-3">
-                        <div className="text-xs text-slate-600 mb-1">Active Account Rate</div>
-                        <div className="text-xl text-green-600">{totalTraders > 0 ? ((activeTraders / totalTraders) * 100).toFixed(0) : "0"}%</div>
+                        <div className="text-xs text-slate-600 mb-1">Current Active Traders</div>
+                        <div className="text-xl text-green-600">{activeTraders}</div>
                       </div>
                     </div>
                   </div>
