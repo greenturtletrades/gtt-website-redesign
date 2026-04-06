@@ -10,6 +10,7 @@ interface EACodePageProps {
 }
 
 export function EACodePage({ isOnboarding = false, onComplete, onSkip }: EACodePageProps = {}) {
+  const apiBaseUrl = (import.meta.env.VITE_API_BASE as string) || "Backend URL unavailable";
   const [downloadingPlatform, setDownloadingPlatform] = useState<"MT4" | "MT5" | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [downloadInfo, setDownloadInfo] = useState<{
@@ -72,16 +73,15 @@ export function EACodePage({ isOnboarding = false, onComplete, onSkip }: EACodeP
             <div className="flex items-start gap-3">
               <BookOpen className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
               <div>
-                <h3 className="text-blue-900 mb-2">Installation Instructions</h3>
+                <h3 className="text-blue-900 mb-2">How To Set Up The EA In MetaTrader</h3>
                 <ol className="text-blue-800 text-sm space-y-2 list-decimal list-inside">
-                  <li>Download the EA file for your platform below.</li>
+                  <li>Download the EA file for your platform below and place it in the <code className="bg-blue-100 px-2 py-1 rounded">Experts</code> folder if MetaTrader does not place it there automatically.</li>
                   <li>Open MetaTrader and press <code className="bg-blue-100 px-2 py-1 rounded">F4</code> to open MetaEditor.</li>
-                  <li>Open the downloaded <code className="bg-blue-100 px-2 py-1 rounded">GreenTurtleTradesEA</code> file.</li>
-                  <li>Click <strong>Compile</strong> (F7) and confirm you see "0 errors".</li>
-                  <li>In MetaTrader, go to <strong>Tools → Options → Expert Advisors</strong>.</li>
-                  <li>Allow WebRequest for <code className="bg-blue-100 px-2 py-1 rounded">http://localhost:3001</code> in local development, or your live API host in production.</li>
-                  <li>Attach the EA to a chart and leave MetaTrader running while you use Turtle Analytics. The file already includes your generated API key and broker account link.</li>
-                  <li>When you press <strong>Run Model</strong>, the backend requests a fresh historical export from the EA automatically.</li>
+                  <li>Open the downloaded <code className="bg-blue-100 px-2 py-1 rounded">GreenTurtleTradesEA</code> file and click <strong>Compile</strong> (F7). Confirm you see <strong>0 errors</strong>.</li>
+                  <li>In MetaTrader, go to <strong>Tools → Options → Expert Advisors</strong>, tick <strong>Allow WebRequest for listed URL</strong>, and add this backend URL: <code className="bg-blue-100 px-2 py-1 rounded break-all">{apiBaseUrl}</code>.</li>
+                  <li>Attach the EA to any live chart and enable <strong>Algo Trading</strong> / <strong>AutoTrading</strong> so it can respond to export requests.</li>
+                  <li>Keep MetaTrader running and logged into the correct broker account while you use Turtle Analytics.</li>
+                  <li>When you press <strong>Run Model Analysis</strong>, the backend requests a fresh historical export from MetaTrader automatically.</li>
                 </ol>
               </div>
             </div>
