@@ -164,7 +164,7 @@ export function SettingsPage({
   const tabs = [
     { id: "account", label: "Account", icon: User },
     { id: "subscription", label: "Subscription & Billing", icon: CreditCard },
-    { id: "ea-code", label: "EA Code", icon: Code },
+    { id: "ea-code", label: "MetaTrader Setup", icon: Code },
     { id: "api-keys", label: "API Keys", icon: Key },
     { id: "referrals", label: "Referrals", icon: Gift },
   ] as const;
@@ -781,8 +781,8 @@ export function SettingsPage({
                   {activeTab === "ea-code" && (
                     <div className="space-y-6">
                       <div>
-                        <h2 className="text-xl text-slate-900">EA Connection</h2>
-                        <p className="mt-1 text-sm text-slate-600">Use your live API key and MetaTrader account to connect the EA.</p>
+                        <h2 className="text-xl text-slate-900">MetaTrader Setup</h2>
+                        <p className="mt-1 text-sm text-slate-600">Use your live API key and MetaTrader account to install, connect, and run the EA.</p>
                       </div>
 
                       <div className={`rounded-lg border p-4 ${eaHealthTone.panelClass}`}>
@@ -917,7 +917,7 @@ export function SettingsPage({
                       </div>
 
                       <div className="rounded-lg border border-slate-200 bg-slate-50 p-5">
-                        <div className="mb-3 text-slate-900">How To Connect The EA In MetaTrader</div>
+                        <div className="mb-3 text-slate-900">How To Set Up The EA In MetaTrader</div>
                         <div className="space-y-4 text-sm text-slate-700">
                           <div className="rounded-lg border border-slate-200 bg-white p-4">
                             <div className="text-slate-900">1. Install the EA file</div>
@@ -927,7 +927,14 @@ export function SettingsPage({
                           </div>
 
                           <div className="rounded-lg border border-slate-200 bg-white p-4">
-                            <div className="text-slate-900">2. Allow web requests to the backend</div>
+                            <div className="text-slate-900">2. Compile it in MetaEditor if needed</div>
+                            <p className="mt-1 text-slate-600">
+                              If MetaTrader does not show the EA in Navigator straight away, open the file in <span className="font-mono">MetaEditor</span>, press <span className="font-mono">Compile</span>, and make sure there are no compile errors before going back to the platform.
+                            </p>
+                          </div>
+
+                          <div className="rounded-lg border border-slate-200 bg-white p-4">
+                            <div className="text-slate-900">3. Allow web requests to the backend</div>
                             <p className="mt-1 text-slate-600">
                               In MetaTrader go to <span className="font-mono">Tools → Options → Expert Advisors</span>, tick <span className="font-mono">Allow WebRequest for listed URL</span>, and add the backend public domain shown in EA diagnostics.
                             </p>
@@ -940,21 +947,21 @@ export function SettingsPage({
                           </div>
 
                           <div className="rounded-lg border border-slate-200 bg-white p-4">
-                            <div className="text-slate-900">3. Attach the EA to a chart</div>
+                            <div className="text-slate-900">4. Attach the EA to a chart</div>
                             <p className="mt-1 text-slate-600">
                               Open any active chart in MetaTrader, drag the EA onto the chart, and enable <span className="font-mono">Algo Trading</span> / <span className="font-mono">AutoTrading</span> so the EA can respond to export requests.
                             </p>
                           </div>
 
                           <div className="rounded-lg border border-slate-200 bg-white p-4">
-                            <div className="text-slate-900">4. Keep the terminal running</div>
+                            <div className="text-slate-900">5. Keep the terminal running</div>
                             <p className="mt-1 text-slate-600">
                               The EA only sends trade history when the terminal is open, logged into the correct broker account, and the EA is still attached to the chart.
                             </p>
                           </div>
 
                           <div className="rounded-lg border border-slate-200 bg-white p-4">
-                            <div className="text-slate-900">5. Run analysis from this platform</div>
+                            <div className="text-slate-900">6. Run analysis from this platform</div>
                             <p className="mt-1 text-slate-600">
                               When you press <span className="font-mono">Run Model Analysis</span>, the backend requests a fresh history export from MetaTrader. If no new trades appear, check the EA health panel above, confirm the WebRequest URL, and make sure the EA is attached to a live chart.
                             </p>
