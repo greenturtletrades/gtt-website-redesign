@@ -428,8 +428,8 @@ export default function App() {
               </p>
             </div>
           </div>
-        ) : userType === "trader" ? (
-          <TurtleAnalytics 
+        ) : userType === "trader" && turtleAnalyticsAuthed ? (
+          <TurtleAnalytics
             userType={userType} 
             subscriptionTier={selectedSubscriptionPlan || "payg"}
             subscriptionStatus={subscriptionStatus}
