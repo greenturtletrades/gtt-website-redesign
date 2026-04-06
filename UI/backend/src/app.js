@@ -5745,6 +5745,11 @@ app.delete("/api/analyse/history/:runId", authRequired, async (req, res, next) =
         status: true,
         analysisSnapshotId: true,
         cost: true,
+        analysisSnapshot: {
+          select: {
+            report: true,
+          },
+        },
       },
     });
 
@@ -5754,6 +5759,24 @@ app.delete("/api/analyse/history/:runId", authRequired, async (req, res, next) =
 
     if (run.status === "RUNNING") {
       return res.status(400).json({ ok: false, error: "A running analysis cannot be deleted." });
+    }
+
+    const snapshotMetadata =
+      run.analysisSnapshot?.report &&
+      typeof run.analysisSnapshot.report === "object" &&
+      run.analysisSnapshot.report.metadata &&
+      typeof run.analysisSnapshot.report.metadata === "object"
+        ? run.analysisSnapshot.report.metadata
+        : null;
+    const snapshotTradeIdentities = Array.isArray(snapshotMetadata?.trade_identities)
+      ? snapshotMetadata.trade_identities.filter((value) => typeof value === "string" && value.trim())
+      : [];
+
+    if (deleteJournalData && snapshotTradeIdentities.length === 0) {
+      return res.status(400).json({
+        ok: false,
+        error: "This run does not contain linked journal trade identities, so only ML data can be deleted.",
+      });
     }
 
     await prisma.$transaction(async (tx) => {
@@ -5782,7 +5805,10 @@ app.delete("/api/analyse/history/:runId", authRequired, async (req, res, next) =
 
       if (deleteJournalData) {
         await tx.storedTrade.deleteMany({
-          where: { userId: req.user.id },
+          where: {
+            userId: req.user.id,
+            tradeIdentity: { in: snapshotTradeIdentities },
+          },
         });
       }
     });
@@ -5794,7 +5820,7 @@ app.delete("/api/analyse/history/:runId", authRequired, async (req, res, next) =
       deletedData: true,
       deletedJournalData: deleteJournalData,
       message: deleteJournalData
-        ? "Saved analysis data for this run was deleted and all saved journal trades for this account were cleared. The billed run record was kept."
+        ? "Saved analysis data for this run was deleted and the linked journal trades for that run were cleared. The billed run record was kept."
         : "Saved analysis data was deleted for this run, but the billed run record was kept.",
     });
   } catch (err) {
@@ -6032,6 +6058,9 @@ app.post("/api/analyse/csv", authRequired, async (req, res, next) => {
       userId: req.user.id,
       analysisRunId: analysisRun.id,
       tradeFingerprint,
+      allTradeIdentities: allTrades
+        .map((trade) => buildTradeIdentity(trade, req.user.id))
+        .filter(Boolean),
       tradeIdentities: pendingTrades
         .map((trade) => buildTradeIdentity(trade, req.user.id))
         .filter(Boolean),
@@ -6248,6 +6277,9 @@ app.post("/api/analyse", authRequired, async (req, res, next) => {
       userId: req.user.id,
       analysisRunId: analysisRun.id,
       tradeFingerprint,
+      allTradeIdentities: allTrades
+        .map((trade) => buildTradeIdentity(trade, req.user.id))
+        .filter(Boolean),
       tradeIdentities: pendingTrades
         .map((trade) => buildTradeIdentity(trade, req.user.id))
         .filter(Boolean),
@@ -6330,6 +6362,7 @@ app.get("/api/analyse/:jobId", authRequired, async (req, res, next) => {
 
       const snapshotReport = buildSnapshotReport(data.report, {
         trade_fingerprint: jobContext?.tradeFingerprint ?? null,
+        trade_identities: Array.isArray(jobContext?.allTradeIdentities) ? jobContext.allTradeIdentities : [],
         unique_trade_count: jobContext?.uniqueTradeCount ?? data.trades_analysed ?? originalPerformance.n_trades ?? null,
         duplicate_trade_count: jobContext?.duplicateTradeCount ?? 0,
         available_trade_count: jobContext?.availableTradeCount ?? null,

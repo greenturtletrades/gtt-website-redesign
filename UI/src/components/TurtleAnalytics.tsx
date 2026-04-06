@@ -3184,7 +3184,7 @@ export function TurtleAnalytics({
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
                 <div className="font-medium text-amber-900">Delete ML Data And Trading Journal</div>
                 <div className="mt-1">
-                  Removes the saved analysis report for this run and clears all saved journal trades for this account.
+                  Removes the saved analysis report for this run and clears the saved journal trades linked to this same run.
                 </div>
               </div>
             </div>
