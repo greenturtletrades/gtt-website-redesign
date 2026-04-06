@@ -102,6 +102,18 @@ export function SettingsPage({
   const [deleteReason, setDeleteReason] = useState("");
   const [deleteFeedback, setDeleteFeedback] = useState("");
 
+  const cancelReasonsRequiringExplanation = new Set([
+    "technical-issues",
+    "missing-features",
+    "other",
+  ]);
+
+  const deleteReasonsRequiringExplanation = new Set([
+    "technical-issues",
+    "missing-features",
+    "other",
+  ]);
+
   const primaryBrokerAccount = brokerAccounts[0] || null;
   const activeApiKeys = apiKeys.filter((item) => !item.revokedAt);
   const managedEaApiKey = activeApiKeys.find((item) => item.name === "MetaTrader EA") || null;
@@ -1040,7 +1052,11 @@ export function SettingsPage({
                 rows={4}
                 value={cancelFeedback}
                 onChange={(e) => setCancelFeedback(e.target.value)}
-                placeholder="Optional feedback"
+                placeholder={
+                  cancelReasonsRequiringExplanation.has(cancelReason)
+                    ? "Please explain so we can improve this"
+                    : "Optional feedback"
+                }
                 className="w-full rounded-lg border border-slate-300 px-4 py-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
             </div>
@@ -1055,6 +1071,13 @@ export function SettingsPage({
                 onClick={() => {
                   if (!cancelReason) {
                     setPageError("Please select a cancellation reason.");
+                    return;
+                  }
+                  if (
+                    cancelReasonsRequiringExplanation.has(cancelReason) &&
+                    !cancelFeedback.trim()
+                  ) {
+                    setPageError("Please add a short explanation for this cancellation reason.");
                     return;
                   }
                   onCancelSubscription(cancelReason, cancelFeedback);
@@ -1099,7 +1122,11 @@ export function SettingsPage({
                 rows={4}
                 value={deleteFeedback}
                 onChange={(e) => setDeleteFeedback(e.target.value)}
-                placeholder="Optional feedback"
+                placeholder={
+                  deleteReasonsRequiringExplanation.has(deleteReason)
+                    ? "Please explain so we can improve this"
+                    : "Optional feedback"
+                }
                 className="w-full rounded-lg border border-slate-300 px-4 py-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
@@ -1118,6 +1145,13 @@ export function SettingsPage({
                 onClick={() => {
                   if (!deleteReason) {
                     setPageError("Please select an account deletion reason.");
+                    return;
+                  }
+                  if (
+                    deleteReasonsRequiringExplanation.has(deleteReason) &&
+                    !deleteFeedback.trim()
+                  ) {
+                    setPageError("Please add a short explanation for this account deletion reason.");
                     return;
                   }
                   setShowDeleteModal(false);
