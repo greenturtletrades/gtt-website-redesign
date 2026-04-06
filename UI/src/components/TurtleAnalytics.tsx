@@ -697,6 +697,10 @@ export function TurtleAnalytics({
           return latestRunAt;
         });
       }
+    } else {
+      setReportData(null);
+      setStatsData({ tradesAnalysed: 0, simulationsRun: 0, regimesFound: 0, avgRMultiple: 0 });
+      setLastRunTime(null);
     }
   };
 
@@ -994,6 +998,7 @@ export function TurtleAnalytics({
             avgRMultiple:   avgRMultiple   ?? prev.avgRMultiple,
           }));
           if (result.report) setReportData(result.report);
+          await loadPersistedAccountState();
           completed = true;
           break;
         }
