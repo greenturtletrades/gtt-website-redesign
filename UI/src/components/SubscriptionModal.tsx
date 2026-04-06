@@ -161,8 +161,8 @@ export function SubscriptionModal({ onClose, onSelectPlan, userName }: Subscript
         </div>
 
         <p className="text-center text-slate-500 text-xs mt-6">
-          All plans include a 7-day free trial. Cancel anytime. 
-          Green Turtle Trades is not intended for collecting PII or securing sensitive data.
+          Platform access is billed monthly, and ML runs are billed per trade analysed.
+          Payment methods are handled securely by Stripe.
         </p>
 
         {/* Referral Programme Info */}
@@ -172,8 +172,9 @@ export function SubscriptionModal({ onClose, onSelectPlan, userName }: Subscript
             <div>
               <h4 className="text-teal-900 font-medium mb-1">Have a Referral Code?</h4>
               <p className="text-teal-700 text-sm">
-                If you have a referral code, you can apply it after signing up to receive <strong>20% off your subscription for 2 months</strong> (£8/month instead of £10/month). 
-                The trader who referred you will also receive the same discount for 2 months!
+                Referral codes are applied during signup. Any account-billing discount and ML-run
+                discount come from the active code linked to your account, using the percentage and
+                duration configured for that code.
               </p>
             </div>
           </div>

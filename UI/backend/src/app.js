@@ -6525,6 +6525,11 @@ app.post("/api/create-checkout-session", authRequired, async (req, res, next) =>
     let discountsPayload = undefined;
 
     if (discounts.accountDiscountPercent > 0) {
+      const monthlyPrice = await stripe.prices.retrieve(monthlyPriceId);
+      const monthlyProductId =
+        monthlyPrice && typeof monthlyPrice.product === "string"
+          ? monthlyPrice.product
+          : null;
       const durationMonths = Math.max(
         1,
         Math.ceil(
@@ -6539,6 +6544,13 @@ app.post("/api/create-checkout-session", authRequired, async (req, res, next) =>
         name: user.appliedReferralCode?.code
           ? `${user.appliedReferralCode.code} account discount`
           : "Referral account discount",
+        ...(monthlyProductId
+          ? {
+              applies_to: {
+                products: [monthlyProductId],
+              },
+            }
+          : {}),
       });
       discountsPayload = [{ coupon: coupon.id }];
     }
