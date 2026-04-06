@@ -13,6 +13,7 @@ import {
   fetchAdminSignups,
   fetchAdminStaff,
   setAdminTestTraderAccess,
+  wipeAdminNonAdminData,
   fetchAdminTraders,
   inviteAdmin,
   type AdminChurnFeedbackItem,
@@ -79,61 +80,65 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [testTraderSubmitting, setTestTraderSubmitting] = useState(false);
   const [testTraderActionError, setTestTraderActionError] = useState<string | null>(null);
   const [testTraderActionPendingId, setTestTraderActionPendingId] = useState<string | null>(null);
+  const [wipeConfirmation, setWipeConfirmation] = useState("");
+  const [wipeSubmitting, setWipeSubmitting] = useState(false);
+  const [wipeError, setWipeError] = useState<string | null>(null);
+  const [wipeMessage, setWipeMessage] = useState<string | null>(null);
+
+  const loadAdminData = async (isMounted = true) => {
+    try {
+      const [traderResponse, staffResponse, churnResponse, deletionAuditResponse, signupResponse, financeResponse, referralResponse] = await Promise.all([
+        fetchAdminTraders(),
+        fetchAdminStaff(),
+        fetchAdminChurnFeedback(),
+        fetchAdminAccountDeletionAudits(),
+        fetchAdminSignups(),
+        fetchAdminFinance(),
+        fetchAdminReferralCodes(),
+      ]);
+      if (!isMounted) return;
+      setTraders(traderResponse.items);
+      setStaffMembers(staffResponse.items);
+      setChurnItems(churnResponse.items);
+      setChurnSummary(churnResponse.summary);
+      setDeletionAudits(deletionAuditResponse.items);
+      setSignupItems(signupResponse.items);
+      setFinanceData(financeResponse.finance);
+      setReferralCodes(referralResponse.items);
+      setTradersError(null);
+      setStaffError(null);
+      setChurnError(null);
+      setDeletionAuditError(null);
+      setSignupError(null);
+      setFinanceError(null);
+      setReferralError(null);
+    } catch (error) {
+      if (!isMounted) return;
+      setTraders([]);
+      setStaffMembers([]);
+      setChurnItems([]);
+      setChurnSummary([]);
+      setDeletionAudits([]);
+      setSignupItems([]);
+      setFinanceData(null);
+      setReferralCodes([]);
+      setTradersError(error instanceof Error ? error.message : "Unable to load trader accounts.");
+      setStaffError(error instanceof Error ? error.message : "Unable to load staff members.");
+      setChurnError(error instanceof Error ? error.message : "Unable to load churn feedback.");
+      setDeletionAuditError(error instanceof Error ? error.message : "Unable to load account deletion audits.");
+      setSignupError(error instanceof Error ? error.message : "Unable to load signups.");
+      setFinanceError(error instanceof Error ? error.message : "Unable to load finance data.");
+      setReferralError(error instanceof Error ? error.message : "Unable to load referral codes.");
+    } finally {
+      if (isMounted) {
+        setTradersLoading(false);
+      }
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
-    const loadAdminData = async () => {
-      try {
-        const [traderResponse, staffResponse, churnResponse, deletionAuditResponse, signupResponse, financeResponse, referralResponse] = await Promise.all([
-          fetchAdminTraders(),
-          fetchAdminStaff(),
-          fetchAdminChurnFeedback(),
-          fetchAdminAccountDeletionAudits(),
-          fetchAdminSignups(),
-          fetchAdminFinance(),
-          fetchAdminReferralCodes(),
-        ]);
-        if (!isMounted) return;
-        setTraders(traderResponse.items);
-        setStaffMembers(staffResponse.items);
-        setChurnItems(churnResponse.items);
-        setChurnSummary(churnResponse.summary);
-        setDeletionAudits(deletionAuditResponse.items);
-        setSignupItems(signupResponse.items);
-        setFinanceData(financeResponse.finance);
-        setReferralCodes(referralResponse.items);
-        setTradersError(null);
-        setStaffError(null);
-        setChurnError(null);
-        setDeletionAuditError(null);
-        setSignupError(null);
-        setFinanceError(null);
-        setReferralError(null);
-      } catch (error) {
-        if (!isMounted) return;
-        setTraders([]);
-        setStaffMembers([]);
-        setChurnItems([]);
-        setChurnSummary([]);
-        setDeletionAudits([]);
-        setSignupItems([]);
-        setFinanceData(null);
-        setReferralCodes([]);
-        setTradersError(error instanceof Error ? error.message : "Unable to load trader accounts.");
-        setStaffError(error instanceof Error ? error.message : "Unable to load staff members.");
-        setChurnError(error instanceof Error ? error.message : "Unable to load churn feedback.");
-        setDeletionAuditError(error instanceof Error ? error.message : "Unable to load account deletion audits.");
-        setSignupError(error instanceof Error ? error.message : "Unable to load signups.");
-        setFinanceError(error instanceof Error ? error.message : "Unable to load finance data.");
-        setReferralError(error instanceof Error ? error.message : "Unable to load referral codes.");
-      } finally {
-        if (isMounted) {
-          setTradersLoading(false);
-        }
-      }
-    };
-
-    loadAdminData();
+    loadAdminData(isMounted);
     return () => {
       isMounted = false;
     };
@@ -509,6 +514,31 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     const response = await fetchAdminReferralCodes();
     setReferralCodes(response.items);
     setReferralError(null);
+  };
+
+  const handleWipeNonAdminData = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (wipeSubmitting) return;
+
+    setWipeSubmitting(true);
+    setWipeError(null);
+    setWipeMessage(null);
+
+    try {
+      const response = await wipeAdminNonAdminData(wipeConfirmation);
+      await loadAdminData(true);
+      setWipeMessage(
+        `Wiped ${response.summary.traderUsersDeleted} trader accounts, ${response.summary.traderApplicationsDeleted} trader applications, and ${response.summary.waitlistEntriesDeleted} waitlist entries.`,
+      );
+      setWipeConfirmation("");
+      setSearchQuery("");
+      setSignupSearchQuery("");
+      setSelectedTrader(null);
+    } catch (error) {
+      setWipeError(error instanceof Error ? error.message : "Unable to wipe non-admin data.");
+    } finally {
+      setWipeSubmitting(false);
+    }
   };
 
   const handleReferralSubmit = async (e: React.FormEvent) => {
@@ -1254,6 +1284,42 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     <UserPlus className="h-4 w-4" />
                     Invite Admin
                   </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-b border-red-200 bg-red-50 p-4">
+              <div className="flex items-start gap-3">
+                <UserX className="mt-0.5 h-5 w-5 text-red-600" />
+                <div className="flex-1">
+                  <h3 className="text-sm text-red-900">Reset Non-Admin Environment</h3>
+                  <p className="mt-1 text-sm text-red-700">
+                    This wipes all trader accounts, test traders, deleted trader accounts, trader applications,
+                    and landing-page waitlist signups. Admin accounts remain intact.
+                  </p>
+                  <form onSubmit={handleWipeNonAdminData} className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end">
+                    <div className="flex-1">
+                      <label className="mb-1 block text-xs uppercase tracking-wide text-red-800">
+                        Type <span className="font-semibold">WIPE ALL NON-ADMIN DATA</span> to confirm
+                      </label>
+                      <input
+                        type="text"
+                        value={wipeConfirmation}
+                        onChange={(e) => setWipeConfirmation(e.target.value)}
+                        placeholder="WIPE ALL NON-ADMIN DATA"
+                        className="w-full rounded-lg border border-red-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-200"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={wipeSubmitting || wipeConfirmation !== "WIPE ALL NON-ADMIN DATA"}
+                      className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-300"
+                    >
+                      {wipeSubmitting ? "Wiping..." : "Wipe Non-Admin Data"}
+                    </button>
+                  </form>
+                  {wipeMessage && <p className="mt-3 text-sm text-green-700">{wipeMessage}</p>}
+                  {wipeError && <p className="mt-3 text-sm text-red-700">{wipeError}</p>}
                 </div>
               </div>
             </div>

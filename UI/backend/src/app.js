@@ -4173,6 +4173,40 @@ app.delete("/api/admin/test-traders/:id", authRequired, staffWriteRequired, asyn
   }
 });
 
+app.post("/api/admin/wipe-non-admin-data", authRequired, adminRequired, async (req, res, next) => {
+  try {
+    const { confirmation } = req.body || {};
+    const expectedConfirmation = "WIPE ALL NON-ADMIN DATA";
+
+    if (confirmation !== expectedConfirmation) {
+      return res.status(400).json({
+        ok: false,
+        error: `Confirmation must match exactly: ${expectedConfirmation}`,
+      });
+    }
+
+    const [waitlistEntriesDeleted, traderApplicationsDeleted, traderUsersDeleted] =
+      await prisma.$transaction([
+        prisma.waitlistEntry.deleteMany({}),
+        prisma.traderApplication.deleteMany({}),
+        prisma.user.deleteMany({
+          where: { role: "TRADER" },
+        }),
+      ]);
+
+    return res.json({
+      ok: true,
+      summary: {
+        waitlistEntriesDeleted: waitlistEntriesDeleted.count,
+        traderApplicationsDeleted: traderApplicationsDeleted.count,
+        traderUsersDeleted: traderUsersDeleted.count,
+      },
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 app.get("/api/admin/churn-feedback", authRequired, adminRequired, async (req, res, next) => {
   try {
     const items = await prisma.churnFeedback.findMany({
