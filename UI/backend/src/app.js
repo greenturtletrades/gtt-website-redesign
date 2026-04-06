@@ -3553,6 +3553,10 @@ app.delete("/api/me", authRequired, async (req, res, next) => {
         },
         stripeCustomerId: true,
         stripeSubscriptionId: true,
+        role: true,
+        isSuperAdmin: true,
+        billingExempt: true,
+        billingExemptReason: true,
         brokerAccounts: {
           select: { id: true },
           take: 1,
@@ -3575,6 +3579,30 @@ app.delete("/api/me", authRequired, async (req, res, next) => {
 
     if (!user) {
       return res.status(404).json({ ok: false, error: "User not found" });
+    }
+
+    if (user.role === "ADMIN" && req.user?.role === "TRADER") {
+      if (reason && typeof reason === "string" && reason.trim()) {
+        await prisma.churnFeedback.create({
+          data: {
+            userId: req.user.id,
+            reason: reason.trim(),
+            feedback: typeof feedback === "string" && feedback.trim() ? feedback.trim() : null,
+            plan: typeof plan === "string" && plan.trim() ? plan.trim() : null,
+            userEmailSnapshot: user.email,
+            userNameSnapshot: getUserDisplayName(user),
+            source: "account-delete",
+          },
+        });
+      }
+
+      await wipeTraderSideDataForUser(user.id);
+
+      return res.json({
+        ok: true,
+        softDeleted: false,
+        traderSideWiped: true,
+      });
     }
 
     if (user.stripeCustomerId || user.stripeSubscriptionId || user.billingEvents.length > 0) {

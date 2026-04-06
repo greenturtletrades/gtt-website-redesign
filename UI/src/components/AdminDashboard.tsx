@@ -91,6 +91,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [adminActionMessage, setAdminActionMessage] = useState<string | null>(null);
   const [adminActionError, setAdminActionError] = useState<string | null>(null);
   const [adminActionPendingId, setAdminActionPendingId] = useState<string | null>(null);
+  const [openAdminActionMenuId, setOpenAdminActionMenuId] = useState<string | null>(null);
 
   const loadAdminData = async (isMounted = true) => {
     try {
@@ -542,6 +543,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       setStaffMembers((prev) => prev.map((item) => (item.id === staff.id ? response.staffMember : item)));
       await reloadTraders();
       setAdminActionMessage(`${staff.email} trader-side data wiped.`);
+      setOpenAdminActionMenuId(null);
     } catch (error) {
       setAdminActionError(error instanceof Error ? error.message : "Unable to wipe trader-side data.");
     } finally {
@@ -560,6 +562,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       const response = await promoteAdminToSuper(staff.id);
       setStaffMembers((prev) => prev.map((item) => (item.id === staff.id ? response.staffMember : item)));
       setAdminActionMessage(`${staff.email} promoted to Super Admin.`);
+      setOpenAdminActionMenuId(null);
     } catch (error) {
       setAdminActionError(error instanceof Error ? error.message : "Unable to promote admin access.");
     } finally {
@@ -588,6 +591,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
           ? `${staff.email} admin access removed and the account was kept as trader-only.`
           : `${staff.email} admin access removed.`,
       );
+      setOpenAdminActionMenuId(null);
     } catch (error) {
       setAdminActionError(error instanceof Error ? error.message : "Unable to remove admin access.");
     } finally {
@@ -1590,7 +1594,9 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         <td className="py-4 px-4">
                           <div>
                             <div className="text-slate-900">{staff.name}</div>
-                            <div className="text-slate-600 text-xs">{staff.email}</div>
+                            {!staff.email.endsWith("@deleted.local") && (
+                              <div className="text-slate-600 text-xs">{staff.email}</div>
+                            )}
                           </div>
                         </td>
                         <td className="py-4 px-4">{getRoleBadge(staff.role)}</td>
@@ -1598,7 +1604,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         <td className="py-4 px-4 text-slate-900 text-sm">{formatDate(staff.joinDate)}</td>
                         <td className="py-4 px-4 text-slate-600 text-sm">{formatDate(staff.lastActive)}</td>
                         <td className="py-4 px-4">
-                          <div className="flex flex-col items-start gap-2">
+                          <div className="relative flex flex-col items-start gap-2">
                             <span className="text-xs text-slate-500">
                               {staff.source === "environment" ? "Env admin" : "Database admin"}
                             </span>
@@ -1607,38 +1613,49 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                 Trader access enabled
                               </span>
                             )}
-                            <div className="flex flex-wrap gap-2">
-                              {staff.billingExemptReason && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleWipeAdminTraderSide(staff)}
-                                  disabled={adminActionPendingId === staff.id || staff.source === "environment"}
-                                  className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs text-amber-700 transition-colors hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-70"
-                                >
-                                  {adminActionPendingId === staff.id ? "Working..." : "Delete Trader Account"}
-                                </button>
-                              )}
-                              {staff.role === "admin" && (
-                                <button
-                                  type="button"
-                                  onClick={() => handlePromoteAdmin(staff)}
-                                  disabled={adminActionPendingId === staff.id || staff.source === "environment"}
-                                  className="rounded-lg border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs text-purple-700 transition-colors hover:bg-purple-100 disabled:cursor-not-allowed disabled:opacity-70"
-                                >
-                                  {adminActionPendingId === staff.id ? "Working..." : "Promote Admin Access"}
-                                </button>
-                              )}
-                              {staff.source !== "environment" && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveAdminAccess(staff)}
-                                  disabled={adminActionPendingId === staff.id}
-                                  className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-700 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-70"
-                                >
-                                  {adminActionPendingId === staff.id ? "Working..." : "Delete Admin Access"}
-                                </button>
-                              )}
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setOpenAdminActionMenuId((current) => (current === staff.id ? null : staff.id))
+                              }
+                              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-700 transition-colors hover:bg-slate-100"
+                            >
+                              Actions
+                            </button>
+                            {openAdminActionMenuId === staff.id && (
+                              <div className="absolute right-0 top-full z-20 mt-2 w-56 rounded-lg border border-slate-200 bg-white p-2 shadow-xl">
+                                {staff.billingExemptReason && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleWipeAdminTraderSide(staff)}
+                                    disabled={adminActionPendingId === staff.id || staff.source === "environment"}
+                                    className="block w-full rounded-md px-3 py-2 text-left text-sm text-amber-700 transition-colors hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-70"
+                                  >
+                                    {adminActionPendingId === staff.id ? "Working..." : "Delete Trader Account"}
+                                  </button>
+                                )}
+                                {staff.role === "admin" && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handlePromoteAdmin(staff)}
+                                    disabled={adminActionPendingId === staff.id || staff.source === "environment"}
+                                    className="block w-full rounded-md px-3 py-2 text-left text-sm text-purple-700 transition-colors hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-70"
+                                  >
+                                    {adminActionPendingId === staff.id ? "Working..." : "Promote Admin Access"}
+                                  </button>
+                                )}
+                                {staff.source !== "environment" && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveAdminAccess(staff)}
+                                    disabled={adminActionPendingId === staff.id}
+                                    className="block w-full rounded-md px-3 py-2 text-left text-sm text-red-700 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-70"
+                                  >
+                                    {adminActionPendingId === staff.id ? "Working..." : "Delete Admin Access"}
+                                  </button>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </td>
                       </tr>
