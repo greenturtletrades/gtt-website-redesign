@@ -1296,7 +1296,8 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <h3 className="text-sm text-red-900">Reset Non-Admin Environment</h3>
                   <p className="mt-1 text-sm text-red-700">
                     This wipes all trader accounts, test traders, deleted trader accounts, trader applications,
-                    and landing-page waitlist signups. Admin accounts remain intact.
+                    and landing-page waitlist signups. If an admin account had trader access enabled, its trader-side
+                    data is also cleared without removing the admin account itself.
                   </p>
                   <form onSubmit={handleWipeNonAdminData} className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end">
                     <div className="flex-1">

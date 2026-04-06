@@ -4197,14 +4197,162 @@ app.post("/api/admin/wipe-non-admin-data", authRequired, adminRequired, async (r
       });
     }
 
-    const [waitlistEntriesDeleted, traderApplicationsDeleted, traderUsersDeleted] =
-      await prisma.$transaction([
-        prisma.waitlistEntry.deleteMany({}),
-        prisma.traderApplication.deleteMany({}),
-        prisma.user.deleteMany({
-          where: { role: "TRADER" },
-        }),
-      ]);
+    const adminUsers = await prisma.user.findMany({
+      where: {
+        role: {
+          in: Array.from(staffPortalRoles),
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    const adminUserIds = adminUsers.map((user) => user.id);
+    const adminBrokerAccounts = adminUserIds.length
+      ? await prisma.brokerAccount.findMany({
+          where: {
+            userId: {
+              in: adminUserIds,
+            },
+          },
+          select: {
+            id: true,
+          },
+        })
+      : [];
+
+    const transactionSteps = [
+      prisma.waitlistEntry.deleteMany({}),
+      prisma.traderApplication.deleteMany({}),
+      prisma.user.deleteMany({
+        where: { role: "TRADER" },
+      }),
+      prisma.churnFeedback.deleteMany({
+        where: adminUserIds.length
+          ? {
+              userId: {
+                in: adminUserIds,
+              },
+            }
+          : {
+              userId: "__no_admin_users__",
+            },
+      }),
+      prisma.accountDeletionAudit.deleteMany({
+        where: adminUserIds.length
+          ? {
+              userId: {
+                in: adminUserIds,
+              },
+            }
+          : {
+              userId: "__no_admin_users__",
+            },
+      }),
+      prisma.billingEvent.deleteMany({
+        where: adminUserIds.length
+          ? {
+              userId: {
+                in: adminUserIds,
+              },
+            }
+          : {
+              userId: "__no_admin_users__",
+            },
+      }),
+      prisma.analysisRun.deleteMany({
+        where: adminUserIds.length
+          ? {
+              userId: {
+                in: adminUserIds,
+              },
+            }
+          : {
+              userId: "__no_admin_users__",
+            },
+      }),
+      prisma.analysisSnapshot.deleteMany({
+        where: adminUserIds.length
+          ? {
+              userId: {
+                in: adminUserIds,
+              },
+            }
+          : {
+              userId: "__no_admin_users__",
+            },
+      }),
+      prisma.storedTrade.deleteMany({
+        where: adminUserIds.length
+          ? {
+              userId: {
+                in: adminUserIds,
+              },
+            }
+          : {
+              userId: "__no_admin_users__",
+            },
+      }),
+      prisma.apiKey.deleteMany({
+        where: adminUserIds.length
+          ? {
+              userId: {
+                in: adminUserIds,
+              },
+            }
+          : {
+              userId: "__no_admin_users__",
+            },
+      }),
+      prisma.brokerAccount.deleteMany({
+        where: adminUserIds.length
+          ? {
+              userId: {
+                in: adminUserIds,
+              },
+            }
+          : {
+              userId: "__no_admin_users__",
+            },
+      }),
+      prisma.user.updateMany({
+        where: adminUserIds.length
+          ? {
+              id: {
+                in: adminUserIds,
+              },
+            }
+          : {
+              id: "__no_admin_users__",
+            },
+        data: {
+          billingExempt: false,
+          billingExemptReason: null,
+          appliedReferralCodeId: null,
+          accountDiscountPercent: null,
+          mlRunDiscountPercent: null,
+          referralDiscountExpiresAt: null,
+          stripeCustomerId: null,
+          stripeSubscriptionId: null,
+        },
+      }),
+    ];
+
+    const [
+      waitlistEntriesDeleted,
+      traderApplicationsDeleted,
+      traderUsersDeleted,
+      adminChurnDeleted,
+      adminDeletionAuditsDeleted,
+      adminBillingEventsDeleted,
+      adminAnalysisRunsDeleted,
+      adminAnalysisSnapshotsDeleted,
+      adminStoredTradesDeleted,
+      adminApiKeysDeleted,
+      adminBrokerAccountsDeleted,
+      adminUsersReset,
+    ] = await prisma.$transaction(transactionSteps);
 
     return res.json({
       ok: true,
@@ -4212,6 +4360,15 @@ app.post("/api/admin/wipe-non-admin-data", authRequired, adminRequired, async (r
         waitlistEntriesDeleted: waitlistEntriesDeleted.count,
         traderApplicationsDeleted: traderApplicationsDeleted.count,
         traderUsersDeleted: traderUsersDeleted.count,
+        adminUsersReset: adminUsersReset.count,
+        adminStoredTradesDeleted: adminStoredTradesDeleted.count,
+        adminAnalysisRunsDeleted: adminAnalysisRunsDeleted.count,
+        adminAnalysisSnapshotsDeleted: adminAnalysisSnapshotsDeleted.count,
+        adminBrokerAccountsDeleted: adminBrokerAccountsDeleted.count,
+        adminApiKeysDeleted: adminApiKeysDeleted.count,
+        adminBillingEventsDeleted: adminBillingEventsDeleted.count,
+        adminChurnDeleted: adminChurnDeleted.count,
+        adminDeletionAuditsDeleted: adminDeletionAuditsDeleted.count,
       },
     });
   } catch (err) {
