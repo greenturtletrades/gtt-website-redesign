@@ -46,7 +46,6 @@ interface SettingsPageProps {
   subscriptionStatus?: "active" | "paused" | "cancelling" | "not_started" | "trialing";
   onPauseSubscription?: () => void;
   onResumeSubscription?: () => void;
-  onCancelSubscription: (reason: string, feedback: string) => void;
 }
 
 function getFullName(firstName?: string | null, lastName?: string | null) {
@@ -60,7 +59,6 @@ export function SettingsPage({
   subscriptionStatus = "active",
   onPauseSubscription,
   onResumeSubscription,
-  onCancelSubscription,
 }: SettingsPageProps) {
   const [activeTab, setActiveTab] = useState<
     "account" | "subscription" | "ea-code" | "api-keys" | "referrals"
@@ -95,18 +93,9 @@ export function SettingsPage({
   const [openingBillingPortal, setOpeningBillingPortal] = useState(false);
   const [refreshingEaHealth, setRefreshingEaHealth] = useState(false);
   const [copiedValue, setCopiedValue] = useState<string | null>(null);
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [cancelReason, setCancelReason] = useState("");
-  const [cancelFeedback, setCancelFeedback] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteReason, setDeleteReason] = useState("");
   const [deleteFeedback, setDeleteFeedback] = useState("");
-
-  const cancelReasonsRequiringExplanation = new Set([
-    "technical-issues",
-    "missing-features",
-    "other",
-  ]);
 
   const deleteReasonsRequiringExplanation = new Set([
     "technical-issues",
@@ -649,10 +638,10 @@ export function SettingsPage({
                         </div>
 
                         <div className="rounded-lg border border-slate-200 bg-white p-5">
-                          <div className="text-sm text-slate-500">Billing Actions</div>
-                          <div className="mt-3 flex flex-wrap gap-3">
-                            <button
-                              onClick={handleUpdateBillingMethod}
+                        <div className="text-sm text-slate-500">Billing Actions</div>
+                        <div className="mt-3 flex flex-wrap gap-3">
+                          <button
+                            onClick={handleUpdateBillingMethod}
                               disabled={openingBillingPortal || billingSummary?.stripeConfigured === false}
                               className="rounded-lg bg-teal-600 px-4 py-2 text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
                             >
@@ -700,12 +689,21 @@ export function SettingsPage({
                             Resume Subscription
                           </button>
                         )}
-                        <button
-                          onClick={() => setShowCancelModal(true)}
-                          className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-red-600 transition-colors hover:bg-red-100"
-                        >
-                          Cancel Subscription
-                        </button>
+                      </div>
+
+                      <div className={`rounded-lg border p-5 ${
+                        liveSubscriptionStatus === "paused"
+                          ? "border-amber-200 bg-amber-50"
+                          : "border-slate-200 bg-slate-50"
+                      }`}>
+                        <div className="text-sm text-slate-500">
+                          {liveSubscriptionStatus === "paused" ? "Paused Subscription Access" : "Active Subscription Access"}
+                        </div>
+                        <p className="mt-2 text-sm text-slate-700">
+                          {liveSubscriptionStatus === "paused"
+                            ? "Platform billing is paused. You can still sign in and access your account, journal, and settings, but new ML model runs are disabled until you resume the subscription."
+                            : "Your subscription currently allows both account access and new ML model runs. Pause it any time to stop monthly billing while keeping login access to your account."}
+                        </p>
                       </div>
 
                       <div className="rounded-lg border border-slate-200 bg-slate-50 p-6">
@@ -1023,76 +1021,6 @@ export function SettingsPage({
           </div>
         </div>
       </div>
-
-      {showCancelModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg rounded-xl bg-white p-6">
-            <h3 className="text-xl text-slate-900">Cancel Subscription</h3>
-            <p className="mt-2 text-sm text-slate-600">
-              This schedules cancellation at period end and stores your feedback for the admin panel.
-            </p>
-            <div className="mt-4 space-y-3">
-              {[
-                ["too-expensive", "Too expensive"],
-                ["not-using", "Not using it enough"],
-                ["technical-issues", "Technical issues or bugs"],
-                ["missing-features", "Missing features I need"],
-                ["other", "Other reason"],
-              ].map(([value, label]) => (
-                <label key={value} className={`flex items-center gap-3 rounded-lg border-2 p-3 ${cancelReason === value ? "border-teal-600 bg-teal-50" : "border-slate-200"}`}>
-                  <input
-                    type="radio"
-                    checked={cancelReason === value}
-                    onChange={() => setCancelReason(value)}
-                  />
-                  <span className="text-sm text-slate-900">{label}</span>
-                </label>
-              ))}
-              <textarea
-                rows={4}
-                value={cancelFeedback}
-                onChange={(e) => setCancelFeedback(e.target.value)}
-                placeholder={
-                  cancelReasonsRequiringExplanation.has(cancelReason)
-                    ? "Please explain so we can improve this"
-                    : "Optional feedback"
-                }
-                className="w-full rounded-lg border border-slate-300 px-4 py-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
-              />
-            </div>
-            <div className="mt-6 flex gap-3">
-              <button
-                onClick={() => setShowCancelModal(false)}
-                className="flex-1 rounded-lg bg-slate-100 px-4 py-2 text-slate-700 hover:bg-slate-200"
-              >
-                Keep Subscription
-              </button>
-              <button
-                onClick={() => {
-                  if (!cancelReason) {
-                    setPageError("Please select a cancellation reason.");
-                    return;
-                  }
-                  if (
-                    cancelReasonsRequiringExplanation.has(cancelReason) &&
-                    !cancelFeedback.trim()
-                  ) {
-                    setPageError("Please add a short explanation for this cancellation reason.");
-                    return;
-                  }
-                  onCancelSubscription(cancelReason, cancelFeedback);
-                  setShowCancelModal(false);
-                  setCancelReason("");
-                  setCancelFeedback("");
-                }}
-                className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
-              >
-                Confirm Cancellation
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

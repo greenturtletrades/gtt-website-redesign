@@ -805,6 +805,39 @@ async function getStripeSubscriptionForUser(userId) {
   return { stripe, user, subscription };
 }
 
+async function assertMlAnalysisAccess(userId) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      billingExempt: true,
+      billingExemptReason: true,
+      stripeSubscriptionId: true,
+    },
+  });
+
+  if (!user) {
+    const error = new Error("User not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (isBillingExemptUser(user) || !user.stripeSubscriptionId || !process.env.STRIPE_SECRET_KEY) {
+    return;
+  }
+
+  const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+  const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+
+  if (subscription?.pause_collection) {
+    const error = new Error(
+      "Your subscription is paused. Resume it in Settings to run the ML model again."
+    );
+    error.statusCode = 403;
+    throw error;
+  }
+}
+
 function formatStripePaymentMethod(paymentMethod) {
   if (!paymentMethod || paymentMethod.object !== "payment_method" || paymentMethod.type !== "card") {
     return null;
@@ -5817,6 +5850,8 @@ app.delete("/api/account/analysis-data", authRequired, async (req, res, next) =>
 app.post("/api/analyse/csv", authRequired, async (req, res, next) => {
   let analysisRun = null;
   try {
+    await assertMlAnalysisAccess(req.user.id);
+
     const tradeCount = 500;
     const mode = "trades";
     const replaceDataset =
@@ -5973,6 +6008,8 @@ app.post("/api/analyse/csv", authRequired, async (req, res, next) => {
 app.post("/api/analyse", authRequired, async (req, res, next) => {
   let analysisRun = null;
   try {
+    await assertMlAnalysisAccess(req.user.id);
+
     const { tradeCount = 500, months = 12, mode = "trades" } = req.body || {};
 
     const brokerAccounts = await prisma.brokerAccount.findMany({

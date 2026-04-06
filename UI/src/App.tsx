@@ -19,7 +19,7 @@ import { TraderApplicationStatus } from "./components/onboarding/TraderApplicati
 import { logout } from "./api/auth";
 import { ApiError, clearStoredToken } from "./api/client";
 import { fetchAccountState } from "./api/settings";
-import { cancelSubscription, createCheckoutSession, pauseSubscription, resumeSubscription } from "./api/subscription";
+import { createCheckoutSession, pauseSubscription, resumeSubscription } from "./api/subscription";
 import { type TraderApplicationStatus as ApplicationStatus } from "./api/traderApplication";
 
 export type UserType = "trader" | "admin" | null;
@@ -315,17 +315,6 @@ export default function App() {
     }
   };
 
-  const handleCancelSubscription = async (reason: string, feedback: string) => {
-    try {
-      const response = await cancelSubscription(reason, feedback, selectedSubscriptionPlan);
-      setSubscriptionStatus(response.subscriptionStatus === "cancelling" ? "cancelling" : "active");
-      alert("Subscription cancellation scheduled. Access will remain active until the current billing period ends.");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to cancel subscription.";
-      alert(`Unable to cancel subscription right now.\n\n${message}`);
-    }
-  };
-
   const handleNavigateLegal = (page: "terms" | "privacy" | "risk-disclosure") => {
     setCurrentView(page);
   };
@@ -372,9 +361,12 @@ export default function App() {
           <TurtleAnalytics 
             userType={userType} 
             subscriptionTier={selectedSubscriptionPlan || "payg"}
+            subscriptionStatus={subscriptionStatus}
             onSignUp={handleTraderClick} 
             onLogout={handleLogout}
             onSettings={handleOpenSettings}
+            onPauseSubscription={handlePauseSubscription}
+            onResumeSubscription={handleResumeSubscription}
           />
         ) : (
           <TurtleAnalyticsWelcome onSignUp={handleTraderSignUp} onSignIn={handleTraderClick} />
@@ -395,7 +387,6 @@ export default function App() {
           userEmail={currentUserEmail}
           currentPlan={selectedSubscriptionPlan}
           subscriptionStatus={subscriptionStatus}
-          onCancelSubscription={handleCancelSubscription}
           onPauseSubscription={handlePauseSubscription}
           onResumeSubscription={handleResumeSubscription}
         />

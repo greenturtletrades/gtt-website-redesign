@@ -12,12 +12,23 @@ import { fetchAccountState } from "../api/settings";
 interface TurtleAnalyticsProps {
   userType: UserType;
   subscriptionTier?: "payg" | "premium";
+  subscriptionStatus?: "active" | "paused" | "cancelling" | "not_started" | "trialing";
   onSignUp?: () => void;
   onLogout?: () => void;
   onSettings?: () => void;
+  onPauseSubscription?: () => void;
+  onResumeSubscription?: () => void;
 }
 
-export function TurtleAnalytics({ userType, subscriptionTier = "payg", onSignUp, onLogout }: TurtleAnalyticsProps) {
+export function TurtleAnalytics({
+  userType,
+  subscriptionTier = "payg",
+  subscriptionStatus = "not_started",
+  onSignUp,
+  onLogout,
+  onPauseSubscription,
+  onResumeSubscription,
+}: TurtleAnalyticsProps) {
   const API_BASE = (import.meta.env.VITE_API_BASE as string) || "";
   const authHeaders = getAuthHeaders();
   const authJsonHeaders = getAuthHeaders({ "Content-Type": "application/json" });
@@ -835,6 +846,7 @@ export function TurtleAnalytics({ userType, subscriptionTier = "payg", onSignUp,
   const maxTradeSelection = Math.max(minTradeSelection, analysisOptions.availableTradeCount || minTradeSelection);
   const effectiveTradeCount = Math.min(Math.max(selectedTradeCount, minTradeSelection), maxTradeSelection);
   const canRunTradeAnalysis = analysisOptions.availableTradeCount >= minTradeSelection;
+  const isSubscriptionPaused = subscriptionStatus === "paused";
   const referralDiscountFactor = Math.max(0, 1 - (analysisOptions.mlRunDiscountPercent || 0) / 100);
   const estimatedModalCost =
     analysisMode === "trades"
@@ -1308,10 +1320,14 @@ export function TurtleAnalytics({ userType, subscriptionTier = "payg", onSignUp,
             ) : (
               <div className="flex flex-col items-center gap-3">
                 <button
-                  onClick={() => setShowRunModelModal(true)}
-                  disabled={isRunningModel}
+                  onClick={() => {
+                    if (!isSubscriptionPaused) {
+                      setShowRunModelModal(true);
+                    }
+                  }}
+                  disabled={isRunningModel || isSubscriptionPaused}
                   className={`px-8 py-3 rounded-lg transition-all flex items-center gap-2 ${
-                    isRunningModel
+                    isRunningModel || isSubscriptionPaused
                       ? "bg-slate-400 text-white cursor-not-allowed"
                       : "bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:from-teal-700 hover:to-cyan-700 shadow-lg hover:shadow-xl"
                   }`}
@@ -1332,6 +1348,11 @@ export function TurtleAnalytics({ userType, subscriptionTier = "payg", onSignUp,
                   <Clock className="w-3.5 h-3.5" />
                   Last run: {getTimeSinceLastRun()}
                 </div>
+                {isSubscriptionPaused && (
+                  <div className="max-w-sm rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-center text-xs text-amber-800">
+                    Subscription paused. You can still access your account, but new ML model runs are locked until you resume billing in Settings.
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1346,7 +1367,9 @@ export function TurtleAnalytics({ userType, subscriptionTier = "payg", onSignUp,
           userName={currentUserName}
           userEmail={currentUserEmail}
           currentPlan={subscriptionTier}
-          onCancelSubscription={() => {}}
+          subscriptionStatus={subscriptionStatus}
+          onPauseSubscription={onPauseSubscription}
+          onResumeSubscription={onResumeSubscription}
         />
       ) : activeTab === "guide" ? (
         <section className="max-w-5xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
@@ -2703,6 +2726,12 @@ export function TurtleAnalytics({ userType, subscriptionTier = "payg", onSignUp,
                 </div>
               )}
 
+              {isSubscriptionPaused && (
+                <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  Your subscription is paused. Account access stays active, but new ML model runs are disabled until you resume the subscription in Settings.
+                </div>
+              )}
+
               {/* Trade Count Slider */}
               {analysisMode === "trades" && (
                 <div className="mb-6">
@@ -3058,14 +3087,22 @@ export function TurtleAnalytics({ userType, subscriptionTier = "payg", onSignUp,
                 </button>
                 <button
                   onClick={handleRunModel}
-                  disabled={(analysisMode === "csv" && !csvFile) || (analysisMode === "trades" && !canRunTradeAnalysis)}
+                  disabled={
+                    isSubscriptionPaused ||
+                    (analysisMode === "csv" && !csvFile) ||
+                    (analysisMode === "trades" && !canRunTradeAnalysis)
+                  }
                   className={`px-8 py-3 rounded-lg shadow-lg transition-all flex items-center gap-2 ${
-                    (analysisMode === "csv" && !csvFile) || (analysisMode === "trades" && !canRunTradeAnalysis)
+                    isSubscriptionPaused ||
+                    (analysisMode === "csv" && !csvFile) ||
+                    (analysisMode === "trades" && !canRunTradeAnalysis)
                       ? 'bg-slate-400 text-slate-200 cursor-not-allowed'
                       : 'bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:from-teal-700 hover:to-cyan-700'
                   }`}
                   title={
-                    analysisMode === "csv" && !csvFile
+                    isSubscriptionPaused
+                      ? 'Resume your subscription to run the ML model'
+                      : analysisMode === "csv" && !csvFile
                       ? 'Please select a CSV file'
                       : analysisMode === "trades" && !canRunTradeAnalysis
                         ? 'At least 10 exported MetaTrader trades are required'
