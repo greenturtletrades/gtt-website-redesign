@@ -915,6 +915,52 @@ export function SettingsPage({
                           </button>
                         </div>
                       </div>
+
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-5">
+                        <div className="mb-3 text-slate-900">How To Connect The EA In MetaTrader</div>
+                        <div className="space-y-4 text-sm text-slate-700">
+                          <div className="rounded-lg border border-slate-200 bg-white p-4">
+                            <div className="text-slate-900">1. Install the EA file</div>
+                            <p className="mt-1 text-slate-600">
+                              Download the MT4 or MT5 EA above, then place the file in your platform&apos;s <span className="font-mono">Experts</span> folder and restart MetaTrader if needed.
+                            </p>
+                          </div>
+
+                          <div className="rounded-lg border border-slate-200 bg-white p-4">
+                            <div className="text-slate-900">2. Allow web requests to the backend</div>
+                            <p className="mt-1 text-slate-600">
+                              In MetaTrader go to <span className="font-mono">Tools → Options → Expert Advisors</span>, tick <span className="font-mono">Allow WebRequest for listed URL</span>, and add the backend public domain shown in EA diagnostics.
+                            </p>
+                            <p className="mt-2 text-slate-600">
+                              Use this exact backend URL:
+                            </p>
+                            <div className="mt-2 rounded bg-slate-100 px-3 py-2 font-mono text-xs text-slate-800 break-all">
+                              {eaDiagnostics?.expected.apiBaseUrl || "Backend URL unavailable"}
+                            </div>
+                          </div>
+
+                          <div className="rounded-lg border border-slate-200 bg-white p-4">
+                            <div className="text-slate-900">3. Attach the EA to a chart</div>
+                            <p className="mt-1 text-slate-600">
+                              Open any active chart in MetaTrader, drag the EA onto the chart, and enable <span className="font-mono">Algo Trading</span> / <span className="font-mono">AutoTrading</span> so the EA can respond to export requests.
+                            </p>
+                          </div>
+
+                          <div className="rounded-lg border border-slate-200 bg-white p-4">
+                            <div className="text-slate-900">4. Keep the terminal running</div>
+                            <p className="mt-1 text-slate-600">
+                              The EA only sends trade history when the terminal is open, logged into the correct broker account, and the EA is still attached to the chart.
+                            </p>
+                          </div>
+
+                          <div className="rounded-lg border border-slate-200 bg-white p-4">
+                            <div className="text-slate-900">5. Run analysis from this platform</div>
+                            <p className="mt-1 text-slate-600">
+                              When you press <span className="font-mono">Run Model Analysis</span>, the backend requests a fresh history export from MetaTrader. If no new trades appear, check the EA health panel above, confirm the WebRequest URL, and make sure the EA is attached to a live chart.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
 
