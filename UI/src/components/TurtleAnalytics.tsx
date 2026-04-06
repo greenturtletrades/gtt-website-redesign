@@ -3034,14 +3034,15 @@ export function TurtleAnalytics({
               <div className="p-4 bg-teal-50 border border-teal-200 rounded-lg">
                 <div className="flex items-start gap-2">
                   <Clock className="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <div className="text-teal-900 text-sm mb-1">Estimated Processing Time</div>
-                    <p className="text-teal-700 text-xs">
-                      {analysisMode === "trades" 
+                    <div>
+                      <div className="text-teal-900 text-sm mb-1">Estimated Processing Time</div>
+                      <p className="text-teal-700 text-xs">
+                      {analysisMode === "trades"
                         ? `~${Math.ceil(effectiveTradeCount / 100)} seconds for ${effectiveTradeCount} trades`
-                        : `~${Math.ceil(selectedMonths * 0.5)} seconds for ${selectedMonths} months of data`
-                      }
-                    </p>
+                        : analysisMode === "months"
+                          ? `~${Math.ceil(selectedMonths * 0.5)} seconds for ${selectedMonths} months of data`
+                          : "Depends on the number of trades found in the uploaded CSV"}
+                      </p>
                     <p className="text-teal-600 text-xs mt-1">
                       Processing time depends on the exported trade set and the optimisation workload generated for this run.
                     </p>
@@ -3057,10 +3058,11 @@ export function TurtleAnalytics({
                     <div className="flex-1">
                       <div className="text-amber-900 text-sm mb-1">Estimated Cost</div>
                       <p className="text-amber-700 text-xs mb-2">
-                        {analysisMode === "trades" 
+                        {analysisMode === "trades"
                           ? `£${estimatedModalCost.toFixed(2)} for ${effectiveTradeCount} trades`
-                          : `£${estimatedModalCost.toFixed(2)} for ~${Math.round(selectedMonths * 47)} trades (${selectedMonths} months)`
-                        }
+                          : analysisMode === "months"
+                            ? `£${estimatedModalCost.toFixed(2)} for ~${Math.round(selectedMonths * 47)} trades (${selectedMonths} months)`
+                            : "£0.20 per trade analysed from the uploaded CSV"}
                       </p>
                       <div className="text-amber-600 text-xs">
                         Final cost is calculated from your account pricing and any active ML-run referral discount.
