@@ -4334,43 +4334,12 @@ app.delete("/api/admin/test-traders/:id", authRequired, staffWriteRequired, asyn
     const existing = await prisma.user.findUnique({
       where: { id },
       include: {
-        brokerAccounts: {
-          include: {
-            eaEvents: {
-              select: { id: true },
-              take: 1,
-            },
-          },
-        },
-        _count: {
-          select: {
-            storedTrades: true,
-            analysisRuns: true,
-            analysisSnapshots: true,
-            apiKeys: true,
-          },
-        },
+        profile: true,
       },
     });
 
     if (!existing || existing.role !== "TRADER" || !existing.billingExempt) {
       return res.status(404).json({ ok: false, error: "Test trader not found" });
-    }
-
-    const hasEaEvents = existing.brokerAccounts.some((account) => account.eaEvents.length > 0);
-    const hasBrokerAccounts = existing.brokerAccounts.length > 0;
-    const hasData =
-      existing._count.storedTrades > 0 ||
-      existing._count.analysisRuns > 0 ||
-      existing._count.analysisSnapshots > 0 ||
-      existing._count.apiKeys > 0 ||
-      hasEaEvents;
-
-    if (hasData || hasBrokerAccounts) {
-      return res.status(409).json({
-        ok: false,
-        error: "Only empty internal test accounts can be removed. Disable the login instead for accounts that already have connected data.",
-      });
     }
 
     await prisma.user.delete({

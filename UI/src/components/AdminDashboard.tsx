@@ -92,6 +92,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [adminActionError, setAdminActionError] = useState<string | null>(null);
   const [adminActionPendingId, setAdminActionPendingId] = useState<string | null>(null);
   const [openAdminActionMenuId, setOpenAdminActionMenuId] = useState<string | null>(null);
+  const [openTestTraderActionMenuId, setOpenTestTraderActionMenuId] = useState<string | null>(null);
 
   const loadAdminData = async (isMounted = true) => {
     try {
@@ -495,6 +496,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       setTestTraderMessage(
         `${staff.email} ${enabling ? "enabled" : "disabled"}.`
       );
+      setOpenTestTraderActionMenuId(null);
     } catch (error) {
       setTestTraderActionError(error instanceof Error ? error.message : "Unable to update test trader access.");
     } finally {
@@ -519,6 +521,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       setTraders((prev) => prev.filter((item) => item.id !== trader.id));
       setStaffMembers((prev) => prev.filter((item) => item.id !== trader.id));
       setTestTraderMessage(`${trader.email} removed.`);
+      setOpenTestTraderActionMenuId(null);
     } catch (error) {
       setTestTraderActionError(error instanceof Error ? error.message : "Unable to remove test trader.");
     } finally {
@@ -1698,26 +1701,52 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         <td className="py-4 px-4 text-slate-900 text-sm">{formatDate(staff.joinDate)}</td>
                         <td className="py-4 px-4 text-slate-600 text-sm">{formatDate(staff.lastActive)}</td>
                         <td className="py-4 px-4">
-                          <div className="flex flex-col items-start gap-2">
+                          <div className="relative flex flex-col items-start gap-2">
                             <span className="text-xs text-slate-500">
                               {staff.billingExemptReason || "Billing-exempt internal test account"}
                             </span>
                             <button
                               type="button"
-                              onClick={() => handleToggleTestTraderAccess(staff)}
-                              disabled={testTraderActionPendingId === staff.id}
-                              className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${
-                                staff.status === "ACTIVE"
-                                  ? "border border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-                                  : "border border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
-                              } disabled:cursor-not-allowed disabled:opacity-70`}
+                              onClick={() =>
+                                setOpenTestTraderActionMenuId((current) => (current === staff.id ? null : staff.id))
+                              }
+                              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-700 transition-colors hover:bg-slate-100"
                             >
-                              {testTraderActionPendingId === staff.id
-                                ? "Updating..."
-                                : staff.status === "ACTIVE"
-                                  ? "Disable Login"
-                                  : "Enable Login"}
+                              Actions
                             </button>
+                            {openTestTraderActionMenuId === staff.id && (
+                              <div className="absolute right-0 top-full z-20 mt-2 w-56 rounded-lg border border-slate-200 bg-white p-2 shadow-xl">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleTestTraderAccess(staff)}
+                                  disabled={testTraderActionPendingId === staff.id}
+                                  className={`block w-full rounded-md px-3 py-2 text-left text-sm transition-colors ${
+                                    staff.status === "ACTIVE"
+                                      ? "text-red-700 hover:bg-red-50"
+                                      : "text-green-700 hover:bg-green-50"
+                                  } disabled:cursor-not-allowed disabled:opacity-70`}
+                                >
+                                  {testTraderActionPendingId === staff.id
+                                    ? "Working..."
+                                    : staff.status === "ACTIVE"
+                                      ? "Disable Login"
+                                      : "Enable Login"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const linkedTrader = traders.find((item) => item.id === staff.id);
+                                    if (linkedTrader) {
+                                      void handleDeleteEmptyTestTrader(linkedTrader);
+                                    }
+                                  }}
+                                  disabled={testTraderActionPendingId === staff.id}
+                                  className="block w-full rounded-md px-3 py-2 text-left text-sm text-red-700 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-70"
+                                >
+                                  {testTraderActionPendingId === staff.id ? "Working..." : "Delete Account"}
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </td>
                       </tr>
