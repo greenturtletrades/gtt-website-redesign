@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, Activity, Target, Clock, AlertTriangle, Zap, RefreshCw, Brain, CheckCircle, Award, Shield, XCircle, Calendar, Percent, BarChart3, TrendingUpDown, Layers, Settings, GitBranch, Filter, BookOpen, Sparkles, Lock, ChevronRight, Maximize2, Minimize2, X, PoundSterling, ChevronDown, ChevronUp } from "lucide-react";
+import { TrendingUp, TrendingDown, Activity, Target, Clock, AlertTriangle, Zap, RefreshCw, Brain, CheckCircle, Award, Shield, XCircle, Calendar, Percent, BarChart3, TrendingUpDown, Layers, Settings, GitBranch, Filter, BookOpen, Sparkles, Lock, ChevronRight, Maximize2, Minimize2, X, PoundSterling, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { UserType } from "../App";
 import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Cell, PieChart, Pie, ComposedChart, ReferenceLine } from "recharts";
 import { useState, useEffect, useMemo } from "react";
@@ -625,9 +625,11 @@ export function TurtleAnalytics({
     dateRangeEnd: Date;
     cost: number;
     status: "completed" | "running" | "failed";
+    deletedData?: boolean;
   }
   
   const [modelRunHistory, setModelRunHistory] = useState<ModelRunLog[]>([]);
+  const [deletingRunId, setDeletingRunId] = useState<string | null>(null);
 
   const mapRunHistoryItem = (item: any): ModelRunLog => ({
     id: String(item.id),
@@ -640,6 +642,7 @@ export function TurtleAnalytics({
     dateRangeStart: item.dateRangeStart ? new Date(item.dateRangeStart) : (item.createdAt ? new Date(item.createdAt) : new Date()),
     dateRangeEnd: item.dateRangeEnd ? new Date(item.dateRangeEnd) : (item.createdAt ? new Date(item.createdAt) : new Date()),
     cost: typeof item.cost === "number" ? item.cost : 0,
+    deletedData: item.deletedData === true,
     status:
       item.status === "completed" || item.status === "running" || item.status === "failed"
         ? item.status
@@ -758,6 +761,36 @@ export function TurtleAnalytics({
       setRunHistoryError(err instanceof Error ? err.message : "Saved analysis data could not be cleared.");
     } finally {
       setIsClearingAnalysisData(false);
+    }
+  };
+
+  const handleDeleteRunData = async (runId: string) => {
+    const confirmed = window.confirm(
+      "Delete the saved model data for this run? The run record and cost will stay in history, but the linked report data will be removed."
+    );
+    if (!confirmed) return;
+
+    setDeletingRunId(runId);
+    setRunHistoryError(null);
+
+    try {
+      const response = await fetch(`${API_BASE}/api/analyse/history/${encodeURIComponent(runId)}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: authHeaders,
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || "Saved analysis data could not be deleted for this run.");
+      }
+
+      await loadPersistedAccountState();
+    } catch (err) {
+      setRunHistoryError(
+        err instanceof Error ? err.message : "Saved analysis data could not be deleted for this run."
+      );
+    } finally {
+      setDeletingRunId(null);
     }
   };
   
@@ -1662,12 +1695,22 @@ export function TurtleAnalytics({
                                   Latest
                                 </span>
                               )}
+                              {run.deletedData && (
+                                <span className="px-2 py-0.5 bg-slate-200 text-slate-700 text-xs rounded-full">
+                                  Data deleted
+                                </span>
+                              )}
                             </div>
                             <div className="text-xs text-slate-600">
                               {run.dateRangeStart.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                               {' → '}
                               {run.dateRangeEnd.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </div>
+                            {run.deletedData && (
+                              <div className="mt-2 text-xs text-slate-500">
+                                Saved report data was removed for this run. The billed ML run record remains in your history.
+                              </div>
+                            )}
                           </div>
                           <div className="text-right flex-shrink-0">
                             <div className="text-slate-900 text-sm">
@@ -1676,6 +1719,18 @@ export function TurtleAnalytics({
                             <div className="text-slate-500 text-xs">
                               {run.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                             </div>
+                            <button
+                              onClick={() => handleDeleteRunData(run.id)}
+                              disabled={run.status === "running" || run.deletedData || deletingRunId === run.id}
+                              className={`mt-3 inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs transition-colors ${
+                                run.status === "running" || run.deletedData || deletingRunId === run.id
+                                  ? "cursor-not-allowed bg-slate-200 text-slate-500"
+                                  : "bg-rose-50 text-rose-700 hover:bg-rose-100"
+                              }`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              {deletingRunId === run.id ? "Deleting..." : run.deletedData ? "Data Deleted" : "Delete Data"}
+                            </button>
                           </div>
                         </div>
 

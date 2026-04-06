@@ -1357,6 +1357,8 @@ function buildJournalEntryMatchKey(entry) {
   ].join("|");
 }
 
+const ANALYSIS_DATA_DELETED_MARKER = "__REPORT_DATA_DELETED__";
+
 function formatAnalysisRun(run) {
   return {
     id: run.id,
@@ -1368,7 +1370,8 @@ function formatAnalysisRun(run) {
     periodDescription: run.periodDescription,
     dateRangeStart: run.dateRangeStart ? run.dateRangeStart.toISOString() : null,
     dateRangeEnd: run.dateRangeEnd ? run.dateRangeEnd.toISOString() : null,
-    error: run.error || null,
+    error: run.error === ANALYSIS_DATA_DELETED_MARKER ? null : run.error || null,
+    deletedData: run.error === ANALYSIS_DATA_DELETED_MARKER,
     createdAt: run.createdAt.toISOString(),
     updatedAt: run.updatedAt.toISOString(),
     completedAt: run.completedAt ? run.completedAt.toISOString() : null,
@@ -5722,6 +5725,68 @@ app.get("/api/analyse/history", authRequired, async (req, res, next) => {
   try {
     const { history } = await buildAccountStatePayload(req.user.id);
     return res.json({ ok: true, history });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.delete("/api/analyse/history/:runId", authRequired, async (req, res, next) => {
+  try {
+    const runId = String(req.params.runId || "").trim();
+    if (!runId) {
+      return res.status(400).json({ ok: false, error: "Analysis run id is required." });
+    }
+
+    const run = await prisma.analysisRun.findFirst({
+      where: { id: runId, userId: req.user.id },
+      select: {
+        id: true,
+        status: true,
+        analysisSnapshotId: true,
+        cost: true,
+      },
+    });
+
+    if (!run) {
+      return res.status(404).json({ ok: false, error: "Analysis run not found." });
+    }
+
+    if (run.status === "RUNNING") {
+      return res.status(400).json({ ok: false, error: "A running analysis cannot be deleted." });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.analysisRun.update({
+        where: { id: run.id },
+        data: {
+          analysisSnapshotId: null,
+          error: ANALYSIS_DATA_DELETED_MARKER,
+        },
+      });
+
+      if (run.analysisSnapshotId) {
+        const remainingLinkedRuns = await tx.analysisRun.count({
+          where: {
+            analysisSnapshotId: run.analysisSnapshotId,
+            id: { not: run.id },
+          },
+        });
+
+        if (remainingLinkedRuns === 0) {
+          await tx.analysisSnapshot.deleteMany({
+            where: { id: run.analysisSnapshotId, userId: req.user.id },
+          });
+        }
+      }
+    });
+
+    return res.json({
+      ok: true,
+      runId: run.id,
+      cost: run.cost ?? null,
+      deletedData: true,
+      message: "Saved analysis data was deleted for this run, but the billed run record was kept.",
+    });
   } catch (err) {
     return next(err);
   }
