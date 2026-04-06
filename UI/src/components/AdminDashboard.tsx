@@ -32,10 +32,11 @@ import {
 } from "../api/admin";
 
 interface AdminDashboardProps {
+  currentAdminIsSuperAdmin: boolean;
   onLogout: () => void;
 }
 
-export function AdminDashboard({ onLogout }: AdminDashboardProps) {
+export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDashboardProps) {
   const [activeSection, setActiveSection] = useState<"overview" | "signups" | "finance" | "staff" | "churn" | "audits" | "guide">("overview");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTrader, setSelectedTrader] = useState<AdminTrader | null>(null);
@@ -93,6 +94,12 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [adminActionPendingId, setAdminActionPendingId] = useState<string | null>(null);
   const [openAdminActionMenuId, setOpenAdminActionMenuId] = useState<string | null>(null);
   const [openTestTraderActionMenuId, setOpenTestTraderActionMenuId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!currentAdminIsSuperAdmin && inviteAccessLevel === "super_admin") {
+      setInviteAccessLevel("admin");
+    }
+  }, [currentAdminIsSuperAdmin, inviteAccessLevel]);
 
   const loadAdminData = async (isMounted = true) => {
     try {
@@ -1535,7 +1542,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-teal-500"
                     >
                       <option value="admin">Admin</option>
-                      <option value="super_admin">Super Admin</option>
+                      {currentAdminIsSuperAdmin && <option value="super_admin">Super Admin</option>}
                     </select>
                   </div>
                   <div className="flex items-end gap-2">
@@ -1637,7 +1644,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                     {adminActionPendingId === staff.id ? "Working..." : "Delete Trader Account"}
                                   </button>
                                 )}
-                                {staff.role === "admin" && (
+                                {currentAdminIsSuperAdmin && staff.role === "admin" && (
                                   <button
                                     type="button"
                                     onClick={() => handlePromoteAdmin(staff)}
@@ -1647,7 +1654,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                     {adminActionPendingId === staff.id ? "Working..." : "Promote Admin Access"}
                                   </button>
                                 )}
-                                {staff.source !== "environment" && (
+                                {currentAdminIsSuperAdmin && staff.source !== "environment" && (
                                   <button
                                     type="button"
                                     onClick={() => handleRemoveAdminAccess(staff)}

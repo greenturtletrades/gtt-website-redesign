@@ -140,6 +140,7 @@ export interface AccountStateResponse {
     id: string;
     email: string;
     role: "TRADER" | "ADMIN";
+    isSuperAdmin?: boolean;
     status: "ACTIVE" | "PENDING" | "DISABLED";
     plan: "payg" | null;
     billingExempt?: boolean;

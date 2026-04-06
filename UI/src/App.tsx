@@ -54,6 +54,7 @@ export default function App() {
   const [applicationRejectionReason, setApplicationRejectionReason] = useState<string | null>(null);
   const [currentUserName, setCurrentUserName] = useState("");
   const [currentUserEmail, setCurrentUserEmail] = useState("");
+  const [currentAdminIsSuperAdmin, setCurrentAdminIsSuperAdmin] = useState(false);
 
   // Set viewport meta tag to enable desktop layout on mobile
   useEffect(() => {
@@ -103,9 +104,11 @@ export default function App() {
           setTurtleAnalyticsAuthed(true);
         } else if (accountState.ok && accountState.account.role === "ADMIN" && accountState.account.status === "ACTIVE") {
           setUserType("admin");
+          setCurrentAdminIsSuperAdmin(Boolean(accountState.account.isSuperAdmin));
           setTurtleAnalyticsAuthed(false);
         } else {
           setUserType(null);
+          setCurrentAdminIsSuperAdmin(false);
           setTurtleAnalyticsAuthed(false);
         }
       } catch (error) {
@@ -113,6 +116,7 @@ export default function App() {
         if (error instanceof ApiError && error.status === 401) {
           clearStoredToken();
           setUserType(null);
+          setCurrentAdminIsSuperAdmin(false);
           setTurtleAnalyticsAuthed(false);
           setCurrentUserName("");
           setCurrentUserEmail("");
@@ -234,6 +238,7 @@ export default function App() {
     }
     clearStoredToken();
     setUserType(null);
+    setCurrentAdminIsSuperAdmin(false);
     setTurtleAnalyticsAuthed(false);
     setCurrentUserName("");
     setCurrentUserEmail("");
@@ -467,7 +472,10 @@ export default function App() {
       )}
 
       {isAdminRoute && currentView === "admin-dashboard" && (
-        <AdminDashboard onLogout={handleLogout} />
+        <AdminDashboard
+          currentAdminIsSuperAdmin={currentAdminIsSuperAdmin}
+          onLogout={handleLogout}
+        />
       )}
 
       {isAdminRoute && currentView !== "admin-dashboard" && (
