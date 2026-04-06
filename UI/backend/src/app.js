@@ -5733,6 +5733,7 @@ app.get("/api/analyse/history", authRequired, async (req, res, next) => {
 app.delete("/api/analyse/history/:runId", authRequired, async (req, res, next) => {
   try {
     const runId = String(req.params.runId || "").trim();
+    const deleteJournalData = req.body?.deleteJournalData === true;
     if (!runId) {
       return res.status(400).json({ ok: false, error: "Analysis run id is required." });
     }
@@ -5778,6 +5779,12 @@ app.delete("/api/analyse/history/:runId", authRequired, async (req, res, next) =
           });
         }
       }
+
+      if (deleteJournalData) {
+        await tx.storedTrade.deleteMany({
+          where: { userId: req.user.id },
+        });
+      }
     });
 
     return res.json({
@@ -5785,7 +5792,10 @@ app.delete("/api/analyse/history/:runId", authRequired, async (req, res, next) =
       runId: run.id,
       cost: run.cost ?? null,
       deletedData: true,
-      message: "Saved analysis data was deleted for this run, but the billed run record was kept.",
+      deletedJournalData: deleteJournalData,
+      message: deleteJournalData
+        ? "Saved analysis data for this run was deleted and all saved journal trades for this account were cleared. The billed run record was kept."
+        : "Saved analysis data was deleted for this run, but the billed run record was kept.",
     });
   } catch (err) {
     return next(err);

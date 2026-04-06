@@ -627,9 +627,17 @@ export function TurtleAnalytics({
     status: "completed" | "running" | "failed";
     deletedData?: boolean;
   }
+
+  interface DeleteRunPromptState {
+    id: string;
+    periodDescription: string;
+    deletedData?: boolean;
+    status: "completed" | "running" | "failed";
+  }
   
   const [modelRunHistory, setModelRunHistory] = useState<ModelRunLog[]>([]);
   const [deletingRunId, setDeletingRunId] = useState<string | null>(null);
+  const [deleteRunPrompt, setDeleteRunPrompt] = useState<DeleteRunPromptState | null>(null);
 
   const mapRunHistoryItem = (item: any): ModelRunLog => ({
     id: String(item.id),
@@ -764,12 +772,7 @@ export function TurtleAnalytics({
     }
   };
 
-  const handleDeleteRunData = async (runId: string) => {
-    const confirmed = window.confirm(
-      "Delete the saved model data for this run? The run record and cost will stay in history, but the linked report data will be removed."
-    );
-    if (!confirmed) return;
-
+  const handleDeleteRunData = async (runId: string, deleteJournalData = false) => {
     setDeletingRunId(runId);
     setRunHistoryError(null);
 
@@ -777,7 +780,8 @@ export function TurtleAnalytics({
       const response = await fetch(`${API_BASE}/api/analyse/history/${encodeURIComponent(runId)}`, {
         method: "DELETE",
         credentials: "include",
-        headers: authHeaders,
+        headers: authJsonHeaders,
+        body: JSON.stringify({ deleteJournalData }),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || !payload.ok) {
@@ -791,6 +795,7 @@ export function TurtleAnalytics({
       );
     } finally {
       setDeletingRunId(null);
+      setDeleteRunPrompt(null);
     }
   };
   
@@ -1720,7 +1725,14 @@ export function TurtleAnalytics({
                               {run.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                             </div>
                             <button
-                              onClick={() => handleDeleteRunData(run.id)}
+                              onClick={() =>
+                                setDeleteRunPrompt({
+                                  id: run.id,
+                                  periodDescription: run.periodDescription,
+                                  deletedData: run.deletedData,
+                                  status: run.status,
+                                })
+                              }
                               disabled={run.status === "running" || run.deletedData || deletingRunId === run.id}
                               className={`mt-3 inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs transition-colors ${
                                 run.status === "running" || run.deletedData || deletingRunId === run.id
@@ -3171,6 +3183,54 @@ export function TurtleAnalytics({
                   Run Analysis
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteRunPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
+            <h3 className="text-xl text-slate-900">Delete Run Data</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Choose what to remove for <span className="font-medium text-slate-900">{deleteRunPrompt.periodDescription}</span>. The billed run record and cost will stay in history either way.
+            </p>
+            <div className="mt-4 space-y-3">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                <div className="font-medium text-slate-900">Delete ML Data Only</div>
+                <div className="mt-1">
+                  Removes the saved analysis report for this run, but keeps your saved journal trades.
+                </div>
+              </div>
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                <div className="font-medium text-amber-900">Delete ML Data And Trading Journal</div>
+                <div className="mt-1">
+                  Removes the saved analysis report for this run and clears all saved journal trades for this account.
+                </div>
+              </div>
+            </div>
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              <button
+                onClick={() => setDeleteRunPrompt(null)}
+                disabled={deletingRunId === deleteRunPrompt.id}
+                className="rounded-lg bg-slate-100 px-4 py-2 text-slate-700 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteRunData(deleteRunPrompt.id, false)}
+                disabled={deletingRunId === deleteRunPrompt.id}
+                className="rounded-lg bg-rose-600 px-4 py-2 text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {deletingRunId === deleteRunPrompt.id ? "Deleting..." : "Delete ML Data Only"}
+              </button>
+              <button
+                onClick={() => handleDeleteRunData(deleteRunPrompt.id, true)}
+                disabled={deletingRunId === deleteRunPrompt.id}
+                className="rounded-lg bg-amber-600 px-4 py-2 text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {deletingRunId === deleteRunPrompt.id ? "Deleting..." : "Delete ML Data And Journal"}
+              </button>
             </div>
           </div>
         </div>
