@@ -3005,7 +3005,7 @@ export function TurtleAnalytics({
                     <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                     <div>
                       <div className="text-green-900 text-sm font-semibold mb-1">
-                        ✅ New Period - No Overlap Detected
+                        New Period - No Overlap Detected
                       </div>
                       <p className="text-green-700 text-xs">
                         This analysis covers a new period with no overlap from previous runs.
@@ -3055,13 +3055,13 @@ export function TurtleAnalytics({
                 </div>
               </div>
 
-              {/* Estimated Cost - Only for PAYG */}
+              {/* Cost Summary - Only for PAYG */}
               {subscriptionTier === "payg" && (
                 <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
                   <div className="flex items-start gap-2">
                     <PoundSterling className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                     <div className="flex-1">
-                      <div className="text-amber-900 text-sm mb-1">Estimated Cost</div>
+                      <div className="text-amber-900 text-sm mb-1">Cost Per Trade</div>
                       <p className="text-amber-700 text-xs mb-2">
                         {analysisMode === "trades"
                           ? `£${estimatedModalCost.toFixed(2)} for ${effectiveTradeCount} trades`
