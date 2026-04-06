@@ -45,7 +45,6 @@ export function TurtleAnalytics({
   const [reportData, setReportData] = useState<any>(null);
   const [modelRunError, setModelRunError] = useState<string | null>(null);
   const [runHistoryError, setRunHistoryError] = useState<string | null>(null);
-  const [isClearingAnalysisData, setIsClearingAnalysisData] = useState(false);
   const [storedJournalEntries, setStoredJournalEntries] = useState<any[]>([]);
   const [storedJournalPnlMeta, setStoredJournalPnlMeta] = useState<any>(null);
   const [currentUserName, setCurrentUserName] = useState("Trader");
@@ -734,41 +733,6 @@ export function TurtleAnalytics({
       }
     } catch {
       setRunHistoryError("Saved account data could not be loaded. The backend may be unavailable right now.");
-    }
-  };
-
-  const handleClearAnalysisData = async () => {
-    const confirmed = window.confirm(
-      "Clear saved model runs, snapshots, and stored journal trades for this account? This removes the saved trade ledger as well, so the next run must come from a fresh EA export or CSV upload."
-    );
-    if (!confirmed) return;
-
-    setIsClearingAnalysisData(true);
-    setRunHistoryError(null);
-    setModelRunError(null);
-
-    try {
-      const response = await fetch(`${API_BASE}/api/account/analysis-data`, {
-        method: "DELETE",
-        credentials: "include",
-        headers: authHeaders,
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok || !payload.ok) {
-        throw new Error(payload.error || "Saved analysis data could not be cleared.");
-      }
-
-      setReportData(null);
-      setStatsData({ tradesAnalysed: 0, simulationsRun: 0, regimesFound: 0, avgRMultiple: 0 });
-      setModelRunHistory([]);
-      setStoredJournalEntries([]);
-      setStoredJournalPnlMeta(null);
-      setLastRunTime(null);
-      await loadPersistedAccountState();
-    } catch (err) {
-      setRunHistoryError(err instanceof Error ? err.message : "Saved analysis data could not be cleared.");
-    } finally {
-      setIsClearingAnalysisData(false);
     }
   };
 
@@ -1625,17 +1589,6 @@ export function TurtleAnalytics({
                         Total spent: £{modelRunHistory.reduce((sum, run) => sum + run.cost, 0).toFixed(2)}
                       </div>
                     )}
-                    <button
-                      onClick={handleClearAnalysisData}
-                      disabled={isClearingAnalysisData}
-                      className={`mt-3 inline-flex items-center rounded-lg px-3 py-2 text-xs transition-colors ${
-                        isClearingAnalysisData
-                          ? "cursor-not-allowed bg-slate-200 text-slate-500"
-                          : "bg-rose-50 text-rose-700 hover:bg-rose-100"
-                      }`}
-                    >
-                      {isClearingAnalysisData ? "Clearing..." : "Clear Saved Analysis And Journal Data"}
-                    </button>
                   </div>
                 </div>
               </div>
