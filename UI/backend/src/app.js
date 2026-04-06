@@ -825,7 +825,17 @@ async function assertMlAnalysisAccess(userId) {
     throw error;
   }
 
-  if (isBillingExemptUser(user) || !user.stripeSubscriptionId || !process.env.STRIPE_SECRET_KEY) {
+  if (isBillingExemptUser(user)) {
+    return;
+  }
+
+  if (!user.stripeSubscriptionId) {
+    const error = new Error("Active subscription required to run ML analysis");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  if (!process.env.STRIPE_SECRET_KEY) {
     return;
   }
 
@@ -6587,6 +6597,14 @@ app.post("/api/create-checkout-session", authRequired, async (req, res, next) =>
   } catch (err) {
     return next(err);
   }
+});
+
+// ---------------------------------------------------------------------------
+// ML feature flag
+// ---------------------------------------------------------------------------
+
+app.get("/config", (req, res) => {
+  res.json({ ml_enabled: process.env.ML_ENABLED === "true" });
 });
 
 // Basic error handling

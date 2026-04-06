@@ -2,7 +2,7 @@ import { Brain, TrendingUp, Target, Zap, BarChart3, RefreshCw, GitBranch, Shield
 import { motion, useInView } from "motion/react";
 import { useRef } from "react";
 
-export function TurtleAnalyticsFeature() {
+export function TurtleAnalyticsFeature({ mlEnabled = false }: { mlEnabled?: boolean }) {
   const headerRef = useRef(null);
   const headerInView = useInView(headerRef, { once: true, amount: 0.3 });
 
@@ -247,15 +247,25 @@ export function TurtleAnalyticsFeature() {
           <p className="text-slate-300 mb-6 text-sm">
             Available exclusively for Green Turtle Traders
           </p>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => window.dispatchEvent(new CustomEvent('navigateToTurtleAnalytics'))}
-            className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-lg hover:from-teal-600 hover:to-emerald-600 transition-all shadow-lg shadow-teal-500/30"
-          >
-            <Brain className="w-5 h-5" />
-            Explore Turtle Analytics
-          </motion.button>
+          {mlEnabled ? (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => window.dispatchEvent(new CustomEvent('navigateToTurtleAnalytics'))}
+              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-lg hover:from-teal-600 hover:to-emerald-600 transition-all shadow-lg shadow-teal-500/30"
+            >
+              <Brain className="w-5 h-5" />
+              Explore Turtle Analytics
+            </motion.button>
+          ) : (
+            <button
+              disabled
+              className="inline-flex items-center gap-2 px-8 py-4 bg-slate-700 text-slate-400 rounded-lg cursor-not-allowed"
+            >
+              <Brain className="w-5 h-5" />
+              Coming Soon
+            </button>
+          )}
         </motion.div>
       </div>
     </section>

@@ -12,12 +12,14 @@ interface LandingPageProps {
   onTraderClick: () => void;
   onApplyClick: () => void;
   onNavigateLegal?: (page: "terms" | "privacy" | "risk-disclosure" | "contact") => void;
+  mlEnabled?: boolean;
 }
 
 export function LandingPage({
   onTraderClick,
   onApplyClick,
   onNavigateLegal,
+  mlEnabled = false,
 }: LandingPageProps) {
   const waitingListRef = useRef<HTMLDivElement>(null);
 
@@ -35,7 +37,7 @@ export function LandingPage({
       />
       <ProductSummary />
       <PlatformPreview />
-      <TurtleAnalyticsFeature />
+      <TurtleAnalyticsFeature mlEnabled={mlEnabled} />
       <ValuePropositions />
       <div ref={waitingListRef}>
         <WaitingListSignup />

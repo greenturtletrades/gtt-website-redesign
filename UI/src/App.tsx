@@ -20,6 +20,7 @@ import { logout } from "./api/auth";
 import { ApiError, clearStoredToken } from "./api/client";
 import { fetchAccountState } from "./api/settings";
 import { createCheckoutSession, pauseSubscription, resumeSubscription } from "./api/subscription";
+import { getConfig } from "./api/config";
 import { type TraderApplicationStatus as ApplicationStatus } from "./api/traderApplication";
 
 export type UserType = "trader" | "admin" | null;
@@ -55,6 +56,51 @@ export default function App() {
   const [currentUserName, setCurrentUserName] = useState("");
   const [currentUserEmail, setCurrentUserEmail] = useState("");
   const [currentAdminIsSuperAdmin, setCurrentAdminIsSuperAdmin] = useState(false);
+  const [mlEnabled, setMlEnabled] = useState(false);
+  const [checkoutPending, setCheckoutPending] = useState(false);
+
+  useEffect(() => {
+    getConfig()
+      .then(cfg => setMlEnabled(cfg.ml_enabled))
+      .catch(() => setMlEnabled(false));
+  }, []);
+
+  // Handle return from Stripe Checkout
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const checkout = params.get("checkout");
+    if (!checkout) return;
+
+    // Clean the URL
+    window.history.replaceState({}, "", window.location.pathname);
+
+    if (checkout === "success") {
+      setCheckoutPending(true);
+      // Poll fetchAccountState up to 6 times with 2s gap to wait for webhook to fire
+      let attempts = 0;
+      const poll = async () => {
+        attempts++;
+        try {
+          const accountState = await fetchAccountState();
+          const status = accountState.account.billing?.subscriptionStatus?.toLowerCase();
+          const exempt = Boolean(accountState.account.billingExempt);
+          if (accountState.ok && (status === "active" || status === "trialing" || exempt)) {
+            setCheckoutPending(false);
+            setUserType("trader");
+            setTurtleAnalyticsAuthed(true);
+            setOnboardingStage("welcome");
+            setSelectedSubscriptionPlan("payg");
+            return;
+          }
+        } catch {
+          // keep polling
+        }
+        if (attempts < 6) setTimeout(poll, 2000);
+        else setCheckoutPending(false);
+      };
+      setTimeout(poll, 2000);
+    }
+  }, []);
 
   // Set viewport meta tag to enable desktop layout on mobile
   useEffect(() => {
@@ -101,7 +147,9 @@ export default function App() {
             setSubscriptionStatus("not_started");
           }
           setUserType("trader");
-          setTurtleAnalyticsAuthed(true);
+          const hasSubscription = Boolean(nextStatus && nextStatus !== "not_started");
+          const isBillingExempt = Boolean(accountState.account.billingExempt);
+          setTurtleAnalyticsAuthed(hasSubscription || isBillingExempt);
         } else if (accountState.ok && accountState.account.role === "ADMIN" && accountState.account.status === "ACTIVE") {
           setUserType("admin");
           setCurrentAdminIsSuperAdmin(Boolean(accountState.account.isSuperAdmin));
@@ -182,25 +230,33 @@ export default function App() {
     setShowAuthModal(true);
   };
 
-  const handleAuthComplete = (type: "trader", details?: { name?: string; email?: string }) => {
+  const handleAuthComplete = async (type: "trader", details?: { name?: string; email?: string }) => {
     setShowAuthModal(false);
-    
-    // If trader is signing up (not logging in), show subscription modal
+
     if (authMode === "signup") {
       setPendingUserName(details?.name?.trim() || "Trader");
       setCurrentUserName(details?.name?.trim() || "Trader");
       setCurrentUserEmail(details?.email?.trim() || "");
       setShowSubscriptionModal(true);
-      // Don't set userType or navigate yet - wait for subscription
     } else {
-      // Login flow - go directly to dashboard
-      // In real app, fetch user's subscription plan from backend
-      // For demo, default to PAYG for returning users
-      setSelectedSubscriptionPlan("payg"); // In real app: fetch from API
+      // Login flow — check real subscription status before granting dashboard access
+      setSelectedSubscriptionPlan("payg");
       setCurrentUserName(details?.name?.trim() || currentUserName);
       setCurrentUserEmail(details?.email?.trim() || currentUserEmail);
       setUserType("trader");
-      setTurtleAnalyticsAuthed(true);
+      try {
+        const accountState = await fetchAccountState();
+        if (accountState.ok) {
+          const status = accountState.account.billing?.subscriptionStatus?.toLowerCase();
+          const exempt = Boolean(accountState.account.billingExempt);
+          const hasSub = Boolean(status && status !== "not_started");
+          setTurtleAnalyticsAuthed(hasSub || exempt);
+        } else {
+          setTurtleAnalyticsAuthed(false);
+        }
+      } catch {
+        setTurtleAnalyticsAuthed(false);
+      }
       setCurrentView("turtle-analytics");
     }
   };
@@ -354,15 +410,25 @@ export default function App() {
       )}
       
       {!isAdminRoute && currentView === "landing" && (
-        <LandingPage 
+        <LandingPage
           onTraderClick={handleTraderClick}
           onApplyClick={handleOpenApplication}
           onNavigateLegal={handleNavigateLegal}
+          mlEnabled={mlEnabled}
         />
       )}
       
       {!isAdminRoute && currentView === "turtle-analytics" && (
-        userType === "trader" ? (
+        !mlEnabled ? (
+          <div className="min-h-screen bg-white flex items-center justify-center pt-20">
+            <div className="text-center px-4">
+              <h2 className="text-3xl text-slate-900 mb-4">Coming Soon</h2>
+              <p className="text-slate-500 max-w-md mx-auto">
+                Turtle Analytics is not yet available. Check back soon.
+              </p>
+            </div>
+          </div>
+        ) : userType === "trader" ? (
           <TurtleAnalytics 
             userType={userType} 
             subscriptionTier={selectedSubscriptionPlan || "payg"}
@@ -376,6 +442,16 @@ export default function App() {
         ) : (
           <TurtleAnalyticsWelcome onSignUp={handleTraderSignUp} onSignIn={handleTraderClick} />
         )
+      )}
+
+      {checkoutPending && (
+        <div className="fixed inset-0 bg-white flex items-center justify-center z-50">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-teal-500/30 border-t-teal-500 rounded-full animate-spin mx-auto mb-4" />
+            <h2 className="text-slate-900 text-xl mb-2">Setting up your account...</h2>
+            <p className="text-slate-500 text-sm">This takes just a moment</p>
+          </div>
+        </div>
       )}
 
       {!isAdminRoute && currentView === "ea-code" && (
