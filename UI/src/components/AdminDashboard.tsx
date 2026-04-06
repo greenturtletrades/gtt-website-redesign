@@ -446,9 +446,10 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         brokerName: testTraderBrokerName || undefined,
       });
       await reloadTraders();
+      await reloadStaff();
       const createdTrader: AdminTestTrader = response.trader;
       setTestTraderMessage(
-        `${createdTrader.email} created as a billing-exempt internal test trader. They can sign in directly without Stripe checkout.`,
+        `${createdTrader.email} now has trader access enabled and can sign in directly without Stripe checkout.`,
       );
       setTestTraderEmail("");
       setTestTraderPassword("");
@@ -1494,9 +1495,16 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         <td className="py-4 px-4 text-slate-900 text-sm">{formatDate(staff.joinDate)}</td>
                         <td className="py-4 px-4 text-slate-600 text-sm">{formatDate(staff.lastActive)}</td>
                         <td className="py-4 px-4">
-                          <span className="text-xs text-slate-500">
-                            {staff.source === "environment" ? "Env admin" : "Database admin"}
-                          </span>
+                          <div className="flex flex-col items-start gap-2">
+                            <span className="text-xs text-slate-500">
+                              {staff.source === "environment" ? "Env admin" : "Database admin"}
+                            </span>
+                            {staff.billingExemptReason && (
+                              <span className="rounded-full bg-teal-50 px-2 py-1 text-xs text-teal-700">
+                                Trader access enabled
+                              </span>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}

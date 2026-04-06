@@ -206,9 +206,9 @@ function getJwtSecret() {
   return secret;
 }
 
-function signToken(user) {
+function signToken(user, roleOverride = null) {
   const expiresIn = process.env.JWT_EXPIRES_IN || "7d";
-  return jwt.sign({ sub: user.id, role: user.role }, getJwtSecret(), { expiresIn });
+  return jwt.sign({ sub: user.id, role: roleOverride || user.role }, getJwtSecret(), { expiresIn });
 }
 
 function authRequired(req, res, next) {
@@ -341,6 +341,7 @@ function buildAdminStaffMember(user) {
     joinDate: user.createdAt.toISOString(),
     lastActive: user.updatedAt ? user.updatedAt.toISOString() : null,
     source: "database",
+    billingExemptReason: user.billingExemptReason || null,
   };
 }
 
@@ -935,7 +936,7 @@ async function buildUserBillingSummary(userId) {
   };
 }
 
-async function buildUserAccountState(userId) {
+async function buildUserAccountState(userId, sessionRole = null) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: { profile: true },
@@ -952,7 +953,7 @@ async function buildUserAccountState(userId) {
     account: {
       id: user.id,
       email: user.email,
-      role: user.role,
+      role: sessionRole || user.role,
       status: user.status,
       plan: "payg",
       profile: user.profile,
@@ -2959,7 +2960,18 @@ app.post("/api/auth/login", rateLimit({
       return res.status(403).json({ ok: false, error: "Account disabled" });
     }
 
-    const token = signToken(user);
+    const sessionRole =
+      user.role === "ADMIN"
+        ? isBillingExemptUser(user)
+          ? "TRADER"
+          : null
+        : user.role;
+
+    if (!sessionRole) {
+      return res.status(403).json({ ok: false, error: "Use the admin login for this account" });
+    }
+
+    const token = signToken(user, sessionRole);
     setSessionCookie(res, token);
 
     return res.json({
@@ -2968,7 +2980,7 @@ app.post("/api/auth/login", rateLimit({
       user: {
         id: user.id,
         email: user.email,
-        role: user.role,
+        role: sessionRole,
         status: user.status,
       },
     });
@@ -3267,7 +3279,7 @@ app.get("/api/me", authRequired, async (req, res, next) => {
       user: {
         id: user.id,
         email: user.email,
-        role: user.role,
+        role: req.user?.role || user.role,
         status: user.status,
         profile: user.profile,
       },
@@ -3295,7 +3307,7 @@ app.get("/api/me/account-state", authRequired, async (req, res, next) => {
       });
     }
 
-    const payload = await buildUserAccountState(req.user.id);
+    const payload = await buildUserAccountState(req.user.id, req.user?.role || null);
     if (!payload) {
       return res.status(404).json({ ok: false, error: "User not found" });
     }
@@ -4427,11 +4439,85 @@ app.post("/api/admin/traders/create-test-user", authRequired, staffWriteRequired
 
     const existing = await prisma.user.findUnique({
       where: { email: normalizedEmail },
-      select: { id: true },
+      include: {
+        profile: true,
+        brokerAccounts: {
+          select: {
+            id: true,
+          },
+          take: 1,
+        },
+      },
     });
 
     if (existing) {
-      return res.status(409).json({ ok: false, error: "Email already exists" });
+      if (existing.role !== "ADMIN") {
+        return res.status(409).json({ ok: false, error: "Email already exists" });
+      }
+
+      const trimmedName = typeof fullName === "string" ? fullName.trim() : "";
+      const [firstName, ...restName] = trimmedName ? trimmedName.split(/\s+/) : [];
+      const lastName = restName.join(" ");
+      const normalizedMetaTraderUsername =
+        typeof metaTraderUsername === "string" && metaTraderUsername.trim()
+          ? metaTraderUsername.trim()
+          : null;
+      const normalizedBrokerName =
+        typeof brokerName === "string" && brokerName.trim()
+          ? brokerName.trim()
+          : null;
+
+      const updated = await prisma.user.update({
+        where: { id: existing.id },
+        data: {
+          status: "ACTIVE",
+          billingExempt: true,
+          billingExemptReason: "Internal test user enabled on admin account",
+          passwordHash: await bcrypt.hash(password.trim(), 10),
+          profile:
+            trimmedName && !existing.profile
+              ? {
+                  create: {
+                    firstName: firstName || null,
+                    lastName: lastName || null,
+                  },
+                }
+              : trimmedName
+                ? {
+                    update: {
+                      firstName: firstName || null,
+                      lastName: lastName || null,
+                    },
+                  }
+                : undefined,
+          brokerAccounts:
+            normalizedMetaTraderUsername && existing.brokerAccounts.length === 0
+              ? {
+                  create: {
+                    platform: "MT5",
+                    brokerName: normalizedBrokerName,
+                    accountNumber: normalizedMetaTraderUsername,
+                    label: "Primary MetaTrader",
+                    isActive: true,
+                  },
+                }
+              : undefined,
+        },
+        include: { profile: true },
+      });
+
+      return res.json({
+        ok: true,
+        trader: {
+          id: updated.id,
+          email: updated.email,
+          name:
+            `${updated.profile?.firstName || ""} ${updated.profile?.lastName || ""}`.trim() ||
+            updated.email.split("@")[0],
+          billingExempt: true,
+          billingExemptReason: updated.billingExemptReason,
+        },
+      });
     }
 
     const trimmedName = typeof fullName === "string" ? fullName.trim() : "";
