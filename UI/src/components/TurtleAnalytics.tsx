@@ -3039,17 +3039,13 @@ export function TurtleAnalytics({
               <div className="p-4 bg-teal-50 border border-teal-200 rounded-lg">
                 <div className="flex items-start gap-2">
                   <Clock className="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <div className="text-teal-900 text-sm mb-1">Estimated Processing Time</div>
-                      <p className="text-teal-700 text-xs">
-                      {analysisMode === "trades"
-                        ? `~${Math.ceil(effectiveTradeCount / 100)} seconds for ${effectiveTradeCount} trades`
-                        : analysisMode === "months"
-                          ? `~${Math.ceil(selectedMonths * 0.5)} seconds for ${selectedMonths} months of data`
-                          : "Depends on the number of trades found in the uploaded CSV"}
-                      </p>
+                  <div>
+                    <div className="text-teal-900 text-sm mb-1">Processing Time</div>
+                    <p className="text-teal-700 text-xs">
+                      This can take a few seconds depending on the number of trades analysed and the optimisation workload in this run.
+                    </p>
                     <p className="text-teal-600 text-xs mt-1">
-                      Processing time depends on the exported trade set and the optimisation workload generated for this run.
+                      Leave the platform open while the model finishes and saves the latest report.
                     </p>
                   </div>
                 </div>
