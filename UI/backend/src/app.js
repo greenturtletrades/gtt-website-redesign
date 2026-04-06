@@ -208,7 +208,15 @@ function getJwtSecret() {
 
 function signToken(user, roleOverride = null) {
   const expiresIn = process.env.JWT_EXPIRES_IN || "7d";
-  return jwt.sign({ sub: user.id, role: roleOverride || user.role }, getJwtSecret(), { expiresIn });
+  return jwt.sign(
+    {
+      sub: user.id,
+      role: roleOverride || user.role,
+      isSuperAdmin: Boolean(user?.isSuperAdmin),
+    },
+    getJwtSecret(),
+    { expiresIn },
+  );
 }
 
 function authRequired(req, res, next) {
@@ -227,7 +235,7 @@ function authRequired(req, res, next) {
 
   try {
     const payload = jwt.verify(token, getJwtSecret());
-    req.user = { id: payload.sub, role: payload.role };
+    req.user = { id: payload.sub, role: payload.role, isSuperAdmin: Boolean(payload.isSuperAdmin) };
     return next();
   } catch (err) {
     return res.status(401).json({ ok: false, error: "Unauthorized" });
@@ -244,6 +252,13 @@ function adminRequired(req, res, next) {
 function staffWriteRequired(req, res, next) {
   if (!req.user || !staffWriteRoles.has(req.user.role)) {
     return res.status(403).json({ ok: false, error: "Forbidden" });
+  }
+  return next();
+}
+
+function superAdminRequired(req, res, next) {
+  if (!req.user || !req.user.isSuperAdmin) {
+    return res.status(403).json({ ok: false, error: "Super admin access required" });
   }
   return next();
 }
@@ -336,13 +351,39 @@ function buildAdminStaffMember(user) {
     id: user.id,
     name: derivedName,
     email: user.email,
-    role: "admin",
+    role: user.isSuperAdmin ? "super_admin" : "admin",
     status: user.status,
     joinDate: user.createdAt.toISOString(),
     lastActive: user.updatedAt ? user.updatedAt.toISOString() : null,
     source: "database",
     billingExemptReason: user.billingExemptReason || null,
   };
+}
+
+async function wipeTraderSideDataForUser(userId) {
+  await prisma.$transaction([
+    prisma.churnFeedback.deleteMany({ where: { userId } }),
+    prisma.accountDeletionAudit.deleteMany({ where: { userId } }),
+    prisma.billingEvent.deleteMany({ where: { userId } }),
+    prisma.analysisRun.deleteMany({ where: { userId } }),
+    prisma.analysisSnapshot.deleteMany({ where: { userId } }),
+    prisma.storedTrade.deleteMany({ where: { userId } }),
+    prisma.apiKey.deleteMany({ where: { userId } }),
+    prisma.brokerAccount.deleteMany({ where: { userId } }),
+    prisma.user.update({
+      where: { id: userId },
+      data: {
+        billingExempt: false,
+        billingExemptReason: null,
+        appliedReferralCodeId: null,
+        accountDiscountPercent: null,
+        mlRunDiscountPercent: null,
+        referralDiscountExpiresAt: null,
+        stripeCustomerId: null,
+        stripeSubscriptionId: null,
+      },
+    }),
+  ]);
 }
 
 function formatReferralCode(referralCode) {
@@ -954,6 +995,7 @@ async function buildUserAccountState(userId, sessionRole = null) {
       id: user.id,
       email: user.email,
       role: sessionRole || user.role,
+      isSuperAdmin: Boolean(user.isSuperAdmin),
       status: user.status,
       plan: "payg",
       profile: user.profile,
@@ -3022,7 +3064,7 @@ app.post("/api/admin/login", rateLimit({
       normalizedEmail === envEmail.trim().toLowerCase() &&
       password === envPassword
     ) {
-      const token = signToken({ id: "env-admin", role: "ADMIN" });
+      const token = signToken({ id: "env-admin", role: "ADMIN", isSuperAdmin: true });
       setSessionCookie(res, token);
 
       return res.json({
@@ -3032,6 +3074,7 @@ app.post("/api/admin/login", rateLimit({
           id: "env-admin",
           email: normalizedEmail,
           role: "ADMIN",
+          isSuperAdmin: true,
           status: "ACTIVE",
         },
       });
@@ -3068,6 +3111,7 @@ app.post("/api/admin/login", rateLimit({
           id: adminUser.id,
           email: adminUser.email,
           role: adminUser.role,
+          isSuperAdmin: Boolean(adminUser.isSuperAdmin),
           status: adminUser.status,
         },
       });
@@ -3259,6 +3303,7 @@ app.get("/api/me", authRequired, async (req, res, next) => {
           id: "env-admin",
           email: envEmail,
           role: "ADMIN",
+          isSuperAdmin: true,
           status: "ACTIVE",
           profile: null,
         },
@@ -3280,6 +3325,7 @@ app.get("/api/me", authRequired, async (req, res, next) => {
         id: user.id,
         email: user.email,
         role: req.user?.role || user.role,
+        isSuperAdmin: Boolean(user.isSuperAdmin),
         status: user.status,
         profile: user.profile,
       },
@@ -3299,6 +3345,7 @@ app.get("/api/me/account-state", authRequired, async (req, res, next) => {
           id: "env-admin",
           email: envEmail,
           role: "ADMIN",
+          isSuperAdmin: true,
           status: "ACTIVE",
           plan: null,
           profile: null,
@@ -4049,7 +4096,7 @@ app.get("/api/admin/staff", authRequired, adminRequired, async (req, res, next) 
         id: "env-admin",
         name: envEmail.split("@")[0],
         email: envEmail,
-        role: "admin",
+        role: "super_admin",
         status: "ACTIVE",
         joinDate: new Date(0).toISOString(),
         lastActive: null,
@@ -4058,6 +4105,129 @@ app.get("/api/admin/staff", authRequired, adminRequired, async (req, res, next) 
     }
 
     return res.json({ ok: true, items });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.post("/api/admin/staff/:id/wipe-trader-side", authRequired, staffWriteRequired, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (id === "env-admin") {
+      return res.status(400).json({ ok: false, error: "Env admin trader data cannot be managed here" });
+    }
+
+    const existing = await prisma.user.findUnique({
+      where: { id },
+      include: { profile: true },
+    });
+
+    if (!existing || existing.role !== "ADMIN") {
+      return res.status(404).json({ ok: false, error: "Admin account not found" });
+    }
+
+    await wipeTraderSideDataForUser(existing.id);
+
+    const updated = await prisma.user.findUnique({
+      where: { id: existing.id },
+      include: { profile: true },
+    });
+
+    return res.json({
+      ok: true,
+      staffMember: buildAdminStaffMember(updated),
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.post("/api/admin/staff/:id/promote-super-admin", authRequired, superAdminRequired, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (id === "env-admin") {
+      return res.status(400).json({ ok: false, error: "Env admin is already super admin" });
+    }
+
+    const existing = await prisma.user.findUnique({
+      where: { id },
+      include: { profile: true },
+    });
+
+    if (!existing || existing.role !== "ADMIN") {
+      return res.status(404).json({ ok: false, error: "Admin account not found" });
+    }
+
+    const updated = await prisma.user.update({
+      where: { id },
+      data: { isSuperAdmin: true },
+      include: { profile: true },
+    });
+
+    return res.json({
+      ok: true,
+      staffMember: buildAdminStaffMember(updated),
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.delete("/api/admin/staff/:id", authRequired, superAdminRequired, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (id === "env-admin") {
+      return res.status(400).json({ ok: false, error: "Env admin access cannot be removed here" });
+    }
+
+    if (req.user?.id === id) {
+      return res.status(400).json({ ok: false, error: "You cannot remove your own admin access" });
+    }
+
+    const existing = await prisma.user.findUnique({
+      where: { id },
+      include: { profile: true },
+    });
+
+    if (!existing || existing.role !== "ADMIN") {
+      return res.status(404).json({ ok: false, error: "Admin account not found" });
+    }
+
+    if (existing.billingExempt) {
+      const updated = await prisma.user.update({
+        where: { id },
+        data: {
+          role: "TRADER",
+          isSuperAdmin: false,
+        },
+        include: { profile: true },
+      });
+
+      return res.json({
+        ok: true,
+        mode: "demoted_to_trader",
+        staffMember: {
+          id: updated.id,
+          name: getUserDisplayName(updated),
+          email: updated.email,
+          role: "test_trader",
+          status: updated.status,
+          joinDate: updated.createdAt.toISOString(),
+          lastActive: updated.updatedAt?.toISOString?.() || null,
+          source: "test_trader",
+          billingExemptReason: updated.billingExemptReason || null,
+        },
+      });
+    }
+
+    await prisma.user.delete({
+      where: { id },
+    });
+
+    return res.json({ ok: true, mode: "deleted" });
   } catch (err) {
     return next(err);
   }
@@ -4476,7 +4646,7 @@ app.get("/api/admin/account-deletion-audits", authRequired, adminRequired, async
 
 app.post("/api/admin/staff/invite", authRequired, staffWriteRequired, async (req, res, next) => {
   try {
-    const { email, temporaryCode } = req.body || {};
+    const { email, temporaryCode, accessLevel } = req.body || {};
 
     if (!email || typeof email !== "string") {
       return res.status(400).json({ ok: false, error: "Email is required" });
@@ -4491,6 +4661,12 @@ app.post("/api/admin/staff/invite", authRequired, staffWriteRequired, async (req
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+    const normalizedAccessLevel = accessLevel === "super_admin" ? "super_admin" : "admin";
+
+    if (normalizedAccessLevel === "super_admin" && !req.user?.isSuperAdmin) {
+      return res.status(403).json({ ok: false, error: "Only super admins can invite super admins" });
+    }
+
     const existing = await prisma.user.findUnique({
       where: { email: normalizedEmail },
       include: { profile: true },
@@ -4508,6 +4684,7 @@ app.post("/api/admin/staff/invite", authRequired, staffWriteRequired, async (req
           data: {
             passwordHash,
             role: "ADMIN",
+            isSuperAdmin: normalizedAccessLevel === "super_admin",
             status: "PENDING",
           },
           include: { profile: true },
@@ -4517,6 +4694,7 @@ app.post("/api/admin/staff/invite", authRequired, staffWriteRequired, async (req
             email: normalizedEmail,
             passwordHash,
             role: "ADMIN",
+            isSuperAdmin: normalizedAccessLevel === "super_admin",
             status: "PENDING",
           },
           include: { profile: true },
@@ -4537,6 +4715,7 @@ app.post("/api/admin/staff/invite", authRequired, staffWriteRequired, async (req
             <p>Use the email below and the one-time code to sign in. You will be asked to change it after login.</p>
             <div style="margin: 24px 0; padding: 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
               <p style="margin: 0 0 8px;"><strong>Email:</strong> ${normalizedEmail}</p>
+              <p style="margin: 0 0 8px;"><strong>Access level:</strong> ${normalizedAccessLevel === "super_admin" ? "Super Admin" : "Admin"}</p>
               <p style="margin: 0;"><strong>One-time code:</strong> ${temporaryCode.trim()}</p>
             </div>
             <p style="margin: 0 0 8px;"><strong>Admin portal:</strong> ${appUrl}/admin</p>
@@ -4549,6 +4728,7 @@ app.post("/api/admin/staff/invite", authRequired, staffWriteRequired, async (req
         "Use the details below to sign in, then change your password immediately.",
         "",
         `Email: ${normalizedEmail}`,
+        `Access level: ${normalizedAccessLevel === "super_admin" ? "Super Admin" : "Admin"}`,
         `One-time code: ${temporaryCode.trim()}`,
         `Admin portal: ${appUrl}/admin`,
       ].join("\n"),

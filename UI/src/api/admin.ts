@@ -8,6 +8,7 @@ export interface AdminLoginResponse {
     id: string;
     email: string;
     role: "ADMIN";
+    isSuperAdmin?: boolean;
     status: "ACTIVE" | "PENDING" | "DISABLED";
   };
 }
@@ -57,7 +58,7 @@ export interface AdminStaffMember {
   id: string;
   name: string;
   email: string;
-  role: "admin" | "test_trader";
+  role: "admin" | "super_admin" | "test_trader";
   status: "ACTIVE" | "PENDING" | "DISABLED";
   joinDate: string;
   lastActive: string | null;
@@ -195,10 +196,11 @@ export function adminLogin(email: string, password: string) {
   return apiPost<AdminLoginResponse>("/api/admin/login", { email, password });
 }
 
-export function inviteAdmin(email: string, temporaryCode: string) {
+export function inviteAdmin(email: string, temporaryCode: string, accessLevel: "admin" | "super_admin" = "admin") {
   return apiPost<{ ok: boolean; staffMember: AdminStaffMember }>("/api/admin/staff/invite", {
     email,
     temporaryCode,
+    accessLevel,
   });
 }
 
@@ -239,6 +241,18 @@ export function setAdminTestTraderAccess(id: string, enabled: boolean) {
   return apiPost<{ ok: boolean; staffMember: AdminStaffMember }>(`/api/admin/test-traders/${id}/access`, {
     enabled,
   });
+}
+
+export function wipeAdminStaffTraderData(id: string) {
+  return apiPost<{ ok: boolean; staffMember: AdminStaffMember }>(`/api/admin/staff/${id}/wipe-trader-side`, {});
+}
+
+export function promoteAdminToSuper(id: string) {
+  return apiPost<{ ok: boolean; staffMember: AdminStaffMember }>(`/api/admin/staff/${id}/promote-super-admin`, {});
+}
+
+export function removeAdminAccess(id: string) {
+  return apiDelete<{ ok: boolean; mode: "deleted" | "demoted_to_trader"; staffMember?: AdminStaffMember }>(`/api/admin/staff/${id}`);
 }
 
 export function fetchAdminChurnFeedback() {

@@ -12,7 +12,10 @@ import {
   fetchAdminReferralCodes,
   fetchAdminSignups,
   fetchAdminStaff,
+  promoteAdminToSuper,
+  removeAdminAccess,
   setAdminTestTraderAccess,
+  wipeAdminStaffTraderData,
   wipeAdminNonAdminData,
   fetchAdminTraders,
   inviteAdmin,
@@ -69,6 +72,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [inviteMessage, setInviteMessage] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSubmitting, setInviteSubmitting] = useState(false);
+  const [inviteAccessLevel, setInviteAccessLevel] = useState<"admin" | "super_admin">("admin");
   const [showCreateTestTrader, setShowCreateTestTrader] = useState(false);
   const [testTraderEmail, setTestTraderEmail] = useState("");
   const [testTraderPassword, setTestTraderPassword] = useState("");
@@ -84,6 +88,9 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [wipeSubmitting, setWipeSubmitting] = useState(false);
   const [wipeError, setWipeError] = useState<string | null>(null);
   const [wipeMessage, setWipeMessage] = useState<string | null>(null);
+  const [adminActionMessage, setAdminActionMessage] = useState<string | null>(null);
+  const [adminActionError, setAdminActionError] = useState<string | null>(null);
+  const [adminActionPendingId, setAdminActionPendingId] = useState<string | null>(null);
 
   const loadAdminData = async (isMounted = true) => {
     try {
@@ -236,7 +243,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   };
   const financeMonthlyRevenue = financeData?.monthlyRevenue ?? [];
   const financeAccounts = financeData?.accounts ?? [];
-  const adminStaffMembers = staffMembers.filter((staff) => staff.role === "admin");
+  const adminStaffMembers = staffMembers.filter((staff) => staff.role === "admin" || staff.role === "super_admin");
   const testTraderStaffMembers = staffMembers.filter((staff) => staff.role === "test_trader");
 
   const formatCurrency = (value: number) =>
@@ -301,9 +308,15 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const getRoleBadge = (role: string) => {
     const roleColors = {
       admin: "bg-red-100 text-red-700",
+      super_admin: "bg-purple-100 text-purple-700",
       test_trader: "bg-teal-100 text-teal-700",
     };
-    const label = role === "test_trader" ? "Test Trader" : `${role.charAt(0).toUpperCase()}${role.slice(1)}`;
+    const label =
+      role === "test_trader"
+        ? "Test Trader"
+        : role === "super_admin"
+          ? "Super Admin"
+          : "Admin";
     return <span className={`px-2 py-1 text-xs rounded-full ${roleColors[role as keyof typeof roleColors]}`}>{label}</span>;
   };
 
@@ -416,11 +429,12 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     setInviteError(null);
 
     try {
-      await inviteAdmin(inviteEmail, inviteCode);
+      await inviteAdmin(inviteEmail, inviteCode, inviteAccessLevel);
       await reloadStaff();
-      setInviteMessage(`Invite sent for ${inviteEmail.trim().toLowerCase()}. The one-time code will require a password change on first login.`);
+      setInviteMessage(`Invite sent for ${inviteEmail.trim().toLowerCase()} as ${inviteAccessLevel === "super_admin" ? "Super Admin" : "Admin"}. The one-time code will require a password change on first login.`);
       setInviteEmail("");
       setInviteCode("");
+      setInviteAccessLevel("admin");
       setShowInviteStaff(false);
     } catch (error) {
       setInviteError(error instanceof Error ? error.message : "Unable to invite admin.");
@@ -508,6 +522,76 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       setTestTraderActionError(error instanceof Error ? error.message : "Unable to remove test trader.");
     } finally {
       setTestTraderActionPendingId(null);
+    }
+  };
+
+  const handleWipeAdminTraderSide = async (staff: AdminStaffMember) => {
+    if (adminActionPendingId || staff.source === "environment") return;
+
+    const confirmed = window.confirm(
+      `Wipe trader-side data for ${staff.email}?\n\nThis keeps the admin account, but removes trader access data such as trades, broker accounts, EA data, API keys, runs, and trader billing state.`,
+    );
+    if (!confirmed) return;
+
+    setAdminActionPendingId(staff.id);
+    setAdminActionError(null);
+    setAdminActionMessage(null);
+
+    try {
+      const response = await wipeAdminStaffTraderData(staff.id);
+      setStaffMembers((prev) => prev.map((item) => (item.id === staff.id ? response.staffMember : item)));
+      await reloadTraders();
+      setAdminActionMessage(`${staff.email} trader-side data wiped.`);
+    } catch (error) {
+      setAdminActionError(error instanceof Error ? error.message : "Unable to wipe trader-side data.");
+    } finally {
+      setAdminActionPendingId(null);
+    }
+  };
+
+  const handlePromoteAdmin = async (staff: AdminStaffMember) => {
+    if (adminActionPendingId || staff.source === "environment" || staff.role === "super_admin") return;
+
+    setAdminActionPendingId(staff.id);
+    setAdminActionError(null);
+    setAdminActionMessage(null);
+
+    try {
+      const response = await promoteAdminToSuper(staff.id);
+      setStaffMembers((prev) => prev.map((item) => (item.id === staff.id ? response.staffMember : item)));
+      setAdminActionMessage(`${staff.email} promoted to Super Admin.`);
+    } catch (error) {
+      setAdminActionError(error instanceof Error ? error.message : "Unable to promote admin access.");
+    } finally {
+      setAdminActionPendingId(null);
+    }
+  };
+
+  const handleRemoveAdminAccess = async (staff: AdminStaffMember) => {
+    if (adminActionPendingId || staff.source === "environment") return;
+
+    const confirmed = window.confirm(
+      `Remove admin access for ${staff.email}?\n\nIf trader access is enabled, the account will be demoted to trader-only. Otherwise the admin account will be deleted.`,
+    );
+    if (!confirmed) return;
+
+    setAdminActionPendingId(staff.id);
+    setAdminActionError(null);
+    setAdminActionMessage(null);
+
+    try {
+      const response = await removeAdminAccess(staff.id);
+      await reloadStaff();
+      await reloadTraders();
+      setAdminActionMessage(
+        response.mode === "demoted_to_trader"
+          ? `${staff.email} admin access removed and the account was kept as trader-only.`
+          : `${staff.email} admin access removed.`,
+      );
+    } catch (error) {
+      setAdminActionError(error instanceof Error ? error.message : "Unable to remove admin access.");
+    } finally {
+      setAdminActionPendingId(null);
     }
   };
 
@@ -1412,7 +1496,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
             {showInviteStaff && (
               <div className="border-b border-slate-200 bg-slate-50 p-4">
-                <form onSubmit={handleInviteSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <form onSubmit={handleInviteSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-4">
                   <div>
                     <label className="mb-2 block text-sm text-slate-700">Invite Email</label>
                     <input
@@ -1435,6 +1519,17 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       minLength={8}
                       required
                     />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm text-slate-700">Access Level</label>
+                    <select
+                      value={inviteAccessLevel}
+                      onChange={(e) => setInviteAccessLevel(e.target.value as "admin" | "super_admin")}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-teal-500"
+                    >
+                      <option value="admin">Admin</option>
+                      <option value="super_admin">Super Admin</option>
+                    </select>
                   </div>
                   <div className="flex items-end gap-2">
                     <button
@@ -1462,6 +1557,13 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               <div className="border-b border-slate-200 px-4 py-3">
                 {testTraderMessage && <p className="text-sm text-green-700">{testTraderMessage}</p>}
                 {testTraderActionError && <p className="text-sm text-red-700">{testTraderActionError}</p>}
+              </div>
+            )}
+
+            {(adminActionMessage || adminActionError) && (
+              <div className="border-b border-slate-200 px-4 py-3">
+                {adminActionMessage && <p className="text-sm text-green-700">{adminActionMessage}</p>}
+                {adminActionError && <p className="text-sm text-red-700">{adminActionError}</p>}
               </div>
             )}
 
@@ -1505,6 +1607,38 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                 Trader access enabled
                               </span>
                             )}
+                            <div className="flex flex-wrap gap-2">
+                              {staff.billingExemptReason && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleWipeAdminTraderSide(staff)}
+                                  disabled={adminActionPendingId === staff.id || staff.source === "environment"}
+                                  className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs text-amber-700 transition-colors hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-70"
+                                >
+                                  {adminActionPendingId === staff.id ? "Working..." : "Delete Trader Account"}
+                                </button>
+                              )}
+                              {staff.role === "admin" && (
+                                <button
+                                  type="button"
+                                  onClick={() => handlePromoteAdmin(staff)}
+                                  disabled={adminActionPendingId === staff.id || staff.source === "environment"}
+                                  className="rounded-lg border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs text-purple-700 transition-colors hover:bg-purple-100 disabled:cursor-not-allowed disabled:opacity-70"
+                                >
+                                  {adminActionPendingId === staff.id ? "Working..." : "Promote Admin Access"}
+                                </button>
+                              )}
+                              {staff.source !== "environment" && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveAdminAccess(staff)}
+                                  disabled={adminActionPendingId === staff.id}
+                                  className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-700 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-70"
+                                >
+                                  {adminActionPendingId === staff.id ? "Working..." : "Delete Admin Access"}
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </td>
                       </tr>
