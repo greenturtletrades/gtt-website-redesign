@@ -2728,6 +2728,32 @@ export function TurtleAnalytics({
                       )}
                     </label>
                   </div>
+                  <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <div className="text-sm text-slate-900">CSV fields needed for the model</div>
+                    <div className="mt-3 space-y-3 text-xs text-slate-600">
+                      <div>
+                        <div className="font-medium text-slate-800">Required for a valid import</div>
+                        <div className="mt-1">
+                          <span className="font-mono">entry_date</span>, <span className="font-mono">exit_date</span>, <span className="font-mono">entry_price</span>, <span className="font-mono">exit_price</span>, direction/side, and a trade identifier such as symbol or pair.
+                        </div>
+                      </div>
+                      <div>
+                        <div className="font-medium text-slate-800">Recommended for accurate ML analysis</div>
+                        <div className="mt-1">
+                          <span className="font-mono">stop_loss</span>, <span className="font-mono">take_profit</span>, realised P/L, position size/volume, and timestamps with entry and exit times.
+                        </div>
+                      </div>
+                      <div>
+                        <div className="font-medium text-slate-800">Needed for the richer analytics sections</div>
+                        <div className="mt-1">
+                          <span className="font-mono">mfe</span> and <span className="font-mono">mae</span> for exit analysis, plus valid timing data for time-of-day and hold-time sections.
+                        </div>
+                      </div>
+                      <div className="text-slate-500">
+                        If those richer fields are missing, the run can still complete, but some analytics cards will be simplified or left blank.
+                      </div>
+                    </div>
+                  </div>
                   <label className="mt-4 flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
                     <input
                       type="checkbox"
