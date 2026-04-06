@@ -3066,7 +3066,7 @@ export function TurtleAnalytics({
                         {analysisMode === "trades"
                           ? `£${estimatedModalCost.toFixed(2)} for ${effectiveTradeCount} trades`
                           : analysisMode === "months"
-                            ? `£${estimatedModalCost.toFixed(2)} for ~${Math.round(selectedMonths * 47)} trades (${selectedMonths} months)`
+                            ? "£0.20 per trade analysed from the selected time period"
                             : "£0.20 per trade analysed from the uploaded CSV"}
                       </p>
                       <div className="text-amber-600 text-xs">
