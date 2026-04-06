@@ -415,9 +415,10 @@ export function SettingsPage({
         plan: currentPlan,
       });
       clearStoredToken();
-      window.location.href = "/";
+      window.location.replace("/");
     } catch (error) {
       setPageError(error instanceof Error ? error.message : "Unable to delete account.");
+    } finally {
       setDeletingAccount(false);
     }
   };

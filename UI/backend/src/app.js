@@ -360,10 +360,13 @@ function buildAdminStaffMember(user) {
   };
 }
 
-async function wipeTraderSideDataForUser(userId) {
+async function wipeTraderSideDataForUser(userId, options = {}) {
+  const preserveChurnFeedback = Boolean(options.preserveChurnFeedback);
+  const preserveDeletionAudits = Boolean(options.preserveDeletionAudits);
+
   await prisma.$transaction([
-    prisma.churnFeedback.deleteMany({ where: { userId } }),
-    prisma.accountDeletionAudit.deleteMany({ where: { userId } }),
+    ...(preserveChurnFeedback ? [] : [prisma.churnFeedback.deleteMany({ where: { userId } })]),
+    ...(preserveDeletionAudits ? [] : [prisma.accountDeletionAudit.deleteMany({ where: { userId } })]),
     prisma.billingEvent.deleteMany({ where: { userId } }),
     prisma.analysisRun.deleteMany({ where: { userId } }),
     prisma.analysisSnapshot.deleteMany({ where: { userId } }),
@@ -3632,7 +3635,9 @@ app.delete("/api/me", authRequired, async (req, res, next) => {
         });
       }
 
-      await wipeTraderSideDataForUser(user.id);
+      await wipeTraderSideDataForUser(user.id, {
+        preserveChurnFeedback: true,
+      });
 
       return res.json({
         ok: true,
