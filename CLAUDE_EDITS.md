@@ -251,4 +251,44 @@ A logged-in unsubscribed user who completes the subscription modal → Stripe �
 
 ---
 
+---
+
+## Known Weak Points — Checkout & Payment Logic (to target in a future session)
+
+### 1. Mid-flight user patching — fragile and already broken for `mlRunDiscountPercent`
+`POST /api/create-checkout-session` (line ~6733) fetches the user with a partial `select`, then manually patches the in-memory object after the referral code DB update rather than re-fetching:
+```js
+user.appliedReferralCode = { code: matchedCode.code };
+user.accountDiscountPercent = matchedCode.accountDiscountPercent;
+user.referralDiscountExpiresAt = expiresAt;
+// mlRunDiscountPercent never patched
+```
+`mlRunDiscountPercent` is saved correctly to the DB but is not in the original `select` and not in the patch. `getActiveUserDiscounts(user)` therefore returns `mlRunDiscountPercent: 0` at checkout. The Stripe coupon only uses `accountDiscountPercent` so payment works, but the ML run discount is invisible to the checkout layer. Any future code reading that discount summary here will silently give users no ML discount.
+**Root cause:** partial `select` + manual object mutation instead of a re-fetch after update.
+**Fix:** Either include all discount fields in the original select (`mlRunDiscountPercent`), or after the referral code update, re-fetch the user rather than patching manually. Re-fetch is safer — it can't fall out of sync as the schema grows.
+
+### 2. `POST /api/create-checkout-session` has zero test coverage
+The entire payment path — referral code application, Stripe customer creation, coupon creation, `allow_promotion_codes` vs `discounts` mutex, line item construction — has no tests. A broken env var, wrong price ID, bad coupon duration calculation, or schema mismatch will be silent until a real user hits pay. All 20 passing tests cover endpoints that don't touch Stripe.
+**Fix:** Add unit tests with a mocked Stripe SDK (intercept `stripe.customers.create`, `stripe.coupons.create`, `stripe.checkout.sessions.create`). Add an integration test that hits the endpoint with `STRIPE_SECRET_KEY` unset and verifies the 500 response, and with `billingExempt=true` verifies the bypass path.
+
+### 3. Two separate DB writes in checkout — no transaction
+The checkout endpoint can make two `prisma.user.update` calls: one for `stripeCustomerId` (if no customer exists yet) and one for the referral code. These are separate round trips with no transaction. If the first succeeds and the second fails, `stripeCustomerId` is saved but the referral discount isn't. The user gets a Stripe customer but no discount on retry (the customer reuse path skips the first update). Low probability but leaves state partially applied.
+**Fix:** Combine both updates into a single `prisma.user.update` call, or wrap in `prisma.$transaction`.
+
+---
+
+## Known Weak Points — Test Suite Reliability (to target in a future session)
+
+### 1. Mocks replace integration — the 20 green tests cannot catch schema or query bugs
+`app.test.js` injects a JS object in place of Prisma before the app loads. This verifies HTTP logic (status codes, auth guards, field writes) but cannot catch: missing DB columns (e.g. `passwordResetToken` not migrated), wrong Prisma filter syntax (e.g. `gt` vs `gte` on the expiry check), or broken indexes. A test mocking `findFirst` returning `null` does not prove Prisma's `{ passwordResetExpiresAt: { gt: new Date() } }` filter works. Tests stay green while production fails on the first real DB call.
+**Fix:** CI integration stage — throwaway Postgres, `prisma migrate deploy`, hit real endpoints. Unit tests stay for speed; integration layer catches schema/query correctness.
+
+### 2. Rate limiter state accumulates across tests in the same process
+All tests share a single `app` instance. In-memory rate limiters (`forgot-password`: 5/15min, `reset-password`: 10/15min) are never reset between tests. Currently the suite makes 2–3 calls to each — well under limits. As the suite grows, adding more tests for these endpoints will cause mysterious 429 failures with no obvious cause.
+**Fix:** Disable rate limiting when `NODE_ENV=test`, or expose store reset in `beforeEach`, or spin a fresh app per test.
+
+### 3. Polling exhausts silently — paying user sees paywall
+If the Stripe webhook takes longer than 12 seconds (6 polls × 2s), `checkoutPending` clears with no message and `turtleAnalyticsAuthed` stays `false`. The user has paid but lands back on the paywall with no explanation. No test covers the exhaustion path — the poll loop in `App.tsx` is entirely untested.
+**Fix:** On poll exhaustion show a message ("Payment received — check back shortly or refresh"). Add a manual refresh button. Consider extending poll window or using exponential backoff.
+
 *Log maintained by Claude Code. Each future session should append a new section above this line.*
