@@ -18,6 +18,13 @@ const prismaMock = {
       throw new Error("Unexpected prisma.user.update call");
     },
   },
+  referralCode: {
+    findUnique: async () => null,
+    findMany: async () => [],
+    create: async () => {
+      throw new Error("Unexpected prisma.referralCode.create call");
+    },
+  },
   traderApplication: {
     findMany: async () => [],
   },
@@ -58,6 +65,11 @@ function resetPrisma() {
   };
   prismaMock.user.update = async () => {
     throw new Error("Unexpected prisma.user.update call");
+  };
+  prismaMock.referralCode.findUnique = async () => null;
+  prismaMock.referralCode.findMany = async () => [];
+  prismaMock.referralCode.create = async () => {
+    throw new Error("Unexpected prisma.referralCode.create call");
   };
   prismaMock.traderApplication.findMany = async () => [];
   prismaMock.waitlistEntry.findMany = async () => [];
@@ -257,5 +269,218 @@ test("GET /api/admin/signups returns combined signup sources", async () => {
       response.body.items.map((item) => item.sourceType),
       ["trader_account", "trader_application", "landing_waitlist"]
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/referral-codes/validate
+// ---------------------------------------------------------------------------
+
+test("POST /api/referral-codes/validate returns ok for an active referral code", async () => {
+  prismaMock.referralCode.findUnique = async ({ where }) => {
+    if (where.code === "GTT-TEST01") {
+      return { id: "rc-1", code: "GTT-TEST01", isActive: true };
+    }
+    return null;
+  };
+
+  await withServer(async (server) => {
+    const response = await request(server, "/api/referral-codes/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: "GTT-TEST01" }),
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.ok, true);
+  });
+});
+
+test("POST /api/referral-codes/validate returns error for unknown code", async () => {
+  await withServer(async (server) => {
+    const response = await request(server, "/api/referral-codes/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: "FAKE-CODE" }),
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.ok, false);
+    assert.ok(response.body.error);
+  });
+});
+
+test("POST /api/referral-codes/validate returns error for inactive code", async () => {
+  prismaMock.referralCode.findUnique = async () => ({
+    id: "rc-2",
+    code: "GTT-INACTIVE",
+    isActive: false,
+  });
+
+  await withServer(async (server) => {
+    const response = await request(server, "/api/referral-codes/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: "GTT-INACTIVE" }),
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.ok, false);
+  });
+});
+
+test("POST /api/referral-codes/validate returns 400 when code is missing", async () => {
+  await withServer(async (server) => {
+    const response = await request(server, "/api/referral-codes/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+
+    assert.equal(response.status, 400);
+    assert.equal(response.body.ok, false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/auth/forgot-password
+// ---------------------------------------------------------------------------
+
+test("POST /api/auth/forgot-password always returns ok to prevent email enumeration", async () => {
+  // Email does not exist in DB — should still return ok
+  await withServer(async (server) => {
+    const response = await request(server, "/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "nobody@gtt.local" }),
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.ok, true);
+  });
+});
+
+test("POST /api/auth/forgot-password returns 400 when email is missing", async () => {
+  await withServer(async (server) => {
+    const response = await request(server, "/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+
+    assert.equal(response.status, 400);
+    assert.equal(response.body.ok, false);
+  });
+});
+
+test("POST /api/auth/forgot-password stores reset token for existing trader and returns ok", async () => {
+  const updatedData = {};
+  prismaMock.user.findUnique = async ({ where }) => {
+    if (where.email === "trader@gtt.local") {
+      return { id: "user-1", email: "trader@gtt.local", role: "TRADER" };
+    }
+    return null;
+  };
+  prismaMock.user.update = async ({ data }) => {
+    Object.assign(updatedData, data);
+    return {};
+  };
+
+  await withServer(async (server) => {
+    const response = await request(server, "/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "trader@gtt.local" }),
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.ok, true);
+    assert.ok(updatedData.passwordResetToken, "should have stored a hashed token");
+    assert.ok(updatedData.passwordResetExpiresAt instanceof Date, "should have set an expiry");
+    assert.ok(
+      updatedData.passwordResetExpiresAt > new Date(),
+      "expiry should be in the future"
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PATCH /api/admin/traders/:id/status
+// ---------------------------------------------------------------------------
+
+test("PATCH /api/admin/traders/:id/status disables an active trader", async () => {
+  let savedStatus = null;
+  prismaMock.user.findUnique = async ({ where }) => {
+    if (where.id === "trader-1") {
+      return { id: "trader-1", role: "TRADER", email: "trader@gtt.local" };
+    }
+    return null;
+  };
+  prismaMock.user.update = async ({ data }) => {
+    savedStatus = data.status;
+    return {};
+  };
+
+  await withServer(async (server) => {
+    const response = await request(server, "/api/admin/traders/trader-1/status", {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${createToken("ADMIN")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status: "DISABLED" }),
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.ok, true);
+    assert.equal(response.body.status, "DISABLED");
+    assert.equal(savedStatus, "DISABLED");
+  });
+});
+
+test("PATCH /api/admin/traders/:id/status rejects invalid status values", async () => {
+  await withServer(async (server) => {
+    const response = await request(server, "/api/admin/traders/trader-1/status", {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${createToken("ADMIN")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status: "BANNED" }),
+    });
+
+    assert.equal(response.status, 400);
+    assert.equal(response.body.ok, false);
+  });
+});
+
+test("PATCH /api/admin/traders/:id/status returns 404 for non-existent trader", async () => {
+  await withServer(async (server) => {
+    const response = await request(server, "/api/admin/traders/no-such-id/status", {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${createToken("ADMIN")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status: "ACTIVE" }),
+    });
+
+    assert.equal(response.status, 404);
+    assert.equal(response.body.ok, false);
+  });
+});
+
+test("PATCH /api/admin/traders/:id/status rejects trader tokens", async () => {
+  await withServer(async (server) => {
+    const response = await request(server, "/api/admin/traders/trader-1/status", {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${createToken("TRADER")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status: "DISABLED" }),
+    });
+
+    assert.equal(response.status, 403);
   });
 });
