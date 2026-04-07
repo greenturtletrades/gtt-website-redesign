@@ -484,3 +484,112 @@ test("PATCH /api/admin/traders/:id/status rejects trader tokens", async () => {
     assert.equal(response.status, 403);
   });
 });
+
+// ---------------------------------------------------------------------------
+// POST /api/auth/reset-password
+// ---------------------------------------------------------------------------
+
+// The endpoint calls prisma.user.findFirst with a SHA-256 token hash and a
+// future-expiry filter.  The mock must simulate that filtering itself.
+
+const crypto = require("node:crypto");
+
+function makeTokenPair() {
+  const raw = "a".repeat(64); // deterministic raw token for tests
+  const hash = crypto.createHash("sha256").update(raw).digest("hex");
+  return { raw, hash };
+}
+
+test("POST /api/auth/reset-password succeeds with a valid token", async () => {
+  const { raw, hash } = makeTokenPair();
+  let savedData = null;
+
+  prismaMock.user.findFirst = async ({ where }) => {
+    // Simulate Prisma's filtering: match hash and check expiry > now
+    const tokenMatches = where.passwordResetToken === hash;
+    const notExpired = where.passwordResetExpiresAt?.gt < new Date() === false;
+    if (tokenMatches && notExpired) {
+      return { id: "user-reset" };
+    }
+    return null;
+  };
+  prismaMock.user.update = async ({ where, data }) => {
+    savedData = { where, data };
+    return {};
+  };
+
+  await withServer(async (server) => {
+    const response = await request(server, "/api/auth/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: raw, password: "NewPassword1!" }),
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.ok, true);
+    assert.equal(savedData.where.id, "user-reset", "should update the matched user");
+    assert.equal(savedData.data.passwordResetToken, null, "should clear the reset token");
+    assert.equal(savedData.data.passwordResetExpiresAt, null, "should clear the expiry");
+    assert.ok(savedData.data.passwordHash, "should set a new password hash");
+  });
+});
+
+test("POST /api/auth/reset-password returns 400 for an unknown or expired token", async () => {
+  // findFirst returns null — simulates expired or non-existent token
+  await withServer(async (server) => {
+    const response = await request(server, "/api/auth/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: "invalid-or-expired-token", password: "NewPassword1!" }),
+    });
+
+    assert.equal(response.status, 400);
+    assert.equal(response.body.ok, false);
+    assert.ok(response.body.error);
+  });
+});
+
+test("POST /api/auth/reset-password returns 400 when password is too short", async () => {
+  await withServer(async (server) => {
+    const response = await request(server, "/api/auth/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: "sometoken", password: "short" }),
+    });
+
+    assert.equal(response.status, 400);
+    assert.equal(response.body.ok, false);
+    // Should reject before hitting the DB — update must not be called
+  });
+});
+
+test("POST /api/auth/reset-password returns 400 when token is missing", async () => {
+  await withServer(async (server) => {
+    const response = await request(server, "/api/auth/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: "NewPassword1!" }),
+    });
+
+    assert.equal(response.status, 400);
+    assert.equal(response.body.ok, false);
+  });
+});
+
+test("POST /api/auth/reset-password does not call update when token lookup fails", async () => {
+  let updateCalled = false;
+  prismaMock.user.update = async () => {
+    updateCalled = true;
+    return {};
+  };
+
+  await withServer(async (server) => {
+    await request(server, "/api/auth/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: "bogus", password: "NewPassword1!" }),
+    });
+
+    assert.equal(updateCalled, false, "update must not be called for invalid tokens");
+  });
+});
