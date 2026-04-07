@@ -205,13 +205,11 @@ The following were explicitly **not** modified:
 
 These are gaps identified during the test1 build review. None are crashes — they are silent failures or missing user feedback.
 
-### 1. `?checkout=cancelled` silently ignored (`UI/src/App.tsx`)
-When a user backs out of Stripe's checkout page, they return with `?checkout=cancelled`. The URL param is stripped but no message is shown. User lands on the landing page with no explanation and may think payment failed.
-**Fix:** Add a `checkout === "cancelled"` branch that shows a brief message or toast.
+### 1. `?checkout=cancelled` silently ignored (`UI/src/App.tsx`) — ✅ FIXED (session 2)
+User now navigated to `turtle-analytics` view on cancelled checkout so the Subscribe button is visible.
 
-### 2. Checkout polling exhausted — no message (`UI/src/App.tsx`)
-If the Stripe webhook takes longer than 12 seconds (6 polls × 2s), `checkoutPending` clears silently and the user is left on the landing page. They have paid but see nothing.
-**Fix:** On poll exhaustion, show a message telling the user their payment is processing and to log in shortly.
+### 2. Checkout polling exhausted — no message (`UI/src/App.tsx`) — ✅ FIXED (session 2)
+`checkoutExhausted` state added. On poll exhaustion a "Payment received — Refresh now" screen is shown instead of silent drop. Admin sync-stripe button also added to recover stuck users without webhook.
 
 ### 3. Non-401 session errors swallowed on page load (`UI/src/App.tsx`)
 `fetchAccountState` in `validateSession` only handles `ApiError` with status 401. A 500 or network error is caught but ignored — user stays logged out silently.
@@ -284,6 +282,21 @@ All counterfactual parameter rows report identical win rate (55%) with Win Rate 
 **Result:** Win rate is correct arithmetic on data where the policy parameters happen not to flip any outcomes. With a different dataset (winners with large MAE, or losers with large MFE), win rate would move. The table is not lying — but it hides the trail bug because the trail rarely triggers properly.
 
 **Fix:** Fix Bug 1 first (trail formula). Then add a synthetic test case with known flip scenarios (a winner that dips 40% of risk before recovering) to verify win rate does change under tighter SL.
+
+### 4. Trail formula fabricates negative R — optimiser output is corrupted
+The trail formula (Bug 1 above) doesn't just produce wrong exit prices — it manufactures phantom losses that directly corrupt Bayesian optimisation output:
+
+**LONG example** (XAUUSD entry=2337, MFE=1.5pts, trail_pct=0.005):
+- trail_stop = 2338.5 × 0.995 = **2326.8** (10.7pts below entry)
+- sim_pnl = 2326.8 − 2337 = **−10.2** (fabricated loss on a winning move)
+- sim_R = large negative — trade that moved favourably recorded as disaster
+
+**SHORT example** (EURUSD entry=1.08, MFE=0.0005, trail_pct=0.005):
+- trail_stop = 1.0795 × 1.005 = **1.0849** (price never reached there)
+- sim_pnl = 1.08 − 1.0849 = **−0.0049** (fabricated loss)
+
+Optimiser sees phantom losses on every trial where trail_pct > 0 → drives trail_pct to zero on every run. All historical ML pipeline recommendations for trailing stops are the **inverse of reality**. The model learned that trailing stops destroy performance because the formula told it so.
+**Fix:** Fix Bug 1 (R-unit trailing). Rerun optimisation. All prior trail_pct recommendations should be discarded.
 
 ### 3. sim_R denominator silently drops trades when original SL = entry price
 `simulator.py` line 394:
