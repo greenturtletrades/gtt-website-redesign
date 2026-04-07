@@ -261,30 +261,38 @@ def run_simulation(
             can_trail = sim_exit_reason == "ORIGINAL"
             
             if can_trail.any():
-                # Calculate trailing stop levels based on peak prices
-                
+                # Calculate trailing stop levels from risk units rather than absolute
+                # price percentages. This keeps behaviour consistent across
+                # instruments like FX, indices, and metals.
+                mae_abs = df["mae"].abs()
+
+                # Use the simulated SL distance as the trail distance basis so the
+                # trail remains aligned with the policy's actual risk.
+                sim_risk_long = (
+                    df.loc[is_long, "entry_price"] - sim_sl.loc[is_long]
+                )
+                sim_risk_short = (
+                    sim_sl.loc[is_short] - df.loc[is_short, "entry_price"]
+                )
+
                 # For LONG trades:
                 # - Peak price = entry + MFE
-                # - Trail stop = peak × (1 - trail_pct)
-                # - Check if worst price (entry - MAE) <= trail stop
-                
+                # - Trail stop = peak - (sim_risk * trail_pct)
+                # - Check if worst price (entry - |MAE|) <= trail stop
                 long_peak_price = df.loc[is_long, "entry_price"] + df.loc[is_long, "mfe"]
-                long_trail_stop = long_peak_price * (1 - policy.trail_pct)
-                
+                long_trail_stop = long_peak_price - (sim_risk_long * policy.trail_pct)
+
                 # Check if price pulled back enough to hit the trail
-                # Worst price for LONG is entry - |MAE|
-                mae_abs = df["mae"].abs()
                 long_worst_price = df.loc[is_long, "entry_price"] - mae_abs.loc[is_long]
                 long_trail_hit = (long_worst_price <= long_trail_stop) & can_trail.loc[is_long]
-                
+
                 # For SHORT trades:
-                # - Peak price = entry - MFE (best for short is lower price)
-                # - Trail stop = peak × (1 + trail_pct) (higher than peak for shorts)
-                # - Check if worst price (entry + MAE) >= trail stop
-                
+                # - Peak price = entry - MFE (best price is lower)
+                # - Trail stop = peak + (sim_risk * trail_pct)
+                # - Check if worst price (entry + |MAE|) >= trail stop
                 short_peak_price = df.loc[is_short, "entry_price"] - df.loc[is_short, "mfe"]
-                short_trail_stop = short_peak_price * (1 + policy.trail_pct)
-                
+                short_trail_stop = short_peak_price + (sim_risk_short * policy.trail_pct)
+
                 # Worst price for SHORT is entry + |MAE|
                 short_worst_price = df.loc[is_short, "entry_price"] + mae_abs.loc[is_short]
                 short_trail_hit = (short_worst_price >= short_trail_stop) & can_trail.loc[is_short]
@@ -391,6 +399,14 @@ def run_simulation(
         sim_sl.loc[is_short] - df.loc[is_short, "entry_price"]
     )
     
+    zero_risk_mask = sim_risk == 0
+    zero_risk_count = int(zero_risk_mask.sum())
+    if zero_risk_count > 0:
+        warnings.warn(
+            f"{zero_risk_count} trade(s) had zero simulated risk and were excluded from sim_R calculations.",
+            RuntimeWarning,
+        )
+
     df["sim_R"] = sim_pnl / sim_risk.replace(0, np.nan)
     
     # Win indicator
