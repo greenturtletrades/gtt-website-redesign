@@ -4,9 +4,11 @@ import { motion } from "motion/react";
 interface TurtleAnalyticsWelcomeProps {
   onSignUp: () => void;
   onSignIn: () => void;
+  onSubscribe?: () => void;
+  isLoggedIn?: boolean;
 }
 
-export function TurtleAnalyticsWelcome({ onSignUp, onSignIn }: TurtleAnalyticsWelcomeProps) {
+export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLoggedIn = false }: TurtleAnalyticsWelcomeProps) {
   return (
     <div className="min-h-screen bg-white pt-20">
       {/* Hero Section */}
@@ -61,20 +63,32 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn }: TurtleAnalyticsWe
 
             {/* CTA Buttons */}
             <div className="flex items-center justify-center gap-4 flex-wrap">
-              <button
-                onClick={onSignUp}
-                className="px-8 py-4 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-lg hover:from-teal-600 hover:to-cyan-600 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
-              >
-                <UserPlus className="w-5 h-5" />
-                Sign Up - Get Started
-              </button>
-              <button
-                onClick={onSignIn}
-                className="px-8 py-4 bg-white/10 text-white border border-white/30 rounded-lg hover:bg-white/20 transition-all flex items-center gap-2 backdrop-blur-sm"
-              >
-                <LogIn className="w-5 h-5" />
-                Login
-              </button>
+              {isLoggedIn ? (
+                <button
+                  onClick={onSubscribe}
+                  className="px-8 py-4 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-lg hover:from-teal-600 hover:to-cyan-600 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <Crown className="w-5 h-5" />
+                  Subscribe to Get Access
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={onSignUp}
+                    className="px-8 py-4 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-lg hover:from-teal-600 hover:to-cyan-600 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                  >
+                    <UserPlus className="w-5 h-5" />
+                    Sign Up - Get Started
+                  </button>
+                  <button
+                    onClick={onSignIn}
+                    className="px-8 py-4 bg-white/10 text-white border border-white/30 rounded-lg hover:bg-white/20 transition-all flex items-center gap-2 backdrop-blur-sm"
+                  >
+                    <LogIn className="w-5 h-5" />
+                    Login
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
@@ -340,20 +354,32 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn }: TurtleAnalyticsWe
                 to the most advanced personal trading intelligence system.
               </p>
               <div className="flex items-center justify-center gap-4 flex-wrap">
-                <button
-                  onClick={onSignUp}
-                  className="px-8 py-4 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-lg hover:from-teal-600 hover:to-cyan-600 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
-                >
-                  <Sparkles className="w-5 h-5" />
-                  Sign Up for Turtle Analytics
-                </button>
-                <button
-                  onClick={onSignIn}
-                  className="px-8 py-4 bg-white/10 text-white border border-white/30 rounded-lg hover:bg-white/20 transition-all flex items-center gap-2 backdrop-blur-sm"
-                >
-                  <LogIn className="w-5 h-5" />
-                  Already Have an Account? Login
-                </button>
+                {isLoggedIn ? (
+                  <button
+                    onClick={onSubscribe}
+                    className="px-8 py-4 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-lg hover:from-teal-600 hover:to-cyan-600 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                  >
+                    <Crown className="w-5 h-5" />
+                    Subscribe to Get Access
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={onSignUp}
+                      className="px-8 py-4 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-lg hover:from-teal-600 hover:to-cyan-600 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                    >
+                      <Sparkles className="w-5 h-5" />
+                      Sign Up for Turtle Analytics
+                    </button>
+                    <button
+                      onClick={onSignIn}
+                      className="px-8 py-4 bg-white/10 text-white border border-white/30 rounded-lg hover:bg-white/20 transition-all flex items-center gap-2 backdrop-blur-sm"
+                    >
+                      <LogIn className="w-5 h-5" />
+                      Already Have an Account? Login
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </motion.div>

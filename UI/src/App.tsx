@@ -440,7 +440,12 @@ export default function App() {
             onResumeSubscription={handleResumeSubscription}
           />
         ) : (
-          <TurtleAnalyticsWelcome onSignUp={handleTraderSignUp} onSignIn={handleTraderClick} />
+          <TurtleAnalyticsWelcome
+            onSignUp={handleTraderSignUp}
+            onSignIn={handleTraderClick}
+            isLoggedIn={userType === "trader"}
+            onSubscribe={() => setShowSubscriptionModal(true)}
+          />
         )
       )}
 
