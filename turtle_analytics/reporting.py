@@ -541,6 +541,7 @@ def _format_optimization_results(opt_results: dict) -> dict[str, Any]:
                     "risk_fraction": float(row.get("risk_fraction", 0.0)) if pd.notna(row.get("risk_fraction")) else None,
                     "avg_r": float(row.get("avg_R", 0.0)),
                     "total_r": None if pd.isna(row.get("total_R")) else float(row.get("total_R")),
+                    "n_trades": None if pd.isna(row.get("n_trades")) else int(row.get("n_trades")),
                     "win_rate": None
                     if pd.isna(row.get("win_rate", row.get("winrate")))
                     else float(row.get("win_rate", row.get("winrate"))),
@@ -554,6 +555,10 @@ def _format_optimization_results(opt_results: dict) -> dict[str, Any]:
                     "ci_lower": None if pd.isna(row.get("ci_lower")) else float(row.get("ci_lower")),
                     "ci_upper": None if pd.isna(row.get("ci_upper")) else float(row.get("ci_upper")),
                 }
+                if row_payload["win_rate"] is not None and row_payload["n_trades"] is not None:
+                    row_payload["win_count"] = int(round(row_payload["win_rate"] * row_payload["n_trades"]))
+                else:
+                    row_payload["win_count"] = None
                 uniqueness_key = (
                     round(row_payload["sl_mult"], 3),
                     round(row_payload["tp_mult"], 3),

@@ -421,7 +421,11 @@ export function TurtleAnalytics({
           avgR: Number(row.avg_r ?? 0).toFixed(2),
           totalR: typeof row.total_r === "number" ? `${row.total_r.toFixed(2)}R` : "—",
           winRate:
-            typeof row.win_rate === "number" ? `${Math.round(row.win_rate * 100)}%` : "—",
+            typeof row.win_rate === "number" ? `${(row.win_rate * 100).toFixed(1)}%` : "—",
+          wins:
+            typeof row.win_count === "number" && typeof row.n_trades === "number"
+              ? `${row.win_count}/${row.n_trades}`
+              : "—",
           winRateDelta:
             typeof row.delta_win_rate === "number"
               ? `${row.delta_win_rate >= 0 ? "+" : ""}${(row.delta_win_rate * 100).toFixed(1)} pts`
@@ -2110,6 +2114,7 @@ export function TurtleAnalytics({
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">Avg R</th>
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">Total R</th>
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">Win Rate</th>
+                        <th className="text-left py-3 px-4 text-slate-700 text-sm">Wins</th>
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">Win Rate Δ</th>
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">% Changed</th>
                         <th className="text-left py-3 px-4 text-slate-700 text-sm">95% CI</th>
@@ -2126,6 +2131,7 @@ export function TurtleAnalytics({
                           <td className="py-3 px-4 text-sm font-semibold">{row.avgR}</td>
                           <td className="py-3 px-4 text-sm">{row.totalR}</td>
                           <td className="py-3 px-4 text-sm">{row.winRate}</td>
+                          <td className="py-3 px-4 text-sm">{row.wins}</td>
                           <td className="py-3 px-4 text-sm">{row.winRateDelta}</td>
                           <td className="py-3 px-4 text-sm">{row.changedTrades}</td>
                           <td className="py-3 px-4 text-sm text-slate-500">{row.confidence}</td>
@@ -2150,7 +2156,7 @@ export function TurtleAnalytics({
                     <div>
                       <div className="text-slate-900 text-sm mb-1">How This Works:</div>
                       <p className="text-slate-600 text-xs">
-                      Each line is a real optimiser trial. `Avg R` ranks the policies, `Total R` shows cumulative outcome across the analysed trades, `Win Rate Δ` shows how much the win rate moved from your original trades, and `% Changed` shows how many trades would have exited differently from your original history.
+                      Each line is a real optimiser trial. `Avg R` ranks the policies, `Total R` shows cumulative outcome across the analysed trades, `Wins` shows the raw winning-trade count behind the displayed win rate, `Win Rate Δ` shows how much the win rate moved from your original trades, and `% Changed` shows how many trades would have exited differently from your original history.
                       </p>
                     </div>
                 </div>
