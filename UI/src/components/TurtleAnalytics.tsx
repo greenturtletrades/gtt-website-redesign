@@ -477,21 +477,22 @@ export function TurtleAnalytics({
             : "—";
       return {
         scope: block.scope ?? "all analysed trades",
+        summaryText: `Trade ${filters.time_range ?? "the strongest time range"}${filters.regime ? ` in ${filters.regime} conditions` : ""}, hold up to ${policyBlock.max_hold_minutes == null ? "your normal trade duration" : `${policyBlock.max_hold_minutes}m`}, and manage risk with ${typeof policyBlock.sl_mult === "number" ? `${policyBlock.sl_mult.toFixed(3)}R SL` : "the tested stop"} / ${typeof policyBlock.tp_mult === "number" ? `${policyBlock.tp_mult.toFixed(3)}R TP` : "the tested target"}${typeof policyBlock.trail_pct === "number" ? ` / ${(policyBlock.trail_pct * 100).toFixed(1)}% trail` : ""}.`,
         profileRows: [
-          { label: "Best Time Range", value: filters.time_range ?? "—" },
-          { label: "Best Regime", value: filters.regime ?? "—" },
-          { label: "Best Historical Hold Bucket", value: filters.hold_bucket ?? "—" },
+          { label: "Time Range", value: filters.time_range ?? "—" },
+          { label: "Regime", value: filters.regime ?? "Any regime" },
+          { label: "Historical Hold Bucket", value: filters.hold_bucket ?? "—" },
           { label: "Stop Loss", value: typeof policyBlock.sl_mult === "number" ? `${policyBlock.sl_mult.toFixed(3)}R` : "—" },
           { label: "Take Profit", value: typeof policyBlock.tp_mult === "number" ? `${policyBlock.tp_mult.toFixed(3)}R` : "—" },
-          { label: "Trailing Stop", value: typeof policyBlock.trail_pct === "number" ? `${(policyBlock.trail_pct * 100).toFixed(1)}%` : "—" },
+          { label: "Trail", value: typeof policyBlock.trail_pct === "number" ? `${(policyBlock.trail_pct * 100).toFixed(1)}%` : "—" },
           { label: "Max Hold", value: policyBlock.max_hold_minutes == null ? "None" : `${policyBlock.max_hold_minutes}m` },
-          { label: "Recommended Risk", value: typeof policyBlock.risk_fraction === "number" ? `${(policyBlock.risk_fraction * 100).toFixed(2)}%` : "—" },
+          { label: "Risk Per Trade", value: typeof policyBlock.risk_fraction === "number" ? `${(policyBlock.risk_fraction * 100).toFixed(2)}%` : "—" },
         ],
         summaryCards: [
           {
-            label: "Scope Used",
-            value: block.scope === "time + regime" ? "Time + Regime" : block.scope === "time only" ? "Time Only" : block.scope === "regime only" ? "Regime Only" : "All Trades",
-            subtext: `${coverage.matched_trades ?? 0}/${coverage.total_trades ?? 0} matched trades`,
+            label: "Matched Trades",
+            value: `${coverage.matched_trades ?? 0}`,
+            subtext: `out of ${coverage.total_trades ?? 0} analysed trades`,
           },
           {
             label: "Coverage",
@@ -506,16 +507,24 @@ export function TurtleAnalytics({
             subtext: typeof simulated.win_rate === "number" ? `${(simulated.win_rate * 100).toFixed(1)}% simulated win rate` : "Simulated on the matched slice",
           },
         ],
+        scopeLabel:
+          block.scope === "time + regime"
+            ? "Built from the overlap of your best time range and best regime."
+            : block.scope === "time only"
+              ? "Built from your best time range only because the regime overlap was too small."
+              : block.scope === "regime only"
+                ? "Built from your best regime only because the time-range overlap was too small."
+                : "Built from the full analysed trade set because the narrower overlap was too small.",
         metricsRows: [
           {
-            label: "Original matched trades",
+            label: "Original setup",
             trades: historical.trades ?? 0,
             avgR: formatR(historical.avg_r),
             winRate: formatPct(historical.win_rate),
             total: formatPnl(historical.total_currency_pnl, historical.total_r),
           },
           {
-            label: "Simulated with best policy",
+            label: "Optimised setup",
             trades: simulated.trades ?? 0,
             avgR: formatR(simulated.avg_r),
             winRate: formatPct(simulated.win_rate),
@@ -2733,6 +2742,30 @@ export function TurtleAnalytics({
 
                 {hasCombinedStrategy ? (
                   <>
+                    <div className="mb-6 rounded-xl border border-teal-200 bg-teal-50 p-5">
+                      <div className="text-xs uppercase tracking-wide text-teal-700 mb-2">Best Historical Strategy Setup</div>
+                      <div className="text-slate-900 text-lg mb-2">{combinedStrategy.summaryText}</div>
+                      <div className="text-xs text-teal-800">{combinedStrategy.scopeLabel}</div>
+                    </div>
+
+                    {combinedStrategy.warnings.length > 0 && (
+                      <div className="mb-8 rounded-xl border border-amber-200 bg-amber-50 p-5">
+                        <div className="flex items-start gap-3">
+                          <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <div className="text-sm text-amber-900 mb-2">Read This Before Using It</div>
+                            <div className="space-y-2">
+                              {combinedStrategy.warnings.map((warning: string, idx: number) => (
+                                <p key={idx} className="text-xs text-amber-800">
+                                  {warning}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                       {combinedStrategy.summaryCards.map((card: any) => (
                         <div key={card.label} className="rounded-xl border border-slate-200 bg-slate-50 p-5">
@@ -2743,30 +2776,24 @@ export function TurtleAnalytics({
                       ))}
                     </div>
 
-                    <div className="mb-8 bg-white rounded-xl border border-slate-200 overflow-hidden">
-                      <table className="w-full">
-                        <thead className="bg-slate-50">
-                          <tr>
-                            <th className="text-left py-3 px-4 text-slate-700 text-sm">Profile Variable</th>
-                            <th className="text-left py-3 px-4 text-slate-700 text-sm">Recommended Value</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {combinedStrategy.profileRows.map((row: any) => (
-                            <tr key={row.label} className="border-t border-slate-100">
-                              <td className="py-3 px-4 text-sm text-slate-600">{row.label}</td>
-                              <td className="py-3 px-4 text-sm font-medium text-slate-900">{row.value}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                    <div className="mb-8">
+                      <div className="text-sm text-slate-700 mb-4">Recommended Setup</div>
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        {combinedStrategy.profileRows.map((row: any) => (
+                          <div key={row.label} className="rounded-xl border border-slate-200 bg-white p-4">
+                            <div className="text-xs text-slate-500 mb-2">{row.label}</div>
+                            <div className="text-base text-slate-900">{row.value}</div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
 
                     <div className="mb-8 bg-white rounded-xl border border-slate-200 overflow-hidden">
+                      <div className="px-4 pt-4 text-sm text-slate-700">What This Setup Would Have Looked Like</div>
                       <table className="w-full">
                         <thead className="bg-slate-50">
                           <tr>
-                            <th className="text-left py-3 px-4 text-slate-700 text-sm">Matched Dataset Performance</th>
+                            <th className="text-left py-3 px-4 text-slate-700 text-sm">Comparison</th>
                             <th className="text-left py-3 px-4 text-slate-700 text-sm">Trades</th>
                             <th className="text-left py-3 px-4 text-slate-700 text-sm">Avg R</th>
                             <th className="text-left py-3 px-4 text-slate-700 text-sm">Win Rate</th>
@@ -2787,23 +2814,6 @@ export function TurtleAnalytics({
                       </table>
                     </div>
 
-                    {combinedStrategy.warnings.length > 0 && (
-                      <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
-                        <div className="flex items-start gap-3">
-                          <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                          <div>
-                            <div className="text-sm text-amber-900 mb-2">Coverage And Stability Notes</div>
-                            <div className="space-y-2">
-                              {combinedStrategy.warnings.map((warning: string, idx: number) => (
-                                <p key={idx} className="text-xs text-amber-800">
-                                  {warning}
-                                </p>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </>
                 ) : (
                   <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 text-sm text-slate-600">
