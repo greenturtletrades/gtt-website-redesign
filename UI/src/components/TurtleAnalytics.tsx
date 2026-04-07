@@ -110,6 +110,7 @@ export function TurtleAnalytics({
         mfeMaePoints: [],
         counterfactualResults: [],
         trailingStopResults: [],
+        combinedStrategy: null,
       };
     }
 
@@ -455,6 +456,75 @@ export function TurtleAnalytics({
         status: row.status ?? "Observed",
       }));
     })();
+    const combinedStrategy = (() => {
+      const block = reportData.combined_strategy_optimization;
+      if (!block) return null;
+      const filters = block.filters ?? {};
+      const policyBlock = block.policy ?? {};
+      const historical = block.historical_performance ?? {};
+      const simulated = block.simulated_performance ?? {};
+      const coverage = block.coverage ?? {};
+      const supporting = block.supporting_context ?? {};
+      const formatPct = (value: number | null | undefined, digits = 1) =>
+        typeof value === "number" ? `${(value * 100).toFixed(digits)}%` : "—";
+      const formatR = (value: number | null | undefined) =>
+        typeof value === "number" ? `${value.toFixed(2)}R` : "—";
+      const formatPnl = (value: number | null | undefined, fallback?: number | null | undefined) =>
+        typeof value === "number"
+          ? formatAccountMetric(value)
+          : typeof fallback === "number"
+            ? `${fallback.toFixed(2)}R`
+            : "—";
+      return {
+        scope: block.scope ?? "all analysed trades",
+        profileRows: [
+          { label: "Best Time Range", value: filters.time_range ?? "—" },
+          { label: "Best Regime", value: filters.regime ?? "—" },
+          { label: "Best Historical Hold Bucket", value: filters.hold_bucket ?? "—" },
+          { label: "Stop Loss", value: typeof policyBlock.sl_mult === "number" ? `${policyBlock.sl_mult.toFixed(3)}R` : "—" },
+          { label: "Take Profit", value: typeof policyBlock.tp_mult === "number" ? `${policyBlock.tp_mult.toFixed(3)}R` : "—" },
+          { label: "Trailing Stop", value: typeof policyBlock.trail_pct === "number" ? `${(policyBlock.trail_pct * 100).toFixed(1)}%` : "—" },
+          { label: "Max Hold", value: policyBlock.max_hold_minutes == null ? "None" : `${policyBlock.max_hold_minutes}m` },
+          { label: "Recommended Risk", value: typeof policyBlock.risk_fraction === "number" ? `${(policyBlock.risk_fraction * 100).toFixed(2)}%` : "—" },
+        ],
+        summaryCards: [
+          {
+            label: "Scope Used",
+            value: block.scope === "time + regime" ? "Time + Regime" : block.scope === "time only" ? "Time Only" : block.scope === "regime only" ? "Regime Only" : "All Trades",
+            subtext: `${coverage.matched_trades ?? 0}/${coverage.total_trades ?? 0} matched trades`,
+          },
+          {
+            label: "Coverage",
+            value: formatPct(coverage.coverage_pct),
+            subtext: supporting.best_hold_bucket_avg_r != null
+              ? `${supporting.best_hold_bucket_avg_r.toFixed(2)}R best historical hold bucket`
+              : "Coverage of the filtered setup",
+          },
+          {
+            label: "Simulated Avg R",
+            value: formatR(simulated.avg_r),
+            subtext: typeof simulated.win_rate === "number" ? `${(simulated.win_rate * 100).toFixed(1)}% simulated win rate` : "Simulated on the matched slice",
+          },
+        ],
+        metricsRows: [
+          {
+            label: "Original matched trades",
+            trades: historical.trades ?? 0,
+            avgR: formatR(historical.avg_r),
+            winRate: formatPct(historical.win_rate),
+            total: formatPnl(historical.total_currency_pnl, historical.total_r),
+          },
+          {
+            label: "Simulated with best policy",
+            trades: simulated.trades ?? 0,
+            avgR: formatR(simulated.avg_r),
+            winRate: formatPct(simulated.win_rate),
+            total: formatPnl(simulated.total_currency_pnl, simulated.total_r),
+          },
+        ],
+        warnings: Array.isArray(block.warnings) ? block.warnings : [],
+      };
+    })();
     const recommendationCards = (() => {
       const cards: Array<{ bold: string; rest: string; source: string }> = [];
 
@@ -594,6 +664,7 @@ export function TurtleAnalytics({
       exitEfficiencyChartData,
       counterfactualResults,
       trailingStopResults,
+      combinedStrategy,
     };
   }, [formatAccountMetric, reportData]);
   const [isEditingTradeCount, setIsEditingTradeCount] = useState(false);
@@ -607,6 +678,7 @@ export function TurtleAnalytics({
     exitStrategy: false,
     marketConditions: false,
     riskMetrics: false,
+    combinedStrategy: false,
     howItWorks: false
   });
   
@@ -1112,6 +1184,7 @@ export function TurtleAnalytics({
   const equityCurveComparison = derived.equityCurveData;
   const hasOptimisedEquityCurve = derived.hasOptimisedEquityCurve === true;
   const consecutiveLossData = derived.consecutiveLossData;
+  const combinedStrategy = derived.combinedStrategy;
   const reportJournalEntries = reportData?.trade_analytics?.journal_entries ?? [];
   const storedJournalEntryMap = new Map(
     storedJournalEntries.map((entry: any) => [
@@ -1169,6 +1242,7 @@ export function TurtleAnalytics({
   const hasHoldTimeResults = holdTimeResults.length > 0;
   const hasRiskFractionResults = riskFractionResults.length > 0;
   const hasConsecutiveLossData = consecutiveLossData.length > 0;
+  const hasCombinedStrategy = combinedStrategy !== null;
   const equityUsesCurrency = derived.equityLabel === "Cumulative Account P/L";
   const formatEquityValue = (value: number) =>
     equityUsesCurrency ? formatAccountMetric(value) : `${value.toFixed(2)}R`;
@@ -2620,6 +2694,122 @@ export function TurtleAnalytics({
                 </ResponsiveContainer>
               </div>
             </div>
+              </div>
+            )}
+          </section>
+
+          <section className="max-w-7xl mx-auto px-4 sm:px-6 pb-16">
+            <button
+              onClick={() => toggleSection('combinedStrategy')}
+              className="w-full bg-white border-2 border-slate-200 rounded-xl p-6 flex items-center justify-between hover:border-teal-300 transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center">
+                  <Layers className="w-6 h-6 text-teal-700" />
+                </div>
+                <div className="text-left">
+                  <h2 className="text-slate-900 text-xl mb-1">Combined Strategy Optimisation</h2>
+                  <p className="text-slate-600 text-sm">Best historical setup built from your strongest time, regime, and policy signals</p>
+                </div>
+              </div>
+              {expandedSections.combinedStrategy ? (
+                <ChevronUp className="w-6 h-6 text-slate-600" />
+              ) : (
+                <ChevronDown className="w-6 h-6 text-slate-600" />
+              )}
+            </button>
+
+            {expandedSections.combinedStrategy && (
+              <div className="mt-4 bg-white border border-slate-200 rounded-xl p-6">
+                <div className="mb-8">
+                  <h2 className="text-slate-900 mb-3 text-2xl flex items-center gap-2">
+                    <Sparkles className="w-6 h-6 text-teal-600" />
+                    Ultimate Strategy Profile
+                  </h2>
+                  <p className="text-slate-600 text-sm">
+                    This section combines the strongest historical time-of-day, regime, and management settings from the current run into one practical profile. It is a best-fit historical setup, not a guaranteed future result.
+                  </p>
+                </div>
+
+                {hasCombinedStrategy ? (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                      {combinedStrategy.summaryCards.map((card: any) => (
+                        <div key={card.label} className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+                          <div className="text-xs text-slate-500 mb-2">{card.label}</div>
+                          <div className="text-2xl text-slate-900 mb-1">{card.value}</div>
+                          <div className="text-xs text-slate-600">{card.subtext}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mb-8 bg-white rounded-xl border border-slate-200 overflow-hidden">
+                      <table className="w-full">
+                        <thead className="bg-slate-50">
+                          <tr>
+                            <th className="text-left py-3 px-4 text-slate-700 text-sm">Profile Variable</th>
+                            <th className="text-left py-3 px-4 text-slate-700 text-sm">Recommended Value</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {combinedStrategy.profileRows.map((row: any) => (
+                            <tr key={row.label} className="border-t border-slate-100">
+                              <td className="py-3 px-4 text-sm text-slate-600">{row.label}</td>
+                              <td className="py-3 px-4 text-sm font-medium text-slate-900">{row.value}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="mb-8 bg-white rounded-xl border border-slate-200 overflow-hidden">
+                      <table className="w-full">
+                        <thead className="bg-slate-50">
+                          <tr>
+                            <th className="text-left py-3 px-4 text-slate-700 text-sm">Matched Dataset Performance</th>
+                            <th className="text-left py-3 px-4 text-slate-700 text-sm">Trades</th>
+                            <th className="text-left py-3 px-4 text-slate-700 text-sm">Avg R</th>
+                            <th className="text-left py-3 px-4 text-slate-700 text-sm">Win Rate</th>
+                            <th className="text-left py-3 px-4 text-slate-700 text-sm">Total Outcome</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {combinedStrategy.metricsRows.map((row: any, idx: number) => (
+                            <tr key={row.label} className={`border-t border-slate-100 ${idx === 1 ? 'bg-teal-50' : ''}`}>
+                              <td className="py-3 px-4 text-sm font-medium text-slate-900">{row.label}</td>
+                              <td className="py-3 px-4 text-sm">{row.trades}</td>
+                              <td className="py-3 px-4 text-sm">{row.avgR}</td>
+                              <td className="py-3 px-4 text-sm">{row.winRate}</td>
+                              <td className="py-3 px-4 text-sm">{row.total}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {combinedStrategy.warnings.length > 0 && (
+                      <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+                        <div className="flex items-start gap-3">
+                          <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <div className="text-sm text-amber-900 mb-2">Coverage And Stability Notes</div>
+                            <div className="space-y-2">
+                              {combinedStrategy.warnings.map((warning: string, idx: number) => (
+                                <p key={idx} className="text-xs text-amber-800">
+                                  {warning}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 text-sm text-slate-600">
+                    This run did not return enough overlapping optimisation, timing, and regime data to build a combined strategy profile yet.
+                  </div>
+                )}
               </div>
             )}
           </section>

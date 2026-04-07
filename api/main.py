@@ -151,6 +151,7 @@ def _run_pipeline(job_id: str, request: AnalyseRequest) -> None:
 
         df_basic = add_basic_features(df_clean)
         df_features = add_extended_features(df_basic)
+        report_df = df_features.copy()
 
         report_data = {
             "best_policy": None,
@@ -219,11 +220,28 @@ def _run_pipeline(job_id: str, request: AnalyseRequest) -> None:
             regime_summary = create_regime_summary(df_labeled, cluster_summary, regime_policies)
             report_data["regime_summary"] = regime_summary
             regimes_found = cluster_summary.get("n_clusters", 0)
+            if "regime" in df_labeled.columns:
+                merge_key = None
+                for candidate in ("trade_identity", "trade_id"):
+                    if candidate in report_df.columns and candidate in df_labeled.columns:
+                        merge_key = candidate
+                        break
+
+                if merge_key is not None:
+                    regime_map = (
+                        df_labeled[[merge_key, "regime"]]
+                        .dropna(subset=[merge_key])
+                        .drop_duplicates(subset=[merge_key], keep="last")
+                    )
+                    report_df = report_df.merge(regime_map, on=merge_key, how="left")
+                elif len(report_df) == len(df_labeled):
+                    report_df = report_df.reset_index(drop=True)
+                    report_df["regime"] = df_labeled.reset_index(drop=True)["regime"]
             logger.info(f"[{job_id}] Clustering complete: {regimes_found} regimes")
 
         # --- Phase 6: Report ---
         report = build_report(
-            df=df_features,
+            df=report_df,
             best_policy=report_data["best_policy"],
             optimization_results=report_data["optimization_results"],
             regime_summary=report_data["regime_summary"],

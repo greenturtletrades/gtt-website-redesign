@@ -333,6 +333,14 @@ def build_report(
         "source_column": pnl_metadata.get("source_column"),
     }
     trade_analytics["journal_entries"] = _build_journal_entries(df, pnl_metadata)
+    combined_strategy = _build_combined_strategy_optimization(
+        df=df,
+        best_policy=best_policy,
+        simulated_best_df=simulated_best_df,
+        trade_analytics=trade_analytics,
+        regimes_section=regimes_section,
+        risk_recommendations=risk_recommendations,
+    )
 
     # Assemble final report
     report = {
@@ -344,6 +352,7 @@ def build_report(
         "hold_time_insights": hold_time_section,
         "risk_recommendations": risk_recommendations,
         "trade_analytics": trade_analytics,
+        "combined_strategy_optimization": combined_strategy,
     }
 
     return report
@@ -454,6 +463,195 @@ def _sorted_trade_frame(df: pd.DataFrame) -> pd.DataFrame:
     if "entry_time" in df.columns:
         return df.sort_values("entry_time", kind="stable").reset_index(drop=True)
     return df.reset_index(drop=True)
+
+
+def _resolve_session_series(df: pd.DataFrame) -> pd.Series | None:
+    df_session = df.copy()
+    if "time_range_bucket" in df_session.columns and df_session["time_range_bucket"].notna().any():
+        return df_session["time_range_bucket"].astype(str)
+    if "session" in df_session.columns and df_session["session"].notna().any():
+        return df_session["session"].astype(str)
+    if "time_of_day_bucket" in df_session.columns and df_session["time_of_day_bucket"].notna().any():
+        return df_session["time_of_day_bucket"].astype(str)
+
+    entry_source = None
+    if "entry_time_local" in df_session.columns and df_session["entry_time_local"].notna().any():
+        entry_source = pd.to_datetime(df_session["entry_time_local"], errors="coerce")
+    elif "entry_time" in df_session.columns and df_session["entry_time"].notna().any():
+        entry_source = pd.to_datetime(df_session["entry_time"], errors="coerce")
+
+    if entry_source is None or not entry_source.notna().any():
+        return None
+
+    def _time_range_bucket_from_hour(h: float) -> str:
+        if pd.isna(h):
+            return "Unknown"
+        start = int(h) // 4 * 4
+        end = (start + 4) % 24
+        return f"{start:02d}:00-{end:02d}:00"
+
+    return entry_source.dt.hour.apply(_time_range_bucket_from_hour).astype(str)
+
+
+def _calculate_frame_performance(frame: pd.DataFrame | None) -> dict[str, Any]:
+    if frame is None or len(frame) == 0 or "R" not in frame.columns:
+        return {
+            "avg_r": None,
+            "win_rate": None,
+            "total_r": None,
+            "trades": 0,
+            "total_currency_pnl": None,
+        }
+
+    r_values = pd.to_numeric(frame["R"], errors="coerce").dropna()
+    total_currency_pnl = None
+    pnl_metadata = _build_currency_pnl_metadata(frame)
+    if pnl_metadata.get("currency_pnl_available") and pnl_metadata.get("values") is not None:
+        pnl_values = pd.to_numeric(pnl_metadata["values"], errors="coerce").dropna()
+        if len(pnl_values) > 0:
+            total_currency_pnl = float(pnl_values.sum())
+
+    return {
+        "avg_r": float(r_values.mean()) if len(r_values) > 0 else None,
+        "win_rate": float((r_values > 0).mean()) if len(r_values) > 0 else None,
+        "total_r": float(r_values.sum()) if len(r_values) > 0 else None,
+        "trades": int(len(r_values)),
+        "total_currency_pnl": total_currency_pnl,
+    }
+
+
+def _build_combined_strategy_optimization(
+    df: pd.DataFrame,
+    best_policy: dict[str, Any] | None,
+    simulated_best_df: pd.DataFrame | None,
+    trade_analytics: dict[str, Any],
+    regimes_section: dict[str, Any] | None,
+    risk_recommendations: dict[str, Any],
+) -> dict[str, Any] | None:
+    if len(df) == 0 or best_policy is None:
+        return None
+
+    session_rows = trade_analytics.get("session_performance") or []
+    regime_rows = (regimes_section or {}).get("regime_details") or []
+    hold_rows = trade_analytics.get("hold_time_distribution") or []
+    if not session_rows:
+        return None
+
+    best_session = session_rows[0]
+    best_regime = None
+    if regime_rows:
+        best_regime = max(
+            regime_rows,
+            key=lambda row: float((row.get("performance") or {}).get("avg_r", float("-inf"))),
+        )
+    best_hold = None
+    if hold_rows:
+        best_hold = max(hold_rows, key=lambda row: float(row.get("avg_r", float("-inf"))))
+
+    session_series = _resolve_session_series(df)
+    session_mask = None
+    if session_series is not None:
+        session_mask = session_series.fillna("Unknown").astype(str).str.replace("_", " ") == str(best_session.get("session", ""))
+
+    regime_mask = None
+    if best_regime is not None and "regime" in df.columns:
+        regime_values = pd.to_numeric(df["regime"], errors="coerce")
+        regime_mask = regime_values == float(best_regime.get("regime_id"))
+
+    min_support = max(12, int(np.ceil(len(df) * 0.05)))
+    candidate_masks: list[tuple[str, pd.Series]] = []
+    if session_mask is not None and regime_mask is not None:
+        candidate_masks.append(("time + regime", session_mask & regime_mask))
+    if session_mask is not None:
+        candidate_masks.append(("time only", session_mask))
+    if regime_mask is not None:
+        candidate_masks.append(("regime only", regime_mask))
+    candidate_masks.append(("all analysed trades", pd.Series(True, index=df.index)))
+
+    selected_scope = candidate_masks[-1][0]
+    selected_mask = candidate_masks[-1][1]
+    for scope_label, mask in candidate_masks:
+        if int(mask.fillna(False).sum()) >= min_support:
+            selected_scope = scope_label
+            selected_mask = mask.fillna(False)
+            break
+
+    matched_df = df[selected_mask].copy()
+    if len(matched_df) == 0:
+        return None
+
+    aligned_sim_df = _simulate_best_policy_frame(matched_df, best_policy)
+
+    simulated_perf = {
+        "avg_r": None,
+        "win_rate": None,
+        "total_r": None,
+        "trades": int(len(matched_df)),
+        "total_currency_pnl": None,
+    }
+    if aligned_sim_df is not None and "sim_R" in aligned_sim_df.columns:
+        sim_r = pd.to_numeric(aligned_sim_df["sim_R"], errors="coerce").dropna()
+        try:
+            sim_currency = _infer_simulated_currency_series(aligned_sim_df)
+        except Exception:
+            sim_currency = None
+        simulated_perf = {
+            "avg_r": float(sim_r.mean()) if len(sim_r) > 0 else None,
+            "win_rate": float((sim_r > 0).mean()) if len(sim_r) > 0 else None,
+            "total_r": float(sim_r.sum()) if len(sim_r) > 0 else None,
+            "trades": int(len(sim_r)),
+            "total_currency_pnl": float(sim_currency.fillna(0.0).sum()) if sim_currency is not None and sim_currency.notna().sum() > 0 else None,
+        }
+
+    historical_perf = _calculate_frame_performance(matched_df)
+    coverage_pct = len(matched_df) / max(len(df), 1)
+    warnings: list[str] = []
+    if selected_scope != "time + regime" and best_regime is not None:
+        warnings.append(
+            f"Combined time-and-regime overlap was too small, so this profile falls back to {selected_scope} for stability."
+        )
+    if len(matched_df) < 20:
+        warnings.append(
+            f"Only {len(matched_df)} trades matched the selected setup. Treat this as directional rather than definitive."
+        )
+    if coverage_pct < 0.15:
+        warnings.append(
+            f"This setup covers only {coverage_pct * 100:.1f}% of analysed trades, so overfitting risk is higher."
+        )
+    silhouette = float(((regimes_section or {}).get("cluster_quality") or {}).get("silhouette_score", 0.0) or 0.0)
+    if best_regime is not None and silhouette < 0.2:
+        warnings.append(
+            f"Regime separation is weak (silhouette {silhouette:.2f}), so the regime filter should be treated cautiously."
+        )
+
+    policy_dict = best_policy.get("policy", {}) if isinstance(best_policy, dict) else {}
+    return {
+        "scope": selected_scope,
+        "filters": {
+            "time_range": best_session.get("session"),
+            "regime": best_regime.get("regime_type") if best_regime is not None else None,
+            "hold_bucket": best_hold.get("duration") if best_hold is not None else None,
+        },
+        "policy": {
+            "sl_mult": policy_dict.get("sl_mult"),
+            "tp_mult": policy_dict.get("tp_mult"),
+            "trail_pct": policy_dict.get("trail_pct"),
+            "max_hold_minutes": policy_dict.get("max_hold_minutes"),
+            "risk_fraction": risk_recommendations.get("suggested_risk_fraction"),
+        },
+        "supporting_context": {
+            "best_hold_bucket_avg_r": best_hold.get("avg_r") if best_hold is not None else None,
+            "best_hold_bucket_trades": best_hold.get("count") if best_hold is not None else None,
+        },
+        "coverage": {
+            "matched_trades": int(len(matched_df)),
+            "total_trades": int(len(df)),
+            "coverage_pct": float(coverage_pct),
+        },
+        "historical_performance": historical_perf,
+        "simulated_performance": simulated_perf,
+        "warnings": warnings,
+    }
 
 
 def _calculate_original_performance(df: pd.DataFrame) -> dict[str, Any]:
@@ -868,29 +1066,10 @@ def _compute_trade_analytics(df: pd.DataFrame) -> dict[str, Any]:
     # ── Session performance ────────────────────────────────────────────────────
     session_column = None
     df_session = df.copy()
-    if "time_range_bucket" in df_session.columns and df_session["time_range_bucket"].notna().any():
-        session_column = "time_range_bucket"
-    elif "session" in df_session.columns and df_session["session"].notna().any():
-        session_column = "session"
-    elif "time_of_day_bucket" in df_session.columns and df_session["time_of_day_bucket"].notna().any():
-        session_column = "time_of_day_bucket"
-    else:
-        entry_source = None
-        if "entry_time_local" in df_session.columns and df_session["entry_time_local"].notna().any():
-            entry_source = pd.to_datetime(df_session["entry_time_local"], errors="coerce")
-        elif "entry_time" in df_session.columns and df_session["entry_time"].notna().any():
-            entry_source = pd.to_datetime(df_session["entry_time"], errors="coerce")
-
-        if entry_source is not None and entry_source.notna().any():
-            def _time_range_bucket_from_hour(h: float) -> str:
-                if pd.isna(h):
-                    return "Unknown"
-                start = int(h) // 4 * 4
-                end = (start + 4) % 24
-                return f"{start:02d}:00-{end:02d}:00"
-
-            df_session["time_range_bucket"] = entry_source.dt.hour.apply(_time_range_bucket_from_hour)
-            session_column = "time_range_bucket"
+    session_series = _resolve_session_series(df_session)
+    if session_series is not None:
+        df_session["_resolved_session"] = session_series
+        session_column = "_resolved_session"
 
     if session_column and len(r_col) > 0:
         pnl_metadata = _build_currency_pnl_metadata(df)
