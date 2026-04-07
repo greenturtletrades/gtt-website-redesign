@@ -3,13 +3,14 @@ import { useState } from "react";
 
 interface SubscriptionModalProps {
   onClose: () => void;
-  onSelectPlan: (plan: "payg") => void;
+  onSelectPlan: (plan: "payg", referralCode?: string) => void;
   userName?: string;
 }
 
 export function SubscriptionModal({ onClose, onSelectPlan, userName }: SubscriptionModalProps) {
   const [selectedPlan, setSelectedPlan] = useState<"payg" | null>("payg");
   const [estimatedTrades, setEstimatedTrades] = useState(100);
+  const [referralCode, setReferralCode] = useState("");
 
   const plan = {
     id: "payg" as const,
@@ -42,7 +43,7 @@ export function SubscriptionModal({ onClose, onSelectPlan, userName }: Subscript
 
   const handleContinue = () => {
     if (selectedPlan) {
-      onSelectPlan(selectedPlan);
+      onSelectPlan(selectedPlan, referralCode.trim().toUpperCase() || undefined);
     }
   };
 
@@ -165,17 +166,22 @@ export function SubscriptionModal({ onClose, onSelectPlan, userName }: Subscript
           Payment methods are handled securely by Stripe.
         </p>
 
-        {/* Referral Programme Info */}
+        {/* Referral / Discount Code */}
         <div className="mt-6 bg-gradient-to-r from-teal-50 to-cyan-50 border border-teal-200 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <Gift className="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" />
-            <div>
+            <Gift className="w-5 h-5 text-teal-600 flex-shrink-0 mt-1" />
+            <div className="flex-1">
               <h4 className="text-teal-900 font-medium mb-1">Have a Referral Code?</h4>
-              <p className="text-teal-700 text-sm">
-                Referral codes are applied during signup. Any account-billing discount and ML-run
-                discount come from the active code linked to your account, using the percentage and
-                duration configured for that code.
+              <p className="text-teal-700 text-sm mb-3">
+                Enter a referral code to apply a discount to your subscription. Stripe promo codes can also be entered on the next page.
               </p>
+              <input
+                type="text"
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                placeholder="e.g. GTT-ABC123"
+                className="w-full px-3 py-2 border border-teal-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+              />
             </div>
           </div>
         </div>

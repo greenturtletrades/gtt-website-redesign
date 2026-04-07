@@ -261,11 +261,11 @@ export default function App() {
     }
   };
 
-  const handleSubscriptionComplete = (plan: "payg") => {
+  const handleSubscriptionComplete = (plan: "payg", referralCode?: string) => {
     setSelectedSubscriptionPlan(plan);
     setShowSubscriptionModal(false);
 
-    createCheckoutSession()
+    createCheckoutSession(referralCode)
       .then((response) => {
         if (response.bypass) {
           setUserType("trader");

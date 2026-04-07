@@ -6536,8 +6536,34 @@ app.post("/api/create-checkout-session", authRequired, async (req, res, next) =>
     }
 
     const appUrl = process.env.APP_URL || "http://localhost:5173";
+
+    // Apply referral code passed at checkout if user doesn't already have one
+    const incomingReferralCode =
+      typeof req.body?.referralCode === "string" ? req.body.referralCode.trim().toUpperCase() : null;
+
+    if (incomingReferralCode && !user.appliedReferralCode) {
+      const matchedCode = await getActiveReferralCode(incomingReferralCode);
+      if (matchedCode) {
+        const expiresAt = calculateReferralExpiry(matchedCode.durationDays);
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            appliedReferralCodeId: matchedCode.id,
+            accountDiscountPercent: matchedCode.accountDiscountPercent,
+            mlRunDiscountPercent: matchedCode.mlRunDiscountPercent,
+            referralDiscountExpiresAt: expiresAt,
+          },
+        });
+        // Refresh user object with updated discount info
+        user.appliedReferralCode = { code: matchedCode.code };
+        user.accountDiscountPercent = matchedCode.accountDiscountPercent;
+        user.referralDiscountExpiresAt = expiresAt;
+      }
+    }
+
     const discounts = getActiveUserDiscounts(user);
     let discountsPayload = undefined;
+    let allowPromotionCodes = false;
 
     if (discounts.accountDiscountPercent > 0) {
       const monthlyPrice = await stripe.prices.retrieve(monthlyPriceId);
@@ -6568,6 +6594,9 @@ app.post("/api/create-checkout-session", authRequired, async (req, res, next) =>
           : {}),
       });
       discountsPayload = [{ coupon: coupon.id }];
+    } else {
+      // No programmatic discount — let users enter Stripe promo codes on the checkout page
+      allowPromotionCodes = true;
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -6589,6 +6618,7 @@ app.post("/api/create-checkout-session", authRequired, async (req, res, next) =>
       ],
       mode: "subscription",
       discounts: discountsPayload,
+      allow_promotion_codes: allowPromotionCodes || undefined,
       success_url: `${appUrl}?checkout=success`,
       cancel_url: `${appUrl}?checkout=cancelled`,
     });

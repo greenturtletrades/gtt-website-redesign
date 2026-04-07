@@ -8,8 +8,11 @@ export function submitChurnFeedback(reason: string, feedback: string, plan: "pay
   });
 }
 
-export function createCheckoutSession() {
-  return apiPost<{ ok: boolean; url?: string; bypass?: boolean; internalAccount?: boolean }>("/api/create-checkout-session", {});
+export function createCheckoutSession(referralCode?: string) {
+  return apiPost<{ ok: boolean; url?: string; bypass?: boolean; internalAccount?: boolean }>(
+    "/api/create-checkout-session",
+    referralCode ? { referralCode } : {}
+  );
 }
 
 export function pauseSubscription() {
