@@ -4507,6 +4507,56 @@ app.patch("/api/admin/traders/:id/status", authRequired, adminRequired, staffWri
   }
 });
 
+// Manually sync a trader's Stripe subscription from Stripe API into the DB.
+// Recovers users who paid but whose webhook failed to fire or was missed.
+app.post("/api/admin/traders/:id/sync-stripe", authRequired, adminRequired, staffWriteRequired, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeSecretKey) {
+      return res.status(500).json({ ok: false, error: "Stripe not configured" });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: { id: true, role: true, email: true, stripeCustomerId: true, stripeSubscriptionId: true },
+    });
+
+    if (!user || user.role !== "TRADER") {
+      return res.status(404).json({ ok: false, error: "Trader not found" });
+    }
+
+    if (!user.stripeCustomerId) {
+      return res.status(400).json({ ok: false, error: "No Stripe customer ID on this account — user has not started checkout" });
+    }
+
+    const stripe = Stripe(stripeSecretKey);
+    const subscriptions = await stripe.subscriptions.list({
+      customer: user.stripeCustomerId,
+      status: "all",
+      limit: 5,
+    });
+
+    const active = subscriptions.data.find(s =>
+      ["active", "trialing", "past_due"].includes(s.status)
+    );
+
+    if (!active) {
+      return res.status(404).json({ ok: false, error: "No active subscription found in Stripe for this customer" });
+    }
+
+    await prisma.user.update({
+      where: { id },
+      data: { stripeSubscriptionId: active.id },
+    });
+
+    return res.json({ ok: true, stripeSubscriptionId: active.id, stripeStatus: active.status });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 app.post("/api/admin/traders/:id/reset-password", authRequired, adminRequired, staffWriteRequired, async (req, res, next) => {
   try {
     const { id } = req.params;

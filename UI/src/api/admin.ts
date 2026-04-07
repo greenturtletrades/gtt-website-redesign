@@ -241,6 +241,10 @@ export function adminResetTraderPassword(id: string) {
   return apiPost<{ ok: boolean }>(`/api/admin/traders/${id}/reset-password`, {});
 }
 
+export function adminSyncTraderStripe(id: string) {
+  return apiPost<{ ok: boolean; stripeSubscriptionId: string; stripeStatus: string }>(`/api/admin/traders/${id}/sync-stripe`, {});
+}
+
 export function fetchAdminStaff() {
   return apiGet<{ ok: boolean; items: AdminStaffMember[] }>("/api/admin/staff");
 }

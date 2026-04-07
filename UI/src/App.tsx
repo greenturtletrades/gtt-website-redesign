@@ -59,6 +59,7 @@ export default function App() {
   const [currentAdminIsSuperAdmin, setCurrentAdminIsSuperAdmin] = useState(false);
   const [mlEnabled, setMlEnabled] = useState(false);
   const [checkoutPending, setCheckoutPending] = useState(false);
+  const [checkoutExhausted, setCheckoutExhausted] = useState(false);
   const [resetToken, setResetToken] = useState<string | null>(null);
 
   useEffect(() => {
@@ -108,7 +109,10 @@ export default function App() {
           // keep polling
         }
         if (attempts < 6) setTimeout(poll, 2000);
-        else setCheckoutPending(false);
+        else {
+          setCheckoutPending(false);
+          setCheckoutExhausted(true);
+        }
       };
       setTimeout(poll, 2000);
     } else if (checkout === "cancelled") {
@@ -470,6 +474,29 @@ export default function App() {
             <div className="w-12 h-12 border-4 border-teal-500/30 border-t-teal-500 rounded-full animate-spin mx-auto mb-4" />
             <h2 className="text-slate-900 text-xl mb-2">Setting up your account...</h2>
             <p className="text-slate-500 text-sm">This takes just a moment</p>
+          </div>
+        </div>
+      )}
+
+      {checkoutExhausted && (
+        <div className="fixed inset-0 bg-white flex items-center justify-center z-50 p-6">
+          <div className="text-center max-w-md">
+            <div className="w-14 h-14 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-7 h-7 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 className="text-slate-900 text-xl mb-2">Payment received</h2>
+            <p className="text-slate-600 text-sm mb-6">
+              Your payment was successful but your account is still being activated. This can take a minute.
+              Please refresh to check — if the problem persists, contact support with your email address.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+            >
+              Refresh now
+            </button>
           </div>
         </div>
       )}

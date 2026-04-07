@@ -1,4 +1,4 @@
-import { Users, TrendingUp, Activity, Shield, Search, BarChart3, Brain, Eye, Filter, Calendar, UserX, BookOpen, UserPlus, DollarSign, CreditCard, PoundSterling, Lock, Unlock, KeyRound } from "lucide-react";
+import { Users, TrendingUp, Activity, Shield, Search, BarChart3, Brain, Eye, Filter, Calendar, UserX, BookOpen, UserPlus, DollarSign, CreditCard, PoundSterling, Lock, Unlock, KeyRound, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { TraderDetailsModal } from "./TraderDetailsModal";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
@@ -21,6 +21,7 @@ import {
   inviteAdmin,
   updateTraderStatus,
   adminResetTraderPassword,
+  adminSyncTraderStripe,
   type AdminChurnFeedbackItem,
   type AdminAccountDeletionAuditItem,
   type AdminFinanceData,
@@ -536,6 +537,18 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
       alert(`✅ Password reset email sent to ${trader.email}`);
     } catch (err) {
       alert(`Failed to send reset email: ${err instanceof Error ? err.message : "Unknown error"}`);
+    }
+  };
+
+  const handleSyncStripe = async (trader: AdminTrader) => {
+    const confirmed = window.confirm(`Sync Stripe subscription for ${trader.email}?\n\nThis looks up their active subscription in Stripe and saves it to the database. Use this if they paid but still can't access the dashboard.`);
+    if (!confirmed) return;
+    try {
+      const result = await adminSyncTraderStripe(trader.id);
+      alert(`✅ Synced — subscription ${result.stripeSubscriptionId} (${result.stripeStatus}) linked to account.`);
+      await reloadTraders();
+    } catch (err) {
+      alert(`Sync failed: ${err instanceof Error ? err.message : "Unknown error"}`);
     }
   };
 
@@ -1090,6 +1103,13 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                                   title="Send password reset email"
                                 >
                                   <KeyRound className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleSyncStripe(trader)}
+                                  className="p-1.5 text-teal-600 hover:bg-teal-50 rounded transition-colors"
+                                  title="Sync Stripe subscription (use if user paid but has no access)"
+                                >
+                                  <RefreshCw className="w-4 h-4" />
                                 </button>
                               </>
                             )}
