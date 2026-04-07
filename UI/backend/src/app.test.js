@@ -505,10 +505,9 @@ test("POST /api/auth/reset-password succeeds with a valid token", async () => {
   let savedData = null;
 
   prismaMock.user.findFirst = async ({ where }) => {
-    // Simulate Prisma's filtering: match hash and check expiry > now
-    const tokenMatches = where.passwordResetToken === hash;
-    const notExpired = where.passwordResetExpiresAt?.gt < new Date() === false;
-    if (tokenMatches && notExpired) {
+    // Only verify the hash — the expiry filter is Prisma's concern, not the mock's.
+    // Expiry rejection is covered separately by the expired-token test (findFirst returns null).
+    if (where.passwordResetToken === hash) {
       return { id: "user-reset" };
     }
     return null;
