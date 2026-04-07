@@ -5345,6 +5345,26 @@ app.get("/api/admin/finance", authRequired, adminRequired, async (req, res, next
   }
 });
 
+// Public endpoint — validates a referral code without exposing sensitive details
+app.post("/api/referral-codes/validate", async (req, res, next) => {
+  try {
+    const code = (req.body?.code || "").trim().toUpperCase();
+    if (!code) return res.status(400).json({ ok: false, error: "No code provided" });
+
+    const referralCode = await prisma.referralCode.findUnique({
+      where: { code },
+    });
+
+    if (!referralCode || !referralCode.isActive) {
+      return res.json({ ok: false, error: "Invalid or inactive referral code" });
+    }
+
+    return res.json({ ok: true });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 app.get("/api/admin/referral-codes", authRequired, adminRequired, async (req, res, next) => {
   try {
     const referralCodes = await prisma.referralCode.findMany({

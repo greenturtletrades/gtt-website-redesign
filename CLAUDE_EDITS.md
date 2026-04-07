@@ -199,4 +199,56 @@ The following were explicitly **not** modified:
 
 ---
 
+---
+
+## Known Weak Points — Error Handling (to target in a future session)
+
+These are gaps identified during the test1 build review. None are crashes — they are silent failures or missing user feedback.
+
+### 1. `?checkout=cancelled` silently ignored (`UI/src/App.tsx`)
+When a user backs out of Stripe's checkout page, they return with `?checkout=cancelled`. The URL param is stripped but no message is shown. User lands on the landing page with no explanation and may think payment failed.
+**Fix:** Add a `checkout === "cancelled"` branch that shows a brief message or toast.
+
+### 2. Checkout polling exhausted — no message (`UI/src/App.tsx`)
+If the Stripe webhook takes longer than 12 seconds (6 polls × 2s), `checkoutPending` clears silently and the user is left on the landing page. They have paid but see nothing.
+**Fix:** On poll exhaustion, show a message telling the user their payment is processing and to log in shortly.
+
+### 3. Non-401 session errors swallowed on page load (`UI/src/App.tsx`)
+`fetchAccountState` in `validateSession` only handles `ApiError` with status 401. A 500 or network error is caught but ignored — user stays logged out silently.
+**Fix:** Add a fallback catch branch that at minimum logs the error; optionally show a "couldn't connect" notice.
+
+### 4. Login fetch failure shows wrong state (`UI/src/App.tsx` — `handleAuthComplete`)
+If `fetchAccountState` throws during the login path, `turtleAnalyticsAuthed` is set to `false` and the user is navigated to `turtle-analytics` but sees `TurtleAnalyticsWelcome` with no explanation.
+**Fix:** On catch, show a message explaining the subscription check failed and prompt the user to try again.
+
+---
+
+---
+
+## Known Weak Points — Subscription System Reliability (to target in a future session)
+
+These are potential failure points in the Stripe subscription flow identified during testing. None have been reproduced in production but all are plausible under real conditions.
+
+### 1. Webhook fails silently — user locked out after paying
+If the Stripe webhook arrives but fails signature verification (wrong `STRIPE_WEBHOOK_SECRET`), Stripe retries 3 times then stops. `stripeSubscriptionId` is never saved to the DB. `fetchAccountState` returns `not_started` forever. User paid but can never get in without admin manually setting their subscription in the DB.
+**Fix:** Add a webhook failure alert in Railway logs monitoring. Add an admin endpoint to manually link a Stripe subscription ID to a user. Consider a "I've paid but can't get in" support flow.
+
+### 2. Polling window too short — user dropped after paying
+If the Stripe webhook takes longer than 12 seconds (6 polls × 2s), `checkoutPending` clears and the user is left on the landing page with no message. Already logged in the error handling weak points above — combining here for full picture.
+**Fix:** Extend polling attempts, and on exhaustion show a message rather than silent drop.
+
+### 3. Cancelled subscription — user stays in until page refresh
+When `customer.subscription.deleted` fires, `stripeSubscriptionId` is set to null in DB. But a user currently in an active session keeps `turtleAnalyticsAuthed = true` in React memory until they refresh. No real-time gate on the frontend.
+**Fix:** Periodic background `fetchAccountState` poll (e.g. every 10 mins) to revalidate session state, or check on each ML run attempt and redirect if subscription gone.
+
+### 4. Stripe API down — paying users blocked from ML
+`assertMlAnalysisAccess` calls the live Stripe API on every ML run to check subscription status. If Stripe has an outage or is slow, it throws and paying users get a 403.
+**Fix:** Cache subscription status in the DB (e.g. `stripeSubscriptionStatus` field, kept in sync by webhooks). Fall back to DB status if Stripe API call fails, rather than blocking the user.
+
+### 5. State 2 → State 1 transition requires page reload
+A logged-in unsubscribed user who completes the subscription modal → Stripe → returns with `?checkout=success` triggers the polling correctly. But if they somehow complete payment without the full redirect cycle (e.g. Stripe redirects back before webhook fires and the polling exhausts), `turtleAnalyticsAuthed` stays `false` in React state. They'd need a manual page reload to get in.
+**Fix:** After successful checkout polling, force a full `fetchAccountState` refresh and update all derived state. Consider a "Refresh" button on the loading screen if polling exhausts.
+
+---
+
 *Log maintained by Claude Code. Each future session should append a new section above this line.*

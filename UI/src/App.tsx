@@ -111,6 +111,9 @@ export default function App() {
         else setCheckoutPending(false);
       };
       setTimeout(poll, 2000);
+    } else if (checkout === "cancelled") {
+      // User cancelled Stripe checkout — return them to the analytics page so the Subscribe button is visible
+      setCurrentView("turtle-analytics");
     }
   }, []);
 
