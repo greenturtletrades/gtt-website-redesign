@@ -16,6 +16,7 @@ import { ContactPage } from "./components/ContactPage";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { TraderApplicationForm } from "./components/onboarding/TraderApplicationForm";
 import { TraderApplicationStatus } from "./components/onboarding/TraderApplicationStatus";
+import { ResetPasswordModal } from "./components/ResetPasswordModal";
 import { logout } from "./api/auth";
 import { ApiError, clearStoredToken } from "./api/client";
 import { fetchAccountState } from "./api/settings";
@@ -58,11 +59,22 @@ export default function App() {
   const [currentAdminIsSuperAdmin, setCurrentAdminIsSuperAdmin] = useState(false);
   const [mlEnabled, setMlEnabled] = useState(false);
   const [checkoutPending, setCheckoutPending] = useState(false);
+  const [resetToken, setResetToken] = useState<string | null>(null);
 
   useEffect(() => {
     getConfig()
       .then(cfg => setMlEnabled(cfg.ml_enabled))
       .catch(() => setMlEnabled(false));
+  }, []);
+
+  // Handle password reset link
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const reset = params.get("reset");
+    if (reset) {
+      window.history.replaceState({}, "", window.location.pathname);
+      setResetToken(reset);
+    }
   }, []);
 
   // Handle return from Stripe Checkout
@@ -556,6 +568,18 @@ export default function App() {
         <AdminDashboard
           currentAdminIsSuperAdmin={currentAdminIsSuperAdmin}
           onLogout={handleLogout}
+        />
+      )}
+
+      {resetToken && (
+        <ResetPasswordModal
+          token={resetToken}
+          onClose={() => setResetToken(null)}
+          onSuccess={() => {
+            setResetToken(null);
+            setAuthMode("login");
+            setShowAuthModal(true);
+          }}
         />
       )}
 

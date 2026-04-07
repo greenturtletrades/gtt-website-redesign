@@ -1,4 +1,4 @@
-import { Users, TrendingUp, Activity, Shield, Search, BarChart3, Brain, Eye, Filter, Calendar, UserX, BookOpen, UserPlus, DollarSign, CreditCard, PoundSterling } from "lucide-react";
+import { Users, TrendingUp, Activity, Shield, Search, BarChart3, Brain, Eye, Filter, Calendar, UserX, BookOpen, UserPlus, DollarSign, CreditCard, PoundSterling, Lock, Unlock, KeyRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { TraderDetailsModal } from "./TraderDetailsModal";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
@@ -19,6 +19,8 @@ import {
   wipeAdminNonAdminData,
   fetchAdminTraders,
   inviteAdmin,
+  updateTraderStatus,
+  adminResetTraderPassword,
   type AdminChurnFeedbackItem,
   type AdminAccountDeletionAuditItem,
   type AdminFinanceData,
@@ -508,6 +510,32 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
       setTestTraderActionError(error instanceof Error ? error.message : "Unable to update test trader access.");
     } finally {
       setTestTraderActionPendingId(null);
+    }
+  };
+
+  const handleToggleTraderStatus = async (trader: AdminTrader) => {
+    if (trader.accountStatus === "NO_ACCOUNT") return;
+    const newStatus = trader.accountStatus === "ACTIVE" ? "DISABLED" : "ACTIVE";
+    const confirmed = window.confirm(
+      `${newStatus === "DISABLED" ? "Disable" : "Enable"} account for ${trader.email}?\n\n${newStatus === "DISABLED" ? "They will be blocked from logging in." : "They will be able to log in again."}`
+    );
+    if (!confirmed) return;
+    try {
+      await updateTraderStatus(trader.id, newStatus);
+      setTraders((prev) => prev.map((t) => t.id === trader.id ? { ...t, accountStatus: newStatus } : t));
+    } catch (err) {
+      alert(`Failed to update status: ${err instanceof Error ? err.message : "Unknown error"}`);
+    }
+  };
+
+  const handleAdminResetPassword = async (trader: AdminTrader) => {
+    const confirmed = window.confirm(`Send a password reset email to ${trader.email}?`);
+    if (!confirmed) return;
+    try {
+      await adminResetTraderPassword(trader.id);
+      alert(`✅ Password reset email sent to ${trader.email}`);
+    } catch (err) {
+      alert(`Failed to send reset email: ${err instanceof Error ? err.message : "Unknown error"}`);
     }
   };
 
@@ -1047,6 +1075,24 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                             >
                               <Eye className="w-4 h-4" />
                             </button>
+                            {trader.hasAccount && (
+                              <>
+                                <button
+                                  onClick={() => handleToggleTraderStatus(trader)}
+                                  className={`p-1.5 rounded transition-colors ${trader.accountStatus === "ACTIVE" ? "text-amber-600 hover:bg-amber-50" : "text-green-600 hover:bg-green-50"}`}
+                                  title={trader.accountStatus === "ACTIVE" ? "Disable account" : "Enable account"}
+                                >
+                                  {trader.accountStatus === "ACTIVE" ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                                </button>
+                                <button
+                                  onClick={() => handleAdminResetPassword(trader)}
+                                  className="p-1.5 text-slate-500 hover:bg-slate-100 rounded transition-colors"
+                                  title="Send password reset email"
+                                >
+                                  <KeyRound className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
                             {trader.billingExempt && (
                               <button
                                 type="button"

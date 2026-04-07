@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { X, Mail, Lock, User, Key, Gift } from "lucide-react";
-import { login, register } from "../api/auth";
+import { X, Mail, Lock, User, Key, Gift, CheckCircle } from "lucide-react";
+import { login, register, forgotPassword } from "../api/auth";
 import { setStoredToken } from "../api/client";
 
 interface AuthModalProps {
@@ -22,6 +22,23 @@ export function AuthModal({ type, onClose, onComplete, initialMode = "signup" }:
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSent, setForgotSent] = useState(false);
+
+  const handleForgotSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setErrorMessage("");
+    try {
+      await forgotPassword(forgotEmail.trim());
+      setForgotSent(true);
+    } catch {
+      setForgotSent(true); // Always show success to avoid email enumeration
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,6 +98,46 @@ export function AuthModal({ type, onClose, onComplete, initialMode = "signup" }:
           <X className="w-5 h-5 sm:w-6 sm:h-6" />
         </button>
 
+        {showForgot ? (
+          <>
+            <h2 className="text-slate-900 mb-1.5 text-xl sm:text-2xl">Reset password</h2>
+            <p className="text-slate-600 mb-6 text-sm">Enter your email and we'll send a reset link.</p>
+            {forgotSent ? (
+              <div className="text-center py-4">
+                <CheckCircle className="w-10 h-10 text-teal-500 mx-auto mb-3" />
+                <p className="text-slate-700 mb-4">If that email is registered, a reset link is on its way.</p>
+                <button onClick={() => { setShowForgot(false); setForgotSent(false); }} className="text-teal-600 text-sm hover:underline">
+                  Back to login
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotSubmit} className="space-y-4">
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="email"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    className="w-full pl-9 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
+                    placeholder="your@email.com"
+                    required
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-teal-600 text-white py-3 rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-70"
+                >
+                  {isSubmitting ? "Sending..." : "Send reset link"}
+                </button>
+                <button type="button" onClick={() => setShowForgot(false)} className="w-full text-slate-600 text-sm hover:underline">
+                  Back to login
+                </button>
+              </form>
+            )}
+          </>
+        ) : (
+          <>
         <h2 className="text-slate-900 mb-1.5 sm:mb-2 text-xl sm:text-2xl">
           {getTitle()}
         </h2>
@@ -140,6 +197,18 @@ export function AuthModal({ type, onClose, onComplete, initialMode = "signup" }:
               />
             </div>
           </div>
+
+          {!isSignUp && type === "trader" && (
+            <div className="text-right -mt-1">
+              <button
+                type="button"
+                onClick={() => { setShowForgot(true); setErrorMessage(""); }}
+                className="text-teal-600 text-xs hover:underline"
+              >
+                Forgot password?
+              </button>
+            </div>
+          )}
 
           {isSignUp && (
             <div>
@@ -208,6 +277,8 @@ export function AuthModal({ type, onClose, onComplete, initialMode = "signup" }:
             {isSignUp ? "Already have an account? Login" : "Don't have an account? Sign up"}
           </button>
         </div>
+          </>
+        )}
       </div>
     </div>
   );

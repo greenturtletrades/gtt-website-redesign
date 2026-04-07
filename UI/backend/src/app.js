@@ -3182,6 +3182,102 @@ app.post("/api/auth/logout", authRequired, async (req, res, next) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// Password reset (public)
+// ---------------------------------------------------------------------------
+
+app.post("/api/auth/forgot-password", rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  keyPrefix: "forgot-password",
+  message: "Too many password reset requests. Please try again later.",
+}), async (req, res, next) => {
+  try {
+    const { email } = req.body || {};
+    if (!email || typeof email !== "string") {
+      return res.status(400).json({ ok: false, error: "Email is required" });
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Always return ok to avoid email enumeration
+    const user = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+      select: { id: true, email: true, role: true },
+    });
+
+    if (user && user.role === "TRADER") {
+      const rawToken = crypto.randomBytes(32).toString("hex");
+      const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { passwordResetToken: tokenHash, passwordResetExpiresAt: expiresAt },
+      });
+
+      const appUrl = process.env.APP_URL || "http://localhost:5173";
+      const resetUrl = `${appUrl}?reset=${rawToken}`;
+
+      await sendEmail({
+        to: user.email,
+        subject: "Reset your Green Turtle Trades password",
+        html: `
+          <p>Hi,</p>
+          <p>We received a request to reset your password. Click the link below to choose a new one:</p>
+          <p><a href="${resetUrl}">${resetUrl}</a></p>
+          <p>This link expires in 1 hour. If you didn't request a reset, you can safely ignore this email.</p>
+          <p>Green Turtle Trades</p>
+        `,
+        text: `Reset your password: ${resetUrl}\n\nThis link expires in 1 hour.`,
+      }).catch(() => {}); // Fire-and-forget — don't leak errors
+    }
+
+    return res.json({ ok: true });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.post("/api/auth/reset-password", rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  keyPrefix: "reset-password",
+  message: "Too many reset attempts. Please try again later.",
+}), async (req, res, next) => {
+  try {
+    const { token, password } = req.body || {};
+    if (!token || typeof token !== "string") {
+      return res.status(400).json({ ok: false, error: "Reset token is required" });
+    }
+    if (!password || typeof password !== "string" || password.length < 8) {
+      return res.status(400).json({ ok: false, error: "Password must be at least 8 characters" });
+    }
+
+    const tokenHash = crypto.createHash("sha256").update(token.trim()).digest("hex");
+    const user = await prisma.user.findFirst({
+      where: {
+        passwordResetToken: tokenHash,
+        passwordResetExpiresAt: { gt: new Date() },
+      },
+      select: { id: true },
+    });
+
+    if (!user) {
+      return res.status(400).json({ ok: false, error: "Reset link is invalid or has expired" });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash, passwordResetToken: null, passwordResetExpiresAt: null },
+    });
+
+    return res.json({ ok: true });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 app.post("/api/admin/change-password", authRequired, adminRequired, async (req, res, next) => {
   try {
     if (!req.user || req.user.id === "env-admin") {
@@ -4373,6 +4469,83 @@ app.post("/api/admin/test-traders/:id/access", authRequired, staffWriteRequired,
         billingExemptReason: updated.billingExemptReason || null,
       },
     });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Admin — trader account management
+// ---------------------------------------------------------------------------
+
+app.patch("/api/admin/traders/:id/status", authRequired, adminRequired, staffWriteRequired, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body || {};
+
+    if (!["ACTIVE", "DISABLED"].includes(status)) {
+      return res.status(400).json({ ok: false, error: "Status must be ACTIVE or DISABLED" });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: { id: true, role: true, email: true },
+    });
+
+    if (!user || user.role !== "TRADER") {
+      return res.status(404).json({ ok: false, error: "Trader not found" });
+    }
+
+    await prisma.user.update({
+      where: { id },
+      data: { status },
+    });
+
+    return res.json({ ok: true, status });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+app.post("/api/admin/traders/:id/reset-password", authRequired, adminRequired, staffWriteRequired, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: { id: true, role: true, email: true },
+    });
+
+    if (!user || user.role !== "TRADER") {
+      return res.status(404).json({ ok: false, error: "Trader not found" });
+    }
+
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours for admin-triggered resets
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordResetToken: tokenHash, passwordResetExpiresAt: expiresAt },
+    });
+
+    const appUrl = process.env.APP_URL || "http://localhost:5173";
+    const resetUrl = `${appUrl}?reset=${rawToken}`;
+
+    await sendEmail({
+      to: user.email,
+      subject: "Reset your Green Turtle Trades password",
+      html: `
+        <p>Hi,</p>
+        <p>An administrator has requested a password reset for your account. Click the link below to set a new password:</p>
+        <p><a href="${resetUrl}">${resetUrl}</a></p>
+        <p>This link expires in 24 hours.</p>
+        <p>Green Turtle Trades</p>
+      `,
+      text: `Reset your password: ${resetUrl}\n\nThis link expires in 24 hours.`,
+    });
+
+    return res.json({ ok: true });
   } catch (err) {
     return next(err);
   }

@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPost } from "./client";
+import { apiDelete, apiGet, apiPatch, apiPost } from "./client";
 
 export interface AdminLoginResponse {
   ok: boolean;
@@ -231,6 +231,14 @@ export function fetchAdminTraders() {
 
 export function deleteAdminTestTrader(id: string) {
   return apiDelete<{ ok: boolean }>(`/api/admin/test-traders/${id}`);
+}
+
+export function updateTraderStatus(id: string, status: "ACTIVE" | "DISABLED") {
+  return apiPatch<{ ok: boolean; status: string }>(`/api/admin/traders/${id}/status`, { status });
+}
+
+export function adminResetTraderPassword(id: string) {
+  return apiPost<{ ok: boolean }>(`/api/admin/traders/${id}/reset-password`, {});
 }
 
 export function fetchAdminStaff() {

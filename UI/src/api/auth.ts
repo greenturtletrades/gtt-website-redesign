@@ -45,3 +45,11 @@ export function login(email: string, password: string) {
 export function me() {
   return apiGet<MeResponse>("/api/me");
 }
+
+export function forgotPassword(email: string) {
+  return apiPost<{ ok: boolean }>("/api/auth/forgot-password", { email });
+}
+
+export function resetPassword(token: string, password: string) {
+  return apiPost<{ ok: boolean }>("/api/auth/reset-password", { token, password });
+}
