@@ -253,6 +253,48 @@ A logged-in unsubscribed user who completes the subscription modal → Stripe �
 
 ---
 
+## Known Weak Points — ML Engine / Simulator (to target in a future session)
+
+### 1. Trailing stop formula uses absolute price percentage — broken across instruments
+`simulator.py` line 272/286:
+```python
+long_trail_stop  = long_peak_price * (1 - policy.trail_pct)   # LONG
+short_trail_stop = short_peak_price * (1 + policy.trail_pct)  # SHORT
+```
+`trail_pct = 0.005` (0.5%) applied to absolute price. On EURUSD at 1.08 with a 5-pip MFE:
+- LONG trail stop = 1.0805 × 0.995 = **1.07510** — 50 pips **below entry**
+- SHORT trail stop = 1.0799 × 1.005 = **1.08530** — 53 pips **above entry**
+
+For XAUUSD at 2337, trail_pct=0.005 = 11.7-point trail vs a typical 1.5-point risk. The formula produces trail levels that are either never triggered (too far) or triggered below entry (converting profitable trades into losses). Silent garbage — no exception, just wrong R values.
+
+**Fix:** Trail in R-units from peak, not absolute percentage:
+```python
+long_trail_stop  = long_peak_price  - (sim_risk_long * policy.trail_pct)
+short_trail_stop = short_peak_price + (sim_risk_short * policy.trail_pct)
+```
+This makes trail_pct instrument-agnostic and proportional to actual risk.
+
+### 2. Win rate frozen at original value across all counterfactual policies
+All counterfactual parameter rows report identical win rate (55%) with Win Rate Δ = +0.0 pts. Two causes:
+
+**a) ORIGINAL exits structurally preserve sign.** `sim_R = sim_pnl / sim_risk`. For trades where no SL/TP/trail triggered (ORIGINAL), sim_pnl = original_pnl. Dividing by a smaller sim_risk (sl_mult < 1) inflates magnitude but never flips sign. Winners stay winners, losers stay losers, regardless of policy.
+
+**b) SL_HIT trades in this dataset are all confirmed losers (MFE=0).** The 112 trades with MFE=0 went straight against — they never had a profitable moment. Tightening the SL hits them sooner but they're already losses. No winner-to-loser flips occur because no winner had MAE large enough to penetrate the tighter SL before recovering.
+
+**Result:** Win rate is correct arithmetic on data where the policy parameters happen not to flip any outcomes. With a different dataset (winners with large MAE, or losers with large MFE), win rate would move. The table is not lying — but it hides the trail bug because the trail rarely triggers properly.
+
+**Fix:** Fix Bug 1 first (trail formula). Then add a synthetic test case with known flip scenarios (a winner that dips 40% of risk before recovering) to verify win rate does change under tighter SL.
+
+### 3. sim_R denominator silently drops trades when original SL = entry price
+`simulator.py` line 394:
+```python
+df["sim_R"] = sim_pnl / sim_risk.replace(0, np.nan)
+```
+`sim_risk = original_risk × sl_mult`. If a trade has entry_price = stop_loss (zero original risk), sim_risk = 0, result is NaN. The trade drops from all downstream metric calculations silently. No warning logged, no count reported.
+**Fix:** Warn and skip zero-risk trades before simulation rather than silently NaN-ing them in the denominator.
+
+---
+
 ## Known Weak Points — Checkout & Payment Logic (to target in a future session)
 
 ### 1. Mid-flight user patching — fragile and already broken for `mlRunDiscountPercent`
