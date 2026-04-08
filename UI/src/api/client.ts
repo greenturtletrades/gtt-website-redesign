@@ -5,11 +5,13 @@ const TOKEN_KEY = "gtt_token";
 
 export class ApiError extends Error {
   status: number;
+  payload: unknown;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, payload?: unknown) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.payload = payload;
   }
 }
 
@@ -45,7 +47,7 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
 
   if (!res.ok) {
     const msg = (data && (data.error || data.message)) || "Request failed";
-    throw new ApiError(msg, res.status);
+    throw new ApiError(msg, res.status, data);
   }
 
   return data as T;
@@ -62,7 +64,7 @@ export async function apiGet<T>(path: string): Promise<T> {
 
   if (!res.ok) {
     const msg = (data && (data.error || data.message)) || "Request failed";
-    throw new ApiError(msg, res.status);
+    throw new ApiError(msg, res.status, data);
   }
 
   return data as T;
@@ -80,7 +82,7 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
 
   if (!res.ok) {
     const msg = (data && (data.error || data.message)) || "Request failed";
-    throw new ApiError(msg, res.status);
+    throw new ApiError(msg, res.status, data);
   }
 
   return data as T;
@@ -101,7 +103,7 @@ export async function apiDelete<T>(path: string, body?: unknown): Promise<T> {
 
   if (!res.ok) {
     const msg = (data && (data.error || data.message)) || "Request failed";
-    throw new ApiError(msg, res.status);
+    throw new ApiError(msg, res.status, data);
   }
 
   return data as T;

@@ -130,6 +130,7 @@ export interface BillingSummaryResponse {
     mlRunDiscountPercent: number;
     discountExpiresAt: string | null;
     mlRunChargesDue: number;
+    mlRunChargesAwaitingPayment: number;
     totalPaidBilling: number;
     recentMlRunCharges: MlRunChargeRecord[];
     recentInvoices: BillingInvoiceRecord[];
@@ -183,6 +184,7 @@ export function deleteMyAccount(input?: {
   reason?: string;
   feedback?: string;
   plan?: string | null;
+  confirmOutstandingMlCharge?: boolean;
 }) {
   return apiDelete<{ ok: boolean }>("/api/me", input);
 }

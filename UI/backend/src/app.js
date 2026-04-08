@@ -955,6 +955,23 @@ function getBillingEventRevenueBreakdown(billingEvent) {
   };
 }
 
+function mapDeletionReasonToStripeFeedback(reason) {
+  switch (String(reason || "").trim()) {
+    case "too-expensive":
+      return "too_expensive";
+    case "missing-features":
+      return "missing_features";
+    case "technical-issues":
+      return "low_quality";
+    case "finished-testing":
+      return "unused";
+    case "other":
+      return "other";
+    default:
+      return null;
+  }
+}
+
 async function persistStripeBillingEvent(event) {
   const eventData = getStripeBillingEventData(event);
   const linkedUser = await findUserByStripeLink({
@@ -1424,6 +1441,11 @@ async function buildUserBillingSummary(userId) {
     const isSettled = status === "PAID" || status === "NO_CHARGE" || status === "REPORTED";
     return sum + (!isSettled && typeof run.cost === "number" ? run.cost : 0);
   }, 0);
+  const mlRunChargesAwaitingPayment = user.analysisRuns.reduce((sum, run) => {
+    const status = String(run.stripeBillingStatus || "").toUpperCase();
+    const isSettled = status === "PAID" || status === "NO_CHARGE";
+    return sum + (!isSettled && typeof run.cost === "number" ? run.cost : 0);
+  }, 0);
   const totalPaidBilling = user.billingEvents.reduce(
     (sum, event) => sum + (typeof event.amountPaid === "number" ? event.amountPaid : 0),
     0
@@ -1450,6 +1472,7 @@ async function buildUserBillingSummary(userId) {
       mlRunDiscountPercent: discounts.mlRunDiscountPercent,
       discountExpiresAt: toIsoOrNull(discounts.referralDiscountExpiresAt),
       mlRunChargesDue: Number(mlRunChargesDue.toFixed(2)),
+      mlRunChargesAwaitingPayment: Number(mlRunChargesAwaitingPayment.toFixed(2)),
       totalPaidBilling: Number(totalPaidBilling.toFixed(2)),
       recentMlRunCharges: user.analysisRuns.map((run) => ({
         id: run.id,
@@ -4156,7 +4179,7 @@ app.post("/api/me/change-password", authRequired, async (req, res, next) => {
 
 app.delete("/api/me", authRequired, async (req, res, next) => {
   try {
-    const { reason, feedback, plan } = req.body || {};
+    const { reason, feedback, plan, confirmOutstandingMlCharge } = req.body || {};
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
       select: {
@@ -4242,10 +4265,19 @@ app.delete("/api/me", authRequired, async (req, res, next) => {
     });
     const outstandingMlChargeTotal = Number(outstandingMlCharges._sum.cost || 0);
 
-    if (outstandingMlChargeTotal > 0) {
+    if (outstandingMlChargeTotal > 0 && !confirmOutstandingMlCharge) {
       return res.status(409).json({
         ok: false,
-        error: `Outstanding ML run charges (£${outstandingMlChargeTotal.toFixed(2)}) must be cleared before account deletion.`,
+        error: `Deleting your account will stop future platform billing, but Stripe will first charge £${outstandingMlChargeTotal.toFixed(2)} for unpaid ML usage before the account is fully closed.`,
+        requiresFinalBillingConfirmation: true,
+        outstandingMlChargeTotal: Number(outstandingMlChargeTotal.toFixed(2)),
+      });
+    }
+
+    if (outstandingMlChargeTotal > 0 && !user.stripeSubscriptionId) {
+      return res.status(409).json({
+        ok: false,
+        error: "This account has unpaid ML usage but no active Stripe subscription to bill it against. Please contact support before deleting the account.",
       });
     }
 
@@ -4261,7 +4293,42 @@ app.delete("/api/me", authRequired, async (req, res, next) => {
         const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
         const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
         if (subscription && subscription.status !== "canceled") {
-          await stripe.subscriptions.cancel(user.stripeSubscriptionId);
+          const canceledSubscription = await stripe.subscriptions.cancel(user.stripeSubscriptionId, {
+            invoice_now: true,
+            prorate: false,
+            cancellation_details: {
+              feedback: mapDeletionReasonToStripeFeedback(reason) || undefined,
+              comment: typeof feedback === "string" && feedback.trim() ? feedback.trim() : undefined,
+            },
+            expand: ["latest_invoice.payment_intent"],
+          });
+
+          const latestInvoiceRef = canceledSubscription.latest_invoice;
+          const latestInvoice =
+            latestInvoiceRef && typeof latestInvoiceRef === "object"
+              ? latestInvoiceRef
+              : latestInvoiceRef
+                ? await stripe.invoices.retrieve(latestInvoiceRef)
+                : null;
+
+          if (
+            latestInvoice &&
+            typeof latestInvoice.amount_remaining === "number" &&
+            latestInvoice.amount_remaining > 0 &&
+            latestInvoice.status !== "paid"
+          ) {
+            const paidInvoice = await stripe.invoices.pay(latestInvoice.id);
+            if (
+              paidInvoice.status !== "paid" &&
+              typeof paidInvoice.amount_remaining === "number" &&
+              paidInvoice.amount_remaining > 0
+            ) {
+              return res.status(409).json({
+                ok: false,
+                error: "We stopped future platform billing, but could not collect the outstanding ML usage charge. Please update your billing method and try again.",
+              });
+            }
+          }
         }
       } catch (error) {
         console.error("Failed to cancel Stripe subscription during account deletion", error);

@@ -37,7 +37,7 @@ import {
   type EaDiagnosticsResponse,
   type EaStatusResponse,
 } from "../api/settings";
-import { clearStoredToken } from "../api/client";
+import { ApiError, clearStoredToken } from "../api/client";
 
 interface SettingsPageProps {
   userName: string;
@@ -406,7 +406,7 @@ export function SettingsPage({
     }
   };
 
-  const handleDeleteAccount = async (reason: string, feedback: string) => {
+  const handleDeleteAccount = async (reason: string, feedback: string, confirmOutstandingMlCharge = false) => {
     setDeletingAccount(true);
     setPageError(null);
     try {
@@ -414,10 +414,28 @@ export function SettingsPage({
         reason,
         feedback,
         plan: currentPlan,
+        confirmOutstandingMlCharge,
       });
       clearStoredToken();
       window.location.replace("/");
     } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        const payload =
+          error.payload && typeof error.payload === "object"
+            ? (error.payload as { requiresFinalBillingConfirmation?: boolean; outstandingMlChargeTotal?: number })
+            : null;
+        if (payload?.requiresFinalBillingConfirmation) {
+          const amount = typeof payload.outstandingMlChargeTotal === "number" ? payload.outstandingMlChargeTotal : 0;
+          const confirmed = window.confirm(
+            `Deleting your account will stop future platform billing. Stripe will first charge £${amount.toFixed(2)} for unpaid ML usage before the account is fully closed. Do you want to continue?`,
+          );
+          if (confirmed) {
+            await handleDeleteAccount(reason, feedback, true);
+            return;
+          }
+          return;
+        }
+      }
       setPageError(error instanceof Error ? error.message : "Unable to delete account.");
     } finally {
       setDeletingAccount(false);
@@ -1107,6 +1125,11 @@ export function SettingsPage({
             <p className="mt-2 text-sm text-slate-600">
               This permanently disables your account, revokes your access, and stores your exit feedback for the admin panel.
             </p>
+            {typeof billingSummary?.mlRunChargesAwaitingPayment === "number" && billingSummary.mlRunChargesAwaitingPayment > 0 && (
+              <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                You have £{billingSummary.mlRunChargesAwaitingPayment.toFixed(2)} in ML usage awaiting payment. If you continue, future platform billing will stop and Stripe will attempt to charge that usage before the account is fully closed.
+              </div>
+            )}
             <div className="mt-4 space-y-3">
               {[
                 ["finished-testing", "Finished testing the platform"],
