@@ -426,7 +426,7 @@ function calculateReferralExpiry(durationDays) {
 }
 
 const DEFAULT_TRADER_REFERRAL_ACCOUNT_DISCOUNT_PERCENT = 10;
-const DEFAULT_TRADER_REFERRAL_ML_DISCOUNT_PERCENT = 0;
+const DEFAULT_TRADER_REFERRAL_ML_DISCOUNT_PERCENT = 10;
 const DEFAULT_TRADER_REFERRAL_DURATION_DAYS = 90;
 
 function slugifyReferralFragment(value, fallback = "TRADER") {
