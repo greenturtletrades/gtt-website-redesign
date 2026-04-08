@@ -743,8 +743,12 @@ export function SettingsPage({
                                         ? "Paid"
                                         : run.status === "pending"
                                           ? "Pending payment"
+                                          : run.status === "reported"
+                                            ? "Added to next monthly invoice"
                                           : run.status === "failed"
                                             ? "Payment failed"
+                                            : run.status === "report_failed"
+                                              ? "Usage reporting failed"
                                             : run.status === "no_charge"
                                               ? "No charge"
                                               : "Due"}

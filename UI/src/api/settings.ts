@@ -102,7 +102,7 @@ export interface BillingInvoiceRecord {
 
 export interface MlRunChargeRecord {
   id: string;
-  status: "due" | "pending" | "paid" | "failed" | "no_charge";
+  status: "due" | "pending" | "paid" | "failed" | "no_charge" | "reported" | "report_failed";
   mode: string;
   tradesAnalysed: number | null;
   amount: number | null;
