@@ -6,7 +6,7 @@ import { setStoredToken } from "../api/client";
 interface AuthModalProps {
   type: "trader" | "admin";
   onClose: () => void;
-  onComplete: (type: "trader" | "admin", details?: { name?: string; email?: string }) => void;
+  onComplete: (type: "trader" | "admin", details?: { name?: string; email?: string; referralCode?: string }) => void;
   initialMode?: "signup" | "login";
 }
 
@@ -74,6 +74,7 @@ export function AuthModal({ type, onClose, onComplete, initialMode = "signup" }:
       onComplete(type, {
         name: formData.name,
         email: formData.email,
+        referralCode: formData.referralCode.trim().toUpperCase() || undefined,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Authentication failed";

@@ -471,6 +471,41 @@ async function getActiveReferralCode(code) {
   return referralCode;
 }
 
+async function getActiveStripePromotionCode(code) {
+  if (!code || typeof code !== "string" || !code.trim() || !process.env.STRIPE_SECRET_KEY) {
+    return null;
+  }
+
+  const normalizedCode = code.trim().toUpperCase();
+  const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+  const result = await stripe.promotionCodes.list({
+    code: normalizedCode,
+    active: true,
+    limit: 1,
+  });
+
+  return result.data?.[0] || null;
+}
+
+async function resolveDiscountCode(code) {
+  if (!code || typeof code !== "string" || !code.trim()) {
+    return { type: "none" };
+  }
+
+  const normalizedCode = code.trim().toUpperCase();
+  const referralCode = await getActiveReferralCode(normalizedCode);
+  if (referralCode) {
+    return { type: "referral", code: normalizedCode, referralCode };
+  }
+
+  const stripePromotionCode = await getActiveStripePromotionCode(normalizedCode);
+  if (stripePromotionCode) {
+    return { type: "stripe_promotion", code: normalizedCode, promotionCode: stripePromotionCode };
+  }
+
+  return { type: "invalid", code: normalizedCode };
+}
+
 function getActiveUserDiscounts(user) {
   if (isBillingExemptUser(user)) {
     return {
@@ -3019,13 +3054,17 @@ app.post("/api/auth/register", rateLimit({
       typeof brokerName === "string" && brokerName.trim()
         ? brokerName.trim()
         : null;
-    const appliedReferralCode = await getActiveReferralCode(referralCode);
     const normalizedReferralCode =
       typeof referralCode === "string" && referralCode.trim()
         ? referralCode.trim().toUpperCase()
         : "";
+    const resolvedDiscountCode = normalizedReferralCode
+      ? await resolveDiscountCode(normalizedReferralCode)
+      : { type: "none" };
+    const appliedReferralCode =
+      resolvedDiscountCode.type === "referral" ? resolvedDiscountCode.referralCode : null;
 
-    if (normalizedReferralCode && !appliedReferralCode) {
+    if (normalizedReferralCode && resolvedDiscountCode.type === "invalid") {
       return res.status(400).json({ ok: false, error: "Referral code is invalid or inactive" });
     }
 
@@ -5565,15 +5604,24 @@ app.post("/api/referral-codes/validate", async (req, res, next) => {
     const code = (req.body?.code || "").trim().toUpperCase();
     if (!code) return res.status(400).json({ ok: false, error: "No code provided" });
 
-    const referralCode = await prisma.referralCode.findUnique({
-      where: { code },
-    });
-
-    if (!referralCode || !referralCode.isActive) {
-      return res.json({ ok: false, error: "Invalid or inactive referral code" });
+    const resolved = await resolveDiscountCode(code);
+    if (resolved.type === "referral") {
+      return res.json({
+        ok: true,
+        source: "platform",
+        code,
+      });
     }
 
-    return res.json({ ok: true });
+    if (resolved.type === "stripe_promotion") {
+      return res.json({
+        ok: true,
+        source: "stripe",
+        code,
+      });
+    }
+
+    return res.json({ ok: false, error: "Invalid or inactive referral code" });
   } catch (err) {
     return next(err);
   }
@@ -6950,9 +6998,16 @@ app.post("/api/create-checkout-session", authRequired, async (req, res, next) =>
     // Apply referral code passed at checkout if user doesn't already have one
     const incomingReferralCode =
       typeof req.body?.referralCode === "string" ? req.body.referralCode.trim().toUpperCase() : null;
+    const resolvedDiscountCode = incomingReferralCode
+      ? await resolveDiscountCode(incomingReferralCode)
+      : { type: "none" };
 
-    if (incomingReferralCode && !user.appliedReferralCode) {
-      const matchedCode = await getActiveReferralCode(incomingReferralCode);
+    if (incomingReferralCode && resolvedDiscountCode.type === "invalid") {
+      return res.status(400).json({ ok: false, error: "Referral code is invalid or inactive" });
+    }
+
+    if (incomingReferralCode && !user.appliedReferralCode && resolvedDiscountCode.type === "referral") {
+      const matchedCode = resolvedDiscountCode.referralCode;
       if (matchedCode) {
         const expiresAt = calculateReferralExpiry(matchedCode.durationDays);
         await prisma.user.update({
@@ -6972,7 +7027,7 @@ app.post("/api/create-checkout-session", authRequired, async (req, res, next) =>
       }
     }
 
-    const {
+    let {
       discountsPayload,
       allowPromotionCodes,
     } = await buildStripeAccountDiscountConfig({
@@ -6980,6 +7035,11 @@ app.post("/api/create-checkout-session", authRequired, async (req, res, next) =>
       user,
       monthlyPriceId,
     });
+
+    if (resolvedDiscountCode.type === "stripe_promotion") {
+      discountsPayload = [{ promotion_code: resolvedDiscountCode.promotionCode.id }];
+      allowPromotionCodes = false;
+    }
 
     const session = await stripe.checkout.sessions.create({
       customer: stripeCustomerId,

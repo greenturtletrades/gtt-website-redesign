@@ -48,6 +48,7 @@ export default function App() {
   const [authMode, setAuthMode] = useState<"signup" | "login">("signup");
   const [turtleAnalyticsAuthed, setTurtleAnalyticsAuthed] = useState(false);
   const [pendingUserName, setPendingUserName] = useState<string>("");
+  const [pendingReferralCode, setPendingReferralCode] = useState<string>("");
   const [selectedSubscriptionPlan, setSelectedSubscriptionPlan] = useState<"payg" | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<"active" | "paused" | "cancelling" | "not_started">("not_started");
   const [onboardingStage, setOnboardingStage] = useState<"none" | "welcome" | "ea-setup" | "complete">("none");
@@ -249,11 +250,15 @@ export default function App() {
     setShowAuthModal(true);
   };
 
-  const handleAuthComplete = async (type: "trader", details?: { name?: string; email?: string }) => {
+  const handleAuthComplete = async (
+    type: "trader",
+    details?: { name?: string; email?: string; referralCode?: string },
+  ) => {
     setShowAuthModal(false);
 
     if (authMode === "signup") {
       setPendingUserName(details?.name?.trim() || "Trader");
+      setPendingReferralCode(details?.referralCode?.trim().toUpperCase() || "");
       setCurrentUserName(details?.name?.trim() || "Trader");
       setCurrentUserEmail(details?.email?.trim() || "");
       setShowSubscriptionModal(true);
@@ -290,6 +295,7 @@ export default function App() {
           setUserType("trader");
           setTurtleAnalyticsAuthed(true);
           setCurrentView("turtle-analytics");
+          setPendingReferralCode("");
           return;
         }
         if (response.url) {
@@ -317,6 +323,7 @@ export default function App() {
     setTurtleAnalyticsAuthed(false);
     setCurrentUserName("");
     setCurrentUserEmail("");
+    setPendingReferralCode("");
     if (isAdminRoute) {
       window.history.pushState({}, "", "/");
       setIsAdminRoute(false);
@@ -590,6 +597,7 @@ export default function App() {
         <SubscriptionModal
           onClose={() => setShowSubscriptionModal(false)}
           userName={pendingUserName}
+          initialReferralCode={pendingReferralCode}
           onSelectPlan={handleSubscriptionComplete}
         />
       )}

@@ -6,12 +6,13 @@ interface SubscriptionModalProps {
   onClose: () => void;
   onSelectPlan: (plan: "payg", referralCode?: string) => void;
   userName?: string;
+  initialReferralCode?: string;
 }
 
-export function SubscriptionModal({ onClose, onSelectPlan, userName }: SubscriptionModalProps) {
+export function SubscriptionModal({ onClose, onSelectPlan, userName, initialReferralCode = "" }: SubscriptionModalProps) {
   const [selectedPlan, setSelectedPlan] = useState<"payg" | null>("payg");
   const [estimatedTrades, setEstimatedTrades] = useState(100);
-  const [referralCode, setReferralCode] = useState("");
+  const [referralCode, setReferralCode] = useState(initialReferralCode);
   const [referralApplied, setReferralApplied] = useState(false);
   const [referralError, setReferralError] = useState<string | null>(null);
   const [referralChecking, setReferralChecking] = useState(false);
@@ -23,7 +24,7 @@ export function SubscriptionModal({ onClose, onSelectPlan, userName }: Subscript
     setReferralError(null);
     setReferralApplied(false);
     try {
-      const res = await apiPost<{ ok: boolean; error?: string }>("/api/referral-codes/validate", { code });
+      const res = await apiPost<{ ok: boolean; error?: string; source?: "platform" | "stripe" }>("/api/referral-codes/validate", { code });
       if (res.ok) {
         setReferralApplied(true);
       } else {
@@ -197,12 +198,12 @@ export function SubscriptionModal({ onClose, onSelectPlan, userName }: Subscript
             <div className="flex-1">
               <h4 className="text-teal-900 font-medium mb-1">Have a Referral Code?</h4>
               <p className="text-teal-700 text-sm mb-3">
-                Enter a referral code below to apply a discount to your subscription. If you have a <strong>Stripe promo code</strong>, enter it on the payment page after clicking Continue.
+                Enter your discount code below. Platform referral codes and valid Stripe promo codes are both accepted here and passed through to checkout.
               </p>
               {referralApplied ? (
                 <div className="flex items-center gap-2 text-teal-700 text-sm bg-teal-100 border border-teal-300 rounded-lg px-3 py-2">
                   <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                  <span>Referral code <strong>{referralCode}</strong> applied — discount will be reflected at checkout.</span>
+                  <span>Code <strong>{referralCode}</strong> applied — discount will be reflected at checkout.</span>
                 </div>
               ) : (
                 <>
