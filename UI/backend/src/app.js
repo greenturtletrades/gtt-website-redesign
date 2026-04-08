@@ -1141,6 +1141,7 @@ async function billMlRunThroughStripe(analysisRunId) {
       customer: run.user.stripeCustomerId,
       collection_method: "charge_automatically",
       auto_advance: true,
+      pending_invoice_items_behavior: "include",
       metadata: {
         chargeType: "ml_run",
         analysisRunId: run.id,
