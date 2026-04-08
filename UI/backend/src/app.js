@@ -3969,11 +3969,48 @@ app.delete("/api/me", authRequired, async (req, res, next) => {
       });
     }
 
-    if (user.stripeCustomerId || user.stripeSubscriptionId || user.billingEvents.length > 0) {
+    const outstandingMlCharges = await prisma.analysisRun.aggregate({
+      where: {
+        userId: req.user.id,
+        status: "COMPLETED",
+        cost: {
+          gt: 0,
+        },
+      },
+      _sum: {
+        cost: true,
+      },
+    });
+    const outstandingMlChargeTotal = Number(outstandingMlCharges._sum.cost || 0);
+
+    if (outstandingMlChargeTotal > 0) {
       return res.status(409).json({
         ok: false,
-        error: "Cancel and clear billing for this account before deletion.",
+        error: `Outstanding ML run charges (£${outstandingMlChargeTotal.toFixed(2)}) must be cleared before account deletion.`,
       });
+    }
+
+    if (user.stripeSubscriptionId) {
+      if (!process.env.STRIPE_SECRET_KEY) {
+        return res.status(409).json({
+          ok: false,
+          error: "Stripe billing must be configured before this account can be deleted safely.",
+        });
+      }
+
+      try {
+        const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+        const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+        if (subscription && subscription.status !== "canceled") {
+          await stripe.subscriptions.cancel(user.stripeSubscriptionId);
+        }
+      } catch (error) {
+        console.error("Failed to cancel Stripe subscription during account deletion", error);
+        return res.status(409).json({
+          ok: false,
+          error: "Unable to stop Stripe billing for this account. Please try again or contact support.",
+        });
+      }
     }
 
     const deletedEmail = `deleted+${user.id}.${Date.now()}@deleted.local`;
