@@ -1151,6 +1151,7 @@ async function reportMlRunUsageToStripe(analysisRunId) {
 
   const stripe = Stripe(stripeSecretKey);
   const perTradePriceId = process.env.STRIPE_PRICE_PER_TRADE;
+  const usageQuantity = Math.max(0, Math.round(Number(run.tradesAnalysed) || 0));
 
   try {
     const subscription = await stripe.subscriptions.retrieve(run.user.stripeSubscriptionId, {
@@ -1187,17 +1188,43 @@ async function reportMlRunUsageToStripe(analysisRunId) {
       },
     });
 
-    await stripe.subscriptionItems.createUsageRecord(
-      usageItem.id,
-      {
-        quantity: Math.max(0, Math.round(Number(run.tradesAnalysed) || 0)),
-        timestamp: Math.floor(Date.now() / 1000),
-        action: "increment",
-      },
-      {
-        idempotencyKey: `analysis-run-usage-${run.id}`,
-      },
-    );
+    const meterId =
+      usageItem.price && typeof usageItem.price === "object"
+        ? usageItem.price.recurring?.meter || null
+        : null;
+
+    if (meterId) {
+      const meter = await stripe.billing.meters.retrieve(meterId);
+      const customerPayloadKey = meter.customer_mapping?.event_payload_key || "stripe_customer_id";
+      const valuePayloadKey = meter.value_settings?.event_payload_key || "value";
+
+      await stripe.billing.meterEvents.create(
+        {
+          event_name: meter.event_name,
+          payload: {
+            [customerPayloadKey]: run.user.stripeCustomerId,
+            [valuePayloadKey]: String(usageQuantity),
+          },
+          timestamp: Math.floor(Date.now() / 1000),
+          identifier: `analysis-run-usage-${run.id}`,
+        },
+        {
+          idempotencyKey: `analysis-run-usage-${run.id}`,
+        },
+      );
+    } else {
+      await stripe.subscriptionItems.createUsageRecord(
+        usageItem.id,
+        {
+          quantity: usageQuantity,
+          timestamp: Math.floor(Date.now() / 1000),
+          action: "increment",
+        },
+        {
+          idempotencyKey: `analysis-run-usage-${run.id}`,
+        },
+      );
+    }
 
     await prisma.analysisRun.update({
       where: { id: run.id },
