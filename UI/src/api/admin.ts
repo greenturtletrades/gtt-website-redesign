@@ -315,14 +315,3 @@ export function createAdminReferralCode(input: {
 }) {
   return apiPost<{ ok: boolean; referralCode: AdminReferralCode }>("/api/admin/referral-codes", input);
 }
-
-export function wipeAdminNonAdminData(confirmation: string) {
-  return apiPost<{
-    ok: boolean;
-    summary: {
-      waitlistEntriesDeleted: number;
-      traderApplicationsDeleted: number;
-      traderUsersDeleted: number;
-    };
-  }>("/api/admin/wipe-non-admin-data", { confirmation });
-}
