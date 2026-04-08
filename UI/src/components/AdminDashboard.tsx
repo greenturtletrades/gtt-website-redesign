@@ -1249,12 +1249,14 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                 <div className="text-3xl text-slate-900">{financeSummary.traderAccounts}</div>
               </div>
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-                <div className="text-slate-600 text-sm mb-1">PAYG Accounts</div>
-                <div className="text-3xl text-slate-900">{financeSummary.paygAccounts}</div>
+                <div className="text-slate-600 text-sm mb-1">Subscribed Accounts</div>
+                <div className="text-3xl text-slate-900">{financeSummary.premiumAccounts}</div>
+                <div className="text-xs text-slate-500 mt-1">Accounts with a linked Stripe subscription</div>
               </div>
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-                <div className="text-slate-600 text-sm mb-1">Premium Accounts</div>
-                <div className="text-3xl text-slate-900">{financeSummary.premiumAccounts}</div>
+                <div className="text-slate-600 text-sm mb-1">Not Yet Subscribed</div>
+                <div className="text-3xl text-slate-900">{Math.max(financeSummary.traderAccounts - financeSummary.premiumAccounts, 0)}</div>
+                <div className="text-xs text-slate-500 mt-1">Accounts without a linked Stripe subscription</div>
               </div>
             </div>
 
@@ -1304,7 +1306,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                   <thead className="bg-slate-50">
                     <tr>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Trader</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Plan</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Subscription State</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Stripe Customer</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Subscription Link</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Stripe Paid Invoices</th>
@@ -1327,7 +1329,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                         </td>
                         <td className="py-4 px-4">
                           <span className={`px-2 py-1 text-xs rounded-full ${account.plan === "premium" ? "bg-teal-100 text-teal-700" : "bg-slate-100 text-slate-700"}`}>
-                            {account.plan === "premium" ? "Premium" : "PAYG"}
+                            {account.plan === "premium" ? "Subscribed" : "Not subscribed"}
                           </span>
                         </td>
                         <td className="py-4 px-4 text-slate-900 text-sm">{account.stripeCustomerLinked ? "Linked" : "Not linked"}</td>
