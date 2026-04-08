@@ -914,10 +914,8 @@ function getStripeBillingEventData(event) {
   };
 }
 
-function getBillingEventRevenueBreakdown(billingEvent) {
-  const payload = billingEvent?.payload;
-  const object = payload?.data?.object;
-  const lines = Array.isArray(object?.lines?.data) ? object.lines.data : [];
+function getStripeInvoiceRevenueBreakdown(invoiceLike) {
+  const lines = Array.isArray(invoiceLike?.lines?.data) ? invoiceLike.lines.data : [];
   const monthlyPriceId = process.env.STRIPE_PRICE_MONTHLY || null;
   const perTradePriceId = process.env.STRIPE_PRICE_PER_TRADE || null;
 
@@ -953,6 +951,12 @@ function getBillingEventRevenueBreakdown(billingEvent) {
     subscriptionRevenue: Number(subscriptionRevenue.toFixed(2)),
     mlRevenue: Number(mlRevenue.toFixed(2)),
   };
+}
+
+function getBillingEventRevenueBreakdown(billingEvent) {
+  const payload = billingEvent?.payload;
+  const object = payload?.data?.object;
+  return getStripeInvoiceRevenueBreakdown(object);
 }
 
 function mapDeletionReasonToStripeFeedback(reason) {
@@ -1387,6 +1391,7 @@ async function buildUserBillingSummary(userId) {
   let currentPeriodEnd = null;
   let currentPeriodStart = null;
   let stripeConfigured = Boolean(process.env.STRIPE_SECRET_KEY);
+  let stripeUpcomingMlCharge = null;
 
   if (process.env.STRIPE_SECRET_KEY && (user.stripeCustomerId || user.stripeSubscriptionId)) {
     try {
@@ -1429,6 +1434,13 @@ async function buildUserBillingSummary(userId) {
         }
         currentPeriodStart = stripeTimestampToDate(subscription.current_period_start);
         currentPeriodEnd = stripeTimestampToDate(subscription.current_period_end);
+
+        const upcomingInvoice = await stripe.invoices.retrieveUpcoming({
+          customer: user.stripeCustomerId || undefined,
+          subscription: user.stripeSubscriptionId,
+          expand: ["lines.data.price"],
+        });
+        stripeUpcomingMlCharge = getStripeInvoiceRevenueBreakdown(upcomingInvoice).mlRevenue;
       }
     } catch (error) {
       console.error("Unable to load Stripe billing summary", error);
@@ -1446,6 +1458,10 @@ async function buildUserBillingSummary(userId) {
     const isSettled = status === "PAID" || status === "NO_CHARGE";
     return sum + (!isSettled && typeof run.cost === "number" ? run.cost : 0);
   }, 0);
+  const displayedMlRunChargesAwaitingPayment =
+    typeof stripeUpcomingMlCharge === "number"
+      ? stripeUpcomingMlCharge
+      : mlRunChargesAwaitingPayment;
   const totalPaidBilling = user.billingEvents.reduce(
     (sum, event) => sum + (typeof event.amountPaid === "number" ? event.amountPaid : 0),
     0
@@ -1472,7 +1488,7 @@ async function buildUserBillingSummary(userId) {
       mlRunDiscountPercent: discounts.mlRunDiscountPercent,
       discountExpiresAt: toIsoOrNull(discounts.referralDiscountExpiresAt),
       mlRunChargesDue: Number(mlRunChargesDue.toFixed(2)),
-      mlRunChargesAwaitingPayment: Number(mlRunChargesAwaitingPayment.toFixed(2)),
+      mlRunChargesAwaitingPayment: Number(displayedMlRunChargesAwaitingPayment.toFixed(2)),
       totalPaidBilling: Number(totalPaidBilling.toFixed(2)),
       recentMlRunCharges: user.analysisRuns.map((run) => ({
         id: run.id,
@@ -4263,7 +4279,21 @@ app.delete("/api/me", authRequired, async (req, res, next) => {
         cost: true,
       },
     });
-    const outstandingMlChargeTotal = Number(outstandingMlCharges._sum.cost || 0);
+    let outstandingMlChargeTotal = Number(outstandingMlCharges._sum.cost || 0);
+
+    if (user.stripeSubscriptionId && process.env.STRIPE_SECRET_KEY) {
+      try {
+        const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+        const upcomingInvoice = await stripe.invoices.retrieveUpcoming({
+          customer: user.stripeCustomerId || undefined,
+          subscription: user.stripeSubscriptionId,
+          expand: ["lines.data.price"],
+        });
+        outstandingMlChargeTotal = getStripeInvoiceRevenueBreakdown(upcomingInvoice).mlRevenue;
+      } catch (error) {
+        console.error("Unable to load Stripe upcoming invoice while deleting account", error);
+      }
+    }
 
     if (outstandingMlChargeTotal > 0 && !confirmOutstandingMlCharge) {
       return res.status(409).json({
