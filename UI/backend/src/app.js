@@ -5765,6 +5765,12 @@ app.post("/api/referral-codes/validate", async (req, res, next) => {
 app.get("/api/admin/referral-codes", authRequired, adminRequired, async (req, res, next) => {
   try {
     const referralCodes = await prisma.referralCode.findMany({
+      where: {
+        OR: [
+          { createdByUserId: null },
+          { createdBy: { role: "ADMIN" } },
+        ],
+      },
       orderBy: { createdAt: "desc" },
       include: {
         createdBy: {
