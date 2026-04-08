@@ -148,6 +148,20 @@ export interface AccountStateResponse {
     billingExempt?: boolean;
     profile?: AuthUser["profile"] | null;
     billing: BillingSummaryResponse["billing"] | null;
+    ownReferralCode?: {
+      id: string;
+      code: string;
+      accountDiscountPercent: number;
+      mlRunDiscountPercent: number;
+      durationDays: number;
+      isActive: boolean;
+      createdAt: string;
+      createdBy: {
+        id: string;
+        email: string;
+        name: string;
+      } | null;
+    } | null;
   };
 }
 

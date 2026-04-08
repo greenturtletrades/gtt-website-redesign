@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AlertTriangle,
   Check,
@@ -89,6 +89,9 @@ export function SettingsPage({
   const [eaStatus, setEaStatus] = useState<EaStatusResponse | null>(null);
   const [eaDiagnostics, setEaDiagnostics] = useState<EaDiagnosticsResponse | null>(null);
   const [billingSummary, setBillingSummary] = useState<BillingSummaryResponse["billing"] | null>(null);
+  const [ownReferralCode, setOwnReferralCode] = useState<string | null>(null);
+  const [ownReferralDiscountPercent, setOwnReferralDiscountPercent] = useState(0);
+  const [ownReferralDurationDays, setOwnReferralDurationDays] = useState(0);
   const [billingLoading, setBillingLoading] = useState(true);
   const [openingBillingPortal, setOpeningBillingPortal] = useState(false);
   const [refreshingEaHealth, setRefreshingEaHealth] = useState(false);
@@ -107,11 +110,6 @@ export function SettingsPage({
   const activeApiKeys = apiKeys.filter((item) => !item.revokedAt);
   const managedEaApiKey = activeApiKeys.find((item) => item.name === "MetaTrader EA") || null;
   const currentApiKey = freshApiKey || null;
-
-  const referralCode = useMemo(() => {
-    const baseName = (formData.fullName || userName || "TRADER").replace(/\s+/g, "").toUpperCase().slice(0, 8);
-    return `TRADER-${baseName || "TRADER"}`;
-  }, [formData.fullName, userName]);
 
   useEffect(() => {
     let cancelled = false;
@@ -142,6 +140,9 @@ export function SettingsPage({
         setEaStatus(eaStatusResponse);
         setEaDiagnostics(eaDiagnosticsResponse);
         setBillingSummary(accountState.account.billing);
+        setOwnReferralCode(accountState.account.ownReferralCode?.code || null);
+        setOwnReferralDiscountPercent(accountState.account.ownReferralCode?.accountDiscountPercent || 0);
+        setOwnReferralDurationDays(accountState.account.ownReferralCode?.durationDays || 0);
         setPageError(null);
       } catch (error) {
         if (!cancelled) {
@@ -1051,11 +1052,14 @@ export function SettingsPage({
                         <div className="flex items-start gap-3">
                           <Gift className="mt-0.5 h-5 w-5 text-teal-600" />
                           <div>
-                            <p className="text-slate-900">Referral discounts are now account-linked.</p>
+                            <p className="text-slate-900">Your referral code is live and redeemable.</p>
                             <p className="mt-2 text-sm text-slate-600">
                               {billingSummary?.referralCode
                                 ? `Your account currently has referral code ${billingSummary.referralCode} applied.`
                                 : "No active referral discount is currently linked to this account."}
+                            </p>
+                            <p className="mt-2 text-sm text-slate-600">
+                              New traders who sign up with your code receive {ownReferralDiscountPercent}% off platform billing for {ownReferralDurationDays} days.
                             </p>
                           </div>
                         </div>
@@ -1063,10 +1067,11 @@ export function SettingsPage({
                       <div className="rounded-lg border border-slate-200 p-4">
                         <div className="mb-2 text-sm text-slate-600">Referral code</div>
                         <div className="flex items-center justify-between gap-3">
-                          <code className="rounded bg-slate-100 px-3 py-2 text-sm text-slate-900">{referralCode}</code>
+                          <code className="rounded bg-slate-100 px-3 py-2 text-sm text-slate-900">{ownReferralCode || "Loading..."}</code>
                           <button
-                            onClick={() => handleCopy("referral-code", referralCode)}
-                            className="rounded-lg bg-teal-600 px-3 py-2 text-sm text-white hover:bg-teal-700"
+                            onClick={() => ownReferralCode && handleCopy("referral-code", ownReferralCode)}
+                            disabled={!ownReferralCode}
+                            className="rounded-lg bg-teal-600 px-3 py-2 text-sm text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             {copiedValue === "referral-code" ? "Copied!" : "Copy"}
                           </button>

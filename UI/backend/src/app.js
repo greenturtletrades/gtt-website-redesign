@@ -425,6 +425,100 @@ function calculateReferralExpiry(durationDays) {
   return new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
 }
 
+const DEFAULT_TRADER_REFERRAL_ACCOUNT_DISCOUNT_PERCENT = 10;
+const DEFAULT_TRADER_REFERRAL_ML_DISCOUNT_PERCENT = 0;
+const DEFAULT_TRADER_REFERRAL_DURATION_DAYS = 90;
+
+function slugifyReferralFragment(value, fallback = "TRADER") {
+  const fragment = String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "")
+    .slice(0, 8);
+  return fragment || fallback;
+}
+
+function buildTraderReferralCodeCandidates(user) {
+  const emailLocal = String(user?.email || "").split("@")[0] || "";
+  const profileName = `${user?.profile?.firstName || ""}${user?.profile?.lastName || ""}`;
+  const primary = slugifyReferralFragment(profileName || emailLocal || user?.id, "TRADER");
+  const secondary = slugifyReferralFragment(emailLocal || user?.id, "TRADER");
+  const idTail = String(user?.id || "").replace(/[^A-Z0-9]/gi, "").toUpperCase().slice(-4) || "GTT1";
+  return [
+    `TRADER-${primary}`,
+    `TRADER-${secondary}-${idTail}`,
+    `TRADER-${idTail}`,
+  ];
+}
+
+async function ensureTraderOwnedReferralCode(user) {
+  if (!user?.id) {
+    return null;
+  }
+
+  const existing = await prisma.referralCode.findFirst({
+    where: { createdByUserId: user.id },
+    include: {
+      createdBy: {
+        include: { profile: true },
+      },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (existing) {
+    return existing;
+  }
+
+  const existingCodes = new Set(
+    (
+      await prisma.referralCode.findMany({
+        where: {
+          code: {
+            in: buildTraderReferralCodeCandidates(user),
+          },
+        },
+        select: { code: true },
+      })
+    ).map((item) => item.code),
+  );
+
+  let selectedCode =
+    buildTraderReferralCodeCandidates(user).find((candidate) => !existingCodes.has(candidate)) || null;
+
+  if (!selectedCode) {
+    let attempt = 1;
+    const base = buildTraderReferralCodeCandidates(user)[0] || "TRADER";
+    while (!selectedCode) {
+      const nextCandidate = `${base}-${attempt}`;
+      const collision = await prisma.referralCode.findUnique({
+        where: { code: nextCandidate },
+        select: { id: true },
+      });
+      if (!collision) {
+        selectedCode = nextCandidate;
+      }
+      attempt += 1;
+    }
+  }
+
+  return prisma.referralCode.create({
+    data: {
+      code: selectedCode,
+      accountDiscountPercent: DEFAULT_TRADER_REFERRAL_ACCOUNT_DISCOUNT_PERCENT,
+      mlRunDiscountPercent: DEFAULT_TRADER_REFERRAL_ML_DISCOUNT_PERCENT,
+      durationDays: DEFAULT_TRADER_REFERRAL_DURATION_DAYS,
+      isActive: true,
+      createdByUserId: user.id,
+    },
+    include: {
+      createdBy: {
+        include: { profile: true },
+      },
+    },
+  });
+}
+
 function isInternalCompanyEmail(email) {
   return typeof email === "string" && internalCompanyEmails.has(email.trim().toLowerCase());
 }
@@ -1149,18 +1243,22 @@ async function buildUserAccountState(userId, sessionRole = null) {
   }
 
   const billingPayload = await buildUserBillingSummary(userId);
+  const accountRole = sessionRole || user.role;
+  const ownReferralCode =
+    accountRole === "TRADER" ? formatReferralCode(await ensureTraderOwnedReferralCode(user)) : null;
 
   return {
     ok: true,
     account: {
       id: user.id,
       email: user.email,
-      role: sessionRole || user.role,
+      role: accountRole,
       isSuperAdmin: Boolean(user.isSuperAdmin),
       status: user.status,
       plan: "payg",
       profile: user.profile,
       billing: billingPayload?.billing || null,
+      ownReferralCode,
     },
   };
 }
