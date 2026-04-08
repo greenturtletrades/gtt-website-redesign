@@ -229,6 +229,10 @@ model AnalysisRun {
   requestedTrades   Int?
   tradesAnalysed    Int?
   cost              Float?
+  stripeInvoiceId   String?
+  stripeBillingStatus String?
+  stripeBilledAt    DateTime?
+  stripeAmountPaid  Float?
   periodDescription String?
   dateRangeStart    DateTime?
   dateRangeEnd      DateTime?
@@ -292,6 +296,7 @@ model BillingEvent {
   stripeCustomerId     String?
   stripeSubscriptionId String?
   stripeInvoiceId      String?
+  category             String?
   eventType            String
   status               BillingEventStatus?
   currency             String?

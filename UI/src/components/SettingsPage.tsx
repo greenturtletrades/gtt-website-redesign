@@ -738,7 +738,17 @@ export function SettingsPage({
                                     <td className="py-3 pr-4">{run.mode}</td>
                                     <td className="py-3 pr-4">{run.tradesAnalysed ?? "—"}</td>
                                     <td className="py-3 pr-4">{formatMoney(run.amount, "GBP")}</td>
-                                    <td className="py-3 pr-4">Due</td>
+                                    <td className="py-3 pr-4">
+                                      {run.status === "paid"
+                                        ? "Paid"
+                                        : run.status === "pending"
+                                          ? "Pending payment"
+                                          : run.status === "failed"
+                                            ? "Payment failed"
+                                            : run.status === "no_charge"
+                                              ? "No charge"
+                                              : "Due"}
+                                    </td>
                                   </tr>
                                 ))}
                               </tbody>

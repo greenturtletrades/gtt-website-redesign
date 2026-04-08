@@ -1175,7 +1175,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
               <h2 className="text-lg text-slate-900">Finance</h2>
               <p className="mt-1 text-sm text-slate-600">
-                Stripe-confirmed subscription billing is shown separately from ML usage revenue tracked inside the platform, so it is clear what has actually been paid into Stripe and what is still internal usage accounting.
+                Subscription billing and ML usage billing are both shown from Stripe-paid invoice data, with account and run counts alongside them for operational context.
               </p>
             </div>
 
@@ -1213,31 +1213,31 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
 
               <div className="rounded-lg border border-slate-200 bg-white p-6">
                 <div className="mb-4">
-                  <h3 className="text-slate-900 text-lg">Platform-Tracked ML Usage</h3>
+                  <h3 className="text-slate-900 text-lg">Stripe-Confirmed ML Billing</h3>
                   <p className="mt-1 text-sm text-slate-600">
-                    These figures come from completed billable analysis runs tracked in the app, not directly from Stripe cash collection.
+                    These figures come from Stripe invoices created for completed ML runs and paid through the linked customer billing method.
                   </p>
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="rounded-lg border border-slate-200 p-5">
-                    <div className="text-slate-600 text-sm mb-1">Tracked ML Revenue</div>
+                    <div className="text-slate-600 text-sm mb-1">Stripe ML Revenue</div>
                     <div className="text-3xl text-slate-900">{formatCurrency(financeSummary.estimatedAnalysisRevenue)}</div>
-                    <div className="text-xs text-slate-500 mt-1">Completed billable analysis runs</div>
+                    <div className="text-xs text-slate-500 mt-1">Paid Stripe invoices generated from ML runs</div>
                   </div>
                   <div className="rounded-lg border border-slate-200 p-5">
                     <div className="text-slate-600 text-sm mb-1">Completed Analysis Runs</div>
                     <div className="text-3xl text-slate-900">{financeSummary.completedAnalysisRuns}</div>
-                    <div className="text-xs text-slate-500 mt-1">Tracked completed ML runs with cost</div>
+                    <div className="text-xs text-slate-500 mt-1">Completed runs recorded in the platform</div>
                   </div>
                   <div className="rounded-lg border border-slate-200 p-5">
                     <div className="text-slate-600 text-sm mb-1">Average Revenue per ML Run</div>
                     <div className="text-3xl text-slate-900">{formatCurrency(financeSummary.averageRevenuePerRun)}</div>
-                    <div className="text-xs text-slate-500 mt-1">Average internal run cost across completed runs</div>
+                    <div className="text-xs text-slate-500 mt-1">Average paid Stripe revenue across completed runs</div>
                   </div>
                   <div className="rounded-lg border border-slate-200 p-5">
-                    <div className="text-slate-600 text-sm mb-1">Tracked Total Revenue</div>
+                    <div className="text-slate-600 text-sm mb-1">Stripe Total Revenue</div>
                     <div className="text-3xl text-slate-900">{formatCurrency(financeSummary.totalRecognizedRevenue)}</div>
-                    <div className="text-xs text-slate-500 mt-1">Stripe cash received plus internally tracked ML usage</div>
+                    <div className="text-xs text-slate-500 mt-1">Stripe-paid subscription revenue plus Stripe-paid ML revenue</div>
                   </div>
                 </div>
               </div>
@@ -1263,9 +1263,9 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
               <div className="grid grid-cols-1 gap-6">
                 <div>
-                <h3 className="text-slate-900 text-lg mb-4">Tracked Revenue by Month</h3>
+                <h3 className="text-slate-900 text-lg mb-4">Stripe Revenue by Month</h3>
                 <p className="mb-4 text-sm text-slate-600">
-                  Teal bars are Stripe-confirmed subscription revenue. Dark bars are internally tracked ML usage revenue.
+                  Teal bars are Stripe-paid subscription revenue. Dark bars are Stripe-paid ML revenue.
                 </p>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={financeMonthlyRevenue}>
@@ -1298,7 +1298,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                   Accounts and Billing Linkage
                 </h3>
                 <p className="mt-1 text-sm text-slate-600">
-                  Stripe columns show linked billing records and paid Stripe invoice revenue. ML columns are platform-tracked usage values.
+                  Both subscription and ML billing columns now reflect Stripe-linked billing records and paid Stripe invoice revenue.
                 </p>
               </div>
               <div className="overflow-x-auto">
@@ -1311,9 +1311,9 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Subscription Link</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Stripe Paid Invoices</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Stripe Paid Revenue</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Tracked ML Runs</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Tracked ML Revenue</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Tracked Total</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Completed ML Runs</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Stripe ML Revenue</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Stripe Total</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Latest Stripe Payment</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Latest ML Run</th>
                     </tr>

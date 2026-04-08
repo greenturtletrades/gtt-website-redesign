@@ -842,6 +842,9 @@ function getStripeBillingEventData(event) {
   let stripeCustomerId = typeof object.customer === "string" ? object.customer : null;
   let stripeSubscriptionId = typeof object.subscription === "string" ? object.subscription : null;
   let stripeInvoiceId = typeof object.id === "string" && object.object === "invoice" ? object.id : null;
+  let category = null;
+  let analysisRunId =
+    typeof object.metadata?.analysisRunId === "string" ? object.metadata.analysisRunId : null;
   let status = null;
   let currency = typeof object.currency === "string" ? object.currency.toUpperCase() : null;
   let amount = null;
@@ -853,11 +856,21 @@ function getStripeBillingEventData(event) {
   let occurredAt = stripeTimestampToDate(event.created) || new Date();
 
   if (eventType.startsWith("customer.subscription.")) {
+    category = "subscription";
     stripeSubscriptionId = typeof object.id === "string" ? object.id : stripeSubscriptionId;
     status = object.status === "active" ? "ACTIVE" : object.status === "canceled" ? "CANCELLED" : "INACTIVE";
     amount = toCurrencyAmount(object.items?.data?.[0]?.price?.unit_amount ?? null);
   } else if (eventType.startsWith("invoice.")) {
     const firstLine = object.lines?.data?.[0] || null;
+    category =
+      typeof object.metadata?.chargeType === "string"
+        ? object.metadata.chargeType
+        : typeof firstLine?.metadata?.chargeType === "string"
+          ? firstLine.metadata.chargeType
+          : "subscription";
+    analysisRunId =
+      analysisRunId ||
+      (typeof firstLine?.metadata?.analysisRunId === "string" ? firstLine.metadata.analysisRunId : null);
     const linePeriod = firstLine?.period || null;
     periodStart = stripeTimestampToDate(linePeriod?.start) || periodStart;
     periodEnd = stripeTimestampToDate(linePeriod?.end) || periodEnd;
@@ -875,6 +888,7 @@ function getStripeBillingEventData(event) {
     amountPaid = toCurrencyAmount(object.amount_paid);
     occurredAt = stripeTimestampToDate(object.status_transitions?.paid_at) || occurredAt;
   } else if (eventType === "checkout.session.completed") {
+    category = "subscription";
     status = object.payment_status === "paid" ? "PAID" : "PENDING";
     amount = toCurrencyAmount(object.amount_total);
     amountSubtotal = toCurrencyAmount(object.amount_subtotal);
@@ -886,6 +900,8 @@ function getStripeBillingEventData(event) {
     stripeCustomerId,
     stripeSubscriptionId,
     stripeInvoiceId,
+    category,
+    analysisRunId,
     status,
     currency,
     amount,
@@ -928,6 +944,7 @@ async function persistStripeBillingEvent(event) {
       stripeCustomerId: eventData.stripeCustomerId,
       stripeSubscriptionId: eventData.stripeSubscriptionId,
       stripeInvoiceId: eventData.stripeInvoiceId,
+      category: eventData.category,
       eventType: eventData.eventType,
       status: eventData.status,
       currency: eventData.currency,
@@ -946,6 +963,7 @@ async function persistStripeBillingEvent(event) {
       stripeCustomerId: eventData.stripeCustomerId,
       stripeSubscriptionId: eventData.stripeSubscriptionId,
       stripeInvoiceId: eventData.stripeInvoiceId,
+      category: eventData.category,
       eventType: eventData.eventType,
       status: eventData.status,
       currency: eventData.currency,
@@ -959,6 +977,32 @@ async function persistStripeBillingEvent(event) {
       payload: event,
     },
   });
+
+  if (eventData.analysisRunId || eventData.stripeInvoiceId) {
+    const nextBillingStatus =
+      eventData.status === "PAID"
+        ? "PAID"
+        : eventData.status === "FAILED"
+          ? "FAILED"
+          : eventData.status === "CANCELLED"
+            ? "CANCELLED"
+            : "PENDING";
+
+    await prisma.analysisRun.updateMany({
+      where: {
+        OR: [
+          ...(eventData.analysisRunId ? [{ id: eventData.analysisRunId }] : []),
+          ...(eventData.stripeInvoiceId ? [{ stripeInvoiceId: eventData.stripeInvoiceId }] : []),
+        ],
+      },
+      data: {
+        stripeInvoiceId: eventData.stripeInvoiceId || undefined,
+        stripeBillingStatus: nextBillingStatus,
+        stripeBilledAt: eventData.status === "PAID" ? eventData.occurredAt : undefined,
+        stripeAmountPaid: eventData.status === "PAID" ? eventData.amountPaid ?? eventData.amount ?? undefined : undefined,
+      },
+    });
+  }
 }
 
 async function getOrCreateStripeCustomerId(user) {
@@ -1009,6 +1053,142 @@ async function getStripeSubscriptionForUser(userId) {
   });
 
   return { stripe, user, subscription };
+}
+
+async function billMlRunThroughStripe(analysisRunId) {
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+  if (!stripeSecretKey || !analysisRunId) {
+    return { ok: false, reason: "stripe_not_configured" };
+  }
+
+  const run = await prisma.analysisRun.findUnique({
+    where: { id: analysisRunId },
+    select: {
+      id: true,
+      mode: true,
+      tradesAnalysed: true,
+      cost: true,
+      stripeInvoiceId: true,
+      stripeBillingStatus: true,
+      completedAt: true,
+      user: {
+        select: {
+          id: true,
+          email: true,
+          stripeCustomerId: true,
+          stripeSubscriptionId: true,
+          billingExempt: true,
+          platformComped: true,
+        },
+      },
+    },
+  });
+
+  if (!run) {
+    return { ok: false, reason: "run_not_found" };
+  }
+
+  if (run.stripeInvoiceId || ["PAID", "PENDING"].includes(String(run.stripeBillingStatus || ""))) {
+    return { ok: true, skipped: true };
+  }
+
+  if (!run.user || isBillingExemptUser(run.user) || isPlatformCompedUser(run.user) || !run.cost || run.cost <= 0) {
+    await prisma.analysisRun.update({
+      where: { id: run.id },
+      data: {
+        stripeBillingStatus: "NO_CHARGE",
+        stripeAmountPaid: run.cost && run.cost > 0 ? null : 0,
+      },
+    });
+    return { ok: true, skipped: true };
+  }
+
+  if (!run.user.stripeCustomerId) {
+    await prisma.analysisRun.update({
+      where: { id: run.id },
+      data: {
+        stripeBillingStatus: "DUE",
+      },
+    });
+    return { ok: false, reason: "no_stripe_customer" };
+  }
+
+  const stripe = Stripe(stripeSecretKey);
+  const amountMinor = Math.round(run.cost * 100);
+  const description = `Green Turtle Trades ML analysis (${run.mode})${run.tradesAnalysed ? ` · ${run.tradesAnalysed} trades` : ""}`;
+
+  try {
+    await prisma.analysisRun.update({
+      where: { id: run.id },
+      data: {
+        stripeBillingStatus: "PENDING",
+      },
+    });
+
+    await stripe.invoiceItems.create({
+      customer: run.user.stripeCustomerId,
+      amount: amountMinor,
+      currency: "gbp",
+      description,
+      metadata: {
+        chargeType: "ml_run",
+        analysisRunId: run.id,
+        userId: run.user.id,
+      },
+    });
+
+    const invoice = await stripe.invoices.create({
+      customer: run.user.stripeCustomerId,
+      collection_method: "charge_automatically",
+      auto_advance: true,
+      metadata: {
+        chargeType: "ml_run",
+        analysisRunId: run.id,
+        userId: run.user.id,
+      },
+    });
+
+    const finalizedInvoice =
+      invoice.status === "draft" ? await stripe.invoices.finalizeInvoice(invoice.id) : invoice;
+    const paidInvoice =
+      finalizedInvoice.status === "paid"
+        ? finalizedInvoice
+        : await stripe.invoices.pay(finalizedInvoice.id).catch(() => finalizedInvoice);
+
+    const nextStatus =
+      paidInvoice.status === "paid"
+        ? "PAID"
+        : paidInvoice.status === "open"
+          ? "PENDING"
+          : paidInvoice.status === "uncollectible" || paidInvoice.status === "void"
+            ? "FAILED"
+            : "PENDING";
+
+    await prisma.analysisRun.update({
+      where: { id: run.id },
+      data: {
+        stripeInvoiceId: paidInvoice.id,
+        stripeBillingStatus: nextStatus,
+        stripeBilledAt: nextStatus === "PAID" ? new Date() : null,
+        stripeAmountPaid: typeof paidInvoice.amount_paid === "number" ? paidInvoice.amount_paid / 100 : null,
+      },
+    });
+
+    return {
+      ok: true,
+      invoiceId: paidInvoice.id,
+      status: nextStatus,
+    };
+  } catch (error) {
+    console.error("Failed to bill ML run through Stripe", error);
+    await prisma.analysisRun.update({
+      where: { id: run.id },
+      data: {
+        stripeBillingStatus: "FAILED",
+      },
+    }).catch(() => {});
+    return { ok: false, reason: "stripe_invoice_failed" };
+  }
 }
 
 async function assertMlAnalysisAccess(userId) {
@@ -1108,6 +1288,10 @@ async function buildUserBillingSummary(userId) {
           mode: true,
           tradesAnalysed: true,
           cost: true,
+          stripeInvoiceId: true,
+          stripeBillingStatus: true,
+          stripeBilledAt: true,
+          stripeAmountPaid: true,
           createdAt: true,
           completedAt: true,
         },
@@ -1174,10 +1358,11 @@ async function buildUserBillingSummary(userId) {
     }
   }
 
-  const mlRunChargesDue = user.analysisRuns.reduce(
-    (sum, run) => sum + (typeof run.cost === "number" ? run.cost : 0),
-    0
-  );
+  const mlRunChargesDue = user.analysisRuns.reduce((sum, run) => {
+    const status = String(run.stripeBillingStatus || "").toUpperCase();
+    const isSettled = status === "PAID" || status === "NO_CHARGE";
+    return sum + (!isSettled && typeof run.cost === "number" ? run.cost : 0);
+  }, 0);
   const totalPaidBilling = user.billingEvents.reduce(
     (sum, event) => sum + (typeof event.amountPaid === "number" ? event.amountPaid : 0),
     0
@@ -1207,7 +1392,14 @@ async function buildUserBillingSummary(userId) {
       totalPaidBilling: Number(totalPaidBilling.toFixed(2)),
       recentMlRunCharges: user.analysisRuns.map((run) => ({
         id: run.id,
-        status: "due",
+        status: (() => {
+          const status = String(run.stripeBillingStatus || "").toUpperCase();
+          if (status === "PAID") return "paid";
+          if (status === "FAILED" || status === "CANCELLED") return "failed";
+          if (status === "PENDING") return "pending";
+          if (status === "NO_CHARGE") return "no_charge";
+          return "due";
+        })(),
         mode: run.mode,
         tradesAnalysed: run.tradesAnalysed ?? null,
         amount: typeof run.cost === "number" ? Number(run.cost.toFixed(2)) : null,
@@ -3976,6 +4168,10 @@ app.delete("/api/me", authRequired, async (req, res, next) => {
         cost: {
           gt: 0,
         },
+        OR: [
+          { stripeBillingStatus: null },
+          { stripeBillingStatus: { notIn: ["PAID", "NO_CHARGE"] } },
+        ],
       },
       _sum: {
         cost: true,
@@ -5609,6 +5805,7 @@ app.get("/api/admin/finance", authRequired, adminRequired, async (req, res, next
           },
           orderBy: { occurredAt: "desc" },
           select: {
+            category: true,
             amountPaid: true,
             occurredAt: true,
             periodStart: true,
@@ -5627,13 +5824,15 @@ app.get("/api/admin/finance", authRequired, adminRequired, async (req, res, next
 
     const allCompletedRuns = traders.flatMap((user) => user.analysisRuns);
     const allPaidInvoices = traders.flatMap((user) => user.billingEvents);
+    const allPaidSubscriptionInvoices = allPaidInvoices.filter((invoice) => invoice.category !== "ml_run");
+    const allPaidMlInvoices = allPaidInvoices.filter((invoice) => invoice.category === "ml_run");
     const completedAnalysisRuns = allCompletedRuns.length;
-    const estimatedAnalysisRevenue = allCompletedRuns.reduce(
-      (sum, run) => sum + (typeof run.cost === "number" ? run.cost : 0),
+    const estimatedAnalysisRevenue = allPaidMlInvoices.reduce(
+      (sum, invoice) => sum + (typeof invoice.amountPaid === "number" ? invoice.amountPaid : 0),
       0
     );
-    const paidSubscriptionInvoices = allPaidInvoices.length;
-    const recognizedSubscriptionRevenue = allPaidInvoices.reduce(
+    const paidSubscriptionInvoices = allPaidSubscriptionInvoices.length;
+    const recognizedSubscriptionRevenue = allPaidSubscriptionInvoices.reduce(
       (sum, invoice) => sum + (typeof invoice.amountPaid === "number" ? invoice.amountPaid : 0),
       0
     );
@@ -5649,14 +5848,17 @@ app.get("/api/admin/finance", authRequired, adminRequired, async (req, res, next
         if (!run.completedAt) return false;
         return run.completedAt >= monthDate && run.completedAt < nextMonth;
       });
-      const monthInvoices = allPaidInvoices.filter((invoice) => {
+      const monthSubscriptionInvoices = allPaidSubscriptionInvoices.filter((invoice) => {
         return invoice.occurredAt >= monthDate && invoice.occurredAt < nextMonth;
       });
-      const analysisRevenue = monthRuns.reduce(
-        (sum, run) => sum + (typeof run.cost === "number" ? run.cost : 0),
+      const monthMlInvoices = allPaidMlInvoices.filter((invoice) => {
+        return invoice.occurredAt >= monthDate && invoice.occurredAt < nextMonth;
+      });
+      const analysisRevenue = monthMlInvoices.reduce(
+        (sum, invoice) => sum + (typeof invoice.amountPaid === "number" ? invoice.amountPaid : 0),
         0
       );
-      const subscriptionRevenue = monthInvoices.reduce(
+      const subscriptionRevenue = monthSubscriptionInvoices.reduce(
         (sum, invoice) => sum + (typeof invoice.amountPaid === "number" ? invoice.amountPaid : 0),
         0
       );
@@ -5667,7 +5869,7 @@ app.get("/api/admin/finance", authRequired, adminRequired, async (req, res, next
         subscriptionRevenue: Number(subscriptionRevenue.toFixed(2)),
         revenue: Number((analysisRevenue + subscriptionRevenue).toFixed(2)),
         runs: monthRuns.length,
-        invoices: monthInvoices.length,
+        invoices: monthSubscriptionInvoices.length + monthMlInvoices.length,
       };
     });
 
@@ -5681,11 +5883,13 @@ app.get("/api/admin/finance", authRequired, adminRequired, async (req, res, next
         const firstName = user.profile?.firstName?.trim() || "";
         const lastName = user.profile?.lastName?.trim() || "";
         const profileName = `${firstName} ${lastName}`.trim();
-        const estimatedRevenue = user.analysisRuns.reduce(
-          (sum, run) => sum + (typeof run.cost === "number" ? run.cost : 0),
+        const paidSubscriptionInvoices = user.billingEvents.filter((invoice) => invoice.category !== "ml_run");
+        const paidMlInvoices = user.billingEvents.filter((invoice) => invoice.category === "ml_run");
+        const estimatedRevenue = paidMlInvoices.reduce(
+          (sum, invoice) => sum + (typeof invoice.amountPaid === "number" ? invoice.amountPaid : 0),
           0
         );
-        const subscriptionRevenue = user.billingEvents.reduce(
+        const subscriptionRevenue = paidSubscriptionInvoices.reduce(
           (sum, invoice) => sum + (typeof invoice.amountPaid === "number" ? invoice.amountPaid : 0),
           0
         );
@@ -5700,7 +5904,7 @@ app.get("/api/admin/finance", authRequired, adminRequired, async (req, res, next
           estimatedRevenue: Number(estimatedRevenue.toFixed(2)),
           subscriptionRevenue: Number(subscriptionRevenue.toFixed(2)),
           totalRevenue: Number((estimatedRevenue + subscriptionRevenue).toFixed(2)),
-          paidSubscriptionInvoices: user.billingEvents.length,
+          paidSubscriptionInvoices: paidSubscriptionInvoices.length,
           latestPaymentAt: user.billingEvents[0]?.occurredAt ? user.billingEvents[0].occurredAt.toISOString() : null,
           latestRunAt: user.analysisRuns[0]?.completedAt ? user.analysisRuns[0].completedAt.toISOString() : null,
         };
@@ -7041,6 +7245,8 @@ app.get("/api/analyse/:jobId", authRequired, async (req, res, next) => {
             error: null,
           },
         });
+
+        await billMlRunThroughStripe(jobContext.analysisRunId);
       }
     } else if (data.status === "error") {
       if (jobContext?.analysisRunId) {
@@ -7115,9 +7321,7 @@ app.post("/api/create-checkout-session", authRequired, async (req, res, next) =>
     }
 
     const monthlyPriceId = process.env.STRIPE_PRICE_MONTHLY;
-    const perTradePriceId = process.env.STRIPE_PRICE_PER_TRADE;
-
-    if (!monthlyPriceId || !perTradePriceId) {
+    if (!monthlyPriceId) {
       return res.status(500).json({ ok: false, error: "Stripe prices not configured" });
     }
 
@@ -7194,9 +7398,6 @@ app.post("/api/create-checkout-session", authRequired, async (req, res, next) =>
         {
           price: monthlyPriceId,
           quantity: 1,
-        },
-        {
-          price: perTradePriceId,
         },
       ],
       mode: "subscription",
