@@ -5978,24 +5978,105 @@ app.get("/api/admin/finance", authRequired, adminRequired, async (req, res, next
     });
 
     const traderAccounts = traders.length;
-    const premiumAccounts = traders.filter((user) => Boolean(user.stripeSubscriptionId)).length;
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    const linkedCustomerIds = Array.from(
+      new Set(
+        traders
+          .map((user) => user.stripeCustomerId)
+          .filter((value) => typeof value === "string" && value.trim()),
+      ),
+    );
+    const linkedSubscriptionIds = Array.from(
+      new Set(
+        traders
+          .map((user) => user.stripeSubscriptionId)
+          .filter((value) => typeof value === "string" && value.trim()),
+      ),
+    );
+
+    let liveStripeCustomerIds = new Set(linkedCustomerIds);
+    let liveActiveSubscriptionIds = new Set(linkedSubscriptionIds);
+    let liveInvoiceRows = [];
+
+    if (stripeSecretKey) {
+      const stripe = Stripe(stripeSecretKey);
+      const [liveCustomers, liveSubscriptions, invoiceLists] = await Promise.all([
+        Promise.all(
+          linkedCustomerIds.map(async (customerId) => {
+            try {
+              const customer = await stripe.customers.retrieve(customerId);
+              if (customer && !customer.deleted) return customerId;
+            } catch (error) {
+              console.error("Unable to load Stripe customer for admin finance", customerId, error);
+            }
+            return null;
+          }),
+        ),
+        Promise.all(
+          linkedSubscriptionIds.map(async (subscriptionId) => {
+            try {
+              const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+              if (subscription && subscription.status !== "canceled") return subscriptionId;
+            } catch (error) {
+              console.error("Unable to load Stripe subscription for admin finance", subscriptionId, error);
+            }
+            return null;
+          }),
+        ),
+        Promise.all(
+          linkedCustomerIds.map(async (customerId) => {
+            try {
+              const invoices = await stripe.invoices.list({
+                customer: customerId,
+                status: "paid",
+                limit: 100,
+                expand: ["data.lines.data.price"],
+              });
+              return invoices.data.map((invoice) => ({
+                customerId,
+                invoiceId: invoice.id,
+                occurredAt: new Date(
+                  ((invoice.status_transitions && invoice.status_transitions.paid_at) || invoice.created) * 1000,
+                ),
+                breakdown: getStripeInvoiceRevenueBreakdown(invoice),
+              }));
+            } catch (error) {
+              console.error("Unable to load Stripe invoices for admin finance", customerId, error);
+              return [];
+            }
+          }),
+        ),
+      ]);
+
+      liveStripeCustomerIds = new Set(liveCustomers.filter(Boolean));
+      liveActiveSubscriptionIds = new Set(liveSubscriptions.filter(Boolean));
+      liveInvoiceRows = invoiceLists.flat();
+    }
+
+    const premiumAccounts = traders.filter(
+      (user) => user.stripeSubscriptionId && liveActiveSubscriptionIds.has(user.stripeSubscriptionId),
+    ).length;
     const paygAccounts = Math.max(traderAccounts - premiumAccounts, 0);
-    const stripeCustomers = traders.filter((user) => Boolean(user.stripeCustomerId)).length;
-    const activeSubscriptions = traders.filter((user) => Boolean(user.stripeSubscriptionId)).length;
+    const stripeCustomers = liveStripeCustomerIds.size;
+    const activeSubscriptions = liveActiveSubscriptionIds.size;
 
     const allCompletedRuns = traders.flatMap((user) => user.analysisRuns);
-    const allPaidInvoices = traders.flatMap((user) => user.billingEvents);
     const completedAnalysisRuns = allCompletedRuns.length;
-    const invoiceBreakdowns = allPaidInvoices.map((invoice) => ({
-      invoice,
-      breakdown: getBillingEventRevenueBreakdown(invoice),
-    }));
-    const estimatedAnalysisRevenue = invoiceBreakdowns.reduce(
+    const fallbackInvoiceRows = traders.flatMap((user) =>
+      user.billingEvents.map((invoice) => ({
+        customerId: user.stripeCustomerId || null,
+        invoiceId: invoice.stripeInvoiceId || null,
+        occurredAt: invoice.occurredAt,
+        breakdown: getBillingEventRevenueBreakdown(invoice),
+      })),
+    );
+    const invoiceRows = liveInvoiceRows.length > 0 ? liveInvoiceRows : fallbackInvoiceRows;
+    const estimatedAnalysisRevenue = invoiceRows.reduce(
       (sum, entry) => sum + entry.breakdown.mlRevenue,
       0,
     );
-    const paidSubscriptionInvoices = allPaidInvoices.length;
-    const recognizedSubscriptionRevenue = invoiceBreakdowns.reduce(
+    const paidSubscriptionInvoices = invoiceRows.length;
+    const recognizedSubscriptionRevenue = invoiceRows.reduce(
       (sum, entry) => sum + entry.breakdown.subscriptionRevenue,
       0,
     );
@@ -6011,8 +6092,8 @@ app.get("/api/admin/finance", authRequired, adminRequired, async (req, res, next
         if (!run.completedAt) return false;
         return run.completedAt >= monthDate && run.completedAt < nextMonth;
       });
-      const monthInvoiceBreakdowns = invoiceBreakdowns.filter(({ invoice }) => {
-        return invoice.occurredAt >= monthDate && invoice.occurredAt < nextMonth;
+      const monthInvoiceBreakdowns = invoiceRows.filter((entry) => {
+        return entry.occurredAt >= monthDate && entry.occurredAt < nextMonth;
       });
       const analysisRevenue = monthInvoiceBreakdowns.reduce(
         (sum, entry) => sum + entry.breakdown.mlRevenue,
@@ -6043,10 +6124,9 @@ app.get("/api/admin/finance", authRequired, adminRequired, async (req, res, next
         const firstName = user.profile?.firstName?.trim() || "";
         const lastName = user.profile?.lastName?.trim() || "";
         const profileName = `${firstName} ${lastName}`.trim();
-        const userInvoiceBreakdowns = user.billingEvents.map((invoice) => ({
-          invoice,
-          breakdown: getBillingEventRevenueBreakdown(invoice),
-        }));
+        const userInvoiceBreakdowns = invoiceRows.filter(
+          (entry) => entry.customerId && entry.customerId === user.stripeCustomerId,
+        );
         const estimatedRevenue = userInvoiceBreakdowns.reduce(
           (sum, entry) => sum + entry.breakdown.mlRevenue,
           0,
@@ -6059,15 +6139,20 @@ app.get("/api/admin/finance", authRequired, adminRequired, async (req, res, next
           userId: user.id,
           email: user.email,
           name: profileName || user.email.split("@")[0],
-          plan: user.stripeSubscriptionId ? "premium" : "payg",
-          stripeCustomerLinked: Boolean(user.stripeCustomerId),
-          stripeSubscriptionLinked: Boolean(user.stripeSubscriptionId),
+          plan:
+            user.stripeSubscriptionId && liveActiveSubscriptionIds.has(user.stripeSubscriptionId)
+              ? "premium"
+              : "payg",
+          stripeCustomerLinked: Boolean(user.stripeCustomerId && liveStripeCustomerIds.has(user.stripeCustomerId)),
+          stripeSubscriptionLinked: Boolean(
+            user.stripeSubscriptionId && liveActiveSubscriptionIds.has(user.stripeSubscriptionId),
+          ),
           completedRuns: user.analysisRuns.length,
           estimatedRevenue: Number(estimatedRevenue.toFixed(2)),
           subscriptionRevenue: Number(subscriptionRevenue.toFixed(2)),
           totalRevenue: Number((estimatedRevenue + subscriptionRevenue).toFixed(2)),
-          paidSubscriptionInvoices: user.billingEvents.length,
-          latestPaymentAt: user.billingEvents[0]?.occurredAt ? user.billingEvents[0].occurredAt.toISOString() : null,
+          paidSubscriptionInvoices: userInvoiceBreakdowns.length,
+          latestPaymentAt: userInvoiceBreakdowns[0]?.occurredAt ? userInvoiceBreakdowns[0].occurredAt.toISOString() : null,
           latestRunAt: user.analysisRuns[0]?.completedAt ? user.analysisRuns[0].completedAt.toISOString() : null,
         };
       })
