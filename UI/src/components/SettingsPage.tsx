@@ -684,7 +684,7 @@ export function SettingsPage({
                           <div className="text-sm text-amber-700">ML Usage Charges Due</div>
                           <div className="mt-2 text-2xl text-slate-900">{billingLoading ? "Loading..." : mlChargesDueDisplay}</div>
                           <p className="mt-2 text-sm text-slate-600">
-                            Completed ML analysis runs currently recorded against this account.
+                            Stripe-backed ML usage currently scheduled on your next subscription invoice.
                           </p>
                         </div>
 

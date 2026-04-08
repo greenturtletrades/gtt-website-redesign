@@ -1487,7 +1487,7 @@ async function buildUserBillingSummary(userId) {
       accountDiscountPercent: discounts.accountDiscountPercent,
       mlRunDiscountPercent: discounts.mlRunDiscountPercent,
       discountExpiresAt: toIsoOrNull(discounts.referralDiscountExpiresAt),
-      mlRunChargesDue: Number(mlRunChargesDue.toFixed(2)),
+      mlRunChargesDue: Number(displayedMlRunChargesAwaitingPayment.toFixed(2)),
       mlRunChargesAwaitingPayment: Number(displayedMlRunChargesAwaitingPayment.toFixed(2)),
       totalPaidBilling: Number(totalPaidBilling.toFixed(2)),
       recentMlRunCharges: user.analysisRuns.map((run) => ({
