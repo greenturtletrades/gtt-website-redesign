@@ -1184,14 +1184,14 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                 <div className="mb-4">
                   <h3 className="text-slate-900 text-lg">Stripe-Confirmed Billing</h3>
                   <p className="mt-1 text-sm text-slate-600">
-                    These figures come from paid Stripe invoice events stored by the platform.
+                    These figures come directly from paid Stripe invoice events stored by the platform.
                   </p>
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="rounded-lg border border-slate-200 p-5">
-                    <div className="text-slate-600 text-sm mb-1">Stripe Cash Received</div>
+                    <div className="text-slate-600 text-sm mb-1">Platform Access Revenue</div>
                     <div className="text-3xl text-slate-900">{formatCurrency(financeSummary.recognizedSubscriptionRevenue)}</div>
-                    <div className="text-xs text-slate-500 mt-1">Paid Stripe subscription invoices</div>
+                    <div className="text-xs text-slate-500 mt-1">Stripe-paid platform subscription revenue</div>
                   </div>
                   <div className="rounded-lg border border-slate-200 p-5">
                     <div className="text-slate-600 text-sm mb-1">Paid Stripe Invoices</div>
@@ -1215,14 +1215,14 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                 <div className="mb-4">
                   <h3 className="text-slate-900 text-lg">Stripe-Confirmed ML Billing</h3>
                   <p className="mt-1 text-sm text-slate-600">
-                    These figures come from Stripe invoices created for completed ML runs and paid through the linked customer billing method.
+                    These figures come from Stripe-paid metered ML usage on trader subscription invoices.
                   </p>
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="rounded-lg border border-slate-200 p-5">
-                    <div className="text-slate-600 text-sm mb-1">Stripe ML Revenue</div>
+                    <div className="text-slate-600 text-sm mb-1">ML Usage Revenue</div>
                     <div className="text-3xl text-slate-900">{formatCurrency(financeSummary.estimatedAnalysisRevenue)}</div>
-                    <div className="text-xs text-slate-500 mt-1">Paid Stripe invoices generated from ML runs</div>
+                    <div className="text-xs text-slate-500 mt-1">Stripe-paid metered ML usage</div>
                   </div>
                   <div className="rounded-lg border border-slate-200 p-5">
                     <div className="text-slate-600 text-sm mb-1">Completed Analysis Runs</div>
@@ -1235,9 +1235,9 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                     <div className="text-xs text-slate-500 mt-1">Average paid Stripe revenue across completed runs</div>
                   </div>
                   <div className="rounded-lg border border-slate-200 p-5">
-                    <div className="text-slate-600 text-sm mb-1">Stripe Total Revenue</div>
+                    <div className="text-slate-600 text-sm mb-1">Stripe Cash Received</div>
                     <div className="text-3xl text-slate-900">{formatCurrency(financeSummary.totalRecognizedRevenue)}</div>
-                    <div className="text-xs text-slate-500 mt-1">Stripe-paid subscription revenue plus Stripe-paid ML revenue</div>
+                    <div className="text-xs text-slate-500 mt-1">Platform access plus ML usage actually paid in Stripe</div>
                   </div>
                 </div>
               </div>
@@ -1298,7 +1298,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                   Accounts and Billing Linkage
                 </h3>
                 <p className="mt-1 text-sm text-slate-600">
-                  Both subscription and ML billing columns now reflect Stripe-linked billing records and paid Stripe invoice revenue.
+                  Both platform access and ML billing columns now reflect Stripe-linked billing records and paid Stripe invoice revenue.
                 </p>
               </div>
               <div className="overflow-x-auto">
