@@ -1125,8 +1125,20 @@ async function billMlRunThroughStripe(analysisRunId) {
       },
     });
 
+    const invoice = await stripe.invoices.create({
+      customer: run.user.stripeCustomerId,
+      collection_method: "charge_automatically",
+      auto_advance: false,
+      metadata: {
+        chargeType: "ml_run",
+        analysisRunId: run.id,
+        userId: run.user.id,
+      },
+    });
+
     await stripe.invoiceItems.create({
       customer: run.user.stripeCustomerId,
+      invoice: invoice.id,
       amount: amountMinor,
       currency: "gbp",
       description,
@@ -1137,20 +1149,7 @@ async function billMlRunThroughStripe(analysisRunId) {
       },
     });
 
-    const invoice = await stripe.invoices.create({
-      customer: run.user.stripeCustomerId,
-      collection_method: "charge_automatically",
-      auto_advance: true,
-      pending_invoice_items_behavior: "include",
-      metadata: {
-        chargeType: "ml_run",
-        analysisRunId: run.id,
-        userId: run.user.id,
-      },
-    });
-
-    const finalizedInvoice =
-      invoice.status === "draft" ? await stripe.invoices.finalizeInvoice(invoice.id) : invoice;
+    const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id);
     const paidInvoice =
       finalizedInvoice.status === "paid"
         ? finalizedInvoice
@@ -1403,7 +1402,12 @@ async function buildUserBillingSummary(userId) {
         })(),
         mode: run.mode,
         tradesAnalysed: run.tradesAnalysed ?? null,
-        amount: typeof run.cost === "number" ? Number(run.cost.toFixed(2)) : null,
+        amount:
+          typeof run.stripeAmountPaid === "number"
+            ? Number(run.stripeAmountPaid.toFixed(2))
+            : typeof run.cost === "number"
+              ? Number(run.cost.toFixed(2))
+              : null,
         createdAt: run.createdAt.toISOString(),
         completedAt: run.completedAt ? run.completedAt.toISOString() : null,
       })),
