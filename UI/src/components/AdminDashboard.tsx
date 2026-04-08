@@ -1175,37 +1175,96 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
               <h2 className="text-lg text-slate-900">Finance</h2>
               <p className="mt-1 text-sm text-slate-600">
-                Live finance data from trader accounts, paid Stripe subscription invoices, and completed billable analysis runs stored in the platform.
+                Stripe-confirmed subscription billing is shown separately from ML usage revenue tracked inside the platform, so it is clear what has actually been paid into Stripe and what is still internal usage accounting.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <div className="rounded-lg border border-slate-200 bg-white p-6">
+                <div className="mb-4">
+                  <h3 className="text-slate-900 text-lg">Stripe-Confirmed Billing</h3>
+                  <p className="mt-1 text-sm text-slate-600">
+                    These figures come from paid Stripe invoice events stored by the platform.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="rounded-lg border border-slate-200 p-5">
+                    <div className="text-slate-600 text-sm mb-1">Stripe Cash Received</div>
+                    <div className="text-3xl text-slate-900">{formatCurrency(financeSummary.recognizedSubscriptionRevenue)}</div>
+                    <div className="text-xs text-slate-500 mt-1">Paid Stripe subscription invoices</div>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 p-5">
+                    <div className="text-slate-600 text-sm mb-1">Paid Stripe Invoices</div>
+                    <div className="text-3xl text-slate-900">{financeSummary.paidSubscriptionInvoices}</div>
+                    <div className="text-xs text-slate-500 mt-1">Confirmed by stored invoice.paid events</div>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 p-5">
+                    <div className="text-slate-600 text-sm mb-1">Stripe Customers Linked</div>
+                    <div className="text-3xl text-slate-900">{financeSummary.stripeCustomers}</div>
+                    <div className="text-xs text-slate-500 mt-1">Users with a Stripe customer record linked</div>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 p-5">
+                    <div className="text-slate-600 text-sm mb-1">Subscription Links</div>
+                    <div className="text-3xl text-slate-900">{financeSummary.activeSubscriptions}</div>
+                    <div className="text-xs text-slate-500 mt-1">Users with a stored Stripe subscription link</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-white p-6">
+                <div className="mb-4">
+                  <h3 className="text-slate-900 text-lg">Platform-Tracked ML Usage</h3>
+                  <p className="mt-1 text-sm text-slate-600">
+                    These figures come from completed billable analysis runs tracked in the app, not directly from Stripe cash collection.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="rounded-lg border border-slate-200 p-5">
+                    <div className="text-slate-600 text-sm mb-1">Tracked ML Revenue</div>
+                    <div className="text-3xl text-slate-900">{formatCurrency(financeSummary.estimatedAnalysisRevenue)}</div>
+                    <div className="text-xs text-slate-500 mt-1">Completed billable analysis runs</div>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 p-5">
+                    <div className="text-slate-600 text-sm mb-1">Completed Analysis Runs</div>
+                    <div className="text-3xl text-slate-900">{financeSummary.completedAnalysisRuns}</div>
+                    <div className="text-xs text-slate-500 mt-1">Tracked completed ML runs with cost</div>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 p-5">
+                    <div className="text-slate-600 text-sm mb-1">Average Revenue per ML Run</div>
+                    <div className="text-3xl text-slate-900">{formatCurrency(financeSummary.averageRevenuePerRun)}</div>
+                    <div className="text-xs text-slate-500 mt-1">Average internal run cost across completed runs</div>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 p-5">
+                    <div className="text-slate-600 text-sm mb-1">Tracked Total Revenue</div>
+                    <div className="text-3xl text-slate-900">{formatCurrency(financeSummary.totalRecognizedRevenue)}</div>
+                    <div className="text-xs text-slate-500 mt-1">Stripe cash received plus internally tracked ML usage</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-                <div className="text-slate-600 text-sm mb-1">Platform Access Revenue</div>
-                <div className="text-3xl text-slate-900">{formatCurrency(financeSummary.recognizedSubscriptionRevenue)}</div>
-                <div className="text-xs text-slate-500 mt-1">Paid Stripe subscription invoices</div>
+                <div className="text-slate-600 text-sm mb-1">Trader Accounts</div>
+                <div className="text-3xl text-slate-900">{financeSummary.traderAccounts}</div>
               </div>
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-                <div className="text-slate-600 text-sm mb-1">ML Run Revenue</div>
-                <div className="text-3xl text-slate-900">{formatCurrency(financeSummary.estimatedAnalysisRevenue)}</div>
-                <div className="text-xs text-slate-500 mt-1">Completed billable analysis runs</div>
+                <div className="text-slate-600 text-sm mb-1">PAYG Accounts</div>
+                <div className="text-3xl text-slate-900">{financeSummary.paygAccounts}</div>
               </div>
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-                <div className="text-slate-600 text-sm mb-1">Total Revenue</div>
-                <div className="text-3xl text-slate-900">{formatCurrency(financeSummary.totalRecognizedRevenue)}</div>
-                <div className="text-xs text-slate-500 mt-1">Platform access plus ML runs</div>
-              </div>
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-                <div className="text-slate-600 text-sm mb-1">Active Stripe Subscriptions</div>
-                <div className="text-3xl text-slate-900">{financeSummary.activeSubscriptions}</div>
-                <div className="text-xs text-slate-500 mt-1">Users with `stripeSubscriptionId` linked</div>
+                <div className="text-slate-600 text-sm mb-1">Premium Accounts</div>
+                <div className="text-3xl text-slate-900">{financeSummary.premiumAccounts}</div>
               </div>
             </div>
 
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
               <div className="grid grid-cols-1 gap-6">
                 <div>
-                <h3 className="text-slate-900 text-lg mb-4">Revenue by Month</h3>
+                <h3 className="text-slate-900 text-lg mb-4">Tracked Revenue by Month</h3>
+                <p className="mb-4 text-sm text-slate-600">
+                  Teal bars are Stripe-confirmed subscription revenue. Dark bars are internally tracked ML usage revenue.
+                </p>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={financeMonthlyRevenue}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -1230,50 +1289,15 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-                <div className="text-slate-600 text-sm mb-1">Completed Analysis Runs</div>
-                <div className="text-3xl text-slate-900">{financeSummary.completedAnalysisRuns}</div>
-              </div>
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-                <div className="text-slate-600 text-sm mb-1">Average Revenue per ML Run</div>
-                <div className="text-3xl text-slate-900">{formatCurrency(financeSummary.averageRevenuePerRun)}</div>
-              </div>
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-                <div className="text-slate-600 text-sm mb-1">Paid Subscription Invoices</div>
-                <div className="text-3xl text-slate-900">{financeSummary.paidSubscriptionInvoices}</div>
-              </div>
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-                <div className="text-slate-600 text-sm mb-1">Trader Accounts</div>
-                <div className="text-3xl text-slate-900">{financeSummary.traderAccounts}</div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-                <div className="text-slate-600 text-sm mb-1">PAYG Accounts</div>
-                <div className="text-3xl text-slate-900">{financeSummary.paygAccounts}</div>
-              </div>
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-                <div className="text-slate-600 text-sm mb-1">Premium Accounts</div>
-                <div className="text-3xl text-slate-900">{financeSummary.premiumAccounts}</div>
-              </div>
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-                <div className="text-slate-600 text-sm mb-1">Stripe Customers Linked</div>
-                <div className="text-3xl text-slate-900">{financeSummary.stripeCustomers}</div>
-              </div>
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-                <div className="text-slate-600 text-sm mb-1">Active Stripe Subscriptions</div>
-                <div className="text-3xl text-slate-900">{financeSummary.activeSubscriptions}</div>
-              </div>
-            </div>
-
             <div className="bg-white rounded-lg shadow-sm border border-slate-200">
               <div className="border-b border-slate-200 bg-slate-50 p-4">
                 <h3 className="text-slate-900 text-lg flex items-center gap-2">
                   <PoundSterling className="w-5 h-5 text-teal-600" />
                   Accounts and Billing Linkage
                 </h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  Stripe columns show linked billing records and paid Stripe invoice revenue. ML columns are platform-tracked usage values.
+                </p>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -1282,14 +1306,14 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Trader</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Plan</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Stripe Customer</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Subscription</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Paid Invoices</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Platform Revenue</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Completed Runs</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">ML Run Revenue</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Total Revenue</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Latest Payment</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Latest Run</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Subscription Link</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Stripe Paid Invoices</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Stripe Paid Revenue</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Tracked ML Runs</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Tracked ML Revenue</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Tracked Total</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Latest Stripe Payment</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Latest ML Run</th>
                     </tr>
                   </thead>
                   <tbody>
