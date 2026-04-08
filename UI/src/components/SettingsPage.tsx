@@ -692,7 +692,7 @@ export function SettingsPage({
                           <div className="text-sm text-emerald-700">Total Billing Paid</div>
                           <div className="mt-2 text-2xl text-slate-900">{billingLoading ? "Loading..." : totalPaidBillingDisplay}</div>
                           <p className="mt-2 text-sm text-slate-600">
-                            Paid Stripe subscription invoices recorded for this account so far.
+                            Stripe invoices actually collected and paid so far. Upcoming usage is not included until Stripe bills it.
                           </p>
                         </div>
                       </div>
