@@ -25,6 +25,8 @@ export interface AdminTrader {
   email: string;
   billingExempt: boolean;
   billingExemptReason: string | null;
+  platformComped: boolean;
+  platformCompedReason: string | null;
   accountStatus: "ACTIVE" | "PENDING" | "DISABLED" | "NO_ACCOUNT";
   applicationStatus: "PENDING" | "APPROVED" | "REJECTED" | "NONE";
   analysisStatus: "ANALYSIS_READY" | "NEEDS_ANALYSIS" | "NO_TRADE_DATA";
@@ -243,6 +245,13 @@ export function adminResetTraderPassword(id: string) {
 
 export function adminSyncTraderStripe(id: string) {
   return apiPost<{ ok: boolean; stripeSubscriptionId: string; stripeStatus: string }>(`/api/admin/traders/${id}/sync-stripe`, {});
+}
+
+export function setTraderPlatformComp(id: string, enabled: boolean) {
+  return apiPost<{ ok: boolean; platformComped: boolean; platformCompedReason: string | null; email: string }>(
+    `/api/admin/traders/${id}/platform-comp`,
+    { enabled },
+  );
 }
 
 export function fetchAdminStaff() {

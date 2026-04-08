@@ -117,6 +117,8 @@ export interface BillingSummaryResponse {
     subscriptionStatus: string;
     billingExempt?: boolean;
     billingExemptReason?: string | null;
+    platformComped?: boolean;
+    platformCompedReason?: string | null;
     stripeConfigured: boolean;
     stripeCustomerLinked: boolean;
     stripeSubscriptionLinked: boolean;

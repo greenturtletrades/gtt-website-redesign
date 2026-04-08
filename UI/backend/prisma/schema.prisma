@@ -73,6 +73,8 @@ model User {
   appliedReferralCodeId String?
   billingExempt       Boolean         @default(false)
   billingExemptReason String?
+  platformComped      Boolean         @default(false)
+  platformCompedReason String?
   accountDiscountPercent Float?
   mlRunDiscountPercent   Float?
   referralDiscountExpiresAt DateTime?

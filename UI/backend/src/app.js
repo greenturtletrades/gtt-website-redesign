@@ -378,6 +378,8 @@ async function wipeTraderSideDataForUser(userId, options = {}) {
       data: {
         billingExempt: false,
         billingExemptReason: null,
+        platformComped: false,
+        platformCompedReason: null,
         appliedReferralCodeId: null,
         accountDiscountPercent: null,
         mlRunDiscountPercent: null,
@@ -448,6 +450,10 @@ function isBillingExemptUser(user) {
   return Boolean(user?.billingExempt);
 }
 
+function isPlatformCompedUser(user) {
+  return Boolean(user?.platformComped);
+}
+
 async function getActiveReferralCode(code) {
   if (!code || typeof code !== "string" || !code.trim()) {
     return null;
@@ -475,6 +481,15 @@ function getActiveUserDiscounts(user) {
     };
   }
 
+  if (isPlatformCompedUser(user)) {
+    return {
+      referralActive: true,
+      accountDiscountPercent: 100,
+      mlRunDiscountPercent: 0,
+      referralDiscountExpiresAt: null,
+    };
+  }
+
   const now = Date.now();
   const expiryTs = user?.referralDiscountExpiresAt
     ? new Date(user.referralDiscountExpiresAt).getTime()
@@ -495,6 +510,65 @@ function getActiveUserDiscounts(user) {
       referralActive && user?.referralDiscountExpiresAt
         ? new Date(user.referralDiscountExpiresAt)
         : null,
+  };
+}
+
+async function buildStripeAccountDiscountConfig({ stripe, user, monthlyPriceId }) {
+  const discounts = getActiveUserDiscounts(user);
+  const freeCouponId =
+    typeof process.env.STRIPE_COUPON_FREE === "string" && process.env.STRIPE_COUPON_FREE.trim()
+      ? process.env.STRIPE_COUPON_FREE.trim()
+      : null;
+
+  if (discounts.accountDiscountPercent <= 0) {
+    return {
+      discountsPayload: undefined,
+      allowPromotionCodes: true,
+    };
+  }
+
+  if (discounts.accountDiscountPercent >= 100 && freeCouponId) {
+    return {
+      discountsPayload: [{ coupon: freeCouponId }],
+      allowPromotionCodes: false,
+    };
+  }
+
+  const monthlyPrice = await stripe.prices.retrieve(monthlyPriceId);
+  const monthlyProductId =
+    monthlyPrice && typeof monthlyPrice.product === "string"
+      ? monthlyPrice.product
+      : null;
+
+  const expiryDate = discounts.referralDiscountExpiresAt
+    ? discounts.referralDiscountExpiresAt
+    : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+  const durationMonths = Math.max(
+    1,
+    Math.ceil((expiryDate.getTime() - Date.now()) / (30 * 24 * 60 * 60 * 1000)),
+  );
+
+  const coupon = await stripe.coupons.create({
+    percent_off: discounts.accountDiscountPercent,
+    duration: "repeating",
+    duration_in_months: durationMonths,
+    name: user.appliedReferralCode?.code
+      ? `${user.appliedReferralCode.code} account discount`
+      : isPlatformCompedUser(user)
+        ? "Manual complimentary platform access"
+        : "Referral account discount",
+    ...(monthlyProductId
+      ? {
+          applies_to: {
+            products: [monthlyProductId],
+          },
+        }
+      : {}),
+  });
+
+  return {
+    discountsPayload: [{ coupon: coupon.id }],
+    allowPromotionCodes: false,
   };
 }
 
@@ -815,6 +889,8 @@ async function assertMlAnalysisAccess(userId) {
       id: true,
       billingExempt: true,
       billingExemptReason: true,
+      platformComped: true,
+      platformCompedReason: true,
       stripeSubscriptionId: true,
     },
   });
@@ -876,6 +952,8 @@ async function buildUserBillingSummary(userId) {
       stripeSubscriptionId: true,
       billingExempt: true,
       billingExemptReason: true,
+      platformComped: true,
+      platformCompedReason: true,
       appliedReferralCode: { select: { code: true } },
       accountDiscountPercent: true,
       mlRunDiscountPercent: true,
@@ -986,6 +1064,8 @@ async function buildUserBillingSummary(userId) {
       stripeSubscriptionLinked: Boolean(user.stripeSubscriptionId),
       billingExempt: isBillingExemptUser(user),
       billingExemptReason: user.billingExemptReason || null,
+      platformComped: isPlatformCompedUser(user),
+      platformCompedReason: user.platformCompedReason || null,
       cancelAtPeriodEnd: subscriptionStatus === "cancelling",
       currentPeriodStart: toIsoOrNull(currentPeriodStart),
       currentPeriodEnd: toIsoOrNull(currentPeriodEnd),
@@ -3813,6 +3893,8 @@ app.delete("/api/me", authRequired, async (req, res, next) => {
           status: "DISABLED",
           stripeCustomerId: null,
           stripeSubscriptionId: null,
+          platformComped: false,
+          platformCompedReason: null,
           appliedReferralCodeId: null,
           accountDiscountPercent: null,
           mlRunDiscountPercent: null,
@@ -4176,6 +4258,8 @@ app.get("/api/admin/traders", authRequired, adminRequired, async (req, res, next
           email,
           billingExempt: Boolean(user?.billingExempt),
           billingExemptReason: user?.billingExemptReason || null,
+          platformComped: Boolean(user?.platformComped),
+          platformCompedReason: user?.platformCompedReason || null,
           accountStatus: user ? user.status : "NO_ACCOUNT",
           applicationStatus: application ? application.status : "NONE",
           plan: user?.stripeSubscriptionId ? "premium" : "payg",
@@ -4557,6 +4641,84 @@ app.post("/api/admin/traders/:id/sync-stripe", authRequired, adminRequired, staf
   }
 });
 
+app.post("/api/admin/traders/:id/platform-comp", authRequired, adminRequired, staffWriteRequired, async (req, res, next) => {
+  try {
+    const enabled = req.body?.enabled !== false;
+    const user = await prisma.user.findUnique({
+      where: { id: req.params.id },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        billingExempt: true,
+        billingExemptReason: true,
+        platformComped: true,
+        platformCompedReason: true,
+        stripeSubscriptionId: true,
+        stripeCustomerId: true,
+        appliedReferralCode: { select: { code: true } },
+        accountDiscountPercent: true,
+        mlRunDiscountPercent: true,
+        referralDiscountExpiresAt: true,
+      },
+    });
+
+    if (!user || user.role !== "TRADER") {
+      return res.status(404).json({ ok: false, error: "Trader not found" });
+    }
+
+    if (isBillingExemptUser(user)) {
+      return res.status(400).json({ ok: false, error: "Billing-exempt internal accounts already bypass platform billing" });
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        platformComped: enabled,
+        platformCompedReason: enabled ? "Manual complimentary platform access" : null,
+      },
+      select: {
+        id: true,
+        platformComped: true,
+        platformCompedReason: true,
+        stripeSubscriptionId: true,
+        appliedReferralCode: { select: { code: true } },
+        accountDiscountPercent: true,
+        mlRunDiscountPercent: true,
+        referralDiscountExpiresAt: true,
+        email: true,
+      },
+    });
+
+    if (process.env.STRIPE_SECRET_KEY && updated.stripeSubscriptionId) {
+      const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+      const monthlyPriceId = process.env.STRIPE_PRICE_MONTHLY;
+      if (!monthlyPriceId) {
+        return res.status(500).json({ ok: false, error: "Stripe monthly price not configured" });
+      }
+
+      const { discountsPayload } = await buildStripeAccountDiscountConfig({
+        stripe,
+        user: updated,
+        monthlyPriceId,
+      });
+
+      await stripe.subscriptions.update(updated.stripeSubscriptionId, {
+        discounts: discountsPayload && discountsPayload.length > 0 ? discountsPayload : "",
+      });
+    }
+
+    return res.json({
+      ok: true,
+      platformComped: updated.platformComped,
+      platformCompedReason: updated.platformCompedReason,
+      email: updated.email,
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 app.post("/api/admin/traders/:id/reset-password", authRequired, adminRequired, staffWriteRequired, async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -4770,6 +4932,8 @@ app.post("/api/admin/wipe-non-admin-data", authRequired, adminRequired, async (r
         data: {
           billingExempt: false,
           billingExemptReason: null,
+          platformComped: false,
+          platformCompedReason: null,
           appliedReferralCodeId: null,
           accountDiscountPercent: null,
           mlRunDiscountPercent: null,
@@ -6731,8 +6895,11 @@ app.post("/api/create-checkout-session", authRequired, async (req, res, next) =>
         email: true,
         stripeCustomerId: true,
         billingExempt: true,
+        platformComped: true,
+        platformCompedReason: true,
         appliedReferralCode: { select: { code: true } },
         accountDiscountPercent: true,
+        mlRunDiscountPercent: true,
         referralDiscountExpiresAt: true,
       },
     });
@@ -6800,47 +6967,19 @@ app.post("/api/create-checkout-session", authRequired, async (req, res, next) =>
         // Refresh user object with updated discount info
         user.appliedReferralCode = { code: matchedCode.code };
         user.accountDiscountPercent = matchedCode.accountDiscountPercent;
+        user.mlRunDiscountPercent = matchedCode.mlRunDiscountPercent;
         user.referralDiscountExpiresAt = expiresAt;
       }
     }
 
-    const discounts = getActiveUserDiscounts(user);
-    let discountsPayload = undefined;
-    let allowPromotionCodes = false;
-
-    if (discounts.accountDiscountPercent > 0) {
-      const monthlyPrice = await stripe.prices.retrieve(monthlyPriceId);
-      const monthlyProductId =
-        monthlyPrice && typeof monthlyPrice.product === "string"
-          ? monthlyPrice.product
-          : null;
-      const durationMonths = Math.max(
-        1,
-        Math.ceil(
-          (discounts.referralDiscountExpiresAt.getTime() - Date.now()) /
-            (30 * 24 * 60 * 60 * 1000)
-        )
-      );
-      const coupon = await stripe.coupons.create({
-        percent_off: discounts.accountDiscountPercent,
-        duration: "repeating",
-        duration_in_months: durationMonths,
-        name: user.appliedReferralCode?.code
-          ? `${user.appliedReferralCode.code} account discount`
-          : "Referral account discount",
-        ...(monthlyProductId
-          ? {
-              applies_to: {
-                products: [monthlyProductId],
-              },
-            }
-          : {}),
-      });
-      discountsPayload = [{ coupon: coupon.id }];
-    } else {
-      // No programmatic discount — let users enter Stripe promo codes on the checkout page
-      allowPromotionCodes = true;
-    }
+    const {
+      discountsPayload,
+      allowPromotionCodes,
+    } = await buildStripeAccountDiscountConfig({
+      stripe,
+      user,
+      monthlyPriceId,
+    });
 
     const session = await stripe.checkout.sessions.create({
       customer: stripeCustomerId,

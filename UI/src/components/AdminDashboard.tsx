@@ -22,6 +22,7 @@ import {
   updateTraderStatus,
   adminResetTraderPassword,
   adminSyncTraderStripe,
+  setTraderPlatformComp,
   type AdminChurnFeedbackItem,
   type AdminAccountDeletionAuditItem,
   type AdminFinanceData,
@@ -552,6 +553,23 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
     }
   };
 
+  const handleTogglePlatformComp = async (trader: AdminTrader) => {
+    const enabling = !trader.platformComped;
+    const confirmed = window.confirm(
+      enabling
+        ? `Enable complimentary platform access for ${trader.email}?\n\nThis uses the Stripe free coupon flow for account billing. ML run charges stay separate.`
+        : `Remove complimentary platform access for ${trader.email}?\n\nThis will stop using the free platform-access coupon on their account.`,
+    );
+    if (!confirmed) return;
+    try {
+      await setTraderPlatformComp(trader.id, enabling);
+      await reloadTraders();
+      alert(`✅ ${enabling ? "Complimentary platform access enabled" : "Complimentary platform access removed"} for ${trader.email}.`);
+    } catch (err) {
+      alert(`Failed to update complimentary access: ${err instanceof Error ? err.message : "Unknown error"}`);
+    }
+  };
+
   const handleDeleteEmptyTestTrader = async (trader: AdminTrader) => {
     if (testTraderActionPendingId) return;
 
@@ -1069,6 +1087,9 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                           <div>
                             <div className="text-slate-900">{trader.name}</div>
                             <div className="text-slate-600 text-xs">{trader.email}</div>
+                            {trader.platformComped && (
+                              <div className="mt-1 text-[11px] text-teal-700">Complimentary platform access</div>
+                            )}
                           </div>
                         </td>
                         <td className="py-4 px-4">{getStatusBadge(trader.accountStatus)}</td>
@@ -1110,6 +1131,13 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                                   title="Sync Stripe subscription (use if user paid but has no access)"
                                 >
                                   <RefreshCw className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleTogglePlatformComp(trader)}
+                                  className={`p-1.5 rounded transition-colors ${trader.platformComped ? "text-rose-600 hover:bg-rose-50" : "text-teal-600 hover:bg-teal-50"}`}
+                                  title={trader.platformComped ? "Remove complimentary platform access" : "Enable complimentary platform access"}
+                                >
+                                  <CreditCard className="w-4 h-4" />
                                 </button>
                               </>
                             )}
