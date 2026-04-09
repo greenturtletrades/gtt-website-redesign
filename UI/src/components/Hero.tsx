@@ -9,7 +9,7 @@ interface HeroProps {
 
 export function Hero({ onTraderClick, onApplyClick, onScrollToWaitingList }: HeroProps) {
   return (
-    <section className="w-full bg-gradient-to-br from-teal-50 via-cyan-50 to-teal-50 py-20 sm:py-28 md:py-36 px-4 sm:px-6 overflow-hidden relative">
+    <section className="w-full bg-gradient-to-br from-teal-50 via-cyan-50 to-teal-50 pt-32 pb-20 sm:py-28 md:py-36 px-4 sm:px-6 overflow-hidden relative">
       {/* Subtle background elements */}
       <div className="absolute inset-0 overflow-hidden opacity-30">
         <motion.div
