@@ -122,19 +122,6 @@ export default function App() {
     }
   }, []);
 
-  // Set viewport meta tag to enable desktop layout on mobile
-  useEffect(() => {
-    const viewport = document.querySelector('meta[name="viewport"]');
-    if (viewport) {
-      viewport.setAttribute('content', 'width=1280, user-scalable=yes, initial-scale=1.0');
-    } else {
-      const meta = document.createElement('meta');
-      meta.name = 'viewport';
-      meta.content = 'width=1280, user-scalable=yes, initial-scale=1.0';
-      document.head.appendChild(meta);
-    }
-  }, []);
-
   // Scroll to top whenever the view changes
   useEffect(() => {
     window.scrollTo(0, 0);
