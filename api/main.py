@@ -268,6 +268,59 @@ def _run_pipeline(job_id: str, request: AnalyseRequest) -> None:
 # CSV column mapping helper
 # ---------------------------------------------------------------------------
 
+def _normalize_trade_side(value: object) -> Optional[str]:
+    if value is None or pd.isna(value):
+        return None
+
+    normalized = str(value).strip().upper()
+    if not normalized:
+        return None
+
+    side_aliases = {
+        "LONG": "LONG",
+        "BUY": "LONG",
+        "SHORT": "SHORT",
+        "SELL": "SHORT",
+    }
+    return side_aliases.get(normalized)
+
+
+def _infer_trade_side(
+    entry_price: float,
+    stop_loss: Optional[float] = None,
+    take_profit: Optional[float] = None,
+) -> Optional[str]:
+    """
+    Infer trade direction from risk/reward levels.
+
+    We only infer when the geometry is structurally clear:
+    - LONG: stop below entry and/or target above entry
+    - SHORT: stop above entry and/or target below entry
+
+    If SL and TP disagree, or neither level gives direction, return None
+    rather than guessing from PnL.
+    """
+    signals: list[str] = []
+
+    if stop_loss is not None and pd.notna(stop_loss):
+        if stop_loss < entry_price:
+            signals.append("LONG")
+        elif stop_loss > entry_price:
+            signals.append("SHORT")
+
+    if take_profit is not None and pd.notna(take_profit):
+        if take_profit > entry_price:
+            signals.append("LONG")
+        elif take_profit < entry_price:
+            signals.append("SHORT")
+
+    if not signals:
+        return None
+
+    first_signal = signals[0]
+    return first_signal if all(signal == first_signal for signal in signals) else None
+
+
 def _map_csv_columns(df: pd.DataFrame) -> list[dict]:
     """Map flexible CSV column names to TradeRecord schema."""
     col_lower = {c.lower().replace(" ", "_").replace("-", "_"): c for c in df.columns}
@@ -306,41 +359,57 @@ def _map_csv_columns(df: pd.DataFrame) -> list[dict]:
 
     ep = pd.to_numeric(entry_price, errors="coerce")
     xp = pd.to_numeric(exit_price,  errors="coerce")
-
-    sides = (
-        [s.strip().upper() for s in side_col.astype(str).tolist()]
-        if side_col is not None
-        else ["LONG" if x >= e else "SHORT" for e, x in zip(ep, xp)]
-    )
-
-    sl_vals = (
-        pd.to_numeric(sl_col, errors="coerce").tolist()
-        if sl_col is not None
-        else [p * 0.98 if s == "LONG" else p * 1.02 for p, s in zip(ep, sides)]
-    )
-    tp_vals = (
-        pd.to_numeric(tp_col, errors="coerce").tolist()
-        if tp_col is not None
-        else [p * 1.04 if s == "LONG" else p * 0.96 for p, s in zip(ep, sides)]
-    )
+    sl_numeric = pd.to_numeric(sl_col, errors="coerce") if sl_col is not None else None
+    tp_numeric = pd.to_numeric(tp_col, errors="coerce") if tp_col is not None else None
 
     def fmt(val: str) -> str:
         v = str(val).strip()
         return v + " 09:00:00" if len(v) <= 10 and "T" not in v and " " not in v else v
 
     trades = []
+    ambiguous_side_rows: list[int] = []
     for i in range(len(df)):
         try:
+            entry_price_value = float(ep.iloc[i])
+            exit_price_value = float(xp.iloc[i])
+            stop_loss_value = (
+                float(sl_numeric.iloc[i]) if sl_numeric is not None and pd.notna(sl_numeric.iloc[i]) else None
+            )
+            take_profit_value = (
+                float(tp_numeric.iloc[i]) if tp_numeric is not None and pd.notna(tp_numeric.iloc[i]) else None
+            )
+
+            side_value = (
+                _normalize_trade_side(side_col.iloc[i])
+                if side_col is not None
+                else None
+            )
+            if side_value is None:
+                side_value = _infer_trade_side(
+                    entry_price=entry_price_value,
+                    stop_loss=stop_loss_value,
+                    take_profit=take_profit_value,
+                )
+
+            if side_value is None:
+                ambiguous_side_rows.append(i + 2)  # account for header row in CSV editors
+                continue
+
+            if stop_loss_value is None:
+                stop_loss_value = entry_price_value * (0.98 if side_value == "LONG" else 1.02)
+            if take_profit_value is None:
+                take_profit_value = entry_price_value * (1.04 if side_value == "LONG" else 0.96)
+
             trades.append({
                 "entry_time":  fmt(str(entry_time.iloc[i])),
                 "exit_time":   fmt(str(exit_time.iloc[i])),
                 "entry_time_local": fmt(str(entry_time_local_col.iloc[i])) if entry_time_local_col is not None and pd.notna(entry_time_local_col.iloc[i]) else None,
                 "exit_time_local": fmt(str(exit_time_local_col.iloc[i])) if exit_time_local_col is not None and pd.notna(exit_time_local_col.iloc[i]) else None,
-                "side":        str(sides[i]).upper(),
-                "entry_price": float(ep.iloc[i]),
-                "exit_price":  float(xp.iloc[i]),
-                "stop_loss":   float(sl_vals[i]),
-                "take_profit": float(tp_vals[i]),
+                "side":        side_value,
+                "entry_price": entry_price_value,
+                "exit_price":  exit_price_value,
+                "stop_loss":   stop_loss_value,
+                "take_profit": take_profit_value,
                 "trade_id":    str(trade_id_col.iloc[i]) if trade_id_col is not None else None,
                 "symbol":      str(symbol_col.iloc[i]) if symbol_col is not None else None,
                 "volume":      float(pd.to_numeric(volume_col.iloc[i], errors="coerce")) if volume_col is not None and pd.notna(pd.to_numeric(volume_col.iloc[i], errors="coerce")) else None,
@@ -352,6 +421,15 @@ def _map_csv_columns(df: pd.DataFrame) -> list[dict]:
             })
         except Exception:
             continue  # skip malformed rows
+
+    if ambiguous_side_rows:
+        preview = ", ".join(str(row) for row in ambiguous_side_rows[:5])
+        more = "" if len(ambiguous_side_rows) <= 5 else f" and {len(ambiguous_side_rows) - 5} more"
+        raise ValueError(
+            "CSV is missing a usable trade direction for some rows. "
+            f"Add a side/direction column or consistent stop-loss/take-profit levels. "
+            f"Ambiguous rows: {preview}{more}."
+        )
 
     return trades
 

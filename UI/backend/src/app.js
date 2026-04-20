@@ -9,6 +9,13 @@ const { createClient } = require("redis");
 const Stripe = require("stripe");
 const { prisma } = require("./prisma");
 const { sendEmail } = require("./email");
+const { createAccountStateHelpers } = require("./account-state");
+const { createBillingReferralHelpers } = require("./billing-referrals");
+const { registerStripeWebhookRoute, registerBillingRoutes } = require("./billing-routes");
+const { registerAccountRoutes } = require("./account-routes");
+const { registerAnalyticsRoutes } = require("./analytics-routes");
+const { registerPublicRoutes } = require("./public-routes");
+const { registerAdminRoutes } = require("./admin-routes");
 
 const app = express();
 
@@ -19,6 +26,8 @@ const staffPortalRoles = new Set(["ADMIN"]);
 const staffWriteRoles = new Set(["ADMIN"]);
 const rateLimitStore = new Map();
 const rateLimitCleanupIntervalMs = 5 * 60 * 1000;
+const subscriptionAccessCache = new Map();
+const subscriptionAccessCacheTtlMs = 5 * 60 * 1000;
 const internalCompanyEmails = new Set([
   "greenturtletraders26@gmail.com",
   "greengurtletraders26@gmail.com",
@@ -391,29 +400,6 @@ async function wipeTraderSideDataForUser(userId, options = {}) {
   ]);
 }
 
-function formatReferralCode(referralCode) {
-  const creatorFirstName = referralCode.createdBy?.profile?.firstName?.trim() || "";
-  const creatorLastName = referralCode.createdBy?.profile?.lastName?.trim() || "";
-  const creatorName = `${creatorFirstName} ${creatorLastName}`.trim();
-
-  return {
-    id: referralCode.id,
-    code: referralCode.code,
-    accountDiscountPercent: referralCode.accountDiscountPercent,
-    mlRunDiscountPercent: referralCode.mlRunDiscountPercent,
-    durationDays: referralCode.durationDays,
-    isActive: referralCode.isActive,
-    createdAt: referralCode.createdAt.toISOString(),
-    createdBy: referralCode.createdBy
-      ? {
-          id: referralCode.createdBy.id,
-          email: referralCode.createdBy.email,
-          name: creatorName || referralCode.createdBy.email.split("@")[0],
-        }
-      : null,
-  };
-}
-
 function getUserDisplayName(user) {
   const firstName = user?.profile?.firstName?.trim() || "";
   const lastName = user?.profile?.lastName?.trim() || "";
@@ -423,100 +409,6 @@ function getUserDisplayName(user) {
 function calculateReferralExpiry(durationDays) {
   const now = new Date();
   return new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
-}
-
-const DEFAULT_TRADER_REFERRAL_ACCOUNT_DISCOUNT_PERCENT = 10;
-const DEFAULT_TRADER_REFERRAL_ML_DISCOUNT_PERCENT = 10;
-const DEFAULT_TRADER_REFERRAL_DURATION_DAYS = 90;
-
-function slugifyReferralFragment(value, fallback = "TRADER") {
-  const fragment = String(value || "")
-    .trim()
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, "")
-    .slice(0, 8);
-  return fragment || fallback;
-}
-
-function buildTraderReferralCodeCandidates(user) {
-  const emailLocal = String(user?.email || "").split("@")[0] || "";
-  const profileName = `${user?.profile?.firstName || ""}${user?.profile?.lastName || ""}`;
-  const primary = slugifyReferralFragment(profileName || emailLocal || user?.id, "TRADER");
-  const secondary = slugifyReferralFragment(emailLocal || user?.id, "TRADER");
-  const idTail = String(user?.id || "").replace(/[^A-Z0-9]/gi, "").toUpperCase().slice(-4) || "GTT1";
-  return [
-    `TRADER-${primary}`,
-    `TRADER-${secondary}-${idTail}`,
-    `TRADER-${idTail}`,
-  ];
-}
-
-async function ensureTraderOwnedReferralCode(user) {
-  if (!user?.id) {
-    return null;
-  }
-
-  const existing = await prisma.referralCode.findFirst({
-    where: { createdByUserId: user.id },
-    include: {
-      createdBy: {
-        include: { profile: true },
-      },
-    },
-    orderBy: { createdAt: "asc" },
-  });
-
-  if (existing) {
-    return existing;
-  }
-
-  const existingCodes = new Set(
-    (
-      await prisma.referralCode.findMany({
-        where: {
-          code: {
-            in: buildTraderReferralCodeCandidates(user),
-          },
-        },
-        select: { code: true },
-      })
-    ).map((item) => item.code),
-  );
-
-  let selectedCode =
-    buildTraderReferralCodeCandidates(user).find((candidate) => !existingCodes.has(candidate)) || null;
-
-  if (!selectedCode) {
-    let attempt = 1;
-    const base = buildTraderReferralCodeCandidates(user)[0] || "TRADER";
-    while (!selectedCode) {
-      const nextCandidate = `${base}-${attempt}`;
-      const collision = await prisma.referralCode.findUnique({
-        where: { code: nextCandidate },
-        select: { id: true },
-      });
-      if (!collision) {
-        selectedCode = nextCandidate;
-      }
-      attempt += 1;
-    }
-  }
-
-  return prisma.referralCode.create({
-    data: {
-      code: selectedCode,
-      accountDiscountPercent: DEFAULT_TRADER_REFERRAL_ACCOUNT_DISCOUNT_PERCENT,
-      mlRunDiscountPercent: DEFAULT_TRADER_REFERRAL_ML_DISCOUNT_PERCENT,
-      durationDays: DEFAULT_TRADER_REFERRAL_DURATION_DAYS,
-      isActive: true,
-      createdByUserId: user.id,
-    },
-    include: {
-      createdBy: {
-        include: { profile: true },
-      },
-    },
-  });
 }
 
 function isInternalCompanyEmail(email) {
@@ -537,167 +429,6 @@ function getNonDeletedUserWhere() {
         endsWith: "@deleted.local",
       },
     },
-  };
-}
-
-function isBillingExemptUser(user) {
-  return Boolean(user?.billingExempt);
-}
-
-function isPlatformCompedUser(user) {
-  return Boolean(user?.platformComped);
-}
-
-async function getActiveReferralCode(code) {
-  if (!code || typeof code !== "string" || !code.trim()) {
-    return null;
-  }
-
-  const normalizedCode = code.trim().toUpperCase();
-  const referralCode = await prisma.referralCode.findUnique({
-    where: { code: normalizedCode },
-  });
-
-  if (!referralCode || !referralCode.isActive) {
-    return null;
-  }
-
-  return referralCode;
-}
-
-async function getActiveStripePromotionCode(code) {
-  if (!code || typeof code !== "string" || !code.trim() || !process.env.STRIPE_SECRET_KEY) {
-    return null;
-  }
-
-  const normalizedCode = code.trim().toUpperCase();
-  const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-  const result = await stripe.promotionCodes.list({
-    code: normalizedCode,
-    active: true,
-    limit: 1,
-  });
-
-  return result.data?.[0] || null;
-}
-
-async function resolveDiscountCode(code) {
-  if (!code || typeof code !== "string" || !code.trim()) {
-    return { type: "none" };
-  }
-
-  const normalizedCode = code.trim().toUpperCase();
-  const referralCode = await getActiveReferralCode(normalizedCode);
-  if (referralCode) {
-    return { type: "referral", code: normalizedCode, referralCode };
-  }
-
-  const stripePromotionCode = await getActiveStripePromotionCode(normalizedCode);
-  if (stripePromotionCode) {
-    return { type: "stripe_promotion", code: normalizedCode, promotionCode: stripePromotionCode };
-  }
-
-  return { type: "invalid", code: normalizedCode };
-}
-
-function getActiveUserDiscounts(user) {
-  if (isBillingExemptUser(user)) {
-    return {
-      referralActive: true,
-      accountDiscountPercent: 100,
-      mlRunDiscountPercent: 100,
-      referralDiscountExpiresAt: null,
-    };
-  }
-
-  if (isPlatformCompedUser(user)) {
-    return {
-      referralActive: true,
-      accountDiscountPercent: 100,
-      mlRunDiscountPercent: 0,
-      referralDiscountExpiresAt: null,
-    };
-  }
-
-  const now = Date.now();
-  const expiryTs = user?.referralDiscountExpiresAt
-    ? new Date(user.referralDiscountExpiresAt).getTime()
-    : 0;
-  const referralActive = expiryTs > now;
-
-  return {
-    referralActive,
-    accountDiscountPercent:
-      referralActive && typeof user?.accountDiscountPercent === "number"
-        ? Math.max(0, Math.min(100, user.accountDiscountPercent))
-        : 0,
-    mlRunDiscountPercent:
-      referralActive && typeof user?.mlRunDiscountPercent === "number"
-        ? Math.max(0, Math.min(100, user.mlRunDiscountPercent))
-        : 0,
-    referralDiscountExpiresAt:
-      referralActive && user?.referralDiscountExpiresAt
-        ? new Date(user.referralDiscountExpiresAt)
-        : null,
-  };
-}
-
-async function buildStripeAccountDiscountConfig({ stripe, user, monthlyPriceId }) {
-  const discounts = getActiveUserDiscounts(user);
-  const freeCouponId =
-    typeof process.env.STRIPE_COUPON_FREE === "string" && process.env.STRIPE_COUPON_FREE.trim()
-      ? process.env.STRIPE_COUPON_FREE.trim()
-      : null;
-
-  if (discounts.accountDiscountPercent <= 0) {
-    return {
-      discountsPayload: undefined,
-      allowPromotionCodes: true,
-    };
-  }
-
-  if (discounts.accountDiscountPercent >= 100 && freeCouponId) {
-    return {
-      discountsPayload: [{ coupon: freeCouponId }],
-      allowPromotionCodes: false,
-    };
-  }
-
-  const monthlyPrice = await stripe.prices.retrieve(monthlyPriceId);
-  const monthlyProductId =
-    monthlyPrice && typeof monthlyPrice.product === "string"
-      ? monthlyPrice.product
-      : null;
-
-  const expiryDate = discounts.referralDiscountExpiresAt
-    ? discounts.referralDiscountExpiresAt
-    : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
-  const durationMonths = Math.max(
-    1,
-    Math.ceil((expiryDate.getTime() - Date.now()) / (30 * 24 * 60 * 60 * 1000)),
-  );
-
-  const coupon = await stripe.coupons.create({
-    percent_off: discounts.accountDiscountPercent,
-    duration: "repeating",
-    duration_in_months: durationMonths,
-    name: user.appliedReferralCode?.code
-      ? `${user.appliedReferralCode.code} account discount`
-      : isPlatformCompedUser(user)
-        ? "Manual complimentary platform access"
-        : "Referral account discount",
-    ...(monthlyProductId
-      ? {
-          applies_to: {
-            products: [monthlyProductId],
-          },
-        }
-      : {}),
-  });
-
-  return {
-    discountsPayload: [{ coupon: coupon.id }],
-    allowPromotionCodes: false,
   };
 }
 
@@ -802,161 +533,119 @@ function toIsoOrNull(dateLike) {
   return value.toISOString();
 }
 
-function toCurrencyAmount(minorUnits) {
-  if (typeof minorUnits !== "number" || !Number.isFinite(minorUnits)) {
+function getCachedSubscriptionAccess(userId) {
+  const cached = subscriptionAccessCache.get(userId);
+  if (!cached) {
     return null;
   }
-  return minorUnits / 100;
-}
 
-function stripeTimestampToDate(value) {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
+  if (Date.now() - cached.checkedAt > subscriptionAccessCacheTtlMs) {
+    subscriptionAccessCache.delete(userId);
     return null;
   }
-  return new Date(value * 1000);
+
+  return cached;
 }
 
-async function findUserByStripeLink({ stripeCustomerId, stripeSubscriptionId }) {
-  if (stripeCustomerId) {
-    const byCustomer = await prisma.user.findFirst({
-      where: { stripeCustomerId },
-      select: { id: true, stripeCustomerId: true, stripeSubscriptionId: true },
-    });
-    if (byCustomer) return byCustomer;
-  }
-
-  if (stripeSubscriptionId) {
-    const bySubscription = await prisma.user.findFirst({
-      where: { stripeSubscriptionId },
-      select: { id: true, stripeCustomerId: true, stripeSubscriptionId: true },
-    });
-    if (bySubscription) return bySubscription;
-  }
-
-  return null;
+function setCachedSubscriptionAccess(userId, decision) {
+  subscriptionAccessCache.set(userId, {
+    ...decision,
+    checkedAt: Date.now(),
+  });
 }
 
-function getStripeBillingEventData(event) {
-  const object = event?.data?.object || {};
-  const eventType = event?.type || "unknown";
-  let stripeCustomerId = typeof object.customer === "string" ? object.customer : null;
-  let stripeSubscriptionId = typeof object.subscription === "string" ? object.subscription : null;
-  let stripeInvoiceId = typeof object.id === "string" && object.object === "invoice" ? object.id : null;
-  let category = null;
-  let analysisRunId =
-    typeof object.metadata?.analysisRunId === "string" ? object.metadata.analysisRunId : null;
-  let status = null;
-  let currency = typeof object.currency === "string" ? object.currency.toUpperCase() : null;
-  let amount = null;
-  let amountSubtotal = null;
-  let amountTax = null;
-  let amountPaid = null;
-  let periodStart = stripeTimestampToDate(object.current_period_start);
-  let periodEnd = stripeTimestampToDate(object.current_period_end);
-  let occurredAt = stripeTimestampToDate(event.created) || new Date();
+function getSubscriptionAccessDecisionFromStripe(subscription) {
+  if (!subscription) {
+    return {
+      allowed: false,
+      status: "missing",
+      reason: "Active subscription required to run ML analysis",
+    };
+  }
 
-  if (eventType.startsWith("customer.subscription.")) {
-    category = "subscription";
-    stripeSubscriptionId = typeof object.id === "string" ? object.id : stripeSubscriptionId;
-    status = object.status === "active" ? "ACTIVE" : object.status === "canceled" ? "CANCELLED" : "INACTIVE";
-    amount = toCurrencyAmount(object.items?.data?.[0]?.price?.unit_amount ?? null);
-  } else if (eventType.startsWith("invoice.")) {
-    const firstLine = object.lines?.data?.[0] || null;
-    category =
-      typeof object.metadata?.chargeType === "string"
-        ? object.metadata.chargeType
-        : typeof firstLine?.metadata?.chargeType === "string"
-          ? firstLine.metadata.chargeType
-          : "subscription";
-    analysisRunId =
-      analysisRunId ||
-      (typeof firstLine?.metadata?.analysisRunId === "string" ? firstLine.metadata.analysisRunId : null);
-    const linePeriod = firstLine?.period || null;
-    periodStart = stripeTimestampToDate(linePeriod?.start) || periodStart;
-    periodEnd = stripeTimestampToDate(linePeriod?.end) || periodEnd;
-    status =
-      eventType === "invoice.paid"
-        ? "PAID"
-        : eventType === "invoice.payment_failed"
-          ? "FAILED"
-          : typeof object.status === "string"
-            ? String(object.status).toUpperCase()
-            : "PENDING";
-    amount = toCurrencyAmount(object.amount_due);
-    amountSubtotal = toCurrencyAmount(object.subtotal);
-    amountTax = toCurrencyAmount(object.tax);
-    amountPaid = toCurrencyAmount(object.amount_paid);
-    occurredAt = stripeTimestampToDate(object.status_transitions?.paid_at) || occurredAt;
-  } else if (eventType === "checkout.session.completed") {
-    category = "subscription";
-    status = object.payment_status === "paid" ? "PAID" : "PENDING";
-    amount = toCurrencyAmount(object.amount_total);
-    amountSubtotal = toCurrencyAmount(object.amount_subtotal);
-    stripeSubscriptionId = typeof object.subscription === "string" ? object.subscription : stripeSubscriptionId;
+  if (subscription.pause_collection) {
+    return {
+      allowed: false,
+      status: "paused",
+      reason: "Your subscription is paused. Resume it in Settings to run the ML model again.",
+    };
+  }
+
+  const status = typeof subscription.status === "string" ? subscription.status.toLowerCase() : "unknown";
+  const allowedStatuses = new Set(["active", "trialing"]);
+
+  if (!allowedStatuses.has(status)) {
+    return {
+      allowed: false,
+      status,
+      reason: "Your subscription is not active. Update billing in Settings to run the ML model again.",
+    };
   }
 
   return {
-    eventType,
-    stripeCustomerId,
-    stripeSubscriptionId,
-    stripeInvoiceId,
-    category,
-    analysisRunId,
-    status,
-    currency,
-    amount,
-    amountSubtotal,
-    amountTax,
-    amountPaid,
-    periodStart,
-    periodEnd,
-    occurredAt,
+    allowed: true,
+    status: subscription.cancel_at_period_end ? "cancelling" : status,
+    reason: null,
   };
 }
 
-function getStripeInvoiceRevenueBreakdown(invoiceLike) {
-  const lines = Array.isArray(invoiceLike?.lines?.data) ? invoiceLike.lines.data : [];
-  const monthlyPriceId = process.env.STRIPE_PRICE_MONTHLY || null;
-  const perTradePriceId = process.env.STRIPE_PRICE_PER_TRADE || null;
+function getSubscriptionAccessDecisionFromBillingEvent(billingEvent) {
+  if (!billingEvent || typeof billingEvent !== "object") {
+    return null;
+  }
 
-  let subscriptionRevenue = 0;
-  let mlRevenue = 0;
+  const payloadObject = billingEvent?.payload?.data?.object;
+  if (payloadObject && typeof payloadObject === "object") {
+    if (payloadObject.pause_collection) {
+      return {
+        allowed: false,
+        status: "paused",
+        reason: "Your subscription is paused. Resume it in Settings to run the ML model again.",
+      };
+    }
 
-  for (const line of lines) {
-    const amount = typeof line?.amount === "number" ? line.amount / 100 : 0;
-    const priceId =
-      line?.price && typeof line.price === "object" && typeof line.price.id === "string"
-        ? line.price.id
-        : null;
-    const usageType =
-      line?.price && typeof line.price === "object"
-        ? line.price.recurring?.usage_type || null
-        : null;
+    const rawStatus =
+      typeof payloadObject.status === "string"
+        ? payloadObject.status.toLowerCase()
+        : typeof billingEvent.status === "string"
+          ? billingEvent.status.toLowerCase()
+          : "unknown";
 
-    if ((perTradePriceId && priceId === perTradePriceId) || usageType === "metered") {
-      mlRevenue += amount;
-    } else if (!monthlyPriceId || priceId === monthlyPriceId) {
-      subscriptionRevenue += amount;
-    } else {
-      subscriptionRevenue += amount;
+    if (rawStatus === "active" || rawStatus === "trialing") {
+      return {
+        allowed: true,
+        status: payloadObject.cancel_at_period_end ? "cancelling" : rawStatus,
+        reason: null,
+      };
+    }
+
+    if (["canceled", "incomplete", "incomplete_expired", "past_due", "unpaid"].includes(rawStatus)) {
+      return {
+        allowed: false,
+        status: rawStatus,
+        reason: "Your subscription is not active. Update billing in Settings to run the ML model again.",
+      };
     }
   }
 
-  if (lines.length === 0) {
-    const amountPaid = typeof billingEvent?.amountPaid === "number" ? billingEvent.amountPaid : 0;
-    subscriptionRevenue = amountPaid;
+  const eventStatus = typeof billingEvent.status === "string" ? billingEvent.status.toUpperCase() : "";
+  if (eventStatus === "ACTIVE") {
+    return {
+      allowed: true,
+      status: "active",
+      reason: null,
+    };
   }
 
-  return {
-    subscriptionRevenue: Number(subscriptionRevenue.toFixed(2)),
-    mlRevenue: Number(mlRevenue.toFixed(2)),
-  };
-}
+  if (eventStatus === "CANCELLED" || eventStatus === "INACTIVE") {
+    return {
+      allowed: false,
+      status: eventStatus.toLowerCase(),
+      reason: "Your subscription is not active. Update billing in Settings to run the ML model again.",
+    };
+  }
 
-function getBillingEventRevenueBreakdown(billingEvent) {
-  const payload = billingEvent?.payload;
-  const object = payload?.data?.object;
-  return getStripeInvoiceRevenueBreakdown(object);
+  return null;
 }
 
 function mapDeletionReasonToStripeFeedback(reason) {
@@ -973,94 +662,6 @@ function mapDeletionReasonToStripeFeedback(reason) {
       return "other";
     default:
       return null;
-  }
-}
-
-async function persistStripeBillingEvent(event) {
-  const eventData = getStripeBillingEventData(event);
-  const linkedUser = await findUserByStripeLink({
-    stripeCustomerId: eventData.stripeCustomerId,
-    stripeSubscriptionId: eventData.stripeSubscriptionId,
-  });
-
-  if (linkedUser) {
-    const nextStripeCustomerId = eventData.stripeCustomerId || linkedUser.stripeCustomerId || null;
-    const nextStripeSubscriptionId =
-      event.type === "customer.subscription.deleted"
-        ? null
-        : eventData.stripeSubscriptionId || linkedUser.stripeSubscriptionId || null;
-
-    await prisma.user.update({
-      where: { id: linkedUser.id },
-      data: {
-        stripeCustomerId: nextStripeCustomerId,
-        stripeSubscriptionId: nextStripeSubscriptionId,
-      },
-    });
-  }
-
-  await prisma.billingEvent.upsert({
-    where: { stripeEventId: event.id },
-    update: {
-      userId: linkedUser?.id || null,
-      stripeCustomerId: eventData.stripeCustomerId,
-      stripeSubscriptionId: eventData.stripeSubscriptionId,
-      stripeInvoiceId: eventData.stripeInvoiceId,
-      category: eventData.category,
-      eventType: eventData.eventType,
-      status: eventData.status,
-      currency: eventData.currency,
-      amount: eventData.amount,
-      amountSubtotal: eventData.amountSubtotal,
-      amountTax: eventData.amountTax,
-      amountPaid: eventData.amountPaid,
-      periodStart: eventData.periodStart,
-      periodEnd: eventData.periodEnd,
-      occurredAt: eventData.occurredAt,
-      payload: event,
-    },
-    create: {
-      stripeEventId: event.id,
-      userId: linkedUser?.id || null,
-      stripeCustomerId: eventData.stripeCustomerId,
-      stripeSubscriptionId: eventData.stripeSubscriptionId,
-      stripeInvoiceId: eventData.stripeInvoiceId,
-      category: eventData.category,
-      eventType: eventData.eventType,
-      status: eventData.status,
-      currency: eventData.currency,
-      amount: eventData.amount,
-      amountSubtotal: eventData.amountSubtotal,
-      amountTax: eventData.amountTax,
-      amountPaid: eventData.amountPaid,
-      periodStart: eventData.periodStart,
-      periodEnd: eventData.periodEnd,
-      occurredAt: eventData.occurredAt,
-      payload: event,
-    },
-  });
-
-  if (eventData.analysisRunId || eventData.stripeInvoiceId) {
-    const nextBillingStatus =
-      eventData.status === "PAID"
-        ? "PAID"
-        : eventData.status === "FAILED"
-          ? "FAILED"
-          : eventData.status === "CANCELLED"
-            ? "CANCELLED"
-            : "PENDING";
-
-    if (eventData.analysisRunId) {
-      await prisma.analysisRun.updateMany({
-        where: { id: eventData.analysisRunId },
-        data: {
-          stripeInvoiceId: eventData.stripeInvoiceId || undefined,
-          stripeBillingStatus: nextBillingStatus,
-          stripeBilledAt: eventData.status === "PAID" ? eventData.occurredAt : undefined,
-          stripeAmountPaid: eventData.status === "PAID" ? eventData.amountPaid ?? eventData.amount ?? undefined : undefined,
-        },
-      });
-    }
   }
 }
 
@@ -1283,6 +884,13 @@ async function assertMlAnalysisAccess(userId) {
       platformComped: true,
       platformCompedReason: true,
       stripeSubscriptionId: true,
+      billingEvents: {
+        where: {
+          category: "subscription",
+        },
+        orderBy: { occurredAt: "desc" },
+        take: 1,
+      },
     },
   });
 
@@ -1302,259 +910,44 @@ async function assertMlAnalysisAccess(userId) {
     throw error;
   }
 
+  const latestSubscriptionEvent = Array.isArray(user.billingEvents) ? user.billingEvents[0] || null : null;
+  const localDecision = getSubscriptionAccessDecisionFromBillingEvent(latestSubscriptionEvent);
+  if (localDecision && !localDecision.allowed) {
+    const error = new Error(localDecision.reason || "Active subscription required to run ML analysis");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  if (localDecision && localDecision.allowed) {
+    return;
+  }
+
   if (!process.env.STRIPE_SECRET_KEY) {
     return;
   }
 
+  const cachedDecision = getCachedSubscriptionAccess(userId);
+  if (cachedDecision) {
+    if (cachedDecision.allowed) {
+      return;
+    }
+    const error = new Error(cachedDecision.reason || "Active subscription required to run ML analysis");
+    error.statusCode = 403;
+    throw error;
+  }
+
   const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
   const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+  const stripeDecision = getSubscriptionAccessDecisionFromStripe(subscription);
+  setCachedSubscriptionAccess(userId, stripeDecision);
 
-  if (subscription?.pause_collection) {
+  if (!stripeDecision.allowed) {
     const error = new Error(
-      "Your subscription is paused. Resume it in Settings to run the ML model again."
+      stripeDecision.reason || "Active subscription required to run ML analysis"
     );
     error.statusCode = 403;
     throw error;
   }
-}
-
-function formatStripePaymentMethod(paymentMethod) {
-  if (!paymentMethod || paymentMethod.object !== "payment_method" || paymentMethod.type !== "card") {
-    return null;
-  }
-
-  return {
-    brand: paymentMethod.card?.brand || null,
-    last4: paymentMethod.card?.last4 || null,
-    expMonth: paymentMethod.card?.exp_month || null,
-    expYear: paymentMethod.card?.exp_year || null,
-    funding: paymentMethod.card?.funding || null,
-    country: paymentMethod.card?.country || null,
-  };
-}
-
-async function buildUserBillingSummary(userId) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      email: true,
-      stripeCustomerId: true,
-      stripeSubscriptionId: true,
-      billingExempt: true,
-      billingExemptReason: true,
-      platformComped: true,
-      platformCompedReason: true,
-      appliedReferralCode: { select: { code: true } },
-      accountDiscountPercent: true,
-      mlRunDiscountPercent: true,
-      referralDiscountExpiresAt: true,
-      billingEvents: {
-        where: {
-          eventType: {
-            in: ["invoice.paid", "invoice.payment_failed"],
-          },
-        },
-        orderBy: { occurredAt: "desc" },
-        take: 12,
-      },
-      analysisRuns: {
-        where: {
-          status: "COMPLETED",
-          cost: { not: null },
-        },
-        orderBy: { completedAt: "desc" },
-        take: 12,
-        select: {
-          id: true,
-          mode: true,
-          tradesAnalysed: true,
-          cost: true,
-          stripeInvoiceId: true,
-          stripeBillingStatus: true,
-          stripeBilledAt: true,
-          stripeAmountPaid: true,
-          createdAt: true,
-          completedAt: true,
-        },
-      },
-    },
-  });
-
-  if (!user) {
-    return null;
-  }
-
-  const discounts = getActiveUserDiscounts(user);
-  let subscriptionStatus = user.stripeSubscriptionId ? "active" : "not_started";
-  let currentBillingMethod = null;
-  let currentPeriodEnd = null;
-  let currentPeriodStart = null;
-  let stripeConfigured = Boolean(process.env.STRIPE_SECRET_KEY);
-  let stripeUpcomingMlCharge = null;
-
-  if (process.env.STRIPE_SECRET_KEY && (user.stripeCustomerId || user.stripeSubscriptionId)) {
-    try {
-      const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-      let subscription = null;
-      if (user.stripeSubscriptionId) {
-        subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId, {
-          expand: ["default_payment_method"],
-        });
-      }
-
-      let paymentMethod =
-        subscription?.default_payment_method &&
-        typeof subscription.default_payment_method === "object"
-          ? subscription.default_payment_method
-          : null;
-
-      if (!paymentMethod && user.stripeCustomerId) {
-        const customer = await stripe.customers.retrieve(user.stripeCustomerId, {
-          expand: ["invoice_settings.default_payment_method"],
-        });
-        if (!customer.deleted) {
-          paymentMethod =
-            customer.invoice_settings?.default_payment_method &&
-            typeof customer.invoice_settings.default_payment_method === "object"
-              ? customer.invoice_settings.default_payment_method
-              : null;
-        }
-      }
-
-      currentBillingMethod = formatStripePaymentMethod(paymentMethod);
-
-      if (subscription) {
-        if (subscription.pause_collection) {
-          subscriptionStatus = "paused";
-        } else if (subscription.cancel_at_period_end) {
-          subscriptionStatus = "cancelling";
-        } else {
-          subscriptionStatus = typeof subscription.status === "string" ? subscription.status : subscriptionStatus;
-        }
-        currentPeriodStart = stripeTimestampToDate(subscription.current_period_start);
-        currentPeriodEnd = stripeTimestampToDate(subscription.current_period_end);
-
-        const upcomingInvoice = await stripe.invoices.retrieveUpcoming({
-          customer: user.stripeCustomerId || undefined,
-          subscription: user.stripeSubscriptionId,
-          expand: ["lines.data.price"],
-        });
-        stripeUpcomingMlCharge = getStripeInvoiceRevenueBreakdown(upcomingInvoice).mlRevenue;
-      }
-    } catch (error) {
-      console.error("Unable to load Stripe billing summary", error);
-      stripeConfigured = true;
-    }
-  }
-
-  const mlRunChargesDue = user.analysisRuns.reduce((sum, run) => {
-    const status = String(run.stripeBillingStatus || "").toUpperCase();
-    const isSettled = status === "PAID" || status === "NO_CHARGE" || status === "REPORTED";
-    return sum + (!isSettled && typeof run.cost === "number" ? run.cost : 0);
-  }, 0);
-  const mlRunChargesAwaitingPayment = user.analysisRuns.reduce((sum, run) => {
-    const status = String(run.stripeBillingStatus || "").toUpperCase();
-    const isSettled = status === "PAID" || status === "NO_CHARGE";
-    return sum + (!isSettled && typeof run.cost === "number" ? run.cost : 0);
-  }, 0);
-  const displayedMlRunChargesAwaitingPayment =
-    typeof stripeUpcomingMlCharge === "number"
-      ? stripeUpcomingMlCharge
-      : mlRunChargesAwaitingPayment;
-  const totalPaidBilling = user.billingEvents.reduce(
-    (sum, event) => sum + (typeof event.amountPaid === "number" ? event.amountPaid : 0),
-    0
-  );
-
-  return {
-    ok: true,
-    billing: {
-      plan: "payg",
-      subscriptionStatus: isBillingExemptUser(user) ? "internal" : subscriptionStatus,
-      stripeConfigured,
-      stripeCustomerLinked: Boolean(user.stripeCustomerId),
-      stripeSubscriptionLinked: Boolean(user.stripeSubscriptionId),
-      billingExempt: isBillingExemptUser(user),
-      billingExemptReason: user.billingExemptReason || null,
-      platformComped: isPlatformCompedUser(user),
-      platformCompedReason: user.platformCompedReason || null,
-      cancelAtPeriodEnd: subscriptionStatus === "cancelling",
-      currentPeriodStart: toIsoOrNull(currentPeriodStart),
-      currentPeriodEnd: toIsoOrNull(currentPeriodEnd),
-      currentBillingMethod,
-      referralCode: discounts.referralActive ? user.appliedReferralCode?.code || null : null,
-      accountDiscountPercent: discounts.accountDiscountPercent,
-      mlRunDiscountPercent: discounts.mlRunDiscountPercent,
-      discountExpiresAt: toIsoOrNull(discounts.referralDiscountExpiresAt),
-      mlRunChargesDue: Number(displayedMlRunChargesAwaitingPayment.toFixed(2)),
-      mlRunChargesAwaitingPayment: Number(displayedMlRunChargesAwaitingPayment.toFixed(2)),
-      totalPaidBilling: Number(totalPaidBilling.toFixed(2)),
-      recentMlRunCharges: user.analysisRuns.map((run) => ({
-        id: run.id,
-        status: (() => {
-          const status = String(run.stripeBillingStatus || "").toUpperCase();
-          if (status === "PAID") return "paid";
-          if (status === "FAILED" || status === "CANCELLED") return "failed";
-          if (status === "PENDING") return "pending";
-          if (status === "REPORTED") return "reported";
-          if (status === "REPORT_FAILED") return "report_failed";
-          if (status === "NO_CHARGE") return "no_charge";
-          return "due";
-        })(),
-        mode: run.mode,
-        tradesAnalysed: run.tradesAnalysed ?? null,
-        amount: typeof run.cost === "number" ? Number(run.cost.toFixed(2)) : null,
-        createdAt: run.createdAt.toISOString(),
-        completedAt: run.completedAt ? run.completedAt.toISOString() : null,
-      })),
-      recentInvoices: user.billingEvents.map((event) => ({
-        id: event.id,
-        stripeInvoiceId: event.stripeInvoiceId,
-        eventType: event.eventType,
-        status: event.status,
-        currency: event.currency,
-        amount: event.amount,
-        amountSubtotal: event.amountSubtotal,
-        amountTax: event.amountTax,
-        amountPaid: event.amountPaid,
-        periodStart: toIsoOrNull(event.periodStart),
-        periodEnd: toIsoOrNull(event.periodEnd),
-        occurredAt: event.occurredAt.toISOString(),
-      })),
-    },
-  };
-}
-
-async function buildUserAccountState(userId, sessionRole = null) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: { profile: true },
-  });
-
-  if (!user) {
-    return null;
-  }
-
-  const billingPayload = await buildUserBillingSummary(userId);
-  const accountRole = sessionRole || user.role;
-  const ownReferralCode =
-    accountRole === "TRADER" ? formatReferralCode(await ensureTraderOwnedReferralCode(user)) : null;
-
-  return {
-    ok: true,
-    account: {
-      id: user.id,
-      email: user.email,
-      role: accountRole,
-      isSuperAdmin: Boolean(user.isSuperAdmin),
-      status: user.status,
-      plan: "payg",
-      profile: user.profile,
-      billing: billingPayload?.billing || null,
-      ownReferralCode,
-    },
-  };
 }
 
 function buildEaConnectionStatus(events) {
@@ -2090,117 +1483,47 @@ async function syncStoredTradesFromMt(userId, brokerAccountIds, { requestFresh =
   return events;
 }
 
-async function buildAnalysisOptionsPayload(userId, { requestFresh = false, syncStoredTrades = false } = {}) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      appliedReferralCode: { select: { code: true } },
-      mlRunDiscountPercent: true,
-      referralDiscountExpiresAt: true,
-    },
-  });
-  const brokerAccounts = await prisma.brokerAccount.findMany({
-    where: { userId, isActive: true },
-    select: { id: true },
-  });
+const {
+  formatReferralCode,
+  ensureTraderOwnedReferralCode,
+  isBillingExemptUser,
+  isPlatformCompedUser,
+  getActiveReferralCode,
+  resolveDiscountCode,
+  getActiveUserDiscounts,
+  buildStripeAccountDiscountConfig,
+  toCurrencyAmount,
+  stripeTimestampToDate,
+  getSubscriptionStatusForDisplayFromStripe,
+  findUserByStripeLink,
+  getStripeBillingEventData,
+  getStripeInvoiceRevenueBreakdown,
+  getBillingEventRevenueBreakdown,
+  persistStripeBillingEvent,
+  formatStripePaymentMethod,
+  buildUserBillingSummary,
+} = createBillingReferralHelpers({
+  prisma,
+  Stripe,
+  env: process.env,
+  getSubscriptionAccessDecisionFromStripe,
+});
 
-  const brokerAccountIds = brokerAccounts.map((account) => account.id);
-  if (syncStoredTrades) {
-    await syncStoredTradesFromMt(userId, brokerAccountIds, { requestFresh, timeoutMs: 8000 });
-  }
-
-  const pendingStoredTradeCount = await getPendingStoredTradeCount(userId);
-  const latestSnapshot = await prisma.analysisSnapshot.findFirst({
-    where: { userId },
-    orderBy: { updatedAt: "desc" },
-    select: {
-      id: true,
-      updatedAt: true,
-      tradesAnalysed: true,
-      report: true,
-    },
-  });
-
-  const latestMetadata =
-    latestSnapshot?.report &&
-    typeof latestSnapshot.report === "object" &&
-    latestSnapshot.report.metadata &&
-    typeof latestSnapshot.report.metadata === "object"
-      ? latestSnapshot.report.metadata
-      : null;
-  const discounts = getActiveUserDiscounts(user);
-
-  return {
-    availableTradeCount: pendingStoredTradeCount,
-    minimumTradeCount: 10,
-    recommendedTradeCount: Math.min(200, pendingStoredTradeCount || 200),
-    mlRunDiscountPercent: discounts.mlRunDiscountPercent,
-    accountDiscountPercent: discounts.accountDiscountPercent,
-    referralCode: discounts.referralActive ? user?.appliedReferralCode?.code || null : null,
-    latestAnalysis: latestSnapshot
-      ? {
-          id: latestSnapshot.id,
-          updatedAt: latestSnapshot.updatedAt.toISOString(),
-          tradesAnalysed: latestSnapshot.tradesAnalysed ?? latestMetadata?.unique_trade_count ?? null,
-          tradeFingerprint: latestMetadata?.trade_fingerprint ?? null,
-        }
-      : null,
-  };
-}
-
-async function buildAccountStatePayload(userId) {
-  const [analysisOptions, latestSnapshot, runs, storedTrades] = await Promise.all([
-    buildAnalysisOptionsPayload(userId, { requestFresh: false, syncStoredTrades: false }),
-    prisma.analysisSnapshot.findFirst({
-      where: { userId },
-      orderBy: { updatedAt: "desc" },
-      select: {
-        id: true,
-        updatedAt: true,
-        tradesAnalysed: true,
-        avgRMultiple: true,
-        report: true,
-      },
-    }),
-    prisma.analysisRun.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-    }),
-    prisma.storedTrade.findMany({
-      where: { userId },
-      orderBy: [{ exitTime: "desc" }, { updatedAt: "desc" }],
-    }),
-  ]);
-
-  const hasCurrencyPnl = storedTrades.some(
-    (trade) =>
-      typeof trade.profit === "number" ||
-      typeof trade.commission === "number" ||
-      typeof trade.swap === "number"
-  );
-
-  return {
-    analysisOptions,
-    latestAnalysis: latestSnapshot
-      ? {
-          id: latestSnapshot.id,
-          updatedAt: latestSnapshot.updatedAt.toISOString(),
-          tradesAnalysed: latestSnapshot.tradesAnalysed,
-          avgRMultiple: latestSnapshot.avgRMultiple,
-          report: latestSnapshot.report,
-        }
-      : null,
-    history: runs.map(formatAnalysisRun),
-    trades: storedTrades.map(storedTradeToJournalEntry),
-    pnlMeta: {
-      currency_pnl_available: hasCurrencyPnl,
-      message: hasCurrencyPnl
-        ? null
-        : "These stored trades do not include realised profit/loss fields yet, so the journal is shown in R-multiples until richer trade data is synced.",
-    },
-  };
-}
+const {
+  buildUserAccountState,
+  buildAnalysisOptionsPayload,
+  buildAccountStatePayload,
+} = createAccountStateHelpers({
+  prisma,
+  buildUserBillingSummary,
+  formatReferralCode,
+  ensureTraderOwnedReferralCode,
+  getActiveUserDiscounts,
+  syncStoredTradesFromMt,
+  getPendingStoredTradeCount,
+  formatAnalysisRun,
+  storedTradeToJournalEntry,
+});
 
 async function createFailedAnalysisRun(userId, {
   mode = "trades",
@@ -2227,29 +1550,6 @@ async function createFailedAnalysisRun(userId, {
       completedAt: new Date(),
     },
   });
-}
-
-function mergeTradesForAnalysis(...tradeGroups) {
-  const latestByIdentity = new Map();
-
-  for (const trades of tradeGroups) {
-    if (!Array.isArray(trades)) continue;
-
-    for (const trade of trades) {
-      const identity = buildTradeIdentity(trade);
-      if (!identity) continue;
-
-      const existing = latestByIdentity.get(identity);
-      const existingExit = existing ? parseTradeTimestamp(existing.exit_time) ?? 0 : 0;
-      const nextExit = parseTradeTimestamp(trade.exit_time) ?? 0;
-
-      if (!existing || nextExit >= existingExit) {
-        latestByIdentity.set(identity, trade);
-      }
-    }
-  }
-
-  return sortTradesByRecency(Array.from(latestByIdentity.values()));
 }
 
 function deriveTradeDateRange(trades) {
@@ -2392,11 +1692,18 @@ async function waitForFreshHistoryExports(brokerAccountIds, requestedAt, timeout
   return [];
 }
 
-function buildMt4EaSource({ apiBaseUrl, apiKey, brokerAccountId }) {
+function buildEaCommonSource({
+  propertyLine,
+  apiBaseUrl,
+  apiKey,
+  brokerAccountId,
+  heartbeatSource,
+  platformSpecificSource,
+}) {
   return `//+------------------------------------------------------------------+
-//|                          GreenTurtleTradesEA.mq4                 |
+//|                          GreenTurtleTradesEA.${heartbeatSource === "mt4_ea" ? "mq4" : "mq5"}                 |
 //+------------------------------------------------------------------+
-#property strict
+${propertyLine}
 
 input string API_BASE_URL = "${apiBaseUrl}";
 input string API_KEY = "${apiKey}";
@@ -2453,7 +1760,7 @@ void SendHeartbeat()
    }
 
    string body = "{";
-   body += "\\"source\\":\\"mt4_ea\\",";
+   body += "\\"source\\":\\"${heartbeatSource}\\",";
    body += "\\"heartbeatAt\\":\\"" + TimeToString(TimeCurrent(), TIME_DATE|TIME_SECONDS) + "\\"";
    body += "}";
 
@@ -2502,7 +1809,67 @@ bool FetchPendingExportToken(string &requestToken)
    return(StringLen(requestToken) > 0);
 }
 
-bool ComputeTradeExcursions(string symbol, datetime entryTime, datetime exitTime, bool isLong, double entryPrice, double &mfe, double &mae)
+${platformSpecificSource}
+
+bool SendJson(string path, string jsonBody)
+{
+   string url = API_BASE_URL + path;
+   string headers = "Content-Type: application/json\\r\\n";
+   headers += "x-api-key: " + API_KEY + "\\r\\n";
+   headers += "x-broker-account-id: " + BROKER_ACCOUNT_ID + "\\r\\n";
+
+   char post[];
+   char result[];
+   string responseHeaders;
+   StringToCharArray(jsonBody, post, 0, StringLen(jsonBody));
+   int status = WebRequest("POST", url, headers, 10000, post, result, responseHeaders);
+   if(status != 200)
+   {
+      Print("Green Turtle Trades EA request failed: ", status);
+      return(false);
+   }
+   return(true);
+}
+
+void CheckForRequestedExport()
+{
+   string requestToken = "";
+   if(!FetchPendingExportToken(requestToken))
+   {
+      return;
+   }
+
+   if(StringLen(requestToken) == 0 || requestToken == lastRequestToken)
+   {
+      return;
+   }
+
+   lastRequestToken = requestToken;
+   ExportClosedTrades(requestToken);
+}
+
+void OnTimer()
+{
+   SendHeartbeat();
+   CheckForRequestedExport();
+}
+
+void OnTick()
+{
+   SendHeartbeat();
+   if(TimeCurrent() - lastPollTime < MathMax(5, EXPORT_POLL_SECONDS))
+   {
+      return;
+   }
+
+   lastPollTime = TimeCurrent();
+   CheckForRequestedExport();
+}
+//+------------------------------------------------------------------+`;
+}
+
+function buildMt4PlatformSpecificSource() {
+  return `bool ComputeTradeExcursions(string symbol, datetime entryTime, datetime exitTime, bool isLong, double entryPrice, double &mfe, double &mae)
 {
    mfe = 0.0;
    mae = 0.0;
@@ -2592,176 +1959,11 @@ void ExportClosedTrades(string requestToken)
    {
       Print("Green Turtle Trades EA exported ", exported, " historical trades.");
    }
+}`;
 }
 
-bool SendJson(string path, string jsonBody)
-{
-   string url = API_BASE_URL + path;
-   string headers = "Content-Type: application/json\\r\\n";
-   headers += "x-api-key: " + API_KEY + "\\r\\n";
-   headers += "x-broker-account-id: " + BROKER_ACCOUNT_ID + "\\r\\n";
-
-   char post[];
-   char result[];
-   string responseHeaders;
-   StringToCharArray(jsonBody, post, 0, StringLen(jsonBody));
-   int status = WebRequest("POST", url, headers, 10000, post, result, responseHeaders);
-   if(status != 200)
-   {
-      Print("Green Turtle Trades EA request failed: ", status);
-      return(false);
-   }
-   return(true);
-}
-
-void CheckForRequestedExport()
-{
-   string requestToken = "";
-   if(!FetchPendingExportToken(requestToken))
-   {
-      return;
-   }
-
-   if(StringLen(requestToken) == 0 || requestToken == lastRequestToken)
-   {
-      return;
-   }
-
-   lastRequestToken = requestToken;
-   ExportClosedTrades(requestToken);
-}
-
-void OnTimer()
-{
-   SendHeartbeat();
-   CheckForRequestedExport();
-}
-
-void OnTick()
-{
-   SendHeartbeat();
-   if(TimeCurrent() - lastPollTime < MathMax(5, EXPORT_POLL_SECONDS))
-   {
-      return;
-   }
-
-   lastPollTime = TimeCurrent();
-   CheckForRequestedExport();
-}
-//+------------------------------------------------------------------+`;
-}
-
-function buildMt5EaSource({ apiBaseUrl, apiKey, brokerAccountId }) {
-  return `//+------------------------------------------------------------------+
-//|                          GreenTurtleTradesEA.mq5                 |
-//+------------------------------------------------------------------+
-#property version   "1.00"
-
-input string API_BASE_URL = "${apiBaseUrl}";
-input string API_KEY = "${apiKey}";
-input string BROKER_ACCOUNT_ID = "${brokerAccountId}";
-input int EXPORT_POLL_SECONDS = 10;
-input int HEARTBEAT_SECONDS = 60;
-input int HISTORY_LOOKBACK_DAYS = 3650;
-input int MAX_TRADES_PER_EXPORT = 5000;
-
-datetime lastPollTime = 0;
-datetime lastHeartbeatTime = 0;
-string lastRequestToken = "";
-
-int OnInit()
-{
-   if(StringLen(API_KEY) < 12 || StringLen(BROKER_ACCOUNT_ID) < 6)
-   {
-      Alert("Green Turtle Trades EA is missing account credentials.");
-      return(INIT_FAILED);
-   }
-
-   if(!TestConnection())
-   {
-      Alert("Unable to reach the Green Turtle Trades API.");
-      return(INIT_FAILED);
-   }
-
-   EventSetTimer(MathMax(5, EXPORT_POLL_SECONDS));
-   Print("Green Turtle Trades EA connected. Historical exports will run when requested from Turtle Analytics.");
-   return(INIT_SUCCEEDED);
-}
-
-void OnDeinit(const int reason)
-{
-   EventKillTimer();
-}
-
-bool TestConnection()
-{
-   string url = API_BASE_URL + "/health";
-   string headers = "Content-Type: application/json\\r\\n";
-   char post[];
-   char result[];
-   string responseHeaders;
-   int status = WebRequest("GET", url, headers, 5000, post, result, responseHeaders);
-   return(status == 200);
-}
-
-void SendHeartbeat()
-{
-   if(lastHeartbeatTime != 0 && TimeCurrent() - lastHeartbeatTime < MathMax(15, HEARTBEAT_SECONDS))
-   {
-      return;
-   }
-
-   string body = "{";
-   body += "\\"source\\":\\"mt5_ea\\",";
-   body += "\\"heartbeatAt\\":\\"" + TimeToString(TimeCurrent(), TIME_DATE|TIME_SECONDS) + "\\"";
-   body += "}";
-
-   if(SendJson("/v1/ea/heartbeat", body))
-   {
-      lastHeartbeatTime = TimeCurrent();
-   }
-}
-
-bool FetchPendingExportToken(string &requestToken)
-{
-   string url = API_BASE_URL + "/v1/ea/export-request";
-   string headers = "Content-Type: application/json\\r\\n";
-   headers += "x-api-key: " + API_KEY + "\\r\\n";
-   headers += "x-broker-account-id: " + BROKER_ACCOUNT_ID + "\\r\\n";
-
-   char post[];
-   char result[];
-   string responseHeaders;
-   int status = WebRequest("GET", url, headers, 5000, post, result, responseHeaders);
-   if(status != 200)
-   {
-      return(false);
-   }
-
-   string body = CharArrayToString(result, 0, -1);
-   if(StringFind(body, "\\"pending\\":true") == -1)
-   {
-      return(false);
-   }
-
-   int tokenKey = StringFind(body, "\\"requestToken\\":\\"");
-   if(tokenKey == -1)
-   {
-      return(false);
-   }
-
-   int start = tokenKey + StringLen("\\"requestToken\\":\\"");
-   int end = StringFind(body, "\\"", start);
-   if(end == -1)
-   {
-      return(false);
-   }
-
-   requestToken = StringSubstr(body, start, end - start);
-   return(StringLen(requestToken) > 0);
-}
-
-ulong FindEntryDeal(ulong positionId, datetime exitTime)
+function buildMt5PlatformSpecificSource() {
+  return `ulong FindEntryDeal(ulong positionId, datetime exitTime)
 {
    int totalDeals = HistoryDealsTotal();
    for(int i = totalDeals - 1; i >= 0; i--)
@@ -2912,63 +2114,29 @@ void ExportClosedTrades(string requestToken)
    {
       Print("Green Turtle Trades EA exported ", exported, " historical trades.");
    }
+}`;
 }
 
-bool SendJson(string path, string jsonBody)
-{
-   string url = API_BASE_URL + path;
-   string headers = "Content-Type: application/json\\r\\n";
-   headers += "x-api-key: " + API_KEY + "\\r\\n";
-   headers += "x-broker-account-id: " + BROKER_ACCOUNT_ID + "\\r\\n";
-
-   char post[];
-   char result[];
-   string responseHeaders;
-   StringToCharArray(jsonBody, post, 0, StringLen(jsonBody));
-   int status = WebRequest("POST", url, headers, 10000, post, result, responseHeaders);
-   if(status != 200)
-   {
-      Print("Green Turtle Trades EA request failed: ", status);
-      return(false);
-   }
-   return(true);
+function buildMt4EaSource({ apiBaseUrl, apiKey, brokerAccountId }) {
+  return buildEaCommonSource({
+    propertyLine: "#property strict",
+    apiBaseUrl,
+    apiKey,
+    brokerAccountId,
+    heartbeatSource: "mt4_ea",
+    platformSpecificSource: buildMt4PlatformSpecificSource(),
+  });
 }
 
-void CheckForRequestedExport()
-{
-   string requestToken = "";
-   if(!FetchPendingExportToken(requestToken))
-   {
-      return;
-   }
-
-   if(StringLen(requestToken) == 0 || requestToken == lastRequestToken)
-   {
-      return;
-   }
-
-   lastRequestToken = requestToken;
-   ExportClosedTrades(requestToken);
-}
-
-void OnTimer()
-{
-   SendHeartbeat();
-   CheckForRequestedExport();
-}
-
-void OnTick()
-{
-   SendHeartbeat();
-   if(TimeCurrent() - lastPollTime < MathMax(5, EXPORT_POLL_SECONDS))
-   {
-      return;
-   }
-
-   lastPollTime = TimeCurrent();
-   CheckForRequestedExport();
-}
-//+------------------------------------------------------------------+`;
+function buildMt5EaSource({ apiBaseUrl, apiKey, brokerAccountId }) {
+  return buildEaCommonSource({
+    propertyLine: '#property version   "1.00"',
+    apiBaseUrl,
+    apiKey,
+    brokerAccountId,
+    heartbeatSource: "mt5_ea",
+    platformSpecificSource: buildMt5PlatformSpecificSource(),
+  });
 }
 
 function buildEaSource({ platform, apiBaseUrl, apiKey, brokerAccountId }) {
@@ -3130,41 +2298,11 @@ app.use((req, res, next) => {
   return next();
 });
 
-app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async (req, res, next) => {
-  try {
-    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-    const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-    if (!stripeSecretKey || !stripeWebhookSecret) {
-      return res.status(500).send("Stripe webhook not configured");
-    }
-
-    const signature = req.headers["stripe-signature"];
-    if (typeof signature !== "string" || !signature.trim()) {
-      return res.status(400).send("Missing Stripe signature");
-    }
-
-    const stripe = Stripe(stripeSecretKey);
-    const event = stripe.webhooks.constructEvent(req.body, signature, stripeWebhookSecret);
-
-    if (
-      event.type === "checkout.session.completed" ||
-      event.type === "invoice.paid" ||
-      event.type === "invoice.payment_failed" ||
-      event.type === "customer.subscription.created" ||
-      event.type === "customer.subscription.updated" ||
-      event.type === "customer.subscription.deleted"
-    ) {
-      await persistStripeBillingEvent(event);
-    }
-
-    return res.json({ received: true });
-  } catch (err) {
-    if (err?.type === "StripeSignatureVerificationError") {
-      return res.status(400).send("Invalid Stripe signature");
-    }
-    return next(err);
-  }
+registerStripeWebhookRoute(app, {
+  express,
+  Stripe,
+  env: process.env,
+  persistStripeBillingEvent,
 });
 
 // Parse JSON bodies
@@ -3174,2945 +2312,83 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-// Trader application (public)
-app.post("/api/trader/apply", async (req, res, next) => {
-  try {
-    const {
-      fullName,
-      email,
-      country,
-      brokerName,
-      platform,
-      accountNumber,
-      experienceLevel,
-      riskDisclosureAccepted,
-      yearsTrading,
-      usesMetaTrader,
-    } = req.body || {};
-
-    if (!fullName || typeof fullName !== "string") {
-      return res.status(400).json({ ok: false, error: "Full name is required" });
-    }
-
-    if (!email || typeof email !== "string") {
-      return res.status(400).json({ ok: false, error: "Email is required" });
-    }
-
-    if (!country || typeof country !== "string") {
-      return res.status(400).json({ ok: false, error: "Country is required" });
-    }
-
-    const hasLegacyFields =
-      typeof platform === "string" &&
-      brokerPlatforms.has(platform) &&
-      typeof accountNumber === "string" &&
-      typeof experienceLevel === "string" &&
-      experienceLevels.has(experienceLevel) &&
-      riskDisclosureAccepted === true;
-
-    const hasSimplifiedFields =
-      typeof yearsTrading === "number" &&
-      Number.isFinite(yearsTrading) &&
-      yearsTrading >= 0 &&
-      typeof usesMetaTrader === "boolean";
-
-    if (!hasLegacyFields && !hasSimplifiedFields) {
-      return res.status(400).json({
-        ok: false,
-        error:
-          "Application requires name, email, country, broker, years trading experience, and MetaTrader usage.",
-      });
-    }
-
-    const resolvedPlatform = hasLegacyFields
-      ? platform
-      : usesMetaTrader
-        ? "MT5"
-        : "CTRADER";
-
-    const resolvedAccountNumber =
-      hasLegacyFields && typeof accountNumber === "string" && accountNumber.trim()
-        ? accountNumber.trim()
-        : "PENDING";
-
-    const resolvedExperienceLevel = hasLegacyFields
-      ? experienceLevel
-      : yearsTrading >= 5
-        ? "ADVANCED"
-        : yearsTrading >= 2
-          ? "INTERMEDIATE"
-          : "BEGINNER";
-
-    const normalizedEmail = email.trim().toLowerCase();
-
-    const application = await prisma.traderApplication.upsert({
-      where: { email: normalizedEmail },
-      update: {
-        fullName: fullName.trim(),
-        country: country.trim(),
-        brokerName:
-          typeof brokerName === "string" && brokerName.trim()
-            ? brokerName.trim()
-            : null,
-        platform: resolvedPlatform,
-        accountNumber: resolvedAccountNumber,
-        experienceLevel: resolvedExperienceLevel,
-        status: "PENDING",
-        rejectionReason: null,
-        submittedAt: new Date(),
-        reviewedAt: null,
-      },
-      create: {
-        fullName: fullName.trim(),
-        email: normalizedEmail,
-        country: country.trim(),
-        brokerName:
-          typeof brokerName === "string" && brokerName.trim()
-            ? brokerName.trim()
-            : null,
-        platform: resolvedPlatform,
-        accountNumber: resolvedAccountNumber,
-        experienceLevel: resolvedExperienceLevel,
-        status: "PENDING",
-      },
-    });
-
-    sendEmail({
-      to: normalizedEmail,
-      replyTo: process.env.EMAIL_NOTIFY_TO || process.env.EMAIL_FROM,
-      subject: "Your trader application has been received",
-      html: `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a; max-width: 640px; margin: 0 auto;">
-          <div style="padding: 24px 0 12px;">
-            <h2 style="margin: 0; color: #0f766e;">Green Turtle Trades</h2>
-          </div>
-          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px;">
-            <p style="margin-top: 0;">Hi ${fullName.trim()},</p>
-            <p>Thank you for applying to join Green Turtle Trades as a trader.</p>
-            <p>We have received your application and will review it internally.</p>
-            <p>We will reach out to you when the platform is ready, or sooner if we need any additional information.</p>
-            <div style="margin: 24px 0; padding: 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
-              <p style="margin: 0 0 8px;"><strong>Name:</strong> ${fullName.trim()}</p>
-              <p style="margin: 0 0 8px;"><strong>Email:</strong> ${normalizedEmail}</p>
-              <p style="margin: 0 0 8px;"><strong>Country:</strong> ${country.trim()}</p>
-              <p style="margin: 0;"><strong>Broker:</strong> ${
-                typeof brokerName === "string" && brokerName.trim()
-                  ? brokerName.trim()
-                  : "Not provided"
-              }</p>
-            </div>
-            <p style="margin-bottom: 0;">Best regards,<br />Green Turtle Trades</p>
-          </div>
-        </div>
-      `,
-      text: [
-        `Hi ${fullName.trim()},`,
-        "",
-        "Thank you for applying to join Green Turtle Trades as a trader.",
-        "We have received your application and will review it internally.",
-        "We will reach out to you when the platform is ready, or sooner if we need any additional information.",
-        "",
-        "Best regards,",
-        "Green Turtle Trades",
-      ].join("\n"),
-    }).catch((e) => console.error("Trader application confirmation email failed:", e));
-
-    const notifyTo = process.env.EMAIL_NOTIFY_TO;
-
-    if (notifyTo) {
-      sendEmail({
-        to: notifyTo,
-        subject: "New trader application received",
-        replyTo: normalizedEmail,
-        html: `
-          <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a; max-width: 640px; margin: 0 auto;">
-            <div style="padding: 24px 0 12px;">
-              <h2 style="margin: 0; color: #0f766e;">Green Turtle Trades</h2>
-            </div>
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px;">
-              <p style="margin-top: 0;">A new trader application has been submitted.</p>
-              <div style="margin: 20px 0; padding: 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
-                <p style="margin: 0 0 8px;"><strong>Name:</strong> ${fullName.trim()}</p>
-                <p style="margin: 0 0 8px;"><strong>Email:</strong> ${normalizedEmail}</p>
-                <p style="margin: 0 0 8px;"><strong>Country:</strong> ${country.trim()}</p>
-                <p style="margin: 0 0 8px;"><strong>Broker:</strong> ${
-                  typeof brokerName === "string" && brokerName.trim()
-                    ? brokerName.trim()
-                    : "Not provided"
-                }</p>
-                <p style="margin: 0 0 8px;"><strong>Years Trading:</strong> ${
-                  hasSimplifiedFields ? yearsTrading : "Not provided"
-                }</p>
-                <p style="margin: 0;"><strong>Uses MetaTrader:</strong> ${
-                  hasSimplifiedFields ? (usesMetaTrader ? "Yes" : "No") : "Not provided"
-                }</p>
-              </div>
-            </div>
-          </div>
-        `,
-        text: [
-          "A new trader application has been submitted.",
-          "",
-          `Name: ${fullName.trim()}`,
-          `Email: ${normalizedEmail}`,
-          `Country: ${country.trim()}`,
-          `Broker: ${
-            typeof brokerName === "string" && brokerName.trim()
-              ? brokerName.trim()
-              : "Not provided"
-          }`,
-          `Years Trading: ${hasSimplifiedFields ? yearsTrading : "Not provided"}`,
-          `Uses MetaTrader: ${
-            hasSimplifiedFields ? (usesMetaTrader ? "Yes" : "No") : "Not provided"
-          }`,
-        ].join("\n"),
-      }).catch((e) => console.error("Trader application notify email failed:", e));
-    }
-
-    return res.json({ ok: true, id: application.id, status: application.status });
-  } catch (err) {
-    return next(err);
-  }
+registerPublicRoutes(app, {
+  prisma,
+  sendEmail,
+  env: process.env,
+  brokerPlatforms,
+  experienceLevels,
 });
 
-app.get("/api/trader/application", async (req, res, next) => {
-  try {
-    const { email } = req.query;
-
-    if (!email || typeof email !== "string") {
-      return res.status(400).json({ ok: false, error: "Email is required" });
-    }
-
-    const application = await prisma.traderApplication.findUnique({
-      where: { email: email.trim().toLowerCase() },
-      select: { status: true, rejectionReason: true },
-    });
-
-    if (!application) {
-      return res
-        .status(404)
-        .json({ ok: false, error: "Application not found" });
-    }
-
-    return res.json({
-      ok: true,
-      status: application.status,
-      rejectionReason: application.rejectionReason,
-    });
-  } catch (err) {
-    return next(err);
-  }
+registerAccountRoutes(app, {
+  prisma,
+  bcrypt,
+  crypto,
+  Stripe,
+  env: process.env,
+  sendEmail,
+  rateLimit,
+  authRequired,
+  adminRequired,
+  staffPortalRoles,
+  resolveDiscountCode,
+  isInternalCompanyEmail,
+  isBillingExemptUser,
+  calculateReferralExpiry,
+  signToken,
+  setSessionCookie,
+  clearSessionCookie,
+  buildUserAccountState,
+  buildUserBillingSummary,
+  getUserDisplayName,
+  wipeTraderSideDataForUser,
+  getStripeInvoiceRevenueBreakdown,
+  mapDeletionReasonToStripeFeedback,
 });
 
-// Auth
-app.post("/api/auth/register", rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
-  keyPrefix: "auth-register",
-  message: "Too many registration attempts. Please try again later.",
-}), async (req, res) => {
-  try {
-    const { email, password, name, metaTraderUsername, brokerName, referralCode } = req.body || {};
-
-    if (!email || typeof email !== "string") {
-      return res.status(400).json({ ok: false, error: "Email is required" });
-    }
-
-    if (!password || typeof password !== "string") {
-      return res.status(400).json({ ok: false, error: "Password is required" });
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-
-    const existing = await prisma.user.findUnique({
-      where: { email: normalizedEmail },
-      select: { id: true },
-    });
-
-    if (existing) {
-      return res.status(409).json({ ok: false, error: "Email already exists" });
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    const trimmedName = typeof name === "string" ? name.trim() : "";
-    const [firstName, ...restName] = trimmedName ? trimmedName.split(/\s+/) : [];
-    const lastName = restName.join(" ");
-    const normalizedMetaTraderUsername =
-      typeof metaTraderUsername === "string" && metaTraderUsername.trim()
-        ? metaTraderUsername.trim()
-        : null;
-    const normalizedBrokerName =
-      typeof brokerName === "string" && brokerName.trim()
-        ? brokerName.trim()
-        : null;
-    const normalizedReferralCode =
-      typeof referralCode === "string" && referralCode.trim()
-        ? referralCode.trim().toUpperCase()
-        : "";
-    const resolvedDiscountCode = normalizedReferralCode
-      ? await resolveDiscountCode(normalizedReferralCode)
-      : { type: "none" };
-    const appliedReferralCode =
-      resolvedDiscountCode.type === "referral" ? resolvedDiscountCode.referralCode : null;
-
-    if (normalizedReferralCode && resolvedDiscountCode.type === "invalid") {
-      return res.status(400).json({ ok: false, error: "Referral code is invalid or inactive" });
-    }
-
-    const referralDiscountExpiresAt = appliedReferralCode
-      ? calculateReferralExpiry(appliedReferralCode.durationDays)
-      : null;
-    const billingExempt = isInternalCompanyEmail(normalizedEmail);
-
-    const user = await prisma.user.create({
-      data: {
-        email: normalizedEmail,
-        passwordHash,
-        billingExempt,
-        billingExemptReason: billingExempt ? "Internal Green Turtle Trades company account" : null,
-        appliedReferralCodeId: appliedReferralCode?.id || null,
-        accountDiscountPercent: appliedReferralCode?.accountDiscountPercent ?? null,
-        mlRunDiscountPercent: appliedReferralCode?.mlRunDiscountPercent ?? null,
-        referralDiscountExpiresAt,
-        profile: trimmedName
-          ? {
-              create: {
-                firstName: firstName || null,
-                lastName: lastName || null,
-              },
-            }
-          : undefined,
-        brokerAccounts: normalizedMetaTraderUsername
-          ? {
-              create: {
-                platform: "MT5",
-                brokerName: normalizedBrokerName,
-                accountNumber: normalizedMetaTraderUsername,
-                label: "Primary MetaTrader",
-                isActive: true,
-              },
-            }
-          : undefined,
-      },
-    });
-
-    const token = signToken(user);
-    setSessionCookie(res, token);
-
-    return res.json({
-      ok: true,
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        status: user.status,
-      },
-      referralApplied: appliedReferralCode
-        ? {
-            code: appliedReferralCode.code,
-            accountDiscountPercent: appliedReferralCode.accountDiscountPercent,
-            mlRunDiscountPercent: appliedReferralCode.mlRunDiscountPercent,
-            expiresAt: referralDiscountExpiresAt ? referralDiscountExpiresAt.toISOString() : null,
-          }
-        : null,
-      billingExempt,
-    });
-  } catch (err) {
-    console.error("Register error:", err);
-    return res.status(500).json({ ok: false, error: "Internal server error" });
-  }
+registerBillingRoutes(app, {
+  prisma,
+  authRequired,
+  adminRequired,
+  staffWriteRequired,
+  Stripe,
+  env: process.env,
+  getUserDisplayName,
+  formatReferralCode,
+  resolveDiscountCode,
+  buildUserBillingSummary,
+  getOrCreateStripeCustomerId,
+  getStripeSubscriptionForUser,
+  setCachedSubscriptionAccess,
+  getSubscriptionAccessDecisionFromStripe,
+  getSubscriptionStatusForDisplayFromStripe,
+  stripeTimestampToDate,
 });
 
-app.post("/api/auth/login", rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  keyPrefix: "auth-login",
-  message: "Too many login attempts. Please try again later.",
-}), async (req, res) => {
-  try {
-    const { email, password } = req.body || {};
-
-    if (!email || typeof email !== "string") {
-      return res.status(400).json({ ok: false, error: "Email is required" });
-    }
-
-    if (!password || typeof password !== "string") {
-      return res.status(400).json({ ok: false, error: "Password is required" });
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-
-    const user = await prisma.user.findUnique({
-      where: { email: normalizedEmail },
-    });
-
-    if (!user) {
-      return res.status(401).json({ ok: false, error: "Invalid credentials" });
-    }
-
-    const passwordValid = await bcrypt.compare(password, user.passwordHash);
-
-    if (!passwordValid) {
-      return res.status(401).json({ ok: false, error: "Invalid credentials" });
-    }
-
-    if (user.status !== "ACTIVE") {
-      return res.status(403).json({ ok: false, error: "Account disabled" });
-    }
-
-    const sessionRole =
-      user.role === "ADMIN"
-        ? isBillingExemptUser(user)
-          ? "TRADER"
-          : null
-        : user.role;
-
-    if (!sessionRole) {
-      return res.status(403).json({ ok: false, error: "Use the admin login for this account" });
-    }
-
-    const token = signToken(user, sessionRole);
-    setSessionCookie(res, token);
-
-    return res.json({
-      ok: true,
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: sessionRole,
-        status: user.status,
-      },
-    });
-  } catch (err) {
-    console.error("Login error:", err);
-    return res.status(500).json({ ok: false, error: "Internal server error" });
-  }
-});
-
-app.post("/api/admin/login", rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  keyPrefix: "admin-login",
-  message: "Too many admin login attempts. Please try again later.",
-}), async (req, res) => {
-  try {
-    const { email, password } = req.body || {};
-
-    if (!email || typeof email !== "string") {
-      return res.status(400).json({ ok: false, error: "Email is required" });
-    }
-
-    if (!password || typeof password !== "string") {
-      return res.status(400).json({ ok: false, error: "Password is required" });
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-
-    const envEmail = process.env.ADMIN_EMAIL || "greenturtlrtraders26@gmail.com";
-    const envPassword = process.env.ADMIN_PASSWORD;
-
-    const allowEnvAdminLogin =
-      process.env.ENABLE_ENV_ADMIN_LOGIN === "true";
-
-    if (
-      allowEnvAdminLogin &&
-      envEmail &&
-      envPassword &&
-      normalizedEmail === envEmail.trim().toLowerCase() &&
-      password === envPassword
-    ) {
-      const token = signToken({ id: "env-admin", role: "ADMIN", isSuperAdmin: true });
-      setSessionCookie(res, token);
-
-      return res.json({
-        ok: true,
-        token,
-        user: {
-          id: "env-admin",
-          email: normalizedEmail,
-          role: "ADMIN",
-          isSuperAdmin: true,
-          status: "ACTIVE",
-        },
-      });
-    }
-
-    const adminUser = await prisma.user.findFirst({
-      where: {
-        email: normalizedEmail,
-        role: {
-          in: Array.from(staffPortalRoles),
-        },
-      },
-    });
-
-    if (adminUser) {
-      const passwordValid = await bcrypt.compare(password, adminUser.passwordHash);
-
-      if (!passwordValid) {
-        return res.status(401).json({ ok: false, error: "Invalid credentials" });
-      }
-
-      if (adminUser.status === "DISABLED") {
-        return res.status(403).json({ ok: false, error: "Account disabled" });
-      }
-
-      const token = signToken(adminUser);
-      setSessionCookie(res, token);
-
-      return res.json({
-        ok: true,
-        token,
-        mustChangePassword: adminUser.status === "PENDING",
-        user: {
-          id: adminUser.id,
-          email: adminUser.email,
-          role: adminUser.role,
-          isSuperAdmin: Boolean(adminUser.isSuperAdmin),
-          status: adminUser.status,
-        },
-      });
-    }
-
-    return res.status(401).json({ ok: false, error: "Invalid credentials" });
-  } catch (err) {
-    console.error("Admin login error:", err);
-    return res.status(500).json({ ok: false, error: "Internal server error" });
-  }
-});
-
-app.post("/api/auth/logout", authRequired, async (req, res, next) => {
-  try {
-    clearSessionCookie(res);
-    return res.json({ ok: true });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-// ---------------------------------------------------------------------------
-// Password reset (public)
-// ---------------------------------------------------------------------------
-
-app.post("/api/auth/forgot-password", rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  keyPrefix: "forgot-password",
-  message: "Too many password reset requests. Please try again later.",
-}), async (req, res, next) => {
-  try {
-    const { email } = req.body || {};
-    if (!email || typeof email !== "string") {
-      return res.status(400).json({ ok: false, error: "Email is required" });
-    }
-    const normalizedEmail = email.trim().toLowerCase();
-
-    // Always return ok to avoid email enumeration
-    const user = await prisma.user.findUnique({
-      where: { email: normalizedEmail },
-      select: { id: true, email: true, role: true },
-    });
-
-    if (user && user.role === "TRADER") {
-      const rawToken = crypto.randomBytes(32).toString("hex");
-      const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
-      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { passwordResetToken: tokenHash, passwordResetExpiresAt: expiresAt },
-      });
-
-      const appUrl = process.env.APP_URL || "http://localhost:5173";
-      const resetUrl = `${appUrl}?reset=${rawToken}`;
-
-      await sendEmail({
-        to: user.email,
-        subject: "Reset your Green Turtle Trades password",
-        html: `
-          <p>Hi,</p>
-          <p>We received a request to reset your password. Click the link below to choose a new one:</p>
-          <p><a href="${resetUrl}">${resetUrl}</a></p>
-          <p>This link expires in 1 hour. If you didn't request a reset, you can safely ignore this email.</p>
-          <p>Green Turtle Trades</p>
-        `,
-        text: `Reset your password: ${resetUrl}\n\nThis link expires in 1 hour.`,
-      }).catch(() => {}); // Fire-and-forget — don't leak errors
-    }
-
-    return res.json({ ok: true });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.post("/api/auth/reset-password", rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  keyPrefix: "reset-password",
-  message: "Too many reset attempts. Please try again later.",
-}), async (req, res, next) => {
-  try {
-    const { token, password } = req.body || {};
-    if (!token || typeof token !== "string") {
-      return res.status(400).json({ ok: false, error: "Reset token is required" });
-    }
-    if (!password || typeof password !== "string" || password.length < 8) {
-      return res.status(400).json({ ok: false, error: "Password must be at least 8 characters" });
-    }
-
-    const tokenHash = crypto.createHash("sha256").update(token.trim()).digest("hex");
-    const user = await prisma.user.findFirst({
-      where: {
-        passwordResetToken: tokenHash,
-        passwordResetExpiresAt: { gt: new Date() },
-      },
-      select: { id: true },
-    });
-
-    if (!user) {
-      return res.status(400).json({ ok: false, error: "Reset link is invalid or has expired" });
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { passwordHash, passwordResetToken: null, passwordResetExpiresAt: null },
-    });
-
-    return res.json({ ok: true });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.post("/api/admin/change-password", authRequired, adminRequired, async (req, res, next) => {
-  try {
-    if (!req.user || req.user.id === "env-admin") {
-      return res.status(400).json({ ok: false, error: "Environment admin password cannot be changed here" });
-    }
-
-    const { currentPassword, newPassword } = req.body || {};
-
-    if (!currentPassword || typeof currentPassword !== "string") {
-      return res.status(400).json({ ok: false, error: "Current password is required" });
-    }
-
-    if (!newPassword || typeof newPassword !== "string" || newPassword.trim().length < 8) {
-      return res.status(400).json({ ok: false, error: "New password must be at least 8 characters" });
-    }
-
-    const adminUser = await prisma.user.findUnique({
-      where: { id: req.user.id },
-    });
-
-    if (!adminUser || !staffPortalRoles.has(adminUser.role)) {
-      return res.status(404).json({ ok: false, error: "Staff user not found" });
-    }
-
-    const passwordValid = await bcrypt.compare(currentPassword, adminUser.passwordHash);
-    if (!passwordValid) {
-      return res.status(401).json({ ok: false, error: "Current password is incorrect" });
-    }
-
-    const passwordHash = await bcrypt.hash(newPassword.trim(), 10);
-    await prisma.user.update({
-      where: { id: adminUser.id },
-      data: {
-        passwordHash,
-        status: "ACTIVE",
-      },
-    });
-
-    return res.json({ ok: true });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.post("/api/subscription/churn-feedback", authRequired, async (req, res, next) => {
-  try {
-    const { reason, feedback, plan } = req.body || {};
-
-    if (!reason || typeof reason !== "string" || !reason.trim()) {
-      return res.status(400).json({ ok: false, error: "Cancellation reason is required" });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.id },
-      include: { profile: true },
-    });
-
-    const entry = await prisma.churnFeedback.create({
-      data: {
-        userId: req.user.id,
-        reason: reason.trim(),
-        feedback: typeof feedback === "string" && feedback.trim() ? feedback.trim() : null,
-        plan: typeof plan === "string" && plan.trim() ? plan.trim() : null,
-        userEmailSnapshot: user?.email || null,
-        userNameSnapshot: user ? getUserDisplayName(user) : null,
-        source: "subscription-churn",
-      },
-    });
-
-    return res.json({ ok: true, id: entry.id });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.post("/api/subscription/pause", authRequired, async (req, res, next) => {
-  try {
-    if (req.user?.id === "env-admin" && req.user?.role === "ADMIN") {
-      return res.status(403).json({ ok: false, error: "Subscription actions are not available for env admin" });
-    }
-
-    const { stripe, subscription } = await getStripeSubscriptionForUser(req.user.id);
-    const updated = await stripe.subscriptions.update(subscription.id, {
-      pause_collection: {
-        behavior: "keep_as_draft",
-      },
-      cancel_at_period_end: false,
-    });
-
-    return res.json({
-      ok: true,
-      subscriptionStatus: updated.pause_collection ? "paused" : updated.status,
-    });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.post("/api/subscription/resume", authRequired, async (req, res, next) => {
-  try {
-    if (req.user?.id === "env-admin" && req.user?.role === "ADMIN") {
-      return res.status(403).json({ ok: false, error: "Subscription actions are not available for env admin" });
-    }
-
-    const { stripe, subscription } = await getStripeSubscriptionForUser(req.user.id);
-    const updated = await stripe.subscriptions.update(subscription.id, {
-      pause_collection: null,
-      cancel_at_period_end: false,
-    });
-
-    return res.json({
-      ok: true,
-      subscriptionStatus: updated.pause_collection ? "paused" : updated.status,
-    });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.post("/api/subscription/cancel", authRequired, async (req, res, next) => {
-  try {
-    if (req.user?.id === "env-admin" && req.user?.role === "ADMIN") {
-      return res.status(403).json({ ok: false, error: "Subscription actions are not available for env admin" });
-    }
-
-    const { reason, feedback, plan } = req.body || {};
-    const currentUser = await prisma.user.findUnique({
-      where: { id: req.user.id },
-      include: { profile: true },
-    });
-    const { stripe, subscription } = await getStripeSubscriptionForUser(req.user.id);
-    const updated = await stripe.subscriptions.update(subscription.id, {
-      cancel_at_period_end: true,
-      pause_collection: null,
-    });
-
-    if (reason && typeof reason === "string" && reason.trim()) {
-      await prisma.churnFeedback.create({
-        data: {
-          userId: req.user.id,
-          reason: reason.trim(),
-          feedback: typeof feedback === "string" && feedback.trim() ? feedback.trim() : null,
-          plan: typeof plan === "string" && plan.trim() ? plan.trim() : null,
-          userEmailSnapshot: currentUser?.email || null,
-          userNameSnapshot: currentUser ? getUserDisplayName(currentUser) : null,
-          source: "subscription-cancel",
-        },
-      });
-    }
-
-    return res.json({
-      ok: true,
-      subscriptionStatus: updated.cancel_at_period_end ? "cancelling" : updated.status,
-      currentPeriodEnd: stripeTimestampToDate(updated.current_period_end)?.toISOString() || null,
-    });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.get("/api/me", authRequired, async (req, res, next) => {
-  try {
-    if (req.user?.id === "env-admin" && req.user?.role === "ADMIN") {
-      const envEmail = (process.env.ADMIN_EMAIL || "greenturtlrtraders26@gmail.com").trim().toLowerCase();
-      return res.json({
-        ok: true,
-        user: {
-          id: "env-admin",
-          email: envEmail,
-          role: "ADMIN",
-          isSuperAdmin: true,
-          status: "ACTIVE",
-          profile: null,
-        },
-      });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.id },
-      include: { profile: true },
-    });
-
-    if (!user) {
-      return res.status(404).json({ ok: false, error: "User not found" });
-    }
-
-    return res.json({
-      ok: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: req.user?.role || user.role,
-        isSuperAdmin: Boolean(user.isSuperAdmin),
-        status: user.status,
-        profile: user.profile,
-      },
-    });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.get("/api/me/account-state", authRequired, async (req, res, next) => {
-  try {
-    if (req.user?.id === "env-admin" && req.user?.role === "ADMIN") {
-      const envEmail = (process.env.ADMIN_EMAIL || "greenturtlrtraders26@gmail.com").trim().toLowerCase();
-      return res.json({
-        ok: true,
-        account: {
-          id: "env-admin",
-          email: envEmail,
-          role: "ADMIN",
-          isSuperAdmin: true,
-          status: "ACTIVE",
-          plan: null,
-          profile: null,
-          billing: null,
-        },
-      });
-    }
-
-    const payload = await buildUserAccountState(req.user.id, req.user?.role || null);
-    if (!payload) {
-      return res.status(404).json({ ok: false, error: "User not found" });
-    }
-
-    return res.json(payload);
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.get("/api/me/billing", authRequired, async (req, res, next) => {
-  try {
-    if (req.user?.id === "env-admin" && req.user?.role === "ADMIN") {
-      return res.status(403).json({ ok: false, error: "Billing settings are not available for env admin" });
-    }
-
-    const payload = await buildUserBillingSummary(req.user.id);
-    if (!payload) {
-      return res.status(404).json({ ok: false, error: "User not found" });
-    }
-
-    return res.json(payload);
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.post("/api/billing/portal-session", authRequired, async (req, res, next) => {
-  try {
-    if (req.user?.id === "env-admin" && req.user?.role === "ADMIN") {
-      return res.status(403).json({ ok: false, error: "Billing portal is not available for env admin" });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.id },
-      select: {
-        id: true,
-        email: true,
-        stripeCustomerId: true,
-      },
-    });
-
-    if (!user) {
-      return res.status(404).json({ ok: false, error: "User not found" });
-    }
-
-    const { stripe, stripeCustomerId } = await getOrCreateStripeCustomerId(user);
-    const appUrl = process.env.APP_URL || "http://localhost:5173";
-    const session = await stripe.billingPortal.sessions.create({
-      customer: stripeCustomerId,
-      return_url: `${appUrl}?settings=billing`,
-    });
-
-    return res.json({ ok: true, url: session.url });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.patch("/api/me/profile", authRequired, async (req, res, next) => {
-  try {
-    const { fullName, email } = req.body || {};
-
-    if (fullName !== undefined && typeof fullName !== "string") {
-      return res.status(400).json({ ok: false, error: "Full name must be a string" });
-    }
-
-    if (email !== undefined && typeof email !== "string") {
-      return res.status(400).json({ ok: false, error: "Email must be a string" });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.id },
-      include: { profile: true },
-    });
-
-    if (!user) {
-      return res.status(404).json({ ok: false, error: "User not found" });
-    }
-
-    const data = {};
-    if (email !== undefined) {
-      const normalizedEmail = email.trim().toLowerCase();
-      if (!normalizedEmail) {
-        return res.status(400).json({ ok: false, error: "Email cannot be empty" });
-      }
-
-      if (normalizedEmail !== user.email) {
-        const existing = await prisma.user.findUnique({
-          where: { email: normalizedEmail },
-          select: { id: true },
-        });
-        if (existing && existing.id !== user.id) {
-          return res.status(409).json({ ok: false, error: "Email already exists" });
-        }
-        data.email = normalizedEmail;
-      }
-    }
-
-    const trimmedName = fullName !== undefined ? fullName.trim() : null;
-    const [firstName, ...restName] = trimmedName ? trimmedName.split(/\s+/) : [];
-    const lastName = restName.join(" ");
-
-    const updated = await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        ...data,
-        ...(fullName !== undefined
-          ? user.profile
-            ? {
-                profile: {
-                  update: {
-                    firstName: firstName || null,
-                    lastName: lastName || null,
-                  },
-                },
-              }
-            : {
-                profile: {
-                  create: {
-                    firstName: firstName || null,
-                    lastName: lastName || null,
-                  },
-                },
-              }
-          : {}),
-      },
-      include: { profile: true },
-    });
-
-    return res.json({
-      ok: true,
-      user: {
-        id: updated.id,
-        email: updated.email,
-        role: updated.role,
-        status: updated.status,
-        profile: updated.profile,
-      },
-    });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.post("/api/me/change-password", authRequired, async (req, res, next) => {
-  try {
-    const { currentPassword, newPassword } = req.body || {};
-
-    if (!currentPassword || typeof currentPassword !== "string") {
-      return res.status(400).json({ ok: false, error: "Current password is required" });
-    }
-
-    if (!newPassword || typeof newPassword !== "string" || newPassword.trim().length < 8) {
-      return res.status(400).json({ ok: false, error: "New password must be at least 8 characters" });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.id },
-    });
-
-    if (!user) {
-      return res.status(404).json({ ok: false, error: "User not found" });
-    }
-
-    const passwordValid = await bcrypt.compare(currentPassword, user.passwordHash);
-    if (!passwordValid) {
-      return res.status(401).json({ ok: false, error: "Current password is incorrect" });
-    }
-
-    const passwordHash = await bcrypt.hash(newPassword.trim(), 10);
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { passwordHash },
-    });
-
-    return res.json({ ok: true });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.delete("/api/me", authRequired, async (req, res, next) => {
-  try {
-    const { reason, feedback, plan, confirmOutstandingMlCharge } = req.body || {};
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.id },
-      select: {
-        id: true,
-        email: true,
-        profile: {
-          select: {
-            firstName: true,
-            lastName: true,
-          },
-        },
-        stripeCustomerId: true,
-        stripeSubscriptionId: true,
-        role: true,
-        isSuperAdmin: true,
-        billingExempt: true,
-        billingExemptReason: true,
-        brokerAccounts: {
-          select: { id: true },
-          take: 1,
-        },
-        apiKeys: {
-          select: { id: true },
-          take: 1,
-        },
-        billingEvents: {
-          where: {
-            eventType: {
-              in: ["invoice.paid", "invoice.payment_failed", "customer.subscription.created", "customer.subscription.updated"],
-            },
-          },
-          take: 1,
-          select: { id: true },
-        },
-      },
-    });
-
-    if (!user) {
-      return res.status(404).json({ ok: false, error: "User not found" });
-    }
-
-    if (user.role === "ADMIN" && req.user?.role === "TRADER") {
-      if (reason && typeof reason === "string" && reason.trim()) {
-        await prisma.churnFeedback.create({
-          data: {
-            userId: req.user.id,
-            reason: reason.trim(),
-            feedback: typeof feedback === "string" && feedback.trim() ? feedback.trim() : null,
-            plan: typeof plan === "string" && plan.trim() ? plan.trim() : null,
-            userEmailSnapshot: user.email,
-            userNameSnapshot: getUserDisplayName(user),
-            source: "account-delete",
-          },
-        });
-      }
-
-      await wipeTraderSideDataForUser(user.id, {
-        preserveChurnFeedback: true,
-      });
-
-      return res.json({
-        ok: true,
-        softDeleted: false,
-        traderSideWiped: true,
-      });
-    }
-
-    const outstandingMlCharges = await prisma.analysisRun.aggregate({
-      where: {
-        userId: req.user.id,
-        status: "COMPLETED",
-        cost: {
-          gt: 0,
-        },
-        OR: [
-          { stripeBillingStatus: null },
-          { stripeBillingStatus: { notIn: ["PAID", "NO_CHARGE", "REPORTED"] } },
-        ],
-      },
-      _sum: {
-        cost: true,
-      },
-    });
-    let outstandingMlChargeTotal = Number(outstandingMlCharges._sum.cost || 0);
-
-    if (user.stripeSubscriptionId && process.env.STRIPE_SECRET_KEY) {
-      try {
-        const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-        const upcomingInvoice = await stripe.invoices.retrieveUpcoming({
-          customer: user.stripeCustomerId || undefined,
-          subscription: user.stripeSubscriptionId,
-          expand: ["lines.data.price"],
-        });
-        outstandingMlChargeTotal = getStripeInvoiceRevenueBreakdown(upcomingInvoice).mlRevenue;
-      } catch (error) {
-        console.error("Unable to load Stripe upcoming invoice while deleting account", error);
-      }
-    }
-
-    if (outstandingMlChargeTotal > 0 && !confirmOutstandingMlCharge) {
-      return res.status(409).json({
-        ok: false,
-        error: `Deleting your account will stop future platform billing, but Stripe will first charge £${outstandingMlChargeTotal.toFixed(2)} for unpaid ML usage before the account is fully closed.`,
-        requiresFinalBillingConfirmation: true,
-        outstandingMlChargeTotal: Number(outstandingMlChargeTotal.toFixed(2)),
-      });
-    }
-
-    if (outstandingMlChargeTotal > 0 && !user.stripeSubscriptionId) {
-      return res.status(409).json({
-        ok: false,
-        error: "This account has unpaid ML usage but no active Stripe subscription to bill it against. Please contact support before deleting the account.",
-      });
-    }
-
-    if (user.stripeSubscriptionId) {
-      if (!process.env.STRIPE_SECRET_KEY) {
-        return res.status(409).json({
-          ok: false,
-          error: "Stripe billing must be configured before this account can be deleted safely.",
-        });
-      }
-
-      try {
-        const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-        const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
-        if (subscription && subscription.status !== "canceled") {
-          const canceledSubscription = await stripe.subscriptions.cancel(user.stripeSubscriptionId, {
-            invoice_now: true,
-            prorate: false,
-            cancellation_details: {
-              feedback: mapDeletionReasonToStripeFeedback(reason) || undefined,
-              comment: typeof feedback === "string" && feedback.trim() ? feedback.trim() : undefined,
-            },
-            expand: ["latest_invoice.payment_intent"],
-          });
-
-          const latestInvoiceRef = canceledSubscription.latest_invoice;
-          const latestInvoice =
-            latestInvoiceRef && typeof latestInvoiceRef === "object"
-              ? latestInvoiceRef
-              : latestInvoiceRef
-                ? await stripe.invoices.retrieve(latestInvoiceRef)
-                : null;
-
-          if (
-            latestInvoice &&
-            typeof latestInvoice.amount_remaining === "number" &&
-            latestInvoice.amount_remaining > 0 &&
-            latestInvoice.status !== "paid"
-          ) {
-            const paidInvoice = await stripe.invoices.pay(latestInvoice.id);
-            if (
-              paidInvoice.status !== "paid" &&
-              typeof paidInvoice.amount_remaining === "number" &&
-              paidInvoice.amount_remaining > 0
-            ) {
-              return res.status(409).json({
-                ok: false,
-                error: "We stopped future platform billing, but could not collect the outstanding ML usage charge. Please update your billing method and try again.",
-              });
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Failed to cancel Stripe subscription during account deletion", error);
-        return res.status(409).json({
-          ok: false,
-          error: "Unable to stop Stripe billing for this account. Please try again or contact support.",
-        });
-      }
-    }
-
-    const deletedEmail = `deleted+${user.id}.${Date.now()}@deleted.local`;
-    const replacementPasswordHash = await bcrypt.hash(crypto.randomUUID(), 10);
-
-    const deletionChurnWrite =
-      reason && typeof reason === "string" && reason.trim()
-        ? prisma.churnFeedback.create({
-            data: {
-              userId: req.user.id,
-              reason: reason.trim(),
-              feedback: typeof feedback === "string" && feedback.trim() ? feedback.trim() : null,
-              plan: typeof plan === "string" && plan.trim() ? plan.trim() : null,
-              userEmailSnapshot: user.email,
-              userNameSnapshot: getUserDisplayName(user),
-              source: "account-delete",
-            },
-          })
-        : null;
-
-    await prisma.$transaction([
-      prisma.apiKey.updateMany({
-        where: { userId: req.user.id, revokedAt: null },
-        data: { revokedAt: new Date() },
-      }),
-      prisma.brokerAccount.updateMany({
-        where: { userId: req.user.id, isActive: true },
-        data: { isActive: false },
-      }),
-      prisma.accountDeletionAudit.create({
-        data: {
-          userId: req.user.id,
-          previousEmail: user.email,
-          deletedEmail,
-          stripeCustomerId: user.stripeCustomerId,
-          stripeSubscriptionId: user.stripeSubscriptionId,
-          hadBillingHistory: user.billingEvents.length > 0,
-          hadBrokerAccounts: user.brokerAccounts.length > 0,
-          hadApiKeys: user.apiKeys.length > 0,
-          metadata: {
-            deletedAt: new Date().toISOString(),
-            deletionMode: "self-service-soft-delete",
-            deletionReason: reason && typeof reason === "string" ? reason.trim() : null,
-            deletionFeedback: typeof feedback === "string" && feedback.trim() ? feedback.trim() : null,
-          },
-        },
-      }),
-      ...(deletionChurnWrite ? [deletionChurnWrite] : []),
-      prisma.user.update({
-        where: { id: req.user.id },
-        data: {
-          email: deletedEmail,
-          passwordHash: replacementPasswordHash,
-          status: "DISABLED",
-          stripeCustomerId: null,
-          stripeSubscriptionId: null,
-          platformComped: false,
-          platformCompedReason: null,
-          appliedReferralCodeId: null,
-          accountDiscountPercent: null,
-          mlRunDiscountPercent: null,
-          referralDiscountExpiresAt: null,
-        },
-      }),
-    ]);
-
-    clearSessionCookie(res);
-
-    return res.json({ ok: true, softDeleted: true });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-// Create waitlist entry
-app.post("/api/waitlist", async (req, res) => {
-  try {
-    const { email, source } = req.body || {};
-
-    if (!email || typeof email !== "string") {
-      return res.status(400).json({ ok: false, error: "Email is required" });
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-
-    await prisma.waitlistEntry.upsert({
-      where: { email: normalizedEmail },
-      update: { source: source || undefined },
-      create: { email: normalizedEmail, source: source || null },
-    });
-
-    // Fire-and-forget emails (don’t block response)
-    const notifyTo = process.env.EMAIL_NOTIFY_TO;
-
-    sendEmail({
-      to: normalizedEmail,
-      replyTo: notifyTo || process.env.EMAIL_FROM,
-      subject: "Your early access request has been received",
-      html: `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a; max-width: 640px; margin: 0 auto;">
-          <div style="padding: 24px 0 12px;">
-            <h2 style="margin: 0; color: #0f766e;">Green Turtle Trades</h2>
-          </div>
-          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px;">
-            <p style="margin-top: 0;">Thank you for requesting early access to Green Turtle Trades.</p>
-            <p>We have received your request and added you to our investor waitlist.</p>
-            <p>We will reach out to you as soon as access becomes available and the platform is ready.</p>
-            <div style="margin: 24px 0; padding: 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
-              <p style="margin: 0;"><strong>Email:</strong> ${normalizedEmail}</p>
-            </div>
-            <p style="margin-bottom: 0;">Best regards,<br />Green Turtle Trades</p>
-          </div>
-        </div>
-      `,
-      text: [
-        "Thank you for requesting early access to Green Turtle Trades.",
-        "We have received your request and added you to our investor waitlist.",
-        "We will reach out to you as soon as access becomes available and the platform is ready.",
-        "",
-        `Email: ${normalizedEmail}`,
-        "",
-        "Best regards,",
-        "Green Turtle Trades",
-      ].join("\n"),
-    }).catch((e) => console.error("Waitlist confirmation email failed:", e));
-
-    if (notifyTo) {
-      sendEmail({
-        to: notifyTo,
-        replyTo: normalizedEmail,
-        subject: "New waitlist signup",
-        html: `
-          <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a; max-width: 640px; margin: 0 auto;">
-            <div style="padding: 24px 0 12px;">
-              <h2 style="margin: 0; color: #0f766e;">Green Turtle Trades</h2>
-            </div>
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px;">
-              <p style="margin-top: 0;">A new investor waitlist request has been submitted.</p>
-              <div style="margin: 20px 0; padding: 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
-                <p style="margin: 0 0 8px;"><strong>Email:</strong> ${normalizedEmail}</p>
-                <p style="margin: 0;"><strong>Source:</strong> ${source || "unknown"}</p>
-              </div>
-            </div>
-          </div>
-        `,
-        text: [
-          "A new investor waitlist request has been submitted.",
-          "",
-          `Email: ${normalizedEmail}`,
-          `Source: ${source || "unknown"}`,
-        ].join("\n"),
-      }).catch((e) => console.error("Waitlist notify email failed:", e));
-    }
-
-    return res.json({ ok: true });
-  } catch (err) {
-    console.error("Waitlist error:", err);
-    return res.status(500).json({ ok: false, error: "Internal server error" });
-  }
-});
-
-// Create contact message
-app.post("/api/contact", async (req, res, next) => {
-  try {
-    const { name, email, subject, message } = req.body || {};
-
-    if (name !== undefined && name !== null && typeof name !== "string") {
-      return res.status(400).json({ ok: false, error: "Name must be a string" });
-    }
-
-    if (!email || typeof email !== "string" || !email.trim()) {
-      return res.status(400).json({ ok: false, error: "Email is required" });
-    }
-
-    if (subject !== undefined && subject !== null && typeof subject !== "string") {
-      return res.status(400).json({ ok: false, error: "Subject must be a string" });
-    }
-
-    if (!message || typeof message !== "string" || !message.trim()) {
-      return res.status(400).json({ ok: false, error: "Message is required" });
-    }
-
-    const normalizedName =
-      typeof name === "string" && name.trim() ? name.trim() : null;
-    const normalizedEmail = email.trim().toLowerCase();
-    const normalizedSubject =
-      typeof subject === "string" && subject.trim() ? subject.trim() : null;
-    const normalizedMessage = message.trim();
-
-    // Store only fields that exist in your Prisma model
-    await prisma.contactMessage.create({
-      data: {
-        name: normalizedName,
-        email: normalizedEmail,
-        message: normalizedMessage,
-      },
-    });
-
-    const notifyTo = process.env.EMAIL_NOTIFY_TO;
-
-    if (notifyTo) {
-      sendEmail({
-        to: notifyTo,
-        subject: "New contact message",
-        replyTo: normalizedEmail,
-        html: `
-          <div style="font-family: Arial, sans-serif; line-height: 1.5;">
-            <h3>New contact message</h3>
-            <p><b>Name:</b> ${normalizedName || "—"}</p>
-            <p><b>Email:</b> ${normalizedEmail}</p>
-            <p><b>Subject:</b> ${normalizedSubject || "—"}</p>
-            <p><b>Message:</b></p>
-            <pre style="white-space: pre-wrap; background:#f8fafc; padding:12px; border-radius:8px;">${normalizedMessage}</pre>
-          </div>
-        `,
-      }).catch((e) => console.error("Contact notify email failed:", e));
-    }
-
-    sendEmail({
-      to: normalizedEmail,
-      subject: "We received your message",
-      replyTo: notifyTo || process.env.EMAIL_FROM,
-      html: `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a; max-width: 640px; margin: 0 auto;">
-          <div style="padding: 24px 0 12px;">
-            <h2 style="margin: 0; color: #0f766e;">Green Turtle Trades</h2>
-          </div>
-          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px;">
-            <p style="margin-top: 0;">Hi ${normalizedName || "there"},</p>
-            <p>Thank you for contacting Green Turtle Trades. We've received your message and will get back to you as soon as possible.</p>
-            <p>Our usual response time is within 24 hours during business days.</p>
-            <div style="margin: 24px 0; padding: 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
-              <p style="margin: 0 0 8px;"><strong>Subject:</strong> ${normalizedSubject || "General enquiry"}</p>
-              <p style="margin: 0 0 8px;"><strong>Email:</strong> ${normalizedEmail}</p>
-              <p style="margin: 0;"><strong>Message received:</strong></p>
-              <pre style="white-space: pre-wrap; margin: 12px 0 0; font-family: Arial, sans-serif; background: #f8fafc; padding: 12px; border-radius: 8px;">${normalizedMessage}</pre>
-            </div>
-            <p style="margin-bottom: 0;">Best regards,<br />Green Turtle Trades Support</p>
-          </div>
-        </div>
-      `,
-      text: [
-        `Hi ${normalizedName || "there"},`,
-        "",
-        "Thank you for contacting Green Turtle Trades.",
-        "We've received your message and will get back to you as soon as possible.",
-        "Our usual response time is within 24 hours during business days.",
-        "",
-        `Subject: ${normalizedSubject || "General enquiry"}`,
-        `Email: ${normalizedEmail}`,
-        "",
-        "Message received:",
-        normalizedMessage,
-        "",
-        "Best regards,",
-        "Green Turtle Trades Support",
-      ].join("\n"),
-    }).catch((e) => console.error("Contact confirmation email failed:", e));
-
-    return res.json({ ok: true });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-// Admin trader application review
-app.get("/api/admin/trader-applications", authRequired, adminRequired, async (req, res, next) => {
-  try {
-    const { status } = req.query;
-
-    if (status && (typeof status !== "string" || !applicationStatuses.has(status))) {
-      return res.status(400).json({ ok: false, error: "Invalid status" });
-    }
-
-    const applications = await prisma.traderApplication.findMany({
-      where: status ? { status } : undefined,
-      orderBy: { submittedAt: "desc" },
-      select: {
-        id: true,
-        fullName: true,
-        email: true,
-        country: true,
-        platform: true,
-        experienceLevel: true,
-        status: true,
-        submittedAt: true,
-      },
-    });
-
-    return res.json({ ok: true, items: applications });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.post("/api/admin/trader-applications/:id/approve", authRequired, adminRequired, async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    const updated = await prisma.traderApplication.update({
-      where: { id },
-      data: {
-        status: "APPROVED",
-        reviewedAt: new Date(),
-        rejectionReason: null,
-      },
-    });
-
-    return res.json({ ok: true, status: updated.status });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.post("/api/admin/trader-applications/:id/reject", authRequired, adminRequired, async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { reason } = req.body || {};
-
-    if (!reason || typeof reason !== "string") {
-      return res
-        .status(400)
-        .json({ ok: false, error: "Rejection reason is required" });
-    }
-
-    const updated = await prisma.traderApplication.update({
-      where: { id },
-      data: {
-        status: "REJECTED",
-        reviewedAt: new Date(),
-        rejectionReason: reason.trim(),
-      },
-    });
-
-    return res.json({ ok: true, status: updated.status });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.get("/api/admin/traders", authRequired, adminRequired, async (req, res, next) => {
-  try {
-    const [users, applications] = await Promise.all([
-      prisma.user.findMany({
-        where: { role: "TRADER", ...getNonDeletedUserWhere() },
-        orderBy: { createdAt: "desc" },
-        include: {
-          profile: true,
-          analysisSnapshots: {
-            orderBy: { updatedAt: "desc" },
-            take: 1,
-          },
-          brokerAccounts: {
-            select: {
-              id: true,
-              isActive: true,
-              eaEvents: {
-                select: {
-                  type: true,
-                  receivedAt: true,
-                },
-              },
-            },
-          },
-          _count: {
-            select: {
-              apiKeys: true,
-              storedTrades: true,
-              analysisRuns: true,
-            },
-          },
-        },
-      }),
-      prisma.traderApplication.findMany({
-        orderBy: { submittedAt: "desc" },
-      }),
-    ]);
-
-    const usersByEmail = new Map(
-      users.map((user) => [user.email.trim().toLowerCase(), user])
-    );
-    const applicationsByEmail = new Map(
-      applications.map((application) => [application.email.trim().toLowerCase(), application])
-    );
-
-    const emails = Array.from(
-      new Set([...usersByEmail.keys(), ...applicationsByEmail.keys()])
-    );
-
-    const items = emails
-      .map((email) => {
-        const user = usersByEmail.get(email) || null;
-        const application = applicationsByEmail.get(email) || null;
-        const brokerAccounts = user?.brokerAccounts || [];
-        const latestSnapshot = user?.analysisSnapshots?.[0] || null;
-        const eaEvents = brokerAccounts.flatMap((account) => account.eaEvents);
-        const tradeEventCount = eaEvents.filter((event) => event.type === "TRADE_EVENT").length;
-        const historyExportCount = eaEvents.filter((event) => event.type === "HISTORY_EXPORT").length;
-        const lastEaSyncAt = eaEvents.reduce((latest, event) => {
-          if (!latest || event.receivedAt > latest) {
-            return event.receivedAt;
-          }
-          return latest;
-        }, null);
-
-        const firstName = user?.profile?.firstName?.trim() || "";
-        const lastName = user?.profile?.lastName?.trim() || "";
-        const profileName = `${firstName} ${lastName}`.trim();
-        const applicationName = application?.fullName?.trim() || "";
-        const latestBrokerAccount = brokerAccounts.find((account) => account.isActive) || brokerAccounts[0] || null;
-        const derivedName =
-          profileName ||
-          applicationName ||
-          email.split("@")[0];
-
-        return {
-          id: user?.id || application?.id,
-          name: derivedName,
-          email,
-          billingExempt: Boolean(user?.billingExempt),
-          billingExemptReason: user?.billingExemptReason || null,
-          platformComped: Boolean(user?.platformComped),
-          platformCompedReason: user?.platformCompedReason || null,
-          accountStatus: user ? user.status : "NO_ACCOUNT",
-          applicationStatus: application ? application.status : "NONE",
-          plan: user?.stripeSubscriptionId ? "premium" : "payg",
-          joinedAt: (user?.createdAt || application?.submittedAt || new Date()).toISOString(),
-          country: application?.country || null,
-          platform: application?.platform || latestBrokerAccount?.platform || null,
-          experienceLevel: application?.experienceLevel || null,
-          brokerAccountsCount: brokerAccounts.length,
-          activeBrokerAccountsCount: brokerAccounts.filter((account) => account.isActive).length,
-          apiKeysCount: user?._count?.apiKeys || 0,
-          analysisRunCount: user?._count?.analysisRuns || 0,
-          tradeEventCount: user?._count?.storedTrades || 0,
-          historyExportCount,
-          lastEaSyncAt: lastEaSyncAt ? lastEaSyncAt.toISOString() : null,
-          hasAccount: Boolean(user),
-          hasApplication: Boolean(application),
-          analysisStatus: getTraderAnalysisStatus({
-            latestSnapshot,
-            tradeEventCount,
-            historyExportCount,
-          }),
-          latestAnalysisAt: latestSnapshot ? latestSnapshot.updatedAt.toISOString() : null,
-          latestAnalysisReport: latestSnapshot ? latestSnapshot.report : null,
-          metrics: {
-            tradesAnalysed: latestSnapshot?.tradesAnalysed ?? null,
-            avgRMultiple: latestSnapshot?.avgRMultiple ?? null,
-            winRate: latestSnapshot?.winRate ?? null,
-            sharpeRatio: latestSnapshot?.sharpeRatio ?? null,
-            maxDrawdownR: latestSnapshot?.maxDrawdownR ?? null,
-            totalR: latestSnapshot?.totalR ?? null,
-          },
-        };
-      })
-      .sort((a, b) => new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime());
-
-    return res.json({ ok: true, items });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.get("/api/admin/staff", authRequired, adminRequired, async (req, res, next) => {
-  try {
-    const [adminUsers, testUsers] = await Promise.all([
-      prisma.user.findMany({
-        where: {
-          role: {
-            in: Array.from(staffPortalRoles),
-          },
-        },
-        orderBy: { createdAt: "desc" },
-        include: {
-          profile: true,
-        },
-      }),
-      prisma.user.findMany({
-        where: {
-          role: "TRADER",
-          billingExempt: true,
-          ...getNonDeletedUserWhere(),
-        },
-        orderBy: { createdAt: "desc" },
-        include: {
-          profile: true,
-        },
-      }),
-    ]);
-
-    const items = [
-      ...adminUsers.map(buildAdminStaffMember),
-      ...testUsers.map((user) => {
-        const firstName = user.profile?.firstName?.trim() || "";
-        const lastName = user.profile?.lastName?.trim() || "";
-        const profileName = `${firstName} ${lastName}`.trim();
-
-        return {
-          id: user.id,
-          name: profileName || user.email.split("@")[0],
-          email: user.email,
-          role: "test_trader",
-          status: user.status,
-          joinDate: user.createdAt.toISOString(),
-          lastActive: user.updatedAt?.toISOString?.() || null,
-          source: "test_trader",
-          billingExemptReason: user.billingExemptReason || null,
-        };
-      }),
-    ];
-
-    const envEmail = (process.env.ADMIN_EMAIL || "greenturtlrtraders26@gmail.com").trim().toLowerCase();
-    if (envEmail && !items.some((item) => item.email === envEmail)) {
-      items.unshift({
-        id: "env-admin",
-        name: envEmail.split("@")[0],
-        email: envEmail,
-        role: "super_admin",
-        status: "ACTIVE",
-        joinDate: new Date(0).toISOString(),
-        lastActive: null,
-        source: "environment",
-      });
-    }
-
-    return res.json({ ok: true, items });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.post("/api/admin/staff/:id/wipe-trader-side", authRequired, staffWriteRequired, async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    if (id === "env-admin") {
-      return res.status(400).json({ ok: false, error: "Env admin trader data cannot be managed here" });
-    }
-
-    const existing = await prisma.user.findUnique({
-      where: { id },
-      include: { profile: true },
-    });
-
-    if (!existing || existing.role !== "ADMIN") {
-      return res.status(404).json({ ok: false, error: "Admin account not found" });
-    }
-
-    await wipeTraderSideDataForUser(existing.id);
-
-    const updated = await prisma.user.findUnique({
-      where: { id: existing.id },
-      include: { profile: true },
-    });
-
-    return res.json({
-      ok: true,
-      staffMember: buildAdminStaffMember(updated),
-    });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.post("/api/admin/staff/:id/promote-super-admin", authRequired, superAdminRequired, async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    if (id === "env-admin") {
-      return res.status(400).json({ ok: false, error: "Env admin is already super admin" });
-    }
-
-    const existing = await prisma.user.findUnique({
-      where: { id },
-      include: { profile: true },
-    });
-
-    if (!existing || existing.role !== "ADMIN") {
-      return res.status(404).json({ ok: false, error: "Admin account not found" });
-    }
-
-    const updated = await prisma.user.update({
-      where: { id },
-      data: { isSuperAdmin: true },
-      include: { profile: true },
-    });
-
-    return res.json({
-      ok: true,
-      staffMember: buildAdminStaffMember(updated),
-    });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.delete("/api/admin/staff/:id", authRequired, superAdminRequired, async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    if (id === "env-admin") {
-      return res.status(400).json({ ok: false, error: "Env admin access cannot be removed here" });
-    }
-
-    if (req.user?.id === id) {
-      return res.status(400).json({ ok: false, error: "You cannot remove your own admin access" });
-    }
-
-    const existing = await prisma.user.findUnique({
-      where: { id },
-      include: { profile: true },
-    });
-
-    if (!existing || existing.role !== "ADMIN") {
-      return res.status(404).json({ ok: false, error: "Admin account not found" });
-    }
-
-    if (existing.billingExempt) {
-      const updated = await prisma.user.update({
-        where: { id },
-        data: {
-          role: "TRADER",
-          isSuperAdmin: false,
-        },
-        include: { profile: true },
-      });
-
-      return res.json({
-        ok: true,
-        mode: "demoted_to_trader",
-        staffMember: {
-          id: updated.id,
-          name: getUserDisplayName(updated),
-          email: updated.email,
-          role: "test_trader",
-          status: updated.status,
-          joinDate: updated.createdAt.toISOString(),
-          lastActive: updated.updatedAt?.toISOString?.() || null,
-          source: "test_trader",
-          billingExemptReason: updated.billingExemptReason || null,
-        },
-      });
-    }
-
-    await prisma.user.delete({
-      where: { id },
-    });
-
-    return res.json({ ok: true, mode: "deleted" });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.post("/api/admin/test-traders/:id/access", authRequired, staffWriteRequired, async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { enabled } = req.body || {};
-
-    if (typeof enabled !== "boolean") {
-      return res.status(400).json({ ok: false, error: "enabled must be a boolean" });
-    }
-
-    const existing = await prisma.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        role: true,
-        billingExempt: true,
-        profile: {
-          select: {
-            firstName: true,
-            lastName: true,
-          },
-        },
-        email: true,
-        createdAt: true,
-        updatedAt: true,
-        status: true,
-        billingExemptReason: true,
-      },
-    });
-
-    if (!existing || existing.role !== "TRADER" || !existing.billingExempt) {
-      return res.status(404).json({ ok: false, error: "Test trader not found" });
-    }
-
-    const updated = await prisma.user.update({
-      where: { id },
-      data: {
-        status: enabled ? "ACTIVE" : "DISABLED",
-      },
-      include: {
-        profile: true,
-      },
-    });
-
-    const firstName = updated.profile?.firstName?.trim() || "";
-    const lastName = updated.profile?.lastName?.trim() || "";
-    const profileName = `${firstName} ${lastName}`.trim();
-
-    return res.json({
-      ok: true,
-      staffMember: {
-        id: updated.id,
-        name: profileName || updated.email.split("@")[0],
-        email: updated.email,
-        role: "test_trader",
-        status: updated.status,
-        joinDate: updated.createdAt.toISOString(),
-        lastActive: updated.updatedAt?.toISOString?.() || null,
-        source: "test_trader",
-        billingExemptReason: updated.billingExemptReason || null,
-      },
-    });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-// ---------------------------------------------------------------------------
-// Admin — trader account management
-// ---------------------------------------------------------------------------
-
-app.patch("/api/admin/traders/:id/status", authRequired, adminRequired, staffWriteRequired, async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body || {};
-
-    if (!["ACTIVE", "DISABLED"].includes(status)) {
-      return res.status(400).json({ ok: false, error: "Status must be ACTIVE or DISABLED" });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id },
-      select: { id: true, role: true, email: true },
-    });
-
-    if (!user || user.role !== "TRADER") {
-      return res.status(404).json({ ok: false, error: "Trader not found" });
-    }
-
-    await prisma.user.update({
-      where: { id },
-      data: { status },
-    });
-
-    return res.json({ ok: true, status });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-// Manually sync a trader's Stripe subscription from Stripe API into the DB.
-// Recovers users who paid but whose webhook failed to fire or was missed.
-app.post("/api/admin/traders/:id/sync-stripe", authRequired, adminRequired, staffWriteRequired, async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-    if (!stripeSecretKey) {
-      return res.status(500).json({ ok: false, error: "Stripe not configured" });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id },
-      select: { id: true, role: true, email: true, stripeCustomerId: true, stripeSubscriptionId: true },
-    });
-
-    if (!user || user.role !== "TRADER") {
-      return res.status(404).json({ ok: false, error: "Trader not found" });
-    }
-
-    if (!user.stripeCustomerId) {
-      return res.status(400).json({ ok: false, error: "No Stripe customer ID on this account — user has not started checkout" });
-    }
-
-    const stripe = Stripe(stripeSecretKey);
-    const subscriptions = await stripe.subscriptions.list({
-      customer: user.stripeCustomerId,
-      status: "all",
-      limit: 5,
-    });
-
-    const active = subscriptions.data.find(s =>
-      ["active", "trialing", "past_due"].includes(s.status)
-    );
-
-    if (!active) {
-      return res.status(404).json({ ok: false, error: "No active subscription found in Stripe for this customer" });
-    }
-
-    await prisma.user.update({
-      where: { id },
-      data: { stripeSubscriptionId: active.id },
-    });
-
-    return res.json({ ok: true, stripeSubscriptionId: active.id, stripeStatus: active.status });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.post("/api/admin/traders/:id/platform-comp", authRequired, adminRequired, staffWriteRequired, async (req, res, next) => {
-  try {
-    const enabled = req.body?.enabled !== false;
-    const user = await prisma.user.findUnique({
-      where: { id: req.params.id },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        billingExempt: true,
-        billingExemptReason: true,
-        platformComped: true,
-        platformCompedReason: true,
-        stripeSubscriptionId: true,
-        stripeCustomerId: true,
-        appliedReferralCode: { select: { code: true } },
-        accountDiscountPercent: true,
-        mlRunDiscountPercent: true,
-        referralDiscountExpiresAt: true,
-      },
-    });
-
-    if (!user || user.role !== "TRADER") {
-      return res.status(404).json({ ok: false, error: "Trader not found" });
-    }
-
-    if (isBillingExemptUser(user)) {
-      return res.status(400).json({ ok: false, error: "Billing-exempt internal accounts already bypass platform billing" });
-    }
-
-    const updated = await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        platformComped: enabled,
-        platformCompedReason: enabled ? "Manual complimentary platform access" : null,
-      },
-      select: {
-        id: true,
-        platformComped: true,
-        platformCompedReason: true,
-        stripeSubscriptionId: true,
-        appliedReferralCode: { select: { code: true } },
-        accountDiscountPercent: true,
-        mlRunDiscountPercent: true,
-        referralDiscountExpiresAt: true,
-        email: true,
-      },
-    });
-
-    if (process.env.STRIPE_SECRET_KEY && updated.stripeSubscriptionId) {
-      const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-      const monthlyPriceId = process.env.STRIPE_PRICE_MONTHLY;
-      if (!monthlyPriceId) {
-        return res.status(500).json({ ok: false, error: "Stripe monthly price not configured" });
-      }
-
-      const { discountsPayload } = await buildStripeAccountDiscountConfig({
-        stripe,
-        user: updated,
-        monthlyPriceId,
-      });
-
-      await stripe.subscriptions.update(updated.stripeSubscriptionId, {
-        discounts: discountsPayload && discountsPayload.length > 0 ? discountsPayload : "",
-      });
-    }
-
-    return res.json({
-      ok: true,
-      platformComped: updated.platformComped,
-      platformCompedReason: updated.platformCompedReason,
-      email: updated.email,
-    });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.post("/api/admin/traders/:id/reset-password", authRequired, adminRequired, staffWriteRequired, async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    const user = await prisma.user.findUnique({
-      where: { id },
-      select: { id: true, role: true, email: true },
-    });
-
-    if (!user || user.role !== "TRADER") {
-      return res.status(404).json({ ok: false, error: "Trader not found" });
-    }
-
-    const rawToken = crypto.randomBytes(32).toString("hex");
-    const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours for admin-triggered resets
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { passwordResetToken: tokenHash, passwordResetExpiresAt: expiresAt },
-    });
-
-    const appUrl = process.env.APP_URL || "http://localhost:5173";
-    const resetUrl = `${appUrl}?reset=${rawToken}`;
-
-    await sendEmail({
-      to: user.email,
-      subject: "Reset your Green Turtle Trades password",
-      html: `
-        <p>Hi,</p>
-        <p>An administrator has requested a password reset for your account. Click the link below to set a new password:</p>
-        <p><a href="${resetUrl}">${resetUrl}</a></p>
-        <p>This link expires in 24 hours.</p>
-        <p>Green Turtle Trades</p>
-      `,
-      text: `Reset your password: ${resetUrl}\n\nThis link expires in 24 hours.`,
-    });
-
-    return res.json({ ok: true });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.delete("/api/admin/test-traders/:id", authRequired, staffWriteRequired, async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    const existing = await prisma.user.findUnique({
-      where: { id },
-      include: {
-        profile: true,
-      },
-    });
-
-    if (!existing || existing.role !== "TRADER" || !existing.billingExempt) {
-      return res.status(404).json({ ok: false, error: "Test trader not found" });
-    }
-
-    await prisma.user.delete({
-      where: { id },
-    });
-
-    return res.json({ ok: true });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.get("/api/admin/churn-feedback", authRequired, adminRequired, async (req, res, next) => {
-  try {
-    const items = await prisma.churnFeedback.findMany({
-      orderBy: { createdAt: "desc" },
-      include: {
-        user: {
-          include: {
-            profile: true,
-          },
-        },
-      },
-    });
-
-    const normalizedReasons = new Map();
-    for (const item of items) {
-      const key = item.reason;
-      const current = normalizedReasons.get(key) || 0;
-      normalizedReasons.set(key, current + 1);
-    }
-
-    const reasonSummary = Array.from(normalizedReasons.entries())
-      .map(([reason, count]) => ({ reason, count }))
-      .sort((a, b) => b.count - a.count);
-
-    const payload = items.map((item) => {
-      const firstName = item.user.profile?.firstName?.trim() || "";
-      const lastName = item.user.profile?.lastName?.trim() || "";
-      const profileName = `${firstName} ${lastName}`.trim();
-      const fallbackEmail =
-        typeof item.userEmailSnapshot === "string" && item.userEmailSnapshot.trim()
-          ? item.userEmailSnapshot.trim()
-          : item.user.email;
-      const fallbackName =
-        typeof item.userNameSnapshot === "string" && item.userNameSnapshot.trim()
-          ? item.userNameSnapshot.trim()
-          : profileName || fallbackEmail.split("@")[0];
-
-      return {
-        id: item.id,
-        userId: item.userId,
-        userName: fallbackName,
-        email: fallbackEmail,
-        plan: item.plan || "unknown",
-        reason: item.reason,
-        feedback: item.feedback,
-        createdAt: item.createdAt.toISOString(),
-      };
-    });
-
-    return res.json({
-      ok: true,
-      items: payload,
-      summary: reasonSummary,
-    });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.get("/api/admin/account-deletion-audits", authRequired, adminRequired, async (req, res, next) => {
-  try {
-    const audits = await prisma.accountDeletionAudit.findMany({
-      orderBy: { deletedAt: "desc" },
-      take: 100,
-      include: {
-        user: {
-          include: { profile: true },
-        },
-      },
-    });
-
-    const items = audits.map((audit) => {
-      const firstName = audit.user?.profile?.firstName?.trim() || "";
-      const lastName = audit.user?.profile?.lastName?.trim() || "";
-      const profileName = `${firstName} ${lastName}`.trim();
-
-      return {
-        id: audit.id,
-        userId: audit.userId,
-        userName: profileName || audit.previousEmail.split("@")[0],
-        previousEmail: audit.previousEmail,
-        deletedEmail: audit.deletedEmail,
-        deletedAt: audit.deletedAt.toISOString(),
-        stripeCustomerId: audit.stripeCustomerId,
-        stripeSubscriptionId: audit.stripeSubscriptionId,
-        hadBillingHistory: audit.hadBillingHistory,
-        hadBrokerAccounts: audit.hadBrokerAccounts,
-        hadApiKeys: audit.hadApiKeys,
-        metadata: audit.metadata,
-      };
-    });
-
-    return res.json({ ok: true, items });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.post("/api/admin/staff/invite", authRequired, staffWriteRequired, async (req, res, next) => {
-  try {
-    const { email, temporaryCode, accessLevel } = req.body || {};
-
-    if (!email || typeof email !== "string") {
-      return res.status(400).json({ ok: false, error: "Email is required" });
-    }
-
-    if (
-      !temporaryCode ||
-      typeof temporaryCode !== "string" ||
-      temporaryCode.trim().length < 8
-    ) {
-      return res.status(400).json({ ok: false, error: "Temporary code must be at least 8 characters" });
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-    const normalizedAccessLevel = accessLevel === "super_admin" ? "super_admin" : "admin";
-
-    if (normalizedAccessLevel === "super_admin" && !req.user?.isSuperAdmin) {
-      return res.status(403).json({ ok: false, error: "Only super admins can invite super admins" });
-    }
-
-    const existing = await prisma.user.findUnique({
-      where: { email: normalizedEmail },
-      include: { profile: true },
-    });
-
-    if (existing && existing.role !== "ADMIN") {
-      return res.status(409).json({ ok: false, error: "A non-admin user already exists with that email" });
-    }
-
-    const passwordHash = await bcrypt.hash(temporaryCode.trim(), 10);
-
-    const adminUser = existing
-      ? await prisma.user.update({
-          where: { id: existing.id },
-          data: {
-            passwordHash,
-            role: "ADMIN",
-            isSuperAdmin: normalizedAccessLevel === "super_admin",
-            status: "PENDING",
-          },
-          include: { profile: true },
-        })
-      : await prisma.user.create({
-          data: {
-            email: normalizedEmail,
-            passwordHash,
-            role: "ADMIN",
-            isSuperAdmin: normalizedAccessLevel === "super_admin",
-            status: "PENDING",
-          },
-          include: { profile: true },
-        });
-
-    const appUrl = process.env.APP_URL || "http://localhost:5173";
-
-    sendEmail({
-      to: normalizedEmail,
-      subject: "Green Turtle Trades admin invite",
-      html: `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a; max-width: 640px; margin: 0 auto;">
-          <div style="padding: 24px 0 12px;">
-            <h2 style="margin: 0; color: #0f766e;">Green Turtle Trades</h2>
-          </div>
-          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px;">
-            <p style="margin-top: 0;">You have been invited to the Green Turtle Trades admin portal.</p>
-            <p>Use the email below and the one-time code to sign in. You will be asked to change it after login.</p>
-            <div style="margin: 24px 0; padding: 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
-              <p style="margin: 0 0 8px;"><strong>Email:</strong> ${normalizedEmail}</p>
-              <p style="margin: 0 0 8px;"><strong>Access level:</strong> ${normalizedAccessLevel === "super_admin" ? "Super Admin" : "Admin"}</p>
-              <p style="margin: 0;"><strong>One-time code:</strong> ${temporaryCode.trim()}</p>
-            </div>
-            <p style="margin: 0 0 8px;"><strong>Admin portal:</strong> ${appUrl}/admin</p>
-            <p style="margin-bottom: 0;">If you were not expecting this invite, please ignore this email.</p>
-          </div>
-        </div>
-      `,
-      text: [
-        "You have been invited to the Green Turtle Trades admin portal.",
-        "Use the details below to sign in, then change your password immediately.",
-        "",
-        `Email: ${normalizedEmail}`,
-        `Access level: ${normalizedAccessLevel === "super_admin" ? "Super Admin" : "Admin"}`,
-        `One-time code: ${temporaryCode.trim()}`,
-        `Admin portal: ${appUrl}/admin`,
-      ].join("\n"),
-    }).catch((e) => console.error("Admin invite email failed:", e));
-
-    return res.json({ ok: true, staffMember: buildAdminStaffMember(adminUser) });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.post("/api/admin/traders/create-test-user", authRequired, staffWriteRequired, async (req, res, next) => {
-  try {
-    const { email, password, fullName, metaTraderUsername, brokerName } = req.body || {};
-
-    if (!email || typeof email !== "string") {
-      return res.status(400).json({ ok: false, error: "Email is required" });
-    }
-
-    if (!password || typeof password !== "string" || password.trim().length < 8) {
-      return res.status(400).json({ ok: false, error: "Password must be at least 8 characters" });
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-    const internalEmailGroup = getInternalCompanyEmailGroup(normalizedEmail);
-
-    if (internalEmailGroup) {
-      const existingInternalCompanyAccount = await prisma.user.findFirst({
-        where: {
-          billingExempt: true,
-          email: {
-            in: Array.from(internalCompanyEmails),
-          },
-        },
-        select: { id: true, email: true },
-      });
-
-      if (existingInternalCompanyAccount) {
-        return res.status(409).json({
-          ok: false,
-          error: `Internal company account already exists for ${existingInternalCompanyAccount.email}`,
-        });
-      }
-    }
-
-    const existing = await prisma.user.findUnique({
-      where: { email: normalizedEmail },
-      include: {
-        profile: true,
-        brokerAccounts: {
-          select: {
-            id: true,
-          },
-          take: 1,
-        },
-      },
-    });
-
-    if (existing) {
-      if (existing.role !== "ADMIN") {
-        return res.status(409).json({ ok: false, error: "Email already exists" });
-      }
-
-      const trimmedName = typeof fullName === "string" ? fullName.trim() : "";
-      const [firstName, ...restName] = trimmedName ? trimmedName.split(/\s+/) : [];
-      const lastName = restName.join(" ");
-      const normalizedMetaTraderUsername =
-        typeof metaTraderUsername === "string" && metaTraderUsername.trim()
-          ? metaTraderUsername.trim()
-          : null;
-      const normalizedBrokerName =
-        typeof brokerName === "string" && brokerName.trim()
-          ? brokerName.trim()
-          : null;
-
-      const updated = await prisma.user.update({
-        where: { id: existing.id },
-        data: {
-          status: "ACTIVE",
-          billingExempt: true,
-          billingExemptReason: "Internal test user enabled on admin account",
-          passwordHash: await bcrypt.hash(password.trim(), 10),
-          profile:
-            trimmedName && !existing.profile
-              ? {
-                  create: {
-                    firstName: firstName || null,
-                    lastName: lastName || null,
-                  },
-                }
-              : trimmedName
-                ? {
-                    update: {
-                      firstName: firstName || null,
-                      lastName: lastName || null,
-                    },
-                  }
-                : undefined,
-          brokerAccounts:
-            normalizedMetaTraderUsername && existing.brokerAccounts.length === 0
-              ? {
-                  create: {
-                    platform: "MT5",
-                    brokerName: normalizedBrokerName,
-                    accountNumber: normalizedMetaTraderUsername,
-                    label: "Primary MetaTrader",
-                    isActive: true,
-                  },
-                }
-              : undefined,
-        },
-        include: { profile: true },
-      });
-
-      return res.json({
-        ok: true,
-        trader: {
-          id: updated.id,
-          email: updated.email,
-          name:
-            `${updated.profile?.firstName || ""} ${updated.profile?.lastName || ""}`.trim() ||
-            updated.email.split("@")[0],
-          billingExempt: true,
-          billingExemptReason: updated.billingExemptReason,
-        },
-      });
-    }
-
-    const trimmedName = typeof fullName === "string" ? fullName.trim() : "";
-    const [firstName, ...restName] = trimmedName ? trimmedName.split(/\s+/) : [];
-    const lastName = restName.join(" ");
-    const normalizedMetaTraderUsername =
-      typeof metaTraderUsername === "string" && metaTraderUsername.trim()
-        ? metaTraderUsername.trim()
-        : null;
-    const normalizedBrokerName =
-      typeof brokerName === "string" && brokerName.trim()
-        ? brokerName.trim()
-        : null;
-
-    const user = await prisma.user.create({
-      data: {
-        email: normalizedEmail,
-        passwordHash: await bcrypt.hash(password.trim(), 10),
-        role: "TRADER",
-        status: "ACTIVE",
-        billingExempt: true,
-        billingExemptReason: "Internal test user created from admin panel",
-        profile: trimmedName
-          ? {
-              create: {
-                firstName: firstName || null,
-                lastName: lastName || null,
-              },
-            }
-          : undefined,
-        brokerAccounts: normalizedMetaTraderUsername
-          ? {
-              create: {
-                platform: "MT5",
-                brokerName: normalizedBrokerName,
-                accountNumber: normalizedMetaTraderUsername,
-                label: "Primary MetaTrader",
-                isActive: true,
-              },
-            }
-          : undefined,
-      },
-      include: { profile: true },
-    });
-
-    return res.json({
-      ok: true,
-      trader: {
-        id: user.id,
-        email: user.email,
-        name:
-          `${user.profile?.firstName || ""} ${user.profile?.lastName || ""}`.trim() ||
-          user.email.split("@")[0],
-        billingExempt: true,
-        billingExemptReason: user.billingExemptReason,
-      },
-    });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.get("/api/admin/signups", authRequired, adminRequired, async (req, res, next) => {
-  try {
-    const [waitlistEntries, traderApplications, traderUsers] = await Promise.all([
-      prisma.waitlistEntry.findMany({
-        orderBy: { createdAt: "desc" },
-      }),
-      prisma.traderApplication.findMany({
-        orderBy: { submittedAt: "desc" },
-      }),
-      prisma.user.findMany({
-        where: { role: "TRADER", ...getNonDeletedUserWhere() },
-        orderBy: { createdAt: "desc" },
-        include: { profile: true },
-      }),
-    ]);
-
-    const items = [
-      ...waitlistEntries.map((entry) => ({
-        id: `waitlist-${entry.id}`,
-        email: entry.email,
-        sourceType: entry.source === "landing" ? "landing_waitlist" : "investor_waitlist",
-        status: "SUBMITTED",
-        submittedAt: entry.createdAt.toISOString(),
-        name: null,
-        detail: entry.source || "unknown",
-      })),
-      ...traderApplications.map((application) => ({
-        id: `application-${application.id}`,
-        email: application.email,
-        sourceType: "trader_application",
-        status: application.status,
-        submittedAt: application.submittedAt.toISOString(),
-        name: application.fullName,
-        detail: `${application.country} · ${application.platform}`,
-      })),
-      ...traderUsers.map((user) => {
-        const firstName = user.profile?.firstName?.trim() || "";
-        const lastName = user.profile?.lastName?.trim() || "";
-        const profileName = `${firstName} ${lastName}`.trim();
-        return {
-          id: `user-${user.id}`,
-          email: user.email,
-          sourceType: "trader_account",
-          status: user.status,
-          submittedAt: user.createdAt.toISOString(),
-          name: profileName || null,
-          detail: user.stripeSubscriptionId ? "Premium" : "PAYG",
-        };
-      }),
-    ].sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
-
-    return res.json({ ok: true, items });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.get("/api/admin/finance", authRequired, adminRequired, async (req, res, next) => {
-  try {
-    const traders = await prisma.user.findMany({
-      where: {
-        role: "TRADER",
-        status: { in: ["ACTIVE", "PENDING", "DISABLED"] },
-        ...getNonDeletedUserWhere(),
-      },
-      orderBy: { createdAt: "desc" },
-      include: {
-        profile: true,
-        analysisRuns: {
-          where: { status: "COMPLETED" },
-          orderBy: { completedAt: "desc" },
-          select: {
-            cost: true,
-            completedAt: true,
-          },
-        },
-        billingEvents: {
-          where: {
-            eventType: "invoice.paid",
-            status: "PAID",
-          },
-          orderBy: { occurredAt: "desc" },
-          select: {
-            category: true,
-            amountPaid: true,
-            occurredAt: true,
-            periodStart: true,
-            periodEnd: true,
-            stripeInvoiceId: true,
-            payload: true,
-          },
-        },
-      },
-    });
-
-    const traderAccounts = traders.length;
-    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-    const linkedCustomerIds = Array.from(
-      new Set(
-        traders
-          .map((user) => user.stripeCustomerId)
-          .filter((value) => typeof value === "string" && value.trim()),
-      ),
-    );
-    const linkedSubscriptionIds = Array.from(
-      new Set(
-        traders
-          .map((user) => user.stripeSubscriptionId)
-          .filter((value) => typeof value === "string" && value.trim()),
-      ),
-    );
-
-    let liveStripeCustomerIds = new Set(linkedCustomerIds);
-    let liveActiveSubscriptionIds = new Set(linkedSubscriptionIds);
-    let liveInvoiceRows = [];
-
-    if (stripeSecretKey) {
-      const stripe = Stripe(stripeSecretKey);
-      const [liveCustomers, liveSubscriptions, invoiceLists] = await Promise.all([
-        Promise.all(
-          linkedCustomerIds.map(async (customerId) => {
-            try {
-              const customer = await stripe.customers.retrieve(customerId);
-              if (customer && !customer.deleted) return customerId;
-            } catch (error) {
-              console.error("Unable to load Stripe customer for admin finance", customerId, error);
-            }
-            return null;
-          }),
-        ),
-        Promise.all(
-          linkedSubscriptionIds.map(async (subscriptionId) => {
-            try {
-              const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-              if (subscription && subscription.status !== "canceled") return subscriptionId;
-            } catch (error) {
-              console.error("Unable to load Stripe subscription for admin finance", subscriptionId, error);
-            }
-            return null;
-          }),
-        ),
-        Promise.all(
-          linkedCustomerIds.map(async (customerId) => {
-            try {
-              const invoices = await stripe.invoices.list({
-                customer: customerId,
-                status: "paid",
-                limit: 100,
-                expand: ["data.lines.data.price"],
-              });
-              return invoices.data.map((invoice) => ({
-                customerId,
-                invoiceId: invoice.id,
-                occurredAt: new Date(
-                  ((invoice.status_transitions && invoice.status_transitions.paid_at) || invoice.created) * 1000,
-                ),
-                breakdown: getStripeInvoiceRevenueBreakdown(invoice),
-              }));
-            } catch (error) {
-              console.error("Unable to load Stripe invoices for admin finance", customerId, error);
-              return [];
-            }
-          }),
-        ),
-      ]);
-
-      liveStripeCustomerIds = new Set(liveCustomers.filter(Boolean));
-      liveActiveSubscriptionIds = new Set(liveSubscriptions.filter(Boolean));
-      liveInvoiceRows = invoiceLists.flat();
-    }
-
-    const premiumAccounts = traders.filter(
-      (user) => user.stripeSubscriptionId && liveActiveSubscriptionIds.has(user.stripeSubscriptionId),
-    ).length;
-    const paygAccounts = Math.max(traderAccounts - premiumAccounts, 0);
-    const stripeCustomers = liveStripeCustomerIds.size;
-    const activeSubscriptions = liveActiveSubscriptionIds.size;
-
-    const allCompletedRuns = traders.flatMap((user) => user.analysisRuns);
-    const completedAnalysisRuns = allCompletedRuns.length;
-    const fallbackInvoiceRows = traders.flatMap((user) =>
-      user.billingEvents.map((invoice) => ({
-        customerId: user.stripeCustomerId || null,
-        invoiceId: invoice.stripeInvoiceId || null,
-        occurredAt: invoice.occurredAt,
-        breakdown: getBillingEventRevenueBreakdown(invoice),
-      })),
-    );
-    const invoiceRows = liveInvoiceRows.length > 0 ? liveInvoiceRows : fallbackInvoiceRows;
-    const estimatedAnalysisRevenue = invoiceRows.reduce(
-      (sum, entry) => sum + entry.breakdown.mlRevenue,
-      0,
-    );
-    const paidSubscriptionInvoices = invoiceRows.length;
-    const recognizedSubscriptionRevenue = invoiceRows.reduce(
-      (sum, entry) => sum + entry.breakdown.subscriptionRevenue,
-      0,
-    );
-    const totalRecognizedRevenue = recognizedSubscriptionRevenue + estimatedAnalysisRevenue;
-    const averageRevenuePerRun =
-      completedAnalysisRuns > 0 ? estimatedAnalysisRevenue / completedAnalysisRuns : 0;
-
-    const now = new Date();
-    const monthlyRevenue = Array.from({ length: 6 }, (_, index) => {
-      const monthDate = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
-      const nextMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 1);
-      const monthRuns = allCompletedRuns.filter((run) => {
-        if (!run.completedAt) return false;
-        return run.completedAt >= monthDate && run.completedAt < nextMonth;
-      });
-      const monthInvoiceBreakdowns = invoiceRows.filter((entry) => {
-        return entry.occurredAt >= monthDate && entry.occurredAt < nextMonth;
-      });
-      const analysisRevenue = monthInvoiceBreakdowns.reduce(
-        (sum, entry) => sum + entry.breakdown.mlRevenue,
-        0,
-      );
-      const subscriptionRevenue = monthInvoiceBreakdowns.reduce(
-        (sum, entry) => sum + entry.breakdown.subscriptionRevenue,
-        0,
-      );
-
-      return {
-        month: monthDate.toLocaleDateString(undefined, { month: "short" }),
-        analysisRevenue: Number(analysisRevenue.toFixed(2)),
-        subscriptionRevenue: Number(subscriptionRevenue.toFixed(2)),
-        revenue: Number((analysisRevenue + subscriptionRevenue).toFixed(2)),
-        runs: monthRuns.length,
-        invoices: monthInvoiceBreakdowns.length,
-      };
-    });
-
-    const planMix = [
-      { name: "PAYG", value: paygAccounts },
-      { name: "Premium", value: premiumAccounts },
-    ];
-
-    const accounts = traders
-      .map((user) => {
-        const firstName = user.profile?.firstName?.trim() || "";
-        const lastName = user.profile?.lastName?.trim() || "";
-        const profileName = `${firstName} ${lastName}`.trim();
-        const userInvoiceBreakdowns = invoiceRows.filter(
-          (entry) => entry.customerId && entry.customerId === user.stripeCustomerId,
-        );
-        const estimatedRevenue = userInvoiceBreakdowns.reduce(
-          (sum, entry) => sum + entry.breakdown.mlRevenue,
-          0,
-        );
-        const subscriptionRevenue = userInvoiceBreakdowns.reduce(
-          (sum, entry) => sum + entry.breakdown.subscriptionRevenue,
-          0,
-        );
-        return {
-          userId: user.id,
-          email: user.email,
-          name: profileName || user.email.split("@")[0],
-          plan:
-            user.stripeSubscriptionId && liveActiveSubscriptionIds.has(user.stripeSubscriptionId)
-              ? "premium"
-              : "payg",
-          stripeCustomerLinked: Boolean(user.stripeCustomerId && liveStripeCustomerIds.has(user.stripeCustomerId)),
-          stripeSubscriptionLinked: Boolean(
-            user.stripeSubscriptionId && liveActiveSubscriptionIds.has(user.stripeSubscriptionId),
-          ),
-          completedRuns: user.analysisRuns.length,
-          estimatedRevenue: Number(estimatedRevenue.toFixed(2)),
-          subscriptionRevenue: Number(subscriptionRevenue.toFixed(2)),
-          totalRevenue: Number((estimatedRevenue + subscriptionRevenue).toFixed(2)),
-          paidSubscriptionInvoices: userInvoiceBreakdowns.length,
-          latestPaymentAt: userInvoiceBreakdowns[0]?.occurredAt ? userInvoiceBreakdowns[0].occurredAt.toISOString() : null,
-          latestRunAt: user.analysisRuns[0]?.completedAt ? user.analysisRuns[0].completedAt.toISOString() : null,
-        };
-      })
-      .sort((a, b) => b.totalRevenue - a.totalRevenue);
-
-    return res.json({
-      ok: true,
-      finance: {
-        summary: {
-          traderAccounts,
-          paygAccounts,
-          premiumAccounts,
-          stripeCustomers,
-          activeSubscriptions,
-          paidSubscriptionInvoices,
-          recognizedSubscriptionRevenue: Number(recognizedSubscriptionRevenue.toFixed(2)),
-          completedAnalysisRuns,
-          estimatedAnalysisRevenue: Number(estimatedAnalysisRevenue.toFixed(2)),
-          totalRecognizedRevenue: Number(totalRecognizedRevenue.toFixed(2)),
-          averageRevenuePerRun: Number(averageRevenuePerRun.toFixed(2)),
-        },
-        monthlyRevenue,
-        planMix,
-        accounts,
-      },
-    });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-// Public endpoint — validates a referral code without exposing sensitive details
-app.post("/api/referral-codes/validate", async (req, res, next) => {
-  try {
-    const code = (req.body?.code || "").trim().toUpperCase();
-    if (!code) return res.status(400).json({ ok: false, error: "No code provided" });
-
-    const resolved = await resolveDiscountCode(code);
-    if (resolved.type === "referral") {
-      return res.json({
-        ok: true,
-        source: "platform",
-        code,
-      });
-    }
-
-    if (resolved.type === "stripe_promotion") {
-      return res.json({
-        ok: true,
-        source: "stripe",
-        code,
-      });
-    }
-
-    return res.json({ ok: false, error: "Invalid or inactive referral code" });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.get("/api/admin/referral-codes", authRequired, adminRequired, async (req, res, next) => {
-  try {
-    const referralCodes = await prisma.referralCode.findMany({
-      where: {
-        OR: [
-          { createdByUserId: null },
-          { createdBy: { role: "ADMIN" } },
-        ],
-      },
-      orderBy: { createdAt: "desc" },
-      include: {
-        createdBy: {
-          include: { profile: true },
-        },
-      },
-    });
-
-    return res.json({
-      ok: true,
-      items: referralCodes.map(formatReferralCode),
-    });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.post("/api/admin/referral-codes", authRequired, adminRequired, staffWriteRequired, async (req, res, next) => {
-  try {
-    const {
-      code,
-      accountDiscountPercent,
-      mlRunDiscountPercent,
-      durationDays,
-      isActive,
-    } = req.body || {};
-
-    if (!code || typeof code !== "string" || !code.trim()) {
-      return res.status(400).json({ ok: false, error: "Referral code is required" });
-    }
-
-    const normalizedCode = code.trim().toUpperCase();
-    if (!/^[A-Z0-9_-]{4,32}$/.test(normalizedCode)) {
-      return res.status(400).json({ ok: false, error: "Referral code must be 4-32 characters using letters, numbers, hyphens, or underscores" });
-    }
-
-    const accountDiscount = Number(accountDiscountPercent);
-    const mlRunDiscount = Number(mlRunDiscountPercent);
-    const duration = Number(durationDays);
-
-    if (!Number.isFinite(accountDiscount) || accountDiscount < 0 || accountDiscount > 100) {
-      return res.status(400).json({ ok: false, error: "Account discount must be between 0 and 100" });
-    }
-
-    if (!Number.isFinite(mlRunDiscount) || mlRunDiscount < 0 || mlRunDiscount > 100) {
-      return res.status(400).json({ ok: false, error: "ML run discount must be between 0 and 100" });
-    }
-
-    if (!Number.isInteger(duration) || duration < 1 || duration > 3650) {
-      return res.status(400).json({ ok: false, error: "Duration must be between 1 and 3650 days" });
-    }
-
-    const existing = await prisma.referralCode.findUnique({
-      where: { code: normalizedCode },
-      select: { id: true },
-    });
-
-    if (existing) {
-      return res.status(409).json({ ok: false, error: "Referral code already exists" });
-    }
-
-    const referralCode = await prisma.referralCode.create({
-      data: {
-        code: normalizedCode,
-        accountDiscountPercent: accountDiscount,
-        mlRunDiscountPercent: mlRunDiscount,
-        durationDays: duration,
-        isActive: isActive === undefined ? true : Boolean(isActive),
-        createdByUserId: req.user?.id === "env-admin" ? null : req.user.id,
-      },
-      include: {
-        createdBy: {
-          include: { profile: true },
-        },
-      },
-    });
-
-    return res.json({
-      ok: true,
-      referralCode: formatReferralCode(referralCode),
-    });
-  } catch (err) {
-    return next(err);
-  }
+registerAdminRoutes(app, {
+  prisma,
+  bcrypt,
+  crypto,
+  Stripe,
+  sendEmail,
+  env: process.env,
+  authRequired,
+  adminRequired,
+  staffWriteRequired,
+  superAdminRequired,
+  staffPortalRoles,
+  applicationStatuses,
+  internalCompanyEmails,
+  buildAdminStaffMember,
+  getNonDeletedUserWhere,
+  getTraderAnalysisStatus,
+  wipeTraderSideDataForUser,
+  getUserDisplayName,
+  isBillingExemptUser,
+  buildStripeAccountDiscountConfig,
+  getBillingEventRevenueBreakdown,
+  getStripeInvoiceRevenueBreakdown,
+  getInternalCompanyEmailGroup,
 });
 
 // Broker accounts
@@ -6530,805 +2806,40 @@ app.get("/api/ea/diagnostics", authRequired, async (req, res, next) => {
   }
 });
 
-// Admin metrics
-app.get("/api/admin/metrics", authRequired, adminRequired, async (req, res, next) => {
-  try {
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-
-    const [waitlistCount, contactCount, createdTodayWaitlistCount] =
-      await Promise.all([
-        prisma.waitlistEntry.count(),
-        prisma.contactMessage.count(),
-        prisma.waitlistEntry.count({
-          where: {
-            createdAt: {
-              gte: startOfToday,
-            },
-          },
-        }),
-      ]);
-
-    return res.json({
-      waitlistCount,
-      contactCount,
-      createdTodayWaitlistCount,
-    });
-  } catch (err) {
-    return next(err);
-  }
-});
-
 // ---------------------------------------------------------------------------
 // Turtle Analytics — trigger ML pipeline and poll results
 // ---------------------------------------------------------------------------
 
 const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL || "http://localhost:8000";
 
-app.get("/api/analyse/options", authRequired, async (req, res, next) => {
-  try {
-    return res.json({ ok: true, ...(await buildAnalysisOptionsPayload(req.user.id, { requestFresh: true, syncStoredTrades: true })) });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.get("/api/account/state", authRequired, async (req, res, next) => {
-  try {
-    return res.json({ ok: true, ...(await buildAccountStatePayload(req.user.id)) });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.get("/api/analyse/latest", authRequired, async (req, res, next) => {
-  try {
-    const { latestAnalysis } = await buildAccountStatePayload(req.user.id);
-    return res.json({ ok: true, latestAnalysis });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.get("/api/analyse/history", authRequired, async (req, res, next) => {
-  try {
-    const { history } = await buildAccountStatePayload(req.user.id);
-    return res.json({ ok: true, history });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.delete("/api/analyse/history/:runId", authRequired, async (req, res, next) => {
-  try {
-    const runId = String(req.params.runId || "").trim();
-    const deleteJournalData = req.body?.deleteJournalData === true;
-    if (!runId) {
-      return res.status(400).json({ ok: false, error: "Analysis run id is required." });
-    }
-
-    const run = await prisma.analysisRun.findFirst({
-      where: { id: runId, userId: req.user.id },
-      select: {
-        id: true,
-        status: true,
-        analysisSnapshotId: true,
-        cost: true,
-        analysisSnapshot: {
-          select: {
-            report: true,
-          },
-        },
-      },
-    });
-
-    if (!run) {
-      return res.status(404).json({ ok: false, error: "Analysis run not found." });
-    }
-
-    if (run.status === "RUNNING") {
-      return res.status(400).json({ ok: false, error: "A running analysis cannot be deleted." });
-    }
-
-    const snapshotMetadata =
-      run.analysisSnapshot?.report &&
-      typeof run.analysisSnapshot.report === "object" &&
-      run.analysisSnapshot.report.metadata &&
-      typeof run.analysisSnapshot.report.metadata === "object"
-        ? run.analysisSnapshot.report.metadata
-        : null;
-    const snapshotTradeIdentities = Array.isArray(snapshotMetadata?.trade_identities)
-      ? snapshotMetadata.trade_identities.filter((value) => typeof value === "string" && value.trim())
-      : [];
-
-    if (deleteJournalData && snapshotTradeIdentities.length === 0) {
-      return res.status(400).json({
-        ok: false,
-        error: "This run does not contain linked journal trade identities, so only ML data can be deleted.",
-      });
-    }
-
-    await prisma.$transaction(async (tx) => {
-      await tx.analysisRun.update({
-        where: { id: run.id },
-        data: {
-          analysisSnapshotId: null,
-          error: ANALYSIS_DATA_DELETED_MARKER,
-        },
-      });
-
-      if (run.analysisSnapshotId) {
-        const remainingLinkedRuns = await tx.analysisRun.count({
-          where: {
-            analysisSnapshotId: run.analysisSnapshotId,
-            id: { not: run.id },
-          },
-        });
-
-        if (remainingLinkedRuns === 0) {
-          await tx.analysisSnapshot.deleteMany({
-            where: { id: run.analysisSnapshotId, userId: req.user.id },
-          });
-        }
-      }
-
-      if (deleteJournalData) {
-        await tx.storedTrade.deleteMany({
-          where: {
-            userId: req.user.id,
-            tradeIdentity: { in: snapshotTradeIdentities },
-          },
-        });
-      }
-    });
-
-    return res.json({
-      ok: true,
-      runId: run.id,
-      cost: run.cost ?? null,
-      deletedData: true,
-      deletedJournalData: deleteJournalData,
-      message: deleteJournalData
-        ? "Saved analysis data for this run was deleted and the linked journal trades for that run were cleared. The billed run record was kept."
-        : "Saved analysis data was deleted for this run, but the billed run record was kept.",
-    });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.get("/api/trades", authRequired, async (req, res, next) => {
-  try {
-    const { trades, pnlMeta } = await buildAccountStatePayload(req.user.id);
-    return res.json({ ok: true, trades, pnlMeta });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.patch("/api/trades/:tradeIdentity/journal", authRequired, async (req, res, next) => {
-  try {
-    const tradeIdentity = decodeURIComponent(req.params.tradeIdentity || "");
-    if (!tradeIdentity) {
-      return res.status(400).json({ ok: false, error: "Trade identity is required." });
-    }
-
-    const notes = typeof req.body?.notes === "string" ? req.body.notes.trim() : "";
-    const emotions = typeof req.body?.emotions === "string" ? req.body.emotions.trim() : "";
-    const lessonsLearned =
-      typeof req.body?.lessonsLearned === "string" ? req.body.lessonsLearned.trim() : "";
-
-    let storedTrade = await prisma.storedTrade.findUnique({
-      where: {
-        userId_tradeIdentity: {
-          userId: req.user.id,
-          tradeIdentity,
-        },
-      },
-    });
-
-    if (!storedTrade) {
-      const requestedMatchKey = buildJournalEntryMatchKey({
-        pair: req.body?.pair,
-        direction: req.body?.direction,
-        date: req.body?.date,
-        entryTime: req.body?.entryTime,
-        exitTime: req.body?.exitTime,
-        entryPrice: req.body?.entryPrice,
-        exitPrice: req.body?.exitPrice,
-      });
-
-      const candidateTrades = await prisma.storedTrade.findMany({
-        where: { userId: req.user.id },
-        orderBy: [{ exitTime: "desc" }, { updatedAt: "desc" }],
-      });
-
-      storedTrade =
-        candidateTrades.find(
-          (candidate) =>
-            buildJournalEntryMatchKey(storedTradeToJournalEntry(candidate)) === requestedMatchKey
-        ) || null;
-    }
-
-    if (!storedTrade) {
-      return res.status(404).json({ ok: false, error: "Trade not found." });
-    }
-
-    const updatedTrade = await prisma.storedTrade.update({
-      where: { id: storedTrade.id },
-      data: {
-        notes: notes || null,
-        emotions: emotions || null,
-        lessonsLearned: lessonsLearned || null,
-      },
-    });
-
-    return res.json({
-      ok: true,
-      trade: storedTradeToJournalEntry(updatedTrade),
-    });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.delete("/api/account/analysis-data", authRequired, async (req, res, next) => {
-  try {
-    await prisma.$transaction(async (tx) => {
-      const brokerAccounts = await tx.brokerAccount.findMany({
-        where: { userId: req.user.id },
-        select: { id: true },
-      });
-      const brokerAccountIds = brokerAccounts.map((account) => account.id);
-
-      if (brokerAccountIds.length > 0) {
-        await tx.eaEvent.deleteMany({
-          where: {
-            brokerAccountId: { in: brokerAccountIds },
-          },
-        });
-      }
-
-      await tx.analysisRun.deleteMany({
-        where: { userId: req.user.id },
-      });
-
-      await tx.analysisSnapshot.deleteMany({
-        where: { userId: req.user.id },
-      });
-
-      await tx.storedTrade.deleteMany({
-        where: { userId: req.user.id },
-      });
-    });
-
-    return res.json({
-      ok: true,
-      message: "Saved analysis runs, snapshots, stored trade history, and MetaTrader event history were cleared for this account.",
-    });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-/**
- * POST /api/analyse/csv
- *
- * Parses a CSV upload, upserts its trades into the stored trade ledger,
- * and analyses the user's cumulative remembered trade history.
- */
-app.post("/api/analyse/csv", authRequired, async (req, res, next) => {
-  let analysisRun = null;
-  try {
-    await assertMlAnalysisAccess(req.user.id);
-
-    const tradeCount = 500;
-    const mode = "trades";
-    const replaceDataset =
-      req.query.replace === "1" ||
-      req.query.replace === "true" ||
-      req.query.replace === "yes";
-    const brokerAccountId = await getPreferredBrokerAccountId(req.user.id);
-    const parsedTrades = await parseCsvTradesFromPython(req);
-
-    if (replaceDataset) {
-      await prisma.$transaction(async (tx) => {
-        await tx.analysisRun.deleteMany({
-          where: { userId: req.user.id },
-        });
-
-        await tx.analysisSnapshot.deleteMany({
-          where: { userId: req.user.id },
-        });
-
-        await tx.storedTrade.deleteMany({
-          where: { userId: req.user.id },
-        });
-      });
-    }
-
-    const persistSummary = await persistTradesToMemory(req.user.id, parsedTrades, {
-      brokerAccountId,
-      source: "csv_import",
-      seenAt: new Date(),
-    });
-    const pendingTrades = await loadStoredTradesForAnalysis(req.user.id, {
-      mode,
-      tradeCount,
-      pendingOnly: true,
-    });
-
-    if (pendingTrades.length === 0) {
-      analysisRun = await createFailedAnalysisRun(req.user.id, {
-        mode,
-        requestedTrades: parsedTrades.length,
-        tradesAnalysed: 0,
-        cost: 0,
-        periodDescription: replaceDataset ? "CSV import (replaced account dataset)" : "CSV import",
-        error: "This CSV did not add any new trades that still need analysing.",
-      });
-      return res.status(400).json({
-        ok: false,
-        error: "This CSV did not add any new trades that still need analysing.",
-        analysisRunId: analysisRun.id,
-      });
-    }
-
-    const allTrades = await loadStoredTradesForAnalysis(req.user.id, {
-      mode,
-      tradeCount,
-      pendingOnly: false,
-    });
-
-    const csvDateRange = deriveTradeDateRange(allTrades);
-    const estimatedCost = await estimateAnalysisCost(req.user.id, pendingTrades.length);
-    analysisRun = await prisma.analysisRun.create({
-      data: {
-        userId: req.user.id,
-        status: "RUNNING",
-        mode: "csv",
-        requestedTrades: parsedTrades.length,
-        tradesAnalysed: allTrades.length,
-        cost: estimatedCost,
-        periodDescription: replaceDataset ? "CSV import (replaced account dataset)" : "CSV import",
-        dateRangeStart: csvDateRange.start,
-        dateRangeEnd: csvDateRange.end,
-      },
-    });
-
-    const tradeFingerprint = buildTradeFingerprint(allTrades, req.user.id);
-    const pythonRes = await fetch(`${PYTHON_SERVICE_URL}/analyse`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        trades: allTrades,
-        run_optimisation: true,
-        run_survival: true,
-        run_clustering: true,
-        n_clusters: 4,
-      }),
-    });
-
-    if (!pythonRes.ok) {
-      const err = await pythonRes.text();
-      await prisma.analysisRun.update({
-        where: { id: analysisRun.id },
-        data: {
-          status: "FAILED",
-          error: "Analysis service error: " + err,
-          completedAt: new Date(),
-        },
-      });
-      return res.status(502).json({ ok: false, error: "Analysis service error: " + err });
-    }
-
-    const { job_id } = await pythonRes.json();
-    analysisJobContext.set(job_id, {
-      userId: req.user.id,
-      analysisRunId: analysisRun.id,
-      tradeFingerprint,
-      allTradeIdentities: allTrades
-        .map((trade) => buildTradeIdentity(trade, req.user.id))
-        .filter(Boolean),
-      tradeIdentities: pendingTrades
-        .map((trade) => buildTradeIdentity(trade, req.user.id))
-        .filter(Boolean),
-      requestedTradeCount: tradeCount,
-      uniqueTradeCount: allTrades.length,
-      availableTradeCount: allTrades.length,
-      duplicateTradeCount: persistSummary.updated,
-      mode,
-    });
-
-    return res.json({
-      ok: true,
-      jobId: job_id,
-      analysisRunId: analysisRun.id,
-      estimatedCost,
-      availableTradeCount: allTrades.length,
-      pendingTradeCount: pendingTrades.length,
-      duplicateTradeCount: persistSummary.updated,
-      importedTradeCount: parsedTrades.length,
-      storedTradeCount: persistSummary.stored,
-    });
-  } catch (err) {
-    if (analysisRun?.id) {
-      await prisma.analysisRun.update({
-        where: { id: analysisRun.id },
-        data: {
-          status: "FAILED",
-          error: err instanceof Error ? err.message : "Analysis failed to start",
-          completedAt: new Date(),
-        },
-      }).catch(() => {});
-    }
-    return next(err);
-  }
-});
-
-/**
- * POST /api/analyse
- *
- * Fetches the user's trade history from HISTORY_EXPORT EA events,
- * extracts the trade records, and dispatches them to the Python
- * Turtle Analytics service.
- *
- * Body (optional):
- *   { tradeCount?: number, months?: number, mode?: "trades"|"months" }
- *
- * Returns: { ok: true, jobId: string }
- */
-app.post("/api/analyse", authRequired, async (req, res, next) => {
-  let analysisRun = null;
-  try {
-    await assertMlAnalysisAccess(req.user.id);
-
-    const { tradeCount = 500, months = 12, mode = "trades" } = req.body || {};
-
-    const brokerAccounts = await prisma.brokerAccount.findMany({
-      where: { userId: req.user.id, isActive: true },
-      select: { id: true },
-    });
-    const brokerAccountIds = brokerAccounts.map((b) => b.id);
-    let persistSummary = { stored: 0, updated: 0, invalid: 0 };
-    let freshTrades = [];
-
-    if (brokerAccountIds.length > 0) {
-      const exportRequestToken = crypto.randomUUID();
-      const exportRequestedAt = new Date();
-
-      await prisma.eaEvent.createMany({
-        data: brokerAccountIds.map((brokerAccountId) => ({
-          brokerAccountId,
-          type: "EXPORT_REQUEST",
-          payload: {
-            requestToken: exportRequestToken,
-            requestedByUserId: req.user.id,
-            requestedAt: exportRequestedAt.toISOString(),
-          },
-          receivedAt: exportRequestedAt,
-        })),
-      });
-
-      const freshExportEvents = await waitForFreshHistoryExports(
-        brokerAccountIds,
-        {
-          receivedAt: exportRequestedAt,
-          requestToken: exportRequestToken,
-        },
-        15000
-      );
-
-      let events =
-        freshExportEvents.length > 0
-          ? freshExportEvents
-          : await getLatestHistoryExports(brokerAccountIds, {
-              since: { requestToken: exportRequestToken },
-            });
-      if (events.length === 0) {
-        events = await getLatestHistoryExports(brokerAccountIds);
-      }
-      const freshRows = dedupeTrades(extractTradesFromEvents(events));
-      freshTrades = freshRows.map((row) => row.trade);
-      const tradesByBrokerAccount = new Map();
-
-      for (const row of freshRows) {
-        const rows = tradesByBrokerAccount.get(row.brokerAccountId) || [];
-        rows.push(row.trade);
-        tradesByBrokerAccount.set(row.brokerAccountId, rows);
-      }
-
-      for (const [brokerAccountId, trades] of tradesByBrokerAccount.entries()) {
-        const summary = await persistTradesToMemory(req.user.id, trades, {
-          brokerAccountId,
-          source: "ea_history_export",
-          seenAt: exportRequestedAt,
-        });
-        persistSummary.stored += summary.stored;
-        persistSummary.updated += summary.updated;
-        persistSummary.invalid += summary.invalid;
-      }
-    }
-
-    const pendingTrades = await loadStoredTradesForAnalysis(req.user.id, {
-      mode,
-      tradeCount,
-      months,
-      pendingOnly: true,
-    });
-
-    if (pendingTrades.length === 0) {
-      analysisRun = await createFailedAnalysisRun(req.user.id, {
-        mode,
-        requestedTrades: mode === "trades" ? tradeCount : null,
-        tradesAnalysed: 0,
-        cost: 0,
-        periodDescription:
-          mode === "months"
-            ? `Last ${months} month${months === 1 ? "" : "s"}`
-            : "No new trades pending analysis",
-        error:
-          brokerAccountIds.length > 0
-            ? "No new closed trades were received from MetaTrader for analysis. Keep the terminal open, make sure the latest EA is attached, or wait for new trades before running again."
-            : "No stored trades found yet. Upload a CSV or connect the MetaTrader EA before running analysis.",
-      });
-      return res.status(400).json({
-        ok: false,
-        error:
-          brokerAccountIds.length > 0
-            ? "No new closed trades were received from MetaTrader for analysis. Keep the terminal open, make sure the latest EA is attached, or wait for new trades before running again."
-            : "No stored trades found yet. Upload a CSV or connect the MetaTrader EA before running analysis.",
-        analysisRunId: analysisRun.id,
-      });
-    }
-
-    const allTrades = await loadStoredTradesForAnalysis(req.user.id, {
-      mode,
-      tradeCount,
-      months,
-      pendingOnly: false,
-    });
-
-    const analysisDateRange = deriveTradeDateRange(allTrades);
-    const periodDescription =
-      mode === "months"
-        ? `Last ${months} month${months === 1 ? "" : "s"}`
-        : `${pendingTrades.length} new trade${pendingTrades.length === 1 ? "" : "s"} added to ${allTrades.length} total`;
-    const estimatedCost = await estimateAnalysisCost(req.user.id, pendingTrades.length);
-    analysisRun = await prisma.analysisRun.create({
-      data: {
-        userId: req.user.id,
-        status: "RUNNING",
-        mode,
-        requestedTrades: mode === "trades" ? tradeCount : null,
-        tradesAnalysed: allTrades.length,
-        cost: estimatedCost,
-        periodDescription,
-        dateRangeStart: analysisDateRange.start,
-        dateRangeEnd: analysisDateRange.end,
-      },
-    });
-
-    const uniqueTradeCount = allTrades.length;
-    const duplicateTradeCount = persistSummary.updated;
-
-    const tradeFingerprint = buildTradeFingerprint(allTrades, req.user.id);
-
-    // 6. Dispatch to Python service
-    const pythonRes = await fetch(`${PYTHON_SERVICE_URL}/analyse`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        trades: allTrades,
-        run_optimisation: true,
-        run_survival: true,
-        run_clustering: true,
-        n_clusters: 4,
-      }),
-    });
-
-    if (!pythonRes.ok) {
-      const err = await pythonRes.text();
-      console.error("Python service error:", err);
-      await prisma.analysisRun.update({
-        where: { id: analysisRun.id },
-        data: {
-          status: "FAILED",
-          error: "Analysis service error: " + err,
-          completedAt: new Date(),
-        },
-      });
-      return res.status(502).json({ ok: false, error: "Analysis service error: " + err });
-    }
-
-    const { job_id } = await pythonRes.json();
-    analysisJobContext.set(job_id, {
-      userId: req.user.id,
-      analysisRunId: analysisRun.id,
-      tradeFingerprint,
-      allTradeIdentities: allTrades
-        .map((trade) => buildTradeIdentity(trade, req.user.id))
-        .filter(Boolean),
-      tradeIdentities: pendingTrades
-        .map((trade) => buildTradeIdentity(trade, req.user.id))
-        .filter(Boolean),
-      requestedTradeCount: mode === "trades" ? tradeCount : null,
-      uniqueTradeCount: allTrades.length,
-      availableTradeCount: uniqueTradeCount,
-      duplicateTradeCount,
-      mode,
-    });
-    return res.json({
-      ok: true,
-      jobId: job_id,
-      analysisRunId: analysisRun.id,
-      estimatedCost,
-      availableTradeCount: uniqueTradeCount,
-      pendingTradeCount: pendingTrades.length,
-      duplicateTradeCount,
-      dedupedTradeCount: allTrades.length,
-      storedTradeCount: persistSummary.stored,
-    });
-  } catch (err) {
-    if (analysisRun?.id) {
-      await prisma.analysisRun.update({
-        where: { id: analysisRun.id },
-        data: {
-          status: "FAILED",
-          error: err instanceof Error ? err.message : "Analysis failed to start",
-          completedAt: new Date(),
-        },
-      }).catch(() => {});
-    }
-    return next(err);
-  }
-});
-
-/**
- * GET /api/analyse/:jobId
- *
- * Polls the Python service for job status and forwards the result.
- *
- * Returns: { ok: true, status, tradesAnalysed, simulationsRun, regimesFound, avgRMultiple, report? }
- */
-app.get("/api/analyse/:jobId", authRequired, async (req, res, next) => {
-  try {
-    const { jobId } = req.params;
-    const jobContext = analysisJobContext.get(jobId) || null;
-    const analysisRunSummary =
-      jobContext?.analysisRunId
-        ? await prisma.analysisRun.findUnique({
-            where: { id: jobContext.analysisRunId },
-            select: { cost: true },
-          })
-        : null;
-
-    const pythonRes = await fetch(`${PYTHON_SERVICE_URL}/results/${jobId}`);
-
-    if (pythonRes.status === 404) {
-      return res.status(404).json({ ok: false, error: "Job not found" });
-    }
-
-    if (!pythonRes.ok) {
-      if (jobContext?.analysisRunId) {
-        await prisma.analysisRun.update({
-          where: { id: jobContext.analysisRunId },
-          data: {
-            status: "FAILED",
-            error: "Analysis service unavailable",
-            completedAt: new Date(),
-          },
-        });
-      }
-      return res.status(502).json({ ok: false, error: "Analysis service unavailable" });
-    }
-
-    const data = await pythonRes.json();
-
-    if (data.status === "complete" && data.report) {
-      const originalPerformance = data.report.summary?.original_performance ?? {};
-      const riskMetrics = data.report.risk_recommendations?.risk_metrics ?? {};
-
-      const snapshotReport = buildSnapshotReport(data.report, {
-        trade_fingerprint: jobContext?.tradeFingerprint ?? null,
-        trade_identities: Array.isArray(jobContext?.allTradeIdentities) ? jobContext.allTradeIdentities : [],
-        unique_trade_count: jobContext?.uniqueTradeCount ?? data.trades_analysed ?? originalPerformance.n_trades ?? null,
-        duplicate_trade_count: jobContext?.duplicateTradeCount ?? 0,
-        available_trade_count: jobContext?.availableTradeCount ?? null,
-        simulations_run: data.simulations_run ?? null,
-        regimes_found: data.regimes_found ?? null,
-      });
-
-      let existingSnapshot = null;
-      if (jobContext?.tradeFingerprint) {
-        existingSnapshot = await prisma.analysisSnapshot.findFirst({
-          where: {
-            userId: req.user.id,
-            report: {
-              path: ["metadata", "trade_fingerprint"],
-              equals: jobContext.tradeFingerprint,
-            },
-          },
-          orderBy: { updatedAt: "desc" },
-        });
-      }
-
-      const snapshotData = {
-        userId: req.user.id,
-        report: snapshotReport,
-        tradesAnalysed: data.trades_analysed ?? jobContext?.uniqueTradeCount ?? originalPerformance.n_trades ?? null,
-        avgRMultiple: data.avg_r_multiple ?? originalPerformance.avg_r ?? null,
-        winRate: originalPerformance.win_rate ?? null,
-        sharpeRatio: originalPerformance.sharpe_ratio ?? null,
-        maxDrawdownR: riskMetrics.max_drawdown_r ?? null,
-        totalR: originalPerformance.total_r ?? null,
-      };
-
-      let snapshotId = existingSnapshot?.id || null;
-      if (existingSnapshot) {
-        await prisma.analysisSnapshot.update({
-          where: { id: existingSnapshot.id },
-          data: snapshotData,
-        });
-      } else {
-        const createdSnapshot = await prisma.analysisSnapshot.create({ data: snapshotData });
-        snapshotId = createdSnapshot.id;
-      }
-
-      if (jobContext?.userId && Array.isArray(jobContext.tradeIdentities) && jobContext.tradeIdentities.length > 0) {
-        await prisma.storedTrade.updateMany({
-          where: {
-            userId: jobContext.userId,
-            tradeIdentity: { in: jobContext.tradeIdentities },
-          },
-          data: {
-            lastAnalysedAt: new Date(),
-            analysisCount: { increment: 1 },
-          },
-        });
-      }
-
-      if (jobContext?.analysisRunId) {
-        await prisma.analysisRun.update({
-          where: { id: jobContext.analysisRunId },
-          data: {
-            status: "COMPLETED",
-            analysisSnapshotId: snapshotId,
-            tradesAnalysed: data.trades_analysed ?? jobContext?.uniqueTradeCount ?? null,
-            completedAt: new Date(),
-            error: null,
-          },
-        });
-
-        await reportMlRunUsageToStripe(jobContext.analysisRunId);
-      }
-    } else if (data.status === "error") {
-      if (jobContext?.analysisRunId) {
-        await prisma.analysisRun.update({
-          where: { id: jobContext.analysisRunId },
-          data: {
-            status: "FAILED",
-            error: data.error || "Analysis failed",
-            completedAt: new Date(),
-          },
-        });
-      }
-    }
-
-    return res.json({
-      ok: true,
-      status: data.status,
-      error: data.error || null,
-      tradesAnalysed: data.trades_analysed,
-      simulationsRun: data.simulations_run,
-      regimesFound: data.regimes_found,
-      avgRMultiple: data.avg_r_multiple,
-      cost: analysisRunSummary?.cost ?? null,
-      report: data.report || null,
-    });
-  } catch (err) {
-    return next(err);
-  }
+registerAnalyticsRoutes(app, {
+  prisma,
+  authRequired,
+  crypto,
+  fetch,
+  pythonServiceUrl: PYTHON_SERVICE_URL,
+  buildAnalysisOptionsPayload,
+  buildAccountStatePayload,
+  storedTradeToJournalEntry,
+  buildJournalEntryMatchKey,
+  createFailedAnalysisRun,
+  assertMlAnalysisAccess,
+  getPreferredBrokerAccountId,
+  parseCsvTradesFromPython,
+  persistTradesToMemory,
+  loadStoredTradesForAnalysis,
+  deriveTradeDateRange,
+  estimateAnalysisCost,
+  buildTradeFingerprint,
+  buildTradeIdentity,
+  waitForFreshHistoryExports,
+  getLatestHistoryExports,
+  dedupeTrades,
+  extractTradesFromEvents,
+  reportMlRunUsageToStripe,
+  buildSnapshotReport,
+  analysisJobContext,
+  analysisDataDeletedMarker: ANALYSIS_DATA_DELETED_MARKER,
 });
 
 // ---------------------------------------------------------------------------

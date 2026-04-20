@@ -52,7 +52,13 @@ export default function App() {
   const [selectedSubscriptionPlan, setSelectedSubscriptionPlan] = useState<"payg" | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<"active" | "paused" | "cancelling" | "not_started">("not_started");
   const [onboardingStage, setOnboardingStage] = useState<"none" | "welcome" | "ea-setup" | "complete">("none");
-  const [applicationEmail, setApplicationEmail] = useState("");
+  const [applicationLookupToken, setApplicationLookupToken] = useState(() => {
+    try {
+      return window.localStorage.getItem("traderApplicationLookupToken") || "";
+    } catch {
+      return "";
+    }
+  });
   const [applicationStatus, setApplicationStatus] = useState<ApplicationStatus | null>(null);
   const [applicationRejectionReason, setApplicationRejectionReason] = useState<string | null>(null);
   const [currentUserName, setCurrentUserName] = useState("");
@@ -336,13 +342,18 @@ export default function App() {
   };
 
   const handleApplicationSubmitted = (
-    email: string,
+    statusLookupToken: string,
     status: ApplicationStatus,
   ) => {
-    setApplicationEmail(email);
+    setApplicationLookupToken(statusLookupToken);
+    try {
+      window.localStorage.setItem("traderApplicationLookupToken", statusLookupToken);
+    } catch {
+      // Ignore storage failures and keep the in-memory value.
+    }
     setApplicationStatus(status);
     setApplicationRejectionReason(null);
-    setCurrentView("landing");
+    setCurrentView("trader-application-status");
   };
 
   const handleWelcomeComplete = () => {
@@ -540,7 +551,7 @@ export default function App() {
 
       {!isAdminRoute && currentView === "trader-application-status" && (
         <TraderApplicationStatus
-          initialEmail={applicationEmail}
+          initialToken={applicationLookupToken}
           initialStatus={applicationStatus}
           initialRejectionReason={applicationRejectionReason}
           onBack={() => setCurrentView("landing")}

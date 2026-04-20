@@ -3,7 +3,7 @@ import { Plus, Edit2, Trash2, Search, Calendar, TrendingUp, TrendingDown, BookOp
 import { Activity } from "lucide-react";
 import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { clearStoredToken, getAuthHeaders } from "../api/client";
+import { updateTradeJournalEntry } from "../api/trades";
 
 interface JournalEntry {
   id: string;
@@ -167,34 +167,18 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
 
     if (editingEntry && hasLiveEntries) {
       try {
-        const response = await fetch(
-          `${apiBase}/api/trades/${encodeURIComponent(editingEntry.id)}/journal`,
-          {
-            method: "PATCH",
-            credentials: "include",
-            headers: getAuthHeaders({ "Content-Type": "application/json" }),
-            body: JSON.stringify({
-              notes: newEntry.notes,
-              emotions: newEntry.emotions,
-              lessonsLearned: newEntry.lessonsLearned,
-              pair: newEntry.pair,
-              direction: newEntry.direction,
-              date: newEntry.date,
-              entryTime: newEntry.entryTime,
-              exitTime: newEntry.exitTime,
-              entryPrice: newEntry.entryPrice,
-              exitPrice: newEntry.exitPrice,
-            }),
-          }
-        );
-
-        const payload = await response.json().catch(() => null);
-        if (!response.ok) {
-          if (response.status === 401) {
-            clearStoredToken();
-          }
-          throw new Error(payload?.error || "Failed to save journal notes.");
-        }
+        const payload = await updateTradeJournalEntry(editingEntry.id, {
+          notes: newEntry.notes,
+          emotions: newEntry.emotions,
+          lessonsLearned: newEntry.lessonsLearned,
+          pair: newEntry.pair,
+          direction: newEntry.direction,
+          date: newEntry.date,
+          entryTime: newEntry.entryTime,
+          exitTime: newEntry.exitTime,
+          entryPrice: newEntry.entryPrice,
+          exitPrice: newEntry.exitPrice,
+        }, apiBase);
 
         const savedTrade = payload?.trade ? normalizeJournalEntry(payload.trade) : newEntry;
         setLiveOverrides((prev) => ({ ...prev, [editingEntry.id]: savedTrade }));

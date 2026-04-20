@@ -213,7 +213,7 @@ export function createAdminTestTrader(input: {
   metaTraderUsername?: string;
   brokerName?: string;
 }) {
-  return apiPost<{ ok: boolean; trader: AdminTestTrader }>("/api/admin/traders/create-test-user", input);
+  return apiPost<{ ok: boolean; staffMember: AdminStaffMember }>("/api/admin/traders/create-test-user", input);
 }
 
 export function changeAdminPassword(currentPassword: string, newPassword: string) {

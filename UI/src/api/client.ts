@@ -1,4 +1,4 @@
-const API_BASE =
+export const API_BASE =
   (import.meta.env.VITE_API_BASE as string) || "http://localhost:3001";
 
 const TOKEN_KEY = "gtt_token";

@@ -16,7 +16,7 @@ import {
 
 interface TraderApplicationFormProps {
   onBack: () => void;
-  onSubmitted: (email: string, status: TraderApplicationStatus) => void;
+  onSubmitted: (statusLookupToken: string, status: TraderApplicationStatus) => void;
 }
 
 export function TraderApplicationForm({
@@ -58,7 +58,7 @@ export function TraderApplicationForm({
 
       setSubmitStatus("success");
       alert("Thank you for your application.");
-      onSubmitted(formData.email.trim().toLowerCase(), response.status);
+      onSubmitted(response.statusLookupToken, response.status);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Unable to submit application.";

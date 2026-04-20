@@ -6,8 +6,9 @@ import { TraderJournal } from "./TraderJournal";
 import { motion } from "motion/react";
 import { ProfileDropdown } from "./ProfileDropdown";
 import { SettingsPage } from "./SettingsPage";
-import { ApiError, clearStoredToken, getAuthHeaders } from "../api/client";
-import { fetchAccountState } from "../api/settings";
+import { ApiError, API_BASE, clearStoredToken } from "../api/client";
+import { deleteAnalysisRun, fetchAnalysisOptions, pollAnalysisJob, startAnalysis, startCsvAnalysis } from "../api/analysis";
+import { fetchAccountState, fetchPersistedAnalysisState, type PersistedAnalysisStateResponse } from "../api/settings";
 
 interface TurtleAnalyticsProps {
   userType: UserType;
@@ -29,9 +30,6 @@ export function TurtleAnalytics({
   onPauseSubscription,
   onResumeSubscription,
 }: TurtleAnalyticsProps) {
-  const API_BASE = (import.meta.env.VITE_API_BASE as string) || "";
-  const authHeaders = getAuthHeaders();
-  const authJsonHeaders = getAuthHeaders({ "Content-Type": "application/json" });
   const [activeTab, setActiveTab] = useState<"analytics" | "journal" | "history" | "settings" | "guide">("analytics");
   const [isRunningModel, setIsRunningModel] = useState(false);
   const [lastRunTime, setLastRunTime] = useState<Date | null>(null);
@@ -745,7 +743,7 @@ export function TurtleAnalytics({
             : "running",
   });
 
-  const applyPersistedAccountState = (payload: any) => {
+  const applyPersistedAccountState = (payload: PersistedAnalysisStateResponse) => {
     setAnalysisOptions({
       availableTradeCount: payload.analysisOptions?.availableTradeCount ?? 0,
       minimumTradeCount: payload.analysisOptions?.minimumTradeCount ?? 10,
@@ -801,22 +799,14 @@ export function TurtleAnalytics({
 
   const loadPersistedAccountState = async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/account/state`, {
-        credentials: "include",
-        headers: authHeaders,
-      });
-      if (!response.ok) {
-        if (response.status === 401) {
-          clearStoredToken();
-        }
-        setRunHistoryError("Saved account data could not be loaded. The backend may be missing the latest migration or deploy.");
-        return;
-      }
-      const payload = await response.json();
+      const payload = await fetchPersistedAnalysisState();
       if (payload.ok) {
         applyPersistedAccountState(payload);
       }
-    } catch {
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        clearStoredToken();
+      }
       setRunHistoryError("Saved account data could not be loaded. The backend may be unavailable right now.");
     }
   };
@@ -826,17 +816,7 @@ export function TurtleAnalytics({
     setRunHistoryError(null);
 
     try {
-      const response = await fetch(`${API_BASE}/api/analyse/history/${encodeURIComponent(runId)}`, {
-        method: "DELETE",
-        credentials: "include",
-        headers: authJsonHeaders,
-        body: JSON.stringify({ deleteJournalData }),
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok || !payload.ok) {
-        throw new Error(payload.error || "Saved analysis data could not be deleted for this run.");
-      }
-
+      await deleteAnalysisRun(runId, deleteJournalData);
       await loadPersistedAccountState();
     } catch (err) {
       setRunHistoryError(
@@ -904,12 +884,7 @@ export function TurtleAnalytics({
 
     const refreshAnalysisOptions = async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/analyse/options`, {
-          credentials: "include",
-          headers: authHeaders,
-        });
-        if (!response.ok) return;
-        const payload = await response.json();
+        const payload = await fetchAnalysisOptions();
         if (!cancelled && payload.ok) {
           setAnalysisOptions({
             availableTradeCount: payload.availableTradeCount ?? 0,
@@ -982,45 +957,18 @@ export function TurtleAnalytics({
 
     try {
       // 1. Start the pipeline — CSV upload or EA history
-      let startRes: Response;
+      let startPayload;
       if (analysisMode === "csv" && csvFile) {
-        const formData = new FormData();
-        formData.append("file", csvFile);
-        const csvUrl = new URL(`${API_BASE}/api/analyse/csv`);
-        if (replaceCsvDataset) {
-          csvUrl.searchParams.set("replace", "1");
-        }
-        startRes = await fetch(csvUrl.toString(), {
-          method: "POST",
-          credentials: "include",
-          headers: authHeaders,
-          body: formData,
-        });
+        startPayload = await startCsvAnalysis(csvFile, replaceCsvDataset);
       } else {
-        startRes = await fetch(`${API_BASE}/api/analyse`, {
-          method: "POST",
-          credentials: "include",
-          headers: authJsonHeaders,
-          body: JSON.stringify({ mode: analysisMode, tradeCount: effectiveTradeCount, months: selectedMonths }),
+        startPayload = await startAnalysis({
+          mode: analysisMode,
+          tradeCount: effectiveTradeCount,
+          months: selectedMonths,
         });
       }
 
-      if (!startRes.ok) {
-        const body = await startRes.json().catch(() => ({}));
-        if (body?.analysisRunId) {
-          currentRunEntryId = String(body.analysisRunId);
-          setModelRunHistory((prev) =>
-            prev.map((entry) =>
-              entry.id === tempRunId
-                ? { ...entry, id: currentRunEntryId, status: "failed" as const }
-                : entry
-            )
-          );
-        }
-        throw new Error((body as any).error || (body as any).detail || "Failed to start analysis");
-      }
-
-      const { jobId, analysisRunId, estimatedCost } = await startRes.json();
+      const { jobId, analysisRunId, estimatedCost } = startPayload;
       if (typeof estimatedCost === "number") {
         setModelRunHistory((prev) =>
           prev.map((entry) =>
@@ -1042,13 +990,12 @@ export function TurtleAnalytics({
       while (Date.now() - started < 10 * 60 * 1000) {
         await new Promise(resolve => setTimeout(resolve, 3000));
 
-        const pollRes = await fetch(`${API_BASE}/api/analyse/${jobId}`, {
-          credentials: "include",
-          headers: authHeaders,
-        });
-        if (!pollRes.ok) continue;
-
-        const result = await pollRes.json();
+        let result;
+        try {
+          result = await pollAnalysisJob(jobId);
+        } catch {
+          continue;
+        }
 
         if (result.status === "complete") {
           const tradesAnalysed = result.tradesAnalysed ?? result.trades_analysed;

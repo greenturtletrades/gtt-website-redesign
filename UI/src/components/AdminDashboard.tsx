@@ -29,7 +29,6 @@ import {
   type AdminReferralCode,
   type AdminStaffMember,
   type AdminSignupItem,
-  type AdminTestTrader,
   type AdminTrader,
   type GroupedAdminSignupItem,
 } from "../api/admin";
@@ -469,7 +468,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
       });
       await reloadTraders();
       await reloadStaff();
-      const createdTrader: AdminTestTrader = response.trader;
+      const createdTrader = response.staffMember;
       setTestTraderMessage(
         `${createdTrader.email} now has trader access enabled and can sign in directly without Stripe checkout.`,
       );

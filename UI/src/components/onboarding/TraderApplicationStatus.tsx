@@ -15,7 +15,7 @@ import {
 } from "../../api/traderApplication";
 
 interface TraderApplicationStatusProps {
-  initialEmail?: string;
+  initialToken?: string;
   initialStatus?: TraderApplicationStatus | null;
   initialRejectionReason?: string | null;
   onBack: () => void;
@@ -23,13 +23,13 @@ interface TraderApplicationStatusProps {
 }
 
 export function TraderApplicationStatus({
-  initialEmail = "",
+  initialToken = "",
   initialStatus = null,
   initialRejectionReason = null,
   onBack,
   onStartNew,
 }: TraderApplicationStatusProps) {
-  const [email, setEmail] = useState(initialEmail);
+  const [token, setToken] = useState(initialToken);
   const [status, setStatus] = useState<TraderApplicationStatus | null>(
     initialStatus,
   );
@@ -42,14 +42,14 @@ export function TraderApplicationStatus({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    setEmail(initialEmail);
-  }, [initialEmail]);
+    setToken(initialToken);
+  }, [initialToken]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!email.trim()) {
-      setErrorMessage("Enter the email you used to apply.");
+    if (!token.trim()) {
+      setErrorMessage("Enter the application status token you received after applying.");
       return;
     }
 
@@ -57,9 +57,7 @@ export function TraderApplicationStatus({
     setErrorMessage(null);
 
     try {
-      const response = await fetchTraderApplicationStatus(
-        email.trim().toLowerCase(),
-      );
+      const response = await fetchTraderApplicationStatus(token.trim());
       setStatus(response.status);
       setRejectionReason(response.rejectionReason ?? null);
       setSubmitState("success");
@@ -121,18 +119,27 @@ export function TraderApplicationStatus({
           </CardHeader>
 
           <CardContent className="pt-6 space-y-4">
+            {token.trim() && (
+              <div className="rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800">
+                <p className="font-medium">Your application status token</p>
+                <p className="mt-2 break-all font-mono text-xs sm:text-sm">{token.trim()}</p>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm text-slate-700 mb-2">
-                  Application Email
+                  Application Status Token
                 </label>
                 <Input
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="jane@example.com"
+                  value={token}
+                  onChange={(event) => setToken(event.target.value)}
+                  placeholder="Paste your application token"
                   required
                 />
+                <p className="mt-2 text-xs text-slate-500">
+                  This token is shown after submission and included in your confirmation email.
+                </p>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3">

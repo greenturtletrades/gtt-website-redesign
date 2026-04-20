@@ -166,6 +166,48 @@ export interface AccountStateResponse {
   };
 }
 
+export interface PersistedAnalysisStateResponse {
+  ok: boolean;
+  analysisOptions: {
+    availableTradeCount: number;
+    minimumTradeCount: number;
+    recommendedTradeCount: number;
+    mlRunDiscountPercent: number;
+    accountDiscountPercent: number;
+    referralCode: string | null;
+    latestAnalysis: {
+      id: string;
+      updatedAt: string;
+      tradesAnalysed: number | null;
+      tradeFingerprint: string | null;
+    } | null;
+  };
+  latestAnalysis: {
+    id: string;
+    updatedAt: string;
+    tradesAnalysed: number | null;
+    avgRMultiple: number | null;
+    report: unknown;
+  } | null;
+  history: Array<{
+    id: string;
+    createdAt: string;
+    mode: string;
+    tradesAnalysed: number | null;
+    periodDescription: string | null;
+    dateRangeStart: string | null;
+    dateRangeEnd: string | null;
+    cost: number | null;
+    deletedData?: boolean;
+    status: string;
+  }>;
+  trades: unknown[];
+  pnlMeta: {
+    currency_pnl_available: boolean;
+    message: string | null;
+  };
+}
+
 export function updateProfile(fullName: string, email: string) {
   return apiPatch<{ ok: boolean; user: AuthUser }>("/api/me/profile", {
     fullName,
@@ -246,6 +288,10 @@ export function fetchBillingSummary() {
 
 export function fetchAccountState() {
   return apiGet<AccountStateResponse>("/api/me/account-state");
+}
+
+export function fetchPersistedAnalysisState() {
+  return apiGet<PersistedAnalysisStateResponse>("/api/account/analysis-state");
 }
 
 export function createBillingPortalSession() {

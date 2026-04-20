@@ -15,6 +15,7 @@ export interface TraderApplicationResponse {
   ok: boolean;
   id: string;
   status: TraderApplicationStatus;
+  statusLookupToken: string;
 }
 
 export interface TraderApplicationStatusResponse {
@@ -27,7 +28,7 @@ export function submitTraderApplication(payload: TraderApplicationPayload) {
   return apiPost<TraderApplicationResponse>("/api/trader/apply", payload);
 }
 
-export function fetchTraderApplicationStatus(email: string) {
-  const query = encodeURIComponent(email);
-  return apiGet<TraderApplicationStatusResponse>(`/api/trader/application?email=${query}`);
+export function fetchTraderApplicationStatus(token: string) {
+  const query = encodeURIComponent(token);
+  return apiGet<TraderApplicationStatusResponse>(`/api/trader/application?token=${query}`);
 }
