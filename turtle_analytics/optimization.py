@@ -37,125 +37,33 @@ from .policies import PolicyParams
 from .simulator import run_simulation, calculate_policy_metrics, compare_original_vs_simulated
 
 
-def optimize_policy(
-    df: pd.DataFrame,
-    config: dict,
-    verbose: bool = True,
-) -> tuple[PolicyParams, pd.DataFrame, dict]:
+def _run_optuna_study(
+    train_df: pd.DataFrame,
+    search_space: dict,
+    objective_metric: str,
+    n_trials: int,
+    random_seed: int,
+    verbose: bool,
+) -> tuple[dict, "optuna.Study"]:
     """
-    Find optimal policy parameters using Bayesian optimization.
-    
-    This function uses Optuna to intelligently search the parameter space.
-    Instead of testing all combinations (grid search) or random sampling,
-    it uses Gaussian processes to model the objective function and focuses
-    on promising parameter regions.
-    
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Historical trades DataFrame (validated, with features).
-    
-    config : dict
-        Optimization configuration from YAML. Must contain:
-        - objective_metric: "avg_R", "sharpe_ratio", "winrate", etc.
-        - n_trials: number of optimization iterations
-        - search_space: parameter ranges
-        - random_seed: for reproducibility
-    
-    verbose : bool
-        If True, print progress during optimization.
-    
-    Returns
-    -------
-    best_policy : PolicyParams
-        Best policy found by optimization.
-    
-    trials_df : pd.DataFrame
-        All trials with parameters and metrics.
-    
-    study_summary : dict
-        Summary statistics about the optimization.
-    
-    Examples
-    --------
-    >>> config = {
-    ...     "objective_metric": "avg_R",
-    ...     "n_trials": 50,
-    ...     "search_space": {...},
-    ...     "random_seed": 42,
-    ... }
-    >>> best_policy, trials_df, summary = optimize_policy(trades, config)
-    >>> print(f"Best avg_R: {summary['best_value']:.3f}")
-    
-    Notes
-    -----
-    This implements P3-T3 and P3-T4:
-    - P3-T3: Uses Optuna for Bayesian optimization
-    - P3-T4: Objective function calls run_simulation and returns negative avg_R
+    Run a single Optuna study on train_df. Returns (best_params, study).
+    Extracted so walk-forward folds can reuse the same logic without duplication.
     """
-    if not OPTUNA_AVAILABLE:
-        raise ImportError(
-            "Optuna is required for Bayesian optimization. "
-            "Install with: pip install optuna"
-        )
-    
-    # Extract config
-    objective_metric = config.get("objective_metric", "avg_R")
-    n_trials = config.get("n_trials", 50)
-    search_space = config.get("search_space", {})
-    random_seed = config.get("random_seed", 42)
-    
-    if verbose:
-        print(f"Starting Bayesian optimization with Optuna")
-        print(f"  Objective: Maximize {objective_metric}")
-        print(f"  Trials: {n_trials}")
-        print(f"  Search space: {len(search_space)} parameters")
-    
-    # Create objective function
     def objective(trial: optuna.Trial) -> float:
-        """
-        Objective function for Optuna.
-        
-        This function:
-        1. Samples parameters from the search space
-        2. Creates a PolicyParams object
-        3. Runs simulation with that policy
-        4. Calculates metrics
-        5. Returns the objective value (to be minimized by Optuna)
-        
-        Note: Optuna MINIMIZES, so we return negative values for metrics we want to maximize.
-        """
-        # Sample parameters from search space
         params = {}
-        
         for param_name, param_config in search_space.items():
             param_type = param_config.get("type", "float")
-            
             if param_type == "float":
-                low = param_config["low"]
-                high = param_config["high"]
-                params[param_name] = trial.suggest_float(param_name, low, high)
-                
+                params[param_name] = trial.suggest_float(param_name, param_config["low"], param_config["high"])
             elif param_type == "int":
-                low = param_config["low"]
-                high = param_config["high"]
-                params[param_name] = trial.suggest_int(param_name, low, high)
-                
+                params[param_name] = trial.suggest_int(param_name, param_config["low"], param_config["high"])
             elif param_type == "categorical":
-                choices = param_config["choices"]
-                params[param_name] = trial.suggest_categorical(param_name, choices)
-            
+                params[param_name] = trial.suggest_categorical(param_name, param_config["choices"])
             else:
                 warnings.warn(f"Unknown parameter type: {param_type}", UserWarning)
-        
         try:
-            # Create policy
             policy = PolicyParams(**params)
-            
-            # Run simulation
-            sim_df = run_simulation(df, policy, inplace=False)
-            
-            # Calculate metrics
+            sim_df = run_simulation(train_df, policy, inplace=False)
             metrics = calculate_policy_metrics(sim_df)
             for key, value in metrics.items():
                 if isinstance(value, (int, float, np.floating)) and np.isfinite(value):
@@ -173,44 +81,208 @@ def optimize_policy(
             delta_winrate = comparison.get("delta_winrate")
             if isinstance(delta_winrate, (int, float, np.floating)) and np.isfinite(delta_winrate):
                 trial.set_user_attr("delta_winrate", float(delta_winrate))
-            
-            # Get objective value
             objective_value = metrics.get(objective_metric, 0.0)
-            
-            # Optuna minimizes, so negate for metrics we want to maximize
             if objective_metric in ["avg_R", "winrate", "total_R", "sharpe_ratio"]:
-                return -objective_value  # Negate to maximize
-            else:
-                return objective_value  # Minimize directly
-                
+                return -objective_value
+            return objective_value
         except Exception as e:
-            # If policy is invalid or simulation fails, return worst value
             warnings.warn(f"Trial failed: {e}", RuntimeWarning)
-            return float('inf')  # Worst possible value
-    
-    # Create study
+            return float("inf")
+
     sampler = optuna.samplers.TPESampler(seed=random_seed)
-    study = optuna.create_study(
-        direction="minimize",  # We minimize (negative values)
-        sampler=sampler,
-    )
-    
-    # Run optimization
+    study = optuna.create_study(direction="minimize", sampler=sampler)
+
     if verbose:
-        # Show progress bar
-        study.optimize(
-            objective,
-            n_trials=n_trials,
-            show_progress_bar=True,
-        )
+        study.optimize(objective, n_trials=n_trials, show_progress_bar=True)
     else:
-        # Silent mode
         optuna.logging.set_verbosity(optuna.logging.WARNING)
         study.optimize(objective, n_trials=n_trials)
-    
-    # Extract results (P3-T5: Store all trials)
+
+    return study.best_params, study
+
+
+def optimize_policy(
+    df: pd.DataFrame,
+    config: dict,
+    verbose: bool = True,
+    train_ratio: float = 0.8,
+    n_walkforward_folds: int = 1,
+) -> tuple[PolicyParams, pd.DataFrame, dict]:
+    """
+    Find optimal policy parameters using Bayesian optimization.
+
+    Supports two validation modes controlled by n_walkforward_folds:
+
+    n_walkforward_folds=1 (default):
+        Single chronological 80/20 split. Fast. Optimize on first 80%,
+        evaluate once on last 20%.
+
+    n_walkforward_folds>1 (walk-forward):
+        Expanding window walk-forward validation. For each fold, the training
+        window grows and is followed by a fresh test window. Each fold runs a
+        full Optuna study. The final returned policy is optimized on the full
+        training portion (train_ratio). Walk-forward statistics (mean, std,
+        coefficient of variation of test scores) are included in the summary —
+        a high coefficient of variation (>0.5) indicates the optimized
+        parameters are unstable across time periods, which is a strong
+        overfitting signal.
+
+        Fold layout example with n_walkforward_folds=3, train_ratio=0.8:
+            Fold 1: train [0%–53%]  test [53%–67%]
+            Fold 2: train [0%–67%]  test [67%–80%]
+            Fold 3: train [0%–80%]  test [80%–100%]  ← same as single-split test
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Historical trades DataFrame (validated, with features).
+
+    config : dict
+        Optimization configuration. Must contain:
+        - objective_metric: "avg_R", "sharpe_ratio", "winrate", etc.
+        - n_trials: number of optimization iterations per fold
+        - search_space: parameter ranges
+        - random_seed: for reproducibility
+
+    verbose : bool
+        If True, print progress during optimization.
+
+    train_ratio : float
+        Fraction of trades used as the final training window. Default: 0.8.
+
+    n_walkforward_folds : int
+        Number of walk-forward folds. 1 = single split (fast, default).
+        3–5 recommended for production use. Each fold adds one full Optuna
+        study, so compute time scales linearly.
+
+    Returns
+    -------
+    best_policy : PolicyParams
+        Policy optimized on the full training window (train_ratio of data).
+
+    trials_df : pd.DataFrame
+        Trials from the final (full training) Optuna study.
+
+    study_summary : dict
+        Includes train score, test score, and walk-forward statistics when
+        n_walkforward_folds > 1:
+        - wf_scores        : list of per-fold test scores
+        - wf_mean          : mean test score across folds
+        - wf_std           : standard deviation of test scores
+        - wf_cv            : coefficient of variation (std / |mean|)
+                             >0.5 suggests unstable / overfitting parameters
+    """
+    if not OPTUNA_AVAILABLE:
+        raise ImportError(
+            "Optuna is required for Bayesian optimization. "
+            "Install with: pip install optuna"
+        )
+
+    objective_metric = config.get("objective_metric", "avg_R")
+    n_trials         = config.get("n_trials", 50)
+    search_space     = config.get("search_space", {})
+    random_seed      = config.get("random_seed", 42)
+
+    n_walkforward_folds = max(1, n_walkforward_folds)
+
+    if verbose:
+        print(f"Starting Bayesian optimization with Optuna")
+        print(f"  Objective: Maximize {objective_metric}")
+        print(f"  Trials per fold: {n_trials}")
+        print(f"  Walk-forward folds: {n_walkforward_folds}")
+        print(f"  Search space: {len(search_space)} parameters")
+    # ------------------------------------------------------------------
+    # Walk-forward folds
+    # ------------------------------------------------------------------
+    # The final fold always mirrors the single-split behaviour (train up to
+    # train_ratio, test on the remainder). Earlier folds use smaller training
+    # windows that end before train_ratio, each followed by a fresh test slice.
+    #
+    # Fold boundaries (fractions of total trades):
+    #   fold k train end  = min_train + k * step          where step = train_ratio - min_train / n_folds
+    #   fold k test start = fold k train end
+    #   fold k test end   = fold k+1 train end  (or 1.0 for the last fold)
+
+    min_train_ratio = max(0.5, train_ratio - 0.3)  # earliest training window is 50% of data
+    step = (train_ratio - min_train_ratio) / n_walkforward_folds
+
+    fold_boundaries = []
+    for k in range(n_walkforward_folds):
+        fold_train_end  = min_train_ratio + (k + 1) * step
+        fold_test_start = fold_train_end
+        fold_test_end   = min_train_ratio + (k + 2) * step if k < n_walkforward_folds - 1 else 1.0
+        fold_boundaries.append((fold_train_end, fold_test_start, fold_test_end))
+
+    wf_scores: list[float] = []
+    final_best_params = None
+    final_study = None
+
+    for fold_idx, (fold_train_end, fold_test_start, fold_test_end) in enumerate(fold_boundaries):
+        fold_train_cut = int(len(df) * fold_train_end)
+        fold_test_cut  = int(len(df) * fold_test_end)
+
+        fold_train_df = df.iloc[:fold_train_cut].copy()
+        fold_test_df  = df.iloc[fold_train_cut:fold_test_cut].copy()
+
+        if len(fold_train_df) < 10 or len(fold_test_df) < 5:
+            if verbose:
+                print(f"  Fold {fold_idx + 1}/{n_walkforward_folds}: skipped (insufficient data)")
+            continue
+
+        if verbose:
+            is_final = (fold_idx == n_walkforward_folds - 1)
+            label = " (final)" if is_final else ""
+            print(f"\n  Fold {fold_idx + 1}/{n_walkforward_folds}{label}: "
+                  f"train={len(fold_train_df)} trades, test={len(fold_test_df)} trades")
+
+        fold_best_params, fold_study = _run_optuna_study(
+            fold_train_df, search_space, objective_metric,
+            n_trials, random_seed + fold_idx, verbose,
+        )
+
+        # Evaluate on this fold's test window
+        try:
+            fold_policy  = PolicyParams(**fold_best_params)
+            fold_sim_df  = run_simulation(fold_test_df, fold_policy, inplace=False)
+            fold_metrics = calculate_policy_metrics(fold_sim_df)
+            fold_score   = fold_metrics.get(objective_metric, 0.0)
+            wf_scores.append(fold_score)
+            if verbose:
+                print(f"    Fold test {objective_metric}: {fold_score:.3f}")
+        except Exception as e:
+            warnings.warn(f"Fold {fold_idx + 1} test evaluation failed: {e}", RuntimeWarning)
+
+        # Keep the last fold's study as the final one (trained on most data)
+        final_best_params = fold_best_params
+        final_study = fold_study
+
+    if final_best_params is None or final_study is None:
+        raise RuntimeError("All walk-forward folds failed — cannot determine best policy.")
+
+    # ------------------------------------------------------------------
+    # Final policy from the last (largest training window) fold
+    # ------------------------------------------------------------------
+    best_policy = PolicyParams(**final_best_params)
+
+    # Evaluate final policy on its held-out test window
+    final_train_cut = int(len(df) * train_ratio)
+    final_test_df   = df.iloc[final_train_cut:].copy()
+    best_value_test = None
+    try:
+        test_sim_df  = run_simulation(final_test_df, best_policy, inplace=False)
+        test_metrics = calculate_policy_metrics(test_sim_df)
+        best_value_test = test_metrics.get(objective_metric)
+    except Exception as e:
+        warnings.warn(f"Final test evaluation failed: {e}", RuntimeWarning)
+
+    # Walk-forward stability statistics
+    wf_mean = float(np.mean(wf_scores)) if wf_scores else None
+    wf_std  = float(np.std(wf_scores))  if wf_scores else None
+    wf_cv   = float(wf_std / abs(wf_mean)) if (wf_mean and wf_mean != 0) else None
+
+    # Extract trials from final study
     trials_data = []
-    for trial in study.trials:
+    for trial in final_study.trials:
         trial_data = {
             "trial_id": trial.number,
             **trial.params,
@@ -228,30 +300,44 @@ def optimize_policy(
             "delta_winrate": trial.user_attrs.get("delta_winrate"),
         }
         trials_data.append(trial_data)
-    
+
     trials_df = pd.DataFrame(trials_data)
-    trials_df = trials_df.sort_values(objective_metric, ascending=False).reset_index(drop=True)
-    
-    # Get best policy
-    best_params = study.best_params
-    best_policy = PolicyParams(**best_params)
-    
-    # Create summary
+    if not trials_df.empty:
+        trials_df = trials_df.sort_values(objective_metric, ascending=False).reset_index(drop=True)
+
+    train_score = -final_study.best_value
+
     study_summary = {
-        "best_value": -study.best_value,  # Un-negate
-        "best_params": best_params,
-        "n_trials": len(study.trials),
-        "objective_metric": objective_metric,
+        "best_value_train":      train_score,
+        "best_value_test":       best_value_test,
+        "best_value":            train_score,       # backwards compatibility
+        "best_params":           final_best_params,
+        "n_trials":              len(final_study.trials),
+        "objective_metric":      objective_metric,
+        "n_train_trades":        final_train_cut,
+        "n_test_trades":         len(final_test_df),
+        "n_walkforward_folds":   n_walkforward_folds,
+        "wf_scores":             wf_scores,
+        "wf_mean":               wf_mean,
+        "wf_std":                wf_std,
+        "wf_cv":                 wf_cv,
     }
-    
+
     if verbose:
         print(f"\n✓ Optimization complete!")
-        print(f"  Best {objective_metric}: {-study.best_value:.3f}")
+        print(f"  Train {objective_metric}: {train_score:.3f}")
+        if best_value_test is not None:
+            print(f"  Test  {objective_metric}: {best_value_test:.3f}")
+        if len(wf_scores) > 1:
+            print(f"  Walk-forward scores: {[f'{s:.3f}' for s in wf_scores]}")
+            print(f"  WF mean={wf_mean:.3f}  std={wf_std:.3f}  CV={wf_cv:.2f}")
+            if wf_cv is not None and wf_cv > 0.5:
+                print(f"  ⚠ High CV ({wf_cv:.2f}) — parameters unstable across time periods")
         print(f"  Best parameters:")
-        for param, value in best_params.items():
+        for param, value in final_best_params.items():
             if value is not None:
                 print(f"    {param}: {value}")
-    
+
     return best_policy, trials_df, study_summary
 
 
@@ -262,35 +348,44 @@ def estimate_uncertainty_bootstrap(
     confidence_level: float = 0.95,
     random_seed: int = 42,
     verbose: bool = True,
+    train_ratio: float = 0.8,
 ) -> pd.DataFrame:
     """
     Estimate uncertainty in policy performance using bootstrap resampling.
-    
+
     Bootstrap resampling repeatedly samples trades with replacement and
     re-evaluates each policy to estimate the distribution of outcomes.
     This gives confidence intervals for the "true" performance.
-    
+
+    Resampling is performed on the held-out test portion of the data only
+    (the last 1 - train_ratio fraction, chronologically) to ensure confidence
+    intervals reflect out-of-sample performance rather than training performance.
+
     Parameters
     ----------
     df : pd.DataFrame
         Historical trades DataFrame.
-    
+
     policies : list[PolicyParams]
         List of policies to evaluate (typically top N from optimization).
-    
+
     n_bootstrap : int
         Number of bootstrap samples (more = better estimates but slower).
         Recommended: 1000 for production, 100 for quick testing.
-    
+
     confidence_level : float
         Confidence level for intervals (e.g., 0.95 for 95% CI).
-    
+
     random_seed : int
         Random seed for reproducibility.
-    
+
     verbose : bool
         If True, show progress.
-    
+
+    train_ratio : float
+        Must match the value used in optimize_policy so the same test split
+        is used here. Default: 0.8.
+
     Returns
     -------
     pd.DataFrame
@@ -301,7 +396,7 @@ def estimate_uncertainty_bootstrap(
         - ci_lower: lower confidence bound
         - ci_upper: upper confidence bound
         - All policy parameters
-    
+
     Examples
     --------
     >>> top_policies = [best_policy, second_best, third_best]
@@ -312,12 +407,19 @@ def estimate_uncertainty_bootstrap(
     ...     confidence_level=0.95
     ... )
     >>> print(uncertainty_df[['mean_R', 'ci_lower', 'ci_upper']])
-    
+
     Notes
     -----
     This implements P3-T6: Bootstrap-based uncertainty estimation.
     """
     np.random.seed(random_seed)
+
+    # Use only the held-out test portion so CIs reflect out-of-sample performance
+    cutoff = int(len(df) * train_ratio)
+    df = df.iloc[cutoff:].copy()
+
+    if verbose:
+        print(f"  Bootstrap using {len(df)} held-out test trades")
     
     if verbose:
         print(f"Estimating uncertainty with bootstrap (n={n_bootstrap})...")

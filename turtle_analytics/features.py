@@ -67,7 +67,9 @@ def add_basic_features(df: pd.DataFrame) -> pd.DataFrame:
 
     # Avoid division-by-zero: risk_per_trade should already be > 0 after validation,
     # but we still guard just in case.
-    df["R"] = df["directional_pnl"] / df["risk_per_trade"].replace(0, pd.NA)
+    risk = df["risk_per_trade"].where(df["risk_per_trade"] > 1e-8, pd.NA) 
+    df["R"] = df["directional_pnl"] / risk
+    df["R"] = df["R"].replace([np.inf, -np.inf], pd.NA)
 
     # 3. Duration in minutes
     df["duration_minutes"] = (

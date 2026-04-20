@@ -943,8 +943,8 @@ def _calculate_risk_recommendations(
         avg_loss = abs(losers.mean())
         
         if avg_win > 0:
-            denom = avg_win + avg_loss
-            full_kelly = (win_rate * avg_win - loss_rate * avg_loss) / denom if denom != 0 else 0.0
+
+            full_kelly = (win_rate * avg_win - loss_rate * avg_loss) / avg_win
             full_kelly = max(0, min(full_kelly, 0.25))  # Cap at 25%
         else:
             full_kelly = 0.01
@@ -978,8 +978,13 @@ def _calculate_risk_recommendations(
         f"Use {suggested_risk:.1%} risk per trade for optimal growth"
     )
     
-    # Estimate max drawdown with this sizing
-    estimated_max_dd = abs(max_drawdown * suggested_risk * 100)
+    # Estimate max drawdown with this sizing (dynamic/fixed-fractional compounding)
+    if len(losers) > 0 and avg_loss > 0:
+        n_losing_trades = abs(max_drawdown) / avg_loss
+        compound_factor = (1 - suggested_risk * avg_loss) ** n_losing_trades
+        estimated_max_dd = (1 - compound_factor) * 100
+    else:
+        estimated_max_dd = abs(max_drawdown * suggested_risk * 100)
     recommendations.append(
         f"Max drawdown with this sizing: ~{estimated_max_dd:.0f}% (estimated)"
     )

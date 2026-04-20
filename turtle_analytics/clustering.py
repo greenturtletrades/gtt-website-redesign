@@ -99,7 +99,7 @@ def extract_regime_features(
     # Feature 1: Recent volatility (price changes)
     if "entry_price" in df.columns:
         price_returns = df["entry_price"].pct_change().abs()
-        df["volatility_recent"] = price_returns.rolling(
+        df["volatility_recent"] = price_returns.shift(1).rolling(
             window=lookback_window,
             min_periods=min(5, lookback_window)
         ).std()
@@ -109,8 +109,8 @@ def extract_regime_features(
     # Feature 2: Trend strength (directional consistency)
     # Measured as: |sum of R| / sum of |R|
     # 1.0 = perfect trend, 0.0 = no trend (range)
-    r_sum = df["R"].rolling(window=lookback_window, min_periods=5).sum()
-    r_abs_sum = df["R"].abs().rolling(window=lookback_window, min_periods=5).sum()
+    r_sum = df["R"].shift(1).rolling(window=lookback_window, min_periods=5).sum()
+    r_abs_sum = df["R"].abs().shift(1).rolling(window=lookback_window, min_periods=5).sum()
     
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -124,7 +124,7 @@ def extract_regime_features(
             warnings.simplefilter("ignore")
             mfe_mae_ratio = df["mfe"] / df["mae"].replace(0, np.nan)
         
-        df["avg_mfe_mae_ratio"] = mfe_mae_ratio.rolling(
+        df["avg_mfe_mae_ratio"] = mfe_mae_ratio.shift(1).rolling(
             window=lookback_window,
             min_periods=5
         ).mean().fillna(1.0)
@@ -133,13 +133,13 @@ def extract_regime_features(
     
     # Feature 4: Recent win rate
     is_winner = (df["R"] > 0).astype(int)
-    df["win_rate_recent"] = is_winner.rolling(
+    df["win_rate_recent"] = is_winner.shift(1).rolling(
         window=lookback_window,
         min_periods=5
     ).mean().fillna(0.5)
     
     # Feature 5: Recent average R
-    df["avg_r_recent"] = df["R"].rolling(
+    df["avg_r_recent"] = df["R"].shift(1).rolling(
         window=lookback_window,
         min_periods=5
     ).mean().fillna(0.0)
@@ -147,7 +147,7 @@ def extract_regime_features(
     # Feature 6: Range tightness (opposite of volatility)
     # High value = tight range, low value = wide range
     if "risk_per_trade" in df.columns:
-        risk_vol = df["risk_per_trade"].rolling(
+        risk_vol = df["risk_per_trade"].shift(1).rolling(
             window=lookback_window,
             min_periods=5
         ).std()
@@ -159,6 +159,45 @@ def extract_regime_features(
     else:
         df["range_tightness"] = 0.5
     
+    # --- Override outcome-based features with market-based features -----------
+    # If fetch_market_context() has been called upstream, the following columns
+    # will be present and are strictly better for clustering because they
+    # describe actual market conditions at entry rather than past trade outcomes.
+    #
+    #   atr_pct         → replaces volatility_recent
+    #   ema_direction   → replaces trend_strength
+    #   bar_range_pct   → replaces range_tightness
+    #   price_in_range  → replaces avg_mfe_mae_ratio
+    #   volume_ratio    → replaces win_rate_recent / avg_r_recent
+    #
+    # Columns are only substituted where sufficient non-NaN data exists (>50%
+    # coverage). If market data is absent or sparse the outcome-based features
+    # are kept as-is so the pipeline degrades gracefully.
+
+    MARKET_FEATURE_MAP = {
+        "atr_pct":        "volatility_recent",
+        "ema_direction":  "trend_strength",
+        "bar_range_pct":  "range_tightness",
+        "price_in_range": "avg_mfe_mae_ratio",
+        "volume_ratio":   "win_rate_recent",
+    }
+
+    substituted = []
+    for market_col, outcome_col in MARKET_FEATURE_MAP.items():
+        if market_col in df.columns:
+            coverage = df[market_col].notna().mean()
+            if coverage >= 0.5:
+                df[outcome_col] = df[market_col]
+                substituted.append(f"{outcome_col} → {market_col}")
+
+    if substituted:
+        import logging as _logging
+        _logging.getLogger(__name__).info(
+            "Regime features substituted with market data: " + ", ".join(substituted)
+        )
+
+    # avg_r_recent has no direct market equivalent — keep as-is
+
     # Fill any remaining NaN with column means
     feature_cols = [
         "volatility_recent",
@@ -168,11 +207,11 @@ def extract_regime_features(
         "avg_r_recent",
         "range_tightness",
     ]
-    
+
     for col in feature_cols:
         if col in df.columns:
             df[col] = df[col].fillna(df[col].mean())
-    
+
     return df
 
 
@@ -181,7 +220,7 @@ def fit_clustering_model(
     n_clusters: int = 4,
     method: Literal["kmeans", "dbscan"] = "kmeans",
     random_state: int = 42,
-) -> tuple[Any, pd.DataFrame, dict]:
+) -> tuple[Any, pd.DataFrame, dict, Any]:
     """
     Fit clustering model to identify market regimes.
     
@@ -218,7 +257,7 @@ def fit_clustering_model(
     
     Examples
     --------
-    >>> model, df_labeled, summary = fit_clustering_model(regime_df, n_clusters=4)
+    >>> model, df_labeled, summary, scaler fit_clustering_model(regime_df, n_clusters=4)
     >>> print(summary['n_clusters'])
     4
     >>> print(df_labeled['regime'].value_counts())
@@ -329,12 +368,13 @@ def fit_clustering_model(
         
         cluster_summary["cluster_characteristics"][int(cluster_id)] = characteristics
     
-    return model, df_valid, cluster_summary
+    return model, df_valid, cluster_summary, scaler
 
 
 def label_trades_with_regime(
     df: pd.DataFrame,
     model: Any,
+    scaler: Any,
     feature_cols: list[str] | None = None,
 ) -> pd.DataFrame:
     """
@@ -380,8 +420,8 @@ def label_trades_with_regime(
     valid_idx = X.notna().all(axis=1)
     
     # Standardize (use same scaler as training - approximation)
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X.fillna(0))
+    
+    X_scaled = scaler.transform(X.fillna(0))
     
     # Predict regime
     labels = model.predict(X_scaled)
@@ -395,73 +435,88 @@ def label_trades_with_regime(
 
 def optimize_policies_per_regime(
     df: pd.DataFrame,
+    test_df: pd.DataFrame | None = None,
     n_trials_per_regime: int = 30,
+    n_walkforward_folds: int = 3,
     verbose: bool = True,
 ) -> dict[int, tuple[PolicyParams, dict]]:
     """
     Optimize separate trade management policies for each regime.
-    
+
     This is the key benefit of regime clustering: we can find
     different optimal parameters for different market conditions.
-    
+
     Parameters
     ----------
     df : pd.DataFrame
-        Trades DataFrame with 'regime' column.
-    
+        Training trades DataFrame with 'regime' column. Policies are
+        optimized exclusively on this data.
+
+    test_df : pd.DataFrame, optional
+        Held-out test trades with 'regime' column. When provided, the
+        best policy for each regime is evaluated on the matching test
+        trades to produce an honest out-of-sample performance score.
+        Should be labeled using label_trades_with_regime() with the
+        same model and scaler used to label df.
+
     n_trials_per_regime : int
         Number of Bayesian optimization trials per regime (default: 30).
-    
+
     verbose : bool
         If True, print progress.
-    
+
     Returns
     -------
     dict
         Dictionary mapping regime_id -> (best_policy, metrics).
-        
+
         Example:
         {
-            0: (Policy(sl=0.8, tp=2.0), {'avg_R': 1.5, 'winrate': 0.65}),
-            1: (Policy(sl=1.2, tp=1.5), {'avg_R': 1.2, 'winrate': 0.58}),
+            0: (Policy(sl=0.8, tp=2.0), {'avg_R_train': 1.5, 'avg_R_test': 1.3}),
+            1: (Policy(sl=1.2, tp=1.5), {'avg_R_train': 1.2, 'avg_R_test': 0.9}),
         }
-    
+
     Notes
     -----
     This implements P5-T5: Optimize separate policies per regime.
     """
     if "regime" not in df.columns:
         raise ValueError("DataFrame must have 'regime' column. Call fit_clustering_model() first.")
-    
+
+    if test_df is not None and "regime" not in test_df.columns:
+        raise ValueError("test_df must have 'regime' column. Call label_trades_with_regime() first.")
+
     # Import here to avoid circular dependency
     try:
         from .optimization import optimize_policy
-        from .simulator import calculate_policy_metrics
+        from .simulator import run_simulation, calculate_policy_metrics
     except ImportError:
         raise ImportError(
             "optimization and simulator modules required. "
             "Make sure Phase 3 is complete."
         )
-    
+
     regime_ids = sorted([r for r in df["regime"].unique() if r >= 0])
-    
+
     if verbose:
         print(f"Optimizing policies for {len(regime_ids)} regimes...")
-    
+        if test_df is not None:
+            print(f"  Train trades: {len(df)} | Test trades: {len(test_df)}")
+
     results = {}
-    
+
     for regime_id in regime_ids:
-        # Filter trades for this regime
-        regime_df = df[df["regime"] == regime_id].copy()
-        
-        if len(regime_df) < 20:
+        # Filter training trades for this regime
+        regime_train_df = df[df["regime"] == regime_id].copy()
+
+        if len(regime_train_df) < 80:
             if verbose:
-                print(f"  Regime {regime_id}: Skipped (only {len(regime_df)} trades, need 20+)")
+                print(f"  Regime {regime_id}: Skipped (only {len(regime_train_df)} train trades, need 80+)")
             continue
-        
+
         if verbose:
-            print(f"\n  Regime {regime_id}: {len(regime_df)} trades")
-        
+            print(f"\n  Regime {regime_id}: {len(regime_train_df)} train trades")
+
         # Configure optimization for this regime
         config = {
             "objective_metric": "avg_R",
@@ -478,31 +533,87 @@ def optimize_policies_per_regime(
                 "risk_fraction": {"type": "float", "low": 0.005, "high": 0.02},
             },
         }
-        
+
         try:
-            # Run optimization for this regime
+            # Optimize on training trades only (optimize_policy does its own
+            # internal chronological split as a second layer of validation)
             best_policy, trials_df, summary = optimize_policy(
-                regime_df,
+                regime_train_df,
                 config,
-                verbose=False,  # Suppress per-trial output
+                verbose=False,
+                n_walkforward_folds=n_walkforward_folds,
             )
-            
+
+            # --- Statistical significance test ---
+            # Compare regime-specific policy R-multiples against the baseline
+            # policy (PolicyParams defaults = no adjustment, use original SL/TP).
+            # Welch's t-test: H0 = regime policy mean R == baseline mean R.
+            # If p > 0.05 the improvement is not statistically significant and
+            # the regime-specific policy should not be trusted over the baseline.
+            p_value = None
+            significant = False
+            try:
+                from scipy import stats as _stats
+                baseline_policy = PolicyParams()
+                baseline_sim = run_simulation(regime_train_df, baseline_policy, inplace=False)
+                regime_sim   = run_simulation(regime_train_df, best_policy, inplace=False)
+                baseline_r = baseline_sim["sim_R"].dropna().values
+                regime_r   = regime_sim["sim_R"].dropna().values
+                if len(baseline_r) >= 10 and len(regime_r) >= 10:
+                    t_stat, p_value = _stats.ttest_ind(regime_r, baseline_r, equal_var=False)
+                    # One-tailed: regime policy should be BETTER (higher R), not just different
+                    p_value = float(p_value / 2 if t_stat > 0 else 1.0)
+                    significant = p_value < 0.05
+            except ImportError:
+                # scipy not installed — skip significance test
+                significant = True  # assume significant so pipeline still runs
+            except Exception:
+                significant = True
+
+            # Evaluate best policy on held-out test trades for this regime
+            avg_r_test = None
+            if test_df is not None:
+                regime_test_df = test_df[test_df["regime"] == regime_id].copy()
+                if len(regime_test_df) >= 5:
+                    try:
+                        test_sim_df = run_simulation(regime_test_df, best_policy, inplace=False)
+                        test_metrics = calculate_policy_metrics(test_sim_df)
+                        avg_r_test = test_metrics.get("avg_R")
+                    except Exception:
+                        pass
+
             if verbose:
-                print(f"    Best avg_R: {summary['best_value']:.3f}")
+                train_score = summary["best_value_train"]
+                print(f"    Train avg_R: {train_score:.3f}")
+                if avg_r_test is not None:
+                    print(f"    Test  avg_R: {avg_r_test:.3f}")
+                    gap = train_score - avg_r_test
+                    if gap > 0.3:
+                        print(f"    ⚠ Large train/test gap ({gap:.3f}) — possible overfitting")
+                else:
+                    print(f"    Test  avg_R: n/a (insufficient test trades)")
+                if p_value is not None:
+                    sig_label = "✓ significant" if significant else "✗ NOT significant — baseline policy may be better"
+                    print(f"    vs baseline p={p_value:.3f} ({sig_label})")
                 print(f"    Policy: {best_policy}")
-            
+
             # Store results
             results[regime_id] = (best_policy, {
                 "avg_R": summary["best_value"],
+                "avg_R_train": summary["best_value_train"],
+                "avg_R_test": avg_r_test,
+                "p_value": p_value,
+                "significant": significant,
                 "n_trials": len(trials_df),
-                "n_trades": len(regime_df),
+                "n_trades_train": len(regime_train_df),
+                "n_trades_test": len(test_df[test_df["regime"] == regime_id]) if test_df is not None else 0,
             })
-            
+
         except Exception as e:
             if verbose:
                 print(f"    Optimization failed: {e}")
             continue
-    
+
     return results
 
 

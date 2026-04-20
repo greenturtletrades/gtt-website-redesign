@@ -200,7 +200,15 @@ def run_simulation(
         #   - Trough price = entry_price + mfe (for short, mfe is favorable downward movement)
         
         # LONG: check if SL hit
-        mae_abs = df["mae"].abs()  # ensure MAE is positive magnitude
+        if (df["mae"] > 0).any():
+            import warnings
+            warnings.warn(
+                "MAE column contains positive values. MAE should be stored as a "
+                "negative magnitude (e.g. -5.0, not 5.0). Check your data source.",
+                UserWarning,
+                stacklevel=2,
+            )
+        mae_abs = df["mae"].abs()  # normalise to positive magnitude for price calculations
         long_worst_price = df.loc[is_long, "entry_price"] - mae_abs.loc[is_long]
         long_sl_hit = long_worst_price <= sim_sl.loc[is_long]
         
@@ -219,28 +227,22 @@ def run_simulation(
         
         # Apply results for LONG trades
         # Prioritize SL over TP (conservative: assume SL hit first if both)
-        long_indices = df.index[is_long]
-        
-        for idx in long_indices:
-            if long_sl_hit.loc[idx]:
-                sim_exit_price.loc[idx] = sim_sl.loc[idx]
-                sim_exit_reason.loc[idx] = "SL_HIT"
-            elif long_tp_hit.loc[idx]:
-                sim_exit_price.loc[idx] = sim_tp.loc[idx]
-                sim_exit_reason.loc[idx] = "TP_HIT"
-            # else: keep ORIGINAL exit price
-        
+        long_sl_mask = is_long & long_sl_hit.reindex(df.index, fill_value=False)
+        long_tp_mask = is_long & long_tp_hit.reindex(df.index, fill_value=False) & ~long_sl_mask
+
+        sim_exit_price.loc[long_sl_mask] = sim_sl.loc[long_sl_mask]
+        sim_exit_reason.loc[long_sl_mask] = "SL_HIT"
+        sim_exit_price.loc[long_tp_mask] = sim_tp.loc[long_tp_mask]
+        sim_exit_reason.loc[long_tp_mask] = "TP_HIT"
+
         # Apply results for SHORT trades
-        short_indices = df.index[is_short]
-        
-        for idx in short_indices:
-            if short_sl_hit.loc[idx]:
-                sim_exit_price.loc[idx] = sim_sl.loc[idx]
-                sim_exit_reason.loc[idx] = "SL_HIT"
-            elif short_tp_hit.loc[idx]:
-                sim_exit_price.loc[idx] = sim_tp.loc[idx]
-                sim_exit_reason.loc[idx] = "TP_HIT"
-            # else: keep ORIGINAL exit price
+        short_sl_mask = is_short & short_sl_hit.reindex(df.index, fill_value=False)
+        short_tp_mask = is_short & short_tp_hit.reindex(df.index, fill_value=False) & ~short_sl_mask
+
+        sim_exit_price.loc[short_sl_mask] = sim_sl.loc[short_sl_mask]
+        sim_exit_reason.loc[short_sl_mask] = "SL_HIT"
+        sim_exit_price.loc[short_tp_mask] = sim_tp.loc[short_tp_mask]
+        sim_exit_reason.loc[short_tp_mask] = "TP_HIT"
     
     df["sim_exit_price"] = sim_exit_price
     df["sim_exit_reason"] = sim_exit_reason
@@ -394,10 +396,10 @@ def run_simulation(
     sim_risk = pd.Series(np.nan, index=df.index)
     sim_risk.loc[is_long] = (
         df.loc[is_long, "entry_price"] - sim_sl.loc[is_long]
-    )
+    ).abs()
     sim_risk.loc[is_short] = (
         sim_sl.loc[is_short] - df.loc[is_short, "entry_price"]
-    )
+    ).abs()
     
     zero_risk_mask = sim_risk == 0
     zero_risk_count = int(zero_risk_mask.sum())

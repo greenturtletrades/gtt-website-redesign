@@ -49,6 +49,7 @@ from turtle_analytics.survival import (
 from turtle_analytics.clustering import (
     extract_regime_features,
     fit_clustering_model,
+    label_trades_with_regime,
     optimize_policies_per_regime,
     create_regime_summary,
     save_regime_results,
@@ -659,18 +660,37 @@ def process(
         typer.echo("\nIdentifying distinct market regimes...")
         
         try:
+            # Enrich with market context features before regime extraction.
+            # Uses MT5 on Windows, yfinance on macOS/Linux (Railway).
+            typer.echo("\n  Fetching market context (ATR, EMA, volume)...")
+            try:
+                from turtle_analytics.market_data import fetch_market_context
+                df_features = fetch_market_context(df_features)
+                typer.echo(f"    ✓ Market context added")
+            except Exception as e:
+                typer.echo(f"    ⚠ Market context unavailable ({e}) — using outcome-based features")
+
             # Extract regime features (P5-T2)
             typer.echo("\n  Extracting regime features...")
             regime_df = extract_regime_features(df_features, lookback_window=20)
             typer.echo(f"    ✓ Features extracted")
             
+            # Chronological train/test split — model fits on training trades only
+            cutoff = int(len(regime_df) * 0.8)
+            train_regime_df = regime_df.iloc[:cutoff]
+            test_regime_df = regime_df.iloc[cutoff:]
+
             # Fit clustering model (P5-T3)
             typer.echo(f"\n  Fitting clustering model ({n_clusters} clusters)...")
-            model, df_labeled, cluster_summary = fit_clustering_model(
-                regime_df,
+            typer.echo(f"    Train trades: {len(train_regime_df)} | Test trades: {len(test_regime_df)}")
+            model, df_labeled, cluster_summary, scaler = fit_clustering_model(
+                train_regime_df,
                 n_clusters=n_clusters,
                 method="kmeans",
             )
+
+            # Label held-out test trades using the fitted model (not refit)
+            test_labeled = label_trades_with_regime(test_regime_df, model, scaler)
             
             actual_clusters = cluster_summary["n_clusters"]
             silhouette = cluster_summary["silhouette_score"]
@@ -700,6 +720,7 @@ def process(
             typer.echo(f"\n  Optimizing policies for each regime...")
             regime_policies = optimize_policies_per_regime(
                 df_labeled,
+                test_df=test_labeled,
                 n_trials_per_regime=20,  # Reduced for speed
                 verbose=True,
             )
@@ -729,7 +750,7 @@ def process(
             # Create regime summary (P5-T6)
             typer.echo(f"\n  Generating regime summary...")
             regime_summary = create_regime_summary(
-                df_labeled,
+                test_labeled,
                 cluster_summary,
                 regime_policies,
             )

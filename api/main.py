@@ -62,7 +62,8 @@ except ImportError:
 try:
     from turtle_analytics.clustering import (
         extract_regime_features, fit_clustering_model,
-        optimize_policies_per_regime, create_regime_summary,
+        label_trades_with_regime, optimize_policies_per_regime,
+        create_regime_summary,
     )
     HAS_CLUSTERING = True
 except ImportError:
@@ -237,12 +238,35 @@ def _run_pipeline_from_df(
         # --- Phase 5: Clustering ---
         regimes_found = 0
         if run_clustering and HAS_CLUSTERING:
+            # Enrich trades with market context features (ATR, EMA direction,
+            # volume ratio etc.) before extracting regime features.
+            # Uses MT5 on Windows, yfinance on macOS/Linux (Railway).
+            # Degrades gracefully if neither is available or symbol is missing.
+            try:
+                from turtle_analytics.market_data import fetch_market_context
+                df_features = fetch_market_context(df_features)
+            except Exception as e:
+                logger.warning(f"[{job_id}] Market context fetch failed ({e}) — using outcome-based features")
+
             regime_df = extract_regime_features(df_features)
-            model, df_labeled, cluster_summary = fit_clustering_model(
-                regime_df, n_clusters=n_clusters
+
+            # Chronological train/test split — model fits on training trades only
+            cutoff = int(len(regime_df) * 0.8)
+            train_regime_df = regime_df.iloc[:cutoff]
+            test_regime_df = regime_df.iloc[cutoff:]
+
+            model, df_labeled, cluster_summary, scaler = fit_clustering_model(
+                train_regime_df, n_clusters=n_clusters
             )
-            regime_policies = optimize_policies_per_regime(df_labeled, n_trials_per_regime=15)
-            regime_summary = create_regime_summary(df_labeled, cluster_summary, regime_policies)
+
+            # Label held-out test trades using the fitted model (not refit)
+            test_labeled = label_trades_with_regime(test_regime_df, model, scaler)
+
+            regime_policies = optimize_policies_per_regime(
+                df_labeled, test_df=test_labeled, n_trials_per_regime=15
+            )
+            # Report performance on held-out test trades
+            regime_summary = create_regime_summary(test_labeled, cluster_summary, regime_policies)
             report_data["regime_summary"] = regime_summary
             regimes_found = cluster_summary.get("n_clusters", 0)
             if "regime" in df_labeled.columns:
