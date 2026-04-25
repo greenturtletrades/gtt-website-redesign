@@ -470,20 +470,24 @@ def calculate_policy_metrics(df: pd.DataFrame) -> dict:
     
     R_values = valid_df["sim_R"]
     
+    avg_r = float(R_values.mean())
+    std_r = float(R_values.std())
+
     metrics = {
-        "avg_R": float(R_values.mean()),
-        "median_R": float(R_values.median()),
-        "std_R": float(R_values.std()),
-        "winrate": float((R_values > 0).mean()),
-        "n_trades": int(len(valid_df)),
-        "total_R": float(R_values.sum()),
-        "max_win_R": float(R_values.max()) if len(R_values) > 0 else 0.0,
-        "max_loss_R": float(R_values.min()) if len(R_values) > 0 else 0.0,
+        "avg_R":      avg_r,
+        "median_R":   float(R_values.median()),
+        "std_R":      std_r,
+        "winrate":    float((R_values > 0).mean()),
+        "n_trades":   int(len(valid_df)),
+        "total_R":    float(R_values.sum()),
+        "max_win_R":  float(R_values.max()),
+        "max_loss_R": float(R_values.min()),
+        "expectancy": avg_r,
+        # Sharpe ratio: avg_R per unit of R volatility (risk-free rate = 0).
+        # Rewards consistent positive returns and penalises high variance.
+        "sharpe_ratio": float(avg_r / std_r) if std_r > 0 else 0.0,
     }
-    
-    # Expectancy is just another name for avg_R
-    metrics["expectancy"] = metrics["avg_R"]
-    
+
     return metrics
 
 

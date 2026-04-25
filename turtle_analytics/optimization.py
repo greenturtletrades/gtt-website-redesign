@@ -81,10 +81,21 @@ def _run_optuna_study(
             delta_winrate = comparison.get("delta_winrate")
             if isinstance(delta_winrate, (int, float, np.floating)) and np.isfinite(delta_winrate):
                 trial.set_user_attr("delta_winrate", float(delta_winrate))
-            objective_value = metrics.get(objective_metric, 0.0)
-            if objective_metric in ["avg_R", "winrate", "total_R", "sharpe_ratio"]:
-                return -objective_value
-            return objective_value
+            objective_value = metrics.get(objective_metric)
+            if objective_value is None:
+                warnings.warn(
+                    f"objective_metric '{objective_metric}' not found in policy metrics. "
+                    f"Available: {list(metrics.keys())}",
+                    UserWarning,
+                )
+                return float("inf")
+
+            # Metrics where lower is genuinely better — minimize directly.
+            # Everything else is assumed higher-is-better and gets negated.
+            lower_is_better = {"std_R", "max_loss_R"}
+            if objective_metric in lower_is_better:
+                return objective_value
+            return -objective_value
         except Exception as e:
             warnings.warn(f"Trial failed: {e}", RuntimeWarning)
             return float("inf")
