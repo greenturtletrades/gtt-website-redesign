@@ -98,10 +98,10 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
               className="mt-5"
             >
               <p className="text-sm text-teal-100/85">
-                Connect directly to your MetaTrader account or upload CSV files to run analysis.
+                Connect your MetaTrader account directly or upload CSV trade history for analysis.
               </p>
               <p className="mt-1 text-xs uppercase tracking-[0.2em] text-cyan-300/80">
-                More platforms coming soon
+                Additional broker and platform integrations coming soon
               </p>
             </motion.div>
           </div>
