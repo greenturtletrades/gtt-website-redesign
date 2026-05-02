@@ -95,16 +95,12 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="mt-6 flex justify-center"
+              className="mt-4 flex justify-center"
             >
-              <div className="inline-flex max-w-3xl flex-col items-center gap-2 rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-center shadow-[0_10px_30px_rgba(0,0,0,0.12)] backdrop-blur-md sm:px-5">
-                <div className="flex items-center gap-2 text-[11px] font-medium tracking-[0.24em] text-cyan-300/75 uppercase">
-                  <span className="h-1.5 w-1.5 rounded-full bg-teal-300/80" />
-                  Trade Import
-                </div>
-                <p className="text-sm leading-relaxed text-teal-50/88 sm:text-[15px]">
+              <div className="max-w-2xl px-4 text-center">
+                <p className="text-xs leading-relaxed text-teal-100/80 sm:text-sm">
                   Connect your MetaTrader account directly or upload CSV trade history for analysis.
-                  <span className="text-cyan-300/85"> Additional broker and platform integrations will follow.</span>
+                  <span className="text-teal-100/80"> Additional broker and platform integrations will follow.</span>
                 </p>
               </div>
             </motion.div>
