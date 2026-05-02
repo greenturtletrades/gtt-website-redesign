@@ -112,6 +112,12 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                 title: "Continuously Learning",
                 desc: "The model refines recommendations with each additional trade, learning your unique patterns without overfitting.",
                 highlight: "Self-optimising feedback loop"
+              },
+              {
+                icon: Settings,
+                title: "Flexible Trade Import",
+                desc: "Connect directly to your MetaTrader account or upload CSV files to run the analysis. More trading platforms are coming soon.",
+                highlight: "MetaTrader or CSV, with more platforms on the way"
               }
             ].map((item, i) => {
               const Icon = item.icon;
