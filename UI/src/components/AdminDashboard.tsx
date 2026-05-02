@@ -438,7 +438,9 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
     const reason = requiresReason
       ? window.prompt(`Reason for marking ${item.email} as ${nextStatus.toLowerCase()}:`, item.reviewReason || "") ?? ""
       : item.reviewReason || "";
-    const notes = window.prompt(`Optional notes for ${item.email}:`, item.reviewNotes || "") ?? item.reviewNotes || "";
+    const notes =
+      window.prompt(`Optional notes for ${item.email}:`, item.reviewNotes || "") ??
+      (item.reviewNotes || "");
 
     setSignupActionPendingEmail(item.email);
     setSignupError(null);
