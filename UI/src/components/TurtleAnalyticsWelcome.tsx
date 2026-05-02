@@ -1,4 +1,4 @@
-import { Brain, Shield, Lock, Sparkles, GitBranch, Target, BarChart3, Activity, Clock, TrendingUp, Settings, RefreshCw, CheckCircle, LogIn, UserPlus, Calculator, Crown, Check, BookOpen } from "lucide-react";
+import { Brain, Shield, Lock, Sparkles, GitBranch, Target, BarChart3, Activity, Clock, TrendingUp, RefreshCw, CheckCircle, LogIn, UserPlus, Calculator, Crown, Check, BookOpen } from "lucide-react";
 import { motion } from "motion/react";
 
 interface TurtleAnalyticsWelcomeProps {
@@ -90,6 +90,20 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                 </>
               )}
             </div>
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="mt-5"
+            >
+              <p className="text-sm text-teal-100/85">
+                Connect directly to your MetaTrader account or upload CSV files to run analysis.
+              </p>
+              <p className="mt-1 text-xs uppercase tracking-[0.2em] text-cyan-300/80">
+                More platforms coming soon
+              </p>
+            </motion.div>
           </div>
 
           {/* Key Differentiators */}
@@ -112,12 +126,6 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                 title: "Continuously Learning",
                 desc: "The model refines recommendations with each additional trade, learning your unique patterns without overfitting.",
                 highlight: "Self-optimising feedback loop"
-              },
-              {
-                icon: Settings,
-                title: "Flexible Trade Import",
-                desc: "Connect directly to your MetaTrader account or upload CSV files to run the analysis. More trading platforms are coming soon.",
-                highlight: "MetaTrader or CSV, with more platforms on the way"
               }
             ].map((item, i) => {
               const Icon = item.icon;
