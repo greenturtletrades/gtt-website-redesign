@@ -280,7 +280,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
   const formatPercent = (value: number) => `${value.toFixed(0)}%`;
 
   // Filter and sort traders
-  let filteredTraders = traders.filter(trader => 
+  let filteredTraders = accountTraders.filter(trader => 
     trader.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     trader.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (trader.country || "").toLowerCase().includes(searchQuery.toLowerCase())
