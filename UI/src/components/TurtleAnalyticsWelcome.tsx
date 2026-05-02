@@ -1,4 +1,4 @@
-import { Brain, Shield, Lock, Sparkles, GitBranch, Target, BarChart3, Activity, Clock, TrendingUp, RefreshCw, CheckCircle, LogIn, UserPlus, Calculator, Crown, Check, BookOpen } from "lucide-react";
+import { Brain, Shield, Lock, Sparkles, GitBranch, Target, BarChart3, Activity, Clock, TrendingUp, Settings, RefreshCw, CheckCircle, LogIn, UserPlus, Calculator, Crown, Check, BookOpen } from "lucide-react";
 import { motion } from "motion/react";
 
 interface TurtleAnalyticsWelcomeProps {
