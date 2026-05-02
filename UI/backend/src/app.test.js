@@ -31,6 +31,12 @@ const prismaMock = {
   waitlistEntry: {
     findMany: async () => [],
   },
+  signupReview: {
+    findMany: async () => [],
+    upsert: async () => {
+      throw new Error("Unexpected prisma.signupReview.upsert call");
+    },
+  },
   churnFeedback: {
     findMany: async () => [],
   },
@@ -73,6 +79,10 @@ function resetPrisma() {
   };
   prismaMock.traderApplication.findMany = async () => [];
   prismaMock.waitlistEntry.findMany = async () => [];
+  prismaMock.signupReview.findMany = async () => [];
+  prismaMock.signupReview.upsert = async () => {
+    throw new Error("Unexpected prisma.signupReview.upsert call");
+  };
   prismaMock.churnFeedback.findMany = async () => [];
 }
 
@@ -264,11 +274,51 @@ test("GET /api/admin/signups returns combined signup sources", async () => {
 
     assert.equal(response.status, 200);
     assert.equal(response.body.ok, true);
-    assert.equal(response.body.items.length, 3);
+    assert.equal(response.body.items.length, 1);
+    assert.equal(response.body.items[0].email, "multi@gtt.local");
     assert.deepEqual(
-      response.body.items.map((item) => item.sourceType),
+      response.body.items[0].sourceTypes,
       ["trader_account", "trader_application", "landing_waitlist"]
     );
+    assert.equal(response.body.items[0].reviewStatus, "ACTIVE");
+    assert.equal(response.body.summary.totalUniqueEmails, 1);
+    assert.equal(response.body.summary.validUniqueEmails, 1);
+  });
+});
+
+test("POST /api/admin/signups/review upserts review state", async () => {
+  prismaMock.signupReview.upsert = async ({ where, update }) => ({
+    id: "review-1",
+    email: where.email,
+    status: update.status,
+    doNotContact: update.doNotContact,
+    reason: update.reason,
+    notes: update.notes,
+    reviewedAt: new Date("2026-05-02T10:00:00.000Z"),
+  });
+
+  await withServer(async (server) => {
+    const response = await request(server, "/api/admin/signups/review", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${createToken("ADMIN")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: "Fake@Example.com",
+        status: "INVALID",
+        doNotContact: true,
+        reason: "Obvious joke signup",
+        notes: "Blocked from outreach counts",
+      }),
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.ok, true);
+    assert.equal(response.body.review.email, "fake@example.com");
+    assert.equal(response.body.review.status, "INVALID");
+    assert.equal(response.body.review.doNotContact, true);
+    assert.equal(response.body.review.reason, "Obvious joke signup");
   });
 });
 

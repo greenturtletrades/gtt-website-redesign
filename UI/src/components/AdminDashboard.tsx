@@ -22,13 +22,14 @@ import {
   adminResetTraderPassword,
   adminSyncTraderStripe,
   setTraderPlatformComp,
+  updateAdminSignupReview,
+  type AdminSignupSummary,
   type AdminChurnFeedbackItem,
   type AdminAccountDeletionAuditItem,
   type AdminFinanceData,
   type AdminChurnFeedbackSummary,
   type AdminReferralCode,
   type AdminStaffMember,
-  type AdminSignupItem,
   type AdminTrader,
   type GroupedAdminSignupItem,
 } from "../api/admin";
@@ -54,7 +55,18 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
   const [churnError, setChurnError] = useState<string | null>(null);
   const [deletionAudits, setDeletionAudits] = useState<AdminAccountDeletionAuditItem[]>([]);
   const [deletionAuditError, setDeletionAuditError] = useState<string | null>(null);
-  const [signupItems, setSignupItems] = useState<AdminSignupItem[]>([]);
+  const [signupItems, setSignupItems] = useState<GroupedAdminSignupItem[]>([]);
+  const [signupSummary, setSignupSummary] = useState<AdminSignupSummary>({
+    totalUniqueEmails: 0,
+    validUniqueEmails: 0,
+    contactableUniqueEmails: 0,
+    suspectUniqueEmails: 0,
+    invalidUniqueEmails: 0,
+    landingSignupCount: 0,
+    investorSignupCount: 0,
+    traderApplicationSignupCount: 0,
+    traderAccountSignupCount: 0,
+  });
   const [signupError, setSignupError] = useState<string | null>(null);
   const [financeData, setFinanceData] = useState<AdminFinanceData | null>(null);
   const [financeError, setFinanceError] = useState<string | null>(null);
@@ -68,7 +80,9 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
   const [referralDurationDays, setReferralDurationDays] = useState("30");
   const [referralActive, setReferralActive] = useState(true);
   const [signupSearchQuery, setSignupSearchQuery] = useState("");
-  const [signupFilter, setSignupFilter] = useState<"all" | AdminSignupItem["sourceType"]>("all");
+  const [signupFilter, setSignupFilter] = useState<"all" | GroupedAdminSignupItem["sourceTypes"][number]>("all");
+  const [signupReviewFilter, setSignupReviewFilter] = useState<"all" | GroupedAdminSignupItem["reviewStatus"]>("all");
+  const [signupActionPendingEmail, setSignupActionPendingEmail] = useState<string | null>(null);
   const [showInviteStaff, setShowInviteStaff] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteCode, setInviteCode] = useState("");
@@ -117,6 +131,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
       setChurnSummary(churnResponse.summary);
       setDeletionAudits(deletionAuditResponse.items);
       setSignupItems(signupResponse.items);
+      setSignupSummary(signupResponse.summary);
       setFinanceData(financeResponse.finance);
       setReferralCodes(referralResponse.items);
       setTradersError(null);
@@ -134,6 +149,17 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
       setChurnSummary([]);
       setDeletionAudits([]);
       setSignupItems([]);
+      setSignupSummary({
+        totalUniqueEmails: 0,
+        validUniqueEmails: 0,
+        contactableUniqueEmails: 0,
+        suspectUniqueEmails: 0,
+        invalidUniqueEmails: 0,
+        landingSignupCount: 0,
+        investorSignupCount: 0,
+        traderApplicationSignupCount: 0,
+        traderAccountSignupCount: 0,
+      });
       setFinanceData(null);
       setReferralCodes([]);
       setTradersError(error instanceof Error ? error.message : "Unable to load trader accounts.");
@@ -230,11 +256,6 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
     ? ((totalCancellations / displayTotalUsers) * 100).toFixed(1)
     : "0.0";
   const recentRecords = churnItems.slice(0, 8);
-  const landingSignupCount = new Set(signupItems.filter((item) => item.sourceType === "landing_waitlist").map((item) => item.email.toLowerCase())).size;
-  const investorSignupCount = new Set(signupItems.filter((item) => item.sourceType === "investor_waitlist").map((item) => item.email.toLowerCase())).size;
-  const traderApplicationSignupCount = new Set(signupItems.filter((item) => item.sourceType === "trader_application").map((item) => item.email.toLowerCase())).size;
-  const traderAccountSignupCount = new Set(signupItems.filter((item) => item.sourceType === "trader_account").map((item) => item.email.toLowerCase())).size;
-  const uniqueSignupCount = new Set(signupItems.map((item) => item.email.toLowerCase())).size;
   const financeSummary = financeData?.summary ?? {
     traderAccounts: 0,
     paygAccounts: 0,
@@ -327,14 +348,14 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
     return <span className={`px-2 py-1 text-xs rounded-full ${roleColors[role as keyof typeof roleColors]}`}>{label}</span>;
   };
 
-  const getSignupSourceLabel = (sourceType: AdminSignupItem["sourceType"]) => {
+  const getSignupSourceLabel = (sourceType: GroupedAdminSignupItem["sourceTypes"][number]) => {
     if (sourceType === "landing_waitlist") return "Landing Page";
     if (sourceType === "investor_waitlist") return "Investor Signup";
     if (sourceType === "trader_application") return "Trader Application";
     return "Trader Account";
   };
 
-  const getSignupSourceBadge = (sourceType: AdminSignupItem["sourceType"]) => {
+  const getSignupSourceBadge = (sourceType: GroupedAdminSignupItem["sourceTypes"][number]) => {
     const tones = {
       landing_waitlist: "bg-blue-100 text-blue-700",
       investor_waitlist: "bg-cyan-100 text-cyan-700",
@@ -358,62 +379,41 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
     return <span className="px-2 py-1 text-xs rounded-full bg-slate-100 text-slate-600">No Trade Data</span>;
   };
 
-  const groupedSignupItems: GroupedAdminSignupItem[] = Array.from(
-    signupItems.reduce((map, item) => {
-      const emailKey = item.email.trim().toLowerCase();
-      const existing = map.get(emailKey);
-      const normalizedDetail = item.detail?.trim() || "";
-      const normalizedStatus = item.status.trim();
-      const normalizedName = item.name?.trim() || null;
+  const getSignupReviewBadge = (item: GroupedAdminSignupItem) => {
+    if (item.reviewStatus === "INVALID") {
+      return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-700">Invalid</span>;
+    }
+    if (item.reviewStatus === "SUSPECT") {
+      return <span className="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-700">Suspect</span>;
+    }
+    if (item.doNotContact) {
+      return <span className="px-2 py-1 text-xs rounded-full bg-slate-200 text-slate-700">Do Not Contact</span>;
+    }
+    return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">Valid</span>;
+  };
 
-      if (!existing) {
-        map.set(emailKey, {
-          id: item.id,
-          email: emailKey,
-          name: normalizedName,
-          sourceTypes: [item.sourceType],
-          statuses: [normalizedStatus],
-          details: normalizedDetail ? [normalizedDetail] : [],
-          submittedAt: item.submittedAt,
-          entryCount: 1,
-        });
-        return map;
-      }
-
-      existing.entryCount += 1;
-      if (normalizedName && !existing.name) {
-        existing.name = normalizedName;
-      }
-      if (!existing.sourceTypes.includes(item.sourceType)) {
-        existing.sourceTypes.push(item.sourceType);
-      }
-      if (!existing.statuses.includes(normalizedStatus)) {
-        existing.statuses.push(normalizedStatus);
-      }
-      if (normalizedDetail && !existing.details.includes(normalizedDetail)) {
-        existing.details.push(normalizedDetail);
-      }
-      if (new Date(item.submittedAt).getTime() > new Date(existing.submittedAt).getTime()) {
-        existing.submittedAt = item.submittedAt;
-        existing.id = item.id;
-      }
-
-      return map;
-    }, new Map<string, GroupedAdminSignupItem>()).values()
-  ).sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
-
-  const filteredSignupItems = groupedSignupItems.filter((item) => {
+  const filteredSignupItems = signupItems.filter((item) => {
     const matchesFilter = signupFilter === "all" || item.sourceTypes.includes(signupFilter);
+    const matchesReviewFilter = signupReviewFilter === "all" || item.reviewStatus === signupReviewFilter;
     const query = signupSearchQuery.trim().toLowerCase();
     const matchesSearch =
       !query ||
       item.email.toLowerCase().includes(query) ||
       (item.name || "").toLowerCase().includes(query) ||
       item.details.some((detail) => detail.toLowerCase().includes(query)) ||
-      item.sourceTypes.some((sourceType) => getSignupSourceLabel(sourceType).toLowerCase().includes(query));
+      item.sourceTypes.some((sourceType) => getSignupSourceLabel(sourceType).toLowerCase().includes(query)) ||
+      item.reviewStatus.toLowerCase().includes(query) ||
+      (item.doNotContact && "do not contact".includes(query));
 
-    return matchesFilter && matchesSearch;
+    return matchesFilter && matchesReviewFilter && matchesSearch;
   });
+
+  const reloadSignups = async () => {
+    const signupResponse = await fetchAdminSignups();
+    setSignupItems(signupResponse.items);
+    setSignupSummary(signupResponse.summary);
+    setSignupError(null);
+  };
 
   const reloadStaff = async () => {
     const staffResponse = await fetchAdminStaff();
@@ -425,6 +425,38 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
     const traderResponse = await fetchAdminTraders();
     setTraders(traderResponse.items);
     setTradersError(null);
+  };
+
+  const handleSignupReviewUpdate = async (
+    item: GroupedAdminSignupItem,
+    nextStatus: GroupedAdminSignupItem["reviewStatus"],
+    nextDoNotContact: boolean,
+  ) => {
+    if (signupActionPendingEmail === item.email) return;
+
+    const requiresReason = nextStatus === "SUSPECT" || nextStatus === "INVALID";
+    const reason = requiresReason
+      ? window.prompt(`Reason for marking ${item.email} as ${nextStatus.toLowerCase()}:`, item.reviewReason || "") ?? ""
+      : item.reviewReason || "";
+    const notes = window.prompt(`Optional notes for ${item.email}:`, item.reviewNotes || "") ?? item.reviewNotes || "";
+
+    setSignupActionPendingEmail(item.email);
+    setSignupError(null);
+
+    try {
+      await updateAdminSignupReview({
+        email: item.email,
+        status: nextStatus,
+        doNotContact: nextDoNotContact,
+        reason,
+        notes,
+      });
+      await reloadSignups();
+    } catch (error) {
+      setSignupError(error instanceof Error ? error.message : "Unable to update signup review.");
+    } finally {
+      setSignupActionPendingEmail(null);
+    }
   };
 
   const handleInviteSubmit = async (e: React.FormEvent) => {
@@ -1835,29 +1867,29 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <div className="text-sm text-slate-600">Unique Emails</div>
-                  <div className="mt-1 text-3xl text-slate-900">{uniqueSignupCount}</div>
-                  <div className="text-xs text-slate-600">Grouped people across all signup sources</div>
+                  <div className="text-sm text-slate-600">Valid Emails</div>
+                  <div className="mt-1 text-3xl text-slate-900">{signupSummary.validUniqueEmails}</div>
+                  <div className="text-xs text-slate-600">Excludes emails marked invalid</div>
                 </div>
                 <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
                   <div className="text-sm text-slate-600">Landing Page Signups</div>
-                  <div className="mt-1 text-3xl text-slate-900">{landingSignupCount}</div>
-                  <div className="text-xs text-blue-700">Unique emails from landing page</div>
+                  <div className="mt-1 text-3xl text-slate-900">{signupSummary.landingSignupCount}</div>
+                  <div className="text-xs text-blue-700">Valid unique emails from landing page</div>
                 </div>
                 <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-4">
                   <div className="text-sm text-slate-600">Investor Signups</div>
-                  <div className="mt-1 text-3xl text-slate-900">{investorSignupCount}</div>
-                  <div className="text-xs text-cyan-700">Unique investor emails</div>
+                  <div className="mt-1 text-3xl text-slate-900">{signupSummary.investorSignupCount}</div>
+                  <div className="text-xs text-cyan-700">Valid investor emails</div>
                 </div>
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
                   <div className="text-sm text-slate-600">Trader Applications</div>
-                  <div className="mt-1 text-3xl text-slate-900">{traderApplicationSignupCount}</div>
-                  <div className="text-xs text-amber-700">Unique applicant emails</div>
+                  <div className="mt-1 text-3xl text-slate-900">{signupSummary.traderApplicationSignupCount}</div>
+                  <div className="text-xs text-amber-700">Valid applicant emails</div>
                 </div>
                 <div className="rounded-lg border border-teal-200 bg-teal-50 p-4">
-                  <div className="text-sm text-slate-600">Trader Accounts</div>
-                  <div className="mt-1 text-3xl text-slate-900">{traderAccountSignupCount}</div>
-                  <div className="text-xs text-teal-700">Unique trader account emails</div>
+                  <div className="text-sm text-slate-600">Contactable Emails</div>
+                  <div className="mt-1 text-3xl text-slate-900">{signupSummary.contactableUniqueEmails}</div>
+                  <div className="text-xs text-teal-700">Valid emails not marked do not contact</div>
                 </div>
               </div>
             </div>
@@ -1891,7 +1923,27 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                         <option value="trader_account">Trader Account</option>
                       </select>
                     </div>
+                    <div className="relative">
+                      <Shield className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <select
+                        value={signupReviewFilter}
+                        onChange={(e) => setSignupReviewFilter(e.target.value as typeof signupReviewFilter)}
+                        className="w-full appearance-none rounded-lg border border-slate-300 py-2 pl-10 pr-4 text-sm focus:border-transparent focus:ring-2 focus:ring-teal-500 sm:w-48"
+                      >
+                        <option value="all">All Review States</option>
+                        <option value="ACTIVE">Valid</option>
+                        <option value="SUSPECT">Suspect</option>
+                        <option value="INVALID">Invalid</option>
+                      </select>
+                    </div>
                   </div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
+                  <span className="rounded-full bg-slate-100 px-2 py-1">Raw: {signupSummary.totalUniqueEmails}</span>
+                  <span className="rounded-full bg-green-100 px-2 py-1 text-green-700">Valid: {signupSummary.validUniqueEmails}</span>
+                  <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-700">Suspect: {signupSummary.suspectUniqueEmails}</span>
+                  <span className="rounded-full bg-red-100 px-2 py-1 text-red-700">Invalid: {signupSummary.invalidUniqueEmails}</span>
+                  <span className="rounded-full bg-slate-200 px-2 py-1 text-slate-700">DNC: {signupSummary.totalUniqueEmails - signupSummary.contactableUniqueEmails}</span>
                 </div>
               </div>
               <div className="overflow-x-auto">
@@ -1902,8 +1954,10 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Name</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Email</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Entries</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Review</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Statuses</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Details</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Actions</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Latest Signup</th>
                     </tr>
                   </thead>
@@ -1921,6 +1975,18 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                         <td className="py-4 px-4 text-slate-600 text-sm">{item.email}</td>
                         <td className="py-4 px-4 text-slate-900 text-sm">{item.entryCount}</td>
                         <td className="py-4 px-4">
+                          <div className="flex flex-col gap-2">
+                            <div className="flex flex-wrap gap-2">
+                              {getSignupReviewBadge(item)}
+                            </div>
+                            {(item.reviewReason || item.reviewNotes) && (
+                              <div className="text-xs text-slate-500">
+                                {[item.reviewReason, item.reviewNotes].filter(Boolean).join(" | ")}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
                           <div className="flex flex-wrap gap-2">
                             {item.statuses.map((status) => (
                               <span key={`${item.id}-${status}`} className="px-2 py-1 text-xs rounded-full bg-slate-100 text-slate-700">
@@ -1931,6 +1997,42 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                         </td>
                         <td className="py-4 px-4 text-slate-600 text-sm">
                           {item.details.length > 0 ? item.details.join(" | ") : "-"}
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              disabled={signupActionPendingEmail === item.email}
+                              onClick={() => handleSignupReviewUpdate(item, "ACTIVE", false)}
+                              className="rounded-full border border-green-200 px-3 py-1 text-xs text-green-700 transition hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Valid
+                            </button>
+                            <button
+                              type="button"
+                              disabled={signupActionPendingEmail === item.email}
+                              onClick={() => handleSignupReviewUpdate(item, "SUSPECT", true)}
+                              className="rounded-full border border-amber-200 px-3 py-1 text-xs text-amber-700 transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Suspect
+                            </button>
+                            <button
+                              type="button"
+                              disabled={signupActionPendingEmail === item.email}
+                              onClick={() => handleSignupReviewUpdate(item, "INVALID", true)}
+                              className="rounded-full border border-red-200 px-3 py-1 text-xs text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Invalid
+                            </button>
+                            <button
+                              type="button"
+                              disabled={signupActionPendingEmail === item.email}
+                              onClick={() => handleSignupReviewUpdate(item, item.reviewStatus, !item.doNotContact)}
+                              className="rounded-full border border-slate-300 px-3 py-1 text-xs text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {item.doNotContact ? "Allow Contact" : "Do Not Contact"}
+                            </button>
+                          </div>
                         </td>
                         <td className="py-4 px-4 text-slate-900 text-sm">{formatDate(item.submittedAt)}</td>
                       </tr>

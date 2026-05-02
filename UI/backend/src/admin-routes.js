@@ -23,6 +23,64 @@ function registerAdminRoutes(app, {
   getStripeInvoiceRevenueBreakdown,
   getInternalCompanyEmailGroup,
 }) {
+  const signupReviewStatuses = new Set(["ACTIVE", "SUSPECT", "INVALID"]);
+
+  function normalizeSignupEmail(email) {
+    return typeof email === "string" ? email.trim().toLowerCase() : "";
+  }
+
+  function buildGroupedSignupItems(items, reviewsByEmail) {
+    return Array.from(
+      items.reduce((map, item) => {
+        const emailKey = normalizeSignupEmail(item.email);
+        const existing = map.get(emailKey);
+        const normalizedDetail = item.detail?.trim() || "";
+        const normalizedStatus = item.status.trim();
+        const normalizedName = item.name?.trim() || null;
+
+        if (!existing) {
+          const review = reviewsByEmail.get(emailKey) || null;
+          map.set(emailKey, {
+            id: item.id,
+            email: emailKey,
+            name: normalizedName,
+            sourceTypes: [item.sourceType],
+            statuses: [normalizedStatus],
+            details: normalizedDetail ? [normalizedDetail] : [],
+            submittedAt: item.submittedAt,
+            entryCount: 1,
+            reviewStatus: review?.status || "ACTIVE",
+            doNotContact: Boolean(review?.doNotContact),
+            reviewReason: review?.reason || null,
+            reviewNotes: review?.notes || null,
+            reviewedAt: review?.reviewedAt?.toISOString?.() || null,
+          });
+          return map;
+        }
+
+        existing.entryCount += 1;
+        if (normalizedName && !existing.name) {
+          existing.name = normalizedName;
+        }
+        if (!existing.sourceTypes.includes(item.sourceType)) {
+          existing.sourceTypes.push(item.sourceType);
+        }
+        if (!existing.statuses.includes(normalizedStatus)) {
+          existing.statuses.push(normalizedStatus);
+        }
+        if (normalizedDetail && !existing.details.includes(normalizedDetail)) {
+          existing.details.push(normalizedDetail);
+        }
+        if (new Date(item.submittedAt).getTime() > new Date(existing.submittedAt).getTime()) {
+          existing.submittedAt = item.submittedAt;
+          existing.id = item.id;
+        }
+
+        return map;
+      }, new Map()).values()
+    ).sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+  }
+
   function buildTestTraderStaffMember(user) {
     const firstName = user.profile?.firstName?.trim() || "";
     const lastName = user.profile?.lastName?.trim() || "";
@@ -1044,7 +1102,7 @@ function registerAdminRoutes(app, {
 
   app.get("/api/admin/signups", authRequired, adminRequired, async (req, res, next) => {
     try {
-      const [waitlistEntries, traderApplications, traderUsers] = await Promise.all([
+      const [waitlistEntries, traderApplications, traderUsers, signupReviews] = await Promise.all([
         prisma.waitlistEntry.findMany({
           orderBy: { createdAt: "desc" },
         }),
@@ -1056,9 +1114,12 @@ function registerAdminRoutes(app, {
           orderBy: { createdAt: "desc" },
           include: { profile: true },
         }),
+        prisma.signupReview.findMany({
+          orderBy: { updatedAt: "desc" },
+        }),
       ]);
 
-      const items = [
+      const rawItems = [
         ...waitlistEntries.map((entry) => ({
           id: `waitlist-${entry.id}`,
           email: entry.email,
@@ -1093,7 +1154,81 @@ function registerAdminRoutes(app, {
         }),
       ].sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
 
-      return res.json({ ok: true, items });
+      const reviewsByEmail = new Map(
+        signupReviews.map((review) => [normalizeSignupEmail(review.email), review])
+      );
+      const items = buildGroupedSignupItems(rawItems, reviewsByEmail);
+      const validItems = items.filter((item) => item.reviewStatus !== "INVALID");
+      const contactableItems = validItems.filter((item) => !item.doNotContact);
+
+      return res.json({
+        ok: true,
+        items,
+        summary: {
+          totalUniqueEmails: items.length,
+          validUniqueEmails: validItems.length,
+          contactableUniqueEmails: contactableItems.length,
+          suspectUniqueEmails: items.filter((item) => item.reviewStatus === "SUSPECT").length,
+          invalidUniqueEmails: items.filter((item) => item.reviewStatus === "INVALID").length,
+          landingSignupCount: validItems.filter((item) => item.sourceTypes.includes("landing_waitlist")).length,
+          investorSignupCount: validItems.filter((item) => item.sourceTypes.includes("investor_waitlist")).length,
+          traderApplicationSignupCount: validItems.filter((item) => item.sourceTypes.includes("trader_application")).length,
+          traderAccountSignupCount: validItems.filter((item) => item.sourceTypes.includes("trader_account")).length,
+        },
+      });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  app.post("/api/admin/signups/review", authRequired, adminRequired, async (req, res, next) => {
+    try {
+      const normalizedEmail = normalizeSignupEmail(req.body?.email);
+      const status = typeof req.body?.status === "string" ? req.body.status.trim().toUpperCase() : "";
+      const doNotContact = req.body?.doNotContact === true;
+      const reason = typeof req.body?.reason === "string" ? req.body.reason.trim() : "";
+      const notes = typeof req.body?.notes === "string" ? req.body.notes.trim() : "";
+
+      if (!normalizedEmail) {
+        return res.status(400).json({ ok: false, error: "Email is required." });
+      }
+
+      if (!signupReviewStatuses.has(status)) {
+        return res.status(400).json({ ok: false, error: "A valid review status is required." });
+      }
+
+      const review = await prisma.signupReview.upsert({
+        where: { email: normalizedEmail },
+        update: {
+          status,
+          doNotContact,
+          reason: reason || null,
+          notes: notes || null,
+          reviewedAt: new Date(),
+          reviewedByUserId: req.user.id,
+        },
+        create: {
+          email: normalizedEmail,
+          status,
+          doNotContact,
+          reason: reason || null,
+          notes: notes || null,
+          reviewedAt: new Date(),
+          reviewedByUserId: req.user.id,
+        },
+      });
+
+      return res.json({
+        ok: true,
+        review: {
+          email: review.email,
+          status: review.status,
+          doNotContact: review.doNotContact,
+          reason: review.reason,
+          notes: review.notes,
+          reviewedAt: review.reviewedAt?.toISOString?.() || null,
+        },
+      });
     } catch (err) {
       return next(err);
     }

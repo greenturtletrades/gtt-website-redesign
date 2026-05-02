@@ -107,25 +107,32 @@ export interface AdminAccountDeletionAuditItem {
   metadata: unknown | null;
 }
 
-export interface AdminSignupItem {
-  id: string;
-  email: string;
-  sourceType: "landing_waitlist" | "investor_waitlist" | "trader_application" | "trader_account";
-  status: string;
-  submittedAt: string;
-  name: string | null;
-  detail: string | null;
-}
-
 export interface GroupedAdminSignupItem {
   id: string;
   email: string;
   name: string | null;
-  sourceTypes: AdminSignupItem["sourceType"][];
+  sourceTypes: ("landing_waitlist" | "investor_waitlist" | "trader_application" | "trader_account")[];
   statuses: string[];
   details: string[];
   submittedAt: string;
   entryCount: number;
+  reviewStatus: "ACTIVE" | "SUSPECT" | "INVALID";
+  doNotContact: boolean;
+  reviewReason: string | null;
+  reviewNotes: string | null;
+  reviewedAt: string | null;
+}
+
+export interface AdminSignupSummary {
+  totalUniqueEmails: number;
+  validUniqueEmails: number;
+  contactableUniqueEmails: number;
+  suspectUniqueEmails: number;
+  invalidUniqueEmails: number;
+  landingSignupCount: number;
+  investorSignupCount: number;
+  traderApplicationSignupCount: number;
+  traderAccountSignupCount: number;
 }
 
 export interface AdminFinanceSummary {
@@ -294,8 +301,29 @@ export function fetchAdminAccountDeletionAudits() {
 export function fetchAdminSignups() {
   return apiGet<{
     ok: boolean;
-    items: AdminSignupItem[];
+    items: GroupedAdminSignupItem[];
+    summary: AdminSignupSummary;
   }>("/api/admin/signups");
+}
+
+export function updateAdminSignupReview(input: {
+  email: string;
+  status: "ACTIVE" | "SUSPECT" | "INVALID";
+  doNotContact: boolean;
+  reason?: string;
+  notes?: string;
+}) {
+  return apiPost<{
+    ok: boolean;
+    review: {
+      email: string;
+      status: "ACTIVE" | "SUSPECT" | "INVALID";
+      doNotContact: boolean;
+      reason: string | null;
+      notes: string | null;
+      reviewedAt: string | null;
+    };
+  }>("/api/admin/signups/review", input);
 }
 
 export function fetchAdminFinance() {
