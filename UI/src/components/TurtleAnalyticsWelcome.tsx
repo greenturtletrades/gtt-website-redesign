@@ -54,7 +54,7 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
               <span className="text-sm">Machine Learning-Powered Personal Coach</span>
             </motion.div>
             <h1 className="text-white mb-4 text-3xl sm:text-4xl md:text-6xl">
-              Your Personalised Analyst
+              Your Personal Trading Analyst
             </h1>
             <p className="text-teal-100 max-w-3xl mx-auto text-lg mb-8">
               Turtle Analytics is unlike any trading tool you've used before. It's a self-optimising feedback engine that analyses 
