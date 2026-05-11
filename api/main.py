@@ -11,7 +11,7 @@ Run with:
     uvicorn api.main:app --port 8000 --reload
 
 From the repo root:
-    cd /path/to/turtle_analytics_repo
+    cd /path/to/landing-page-no-ML-
     uvicorn api.main:app --port 8000
 """
 

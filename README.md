@@ -1,190 +1,134 @@
-# Turtle Analytics – Trading Improvement Analyst
+# Green Turtle Trades Monorepo
 
-Turtle Analytics is a per-trader machine learning system that analyzes a trader’s own historical trades and generates data-driven performance insights without doing any forecasting or using cross-trader data.
+This repository contains the public app, the app backend, the Python analytics pipeline, and the MetaTrader EA files in one place.
 
-Instead of predicting the market, it:
+## Start Here
 
-- Replays each historical trade under alternative trade management parameters (stop loss / take profit distances, hold times, trailing stops, risk per trade).
-- Uses statistical analysis + Bayesian optimization to find parameter settings that historically maximise the trader’s *average R*.
-- Uses unsupervised clustering to detect different market regimes (e.g. trend, chop, high volatility) and finds which management styles work best in each.
-- Uses survival analysis to understand how long trades should be held before expected edge decays.
+- Read [docs/architecture.md](/Users/sean/Green Turtle Trades /landing-page-no-ML-/docs/architecture.md:1) for the full system overview.
+- Read [docs/getting-started.md](/Users/sean/Green Turtle Trades /landing-page-no-ML-/docs/getting-started.md:1) for local development setup and startup order.
+- Read [docs/workflows.md](/Users/sean/Green Turtle Trades /landing-page-no-ML-/docs/workflows.md:1) for the main user and system flows.
 
-All insights are purely from that trader’s own history:  
-no forecasting, no external labels, no cross-trader pooling.
+## Top-Level Structure
 
----
+```text
+landing-page-no-ML-/
+├── frontend/          # Vite + React client
+├── backend/           # Express + Prisma API
+├── api/               # FastAPI wrapper around the analytics pipeline
+├── turtle_analytics/  # Python analytics package
+├── scripts/           # Python pipeline entry scripts
+├── ea/                # MT4 / MT5 Expert Advisor source files
+├── data/              # Sample and processed trade datasets
+├── artifacts/         # Generated analytics outputs
+├── tests/             # Python test suite
+├── docs/              # Product, analytics, and archive docs
+└── configs/           # Analytics config files
+```
 
-## Installation
+## What Lives Where
+
+- `frontend/` serves the landing page, trader dashboard, admin route, onboarding flow, and account screens.
+- `backend/` handles auth, billing, waitlist/contact forms, trader applications, admin endpoints, and EA ingestion.
+- `api/` exposes the Python analytics pipeline over HTTP so the backend can trigger model runs.
+- `turtle_analytics/` contains the reusable analysis logic: validation, feature engineering, simulation, optimization, clustering, survival analysis, and reporting.
+- `ea/` contains the MetaTrader 4 and MetaTrader 5 source files generated for trader installs.
+- `docs/` now holds non-runtime markdown and reference material that was previously mixed into source folders.
+
+## How The Pieces Fit Together
+
+At a high level:
+
+1. The `frontend/` React app is the user-facing product.
+2. The `backend/` Express app is the main application API and source of truth for accounts, billing, EA telemetry, and admin data.
+3. The `api/` FastAPI service wraps the Python analytics pipeline behind HTTP endpoints.
+4. The `turtle_analytics/` package performs the actual trade analysis logic used by both the FastAPI bridge and the offline pipeline script.
+5. The `ea/` files are trader-side MetaTrader scripts that send trade/export telemetry back into the backend.
+
+The most important runtime relationships are:
+
+- `frontend -> backend` for auth, settings, admin, billing, journal, and product flows
+- `backend -> api` for analytics job execution
+- `api -> turtle_analytics` for feature engineering, simulation, optimization, clustering, and reporting
+- `ea -> backend` for trade/event ingestion and history export
+- `backend -> database` for durable state
+
+## Major Product Areas
+
+- Public marketing site: landing page, waitlist, trader application, contact, legal pages
+- Trader product: auth, subscription, settings, EA download, trade journal, analytics runs
+- Admin product: trader operations, signup moderation, referral codes, finance, churn, audit tooling
+- Analytics engine: historical trade analysis without market forecasting
+- MetaTrader integration: MT4/MT5 EA generation, heartbeat tracking, and trade export flow
+
+## Development Commands
+
+### Frontend
 
 ```bash
-# Basic installation
+cd frontend
+npm install
+npm run dev
+```
+
+### Backend
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+### Analytics API
+
+```bash
 pip install -r requirements.txt
-
-# For MetaTrader 5 integration (Windows only)
-pip install MetaTrader5
-
-# For all optional features
-pip install optuna pyyaml lifelines scikit-learn
+uvicorn api.main:app --reload --port 8000
 ```
 
----
-
-## Data Sources
-
-Turtle Analytics supports two data sources:
-
-### 1. CSV Files (Default)
-Load trades from a CSV file with the following schema:
-
-**Required columns:**
-- `entry_time` (datetime) - When the trade was opened
-- `exit_time` (datetime) - When the trade was closed
-- `side` (string) - "LONG" or "SHORT"
-- `entry_price` (float) - Entry price
-- `exit_price` (float) - Exit price
-- `stop_loss` (float) - Stop loss price level
-- `take_profit` (float) - Take profit price level
-
-**Optional columns:**
-- `mfe` (float) - Maximum Favorable Excursion (price units)
-- `mae` (float) - Maximum Adverse Excursion (price units)
-- `session` (string) - Trading session (e.g., "london", "ny", "asian")
-- `symbol` (string) - Trading symbol (e.g., "EURUSD")
-- `spread` (float) - Spread at entry
-- `volatility` (float) - Volatility measure
-
-### 2. MetaTrader 5 (Live Connection)
-Load trades directly from MetaTrader 5 terminal via the MT5 Python API.
-
-**Requirements:**
-- Windows OS (MetaTrader 5 limitation)
-- MetaTrader 5 terminal installed and running
-- `MetaTrader5` Python library installed
-
-**Setup:**
-```bash
-pip install MetaTrader5
-```
-
-**Configuration:**
-Edit `configs/default.yaml` to set your MT5 credentials:
-```yaml
-metatrader:
-  login: 12345678  # Your MT5 account number
-  password: "yourpassword"  # Your MT5 password
-  server: "YourBroker-Demo"  # Broker server name
-  days_history: 90  # Number of days to fetch
-  symbol: null  # Filter by symbol (e.g., "EURUSD") or null for all
-```
-
-**Security Note:** For production use, store credentials in environment variables:
-```bash
-export MT5_LOGIN=12345678
-export MT5_PASSWORD=yourpassword
-export MT5_SERVER=YourBroker-Live
-```
-
----
-
-## Usage
-
-### Option 1: Load from CSV File
+### Offline Analytics Pipeline
 
 ```bash
+pip install -r requirements.txt
 python scripts/run_pipeline.py data/raw/trades.csv \
-    --run-counterfactuals \
-    --run-optimization \
-    --run-survival \
-    --run-clustering --n-clusters 4
+  --run-counterfactuals \
+  --run-optimization \
+  --run-survival \
+  --run-clustering
 ```
 
-### Option 2: Load from MetaTrader 5
+## Recommended Local Startup Order
 
-```bash
-# Using current logged-in MT5 account (simplest)
-python scripts/run_pipeline.py \
-    --source mt5 \
-    --mt5-days 90 \
-    --run-counterfactuals \
-    --run-optimization
+1. Start the backend in `backend/`
+2. Start the analytics API in the repo root with `uvicorn api.main:app`
+3. Start the frontend in `frontend/`
 
-# Using specific MT5 account credentials
-python scripts/run_pipeline.py \
-    --source mt5 \
-    --mt5-login 12345678 \
-    --mt5-password "yourpassword" \
-    --mt5-server "Broker-Demo" \
-    --mt5-days 90 \
-    --mt5-symbol "EURUSD" \
-    --run-counterfactuals
+That order gives the frontend a live application API and gives the backend a live Python analysis service.
 
-# With all analysis phases
-python scripts/run_pipeline.py \
-    --source mt5 \
-    --mt5-days 180 \
-    --run-counterfactuals \
-    --run-optimization \
-    --run-survival \
-    --run-clustering --n-clusters 4
-```
+## Where To Look First
 
-### MT5 Command Line Options
+- Frontend landing and product UI: [frontend/README.md](/Users/sean/Green Turtle Trades /landing-page-no-ML-/frontend/README.md:1)
+- Backend application API: [backend/README.md](/Users/sean/Green Turtle Trades /landing-page-no-ML-/backend/README.md:1)
+- Backend internal layout: [backend/src/README.md](/Users/sean/Green Turtle Trades /landing-page-no-ML-/backend/src/README.md:1)
+- Analytics package orientation: [turtle_analytics/README.md](/Users/sean/Green Turtle Trades /landing-page-no-ML-/turtle_analytics/README.md:1)
+- Folder-level documentation index: [docs/README.md](/Users/sean/Green Turtle Trades /landing-page-no-ML-/docs/README.md:1)
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--source mt5` | Use MetaTrader 5 as data source | csv |
-| `--mt5-login` | MT5 account number | Current account |
-| `--mt5-password` | MT5 account password | None |
-| `--mt5-server` | Broker server name | None |
-| `--mt5-symbol` | Filter by symbol (e.g., EURUSD) | All symbols |
-| `--mt5-days` | Number of days of history to fetch | 90 |
-| `--calculate-mfe-mae` | Calculate MFE/MAE from tick data (slow) | false |
+## Data Expectations
 
----
+The Python pipeline expects trade data with these required columns:
 
-## Recent Updates
+- `entry_time`
+- `exit_time`
+- `side`
+- `entry_price`
+- `exit_price`
+- `stop_loss`
+- `take_profit`
 
-- Added the integrated UI application under `UI/` for the public site, analytics dashboard, admin route, and onboarding flows.
-- Added a live Trader Journal feed sourced from processed trade output so analysed runs can populate journal entries in the frontend.
-- Added separate frontend/backend support for trader applications, investor waitlist signups, and contact submissions.
-- Added transactional email handling in the app backend for contact submissions, trader applications, and investor waitlist confirmations.
+Useful optional columns include `mfe`, `mae`, `session`, `symbol`, `spread`, and `volatility`.
 
----
+## Notes
 
-## Project Layout
-
-```
-turtle-analytics/
-├── README.md
-├── .gitignore
-├── requirements.txt
-├── pyproject.toml
-├── configs/
-│   └── default.yaml
-├── turtle_analytics/
-│   ├── __init__.py
-│   ├── settings.py
-│   ├── io.py
-│   ├── features.py
-│   ├── metatrader.py          # ← NEW: MT5 integration
-│   ├── policies.py
-│   ├── simulator.py
-│   ├── optimization.py
-│   ├── survival.py
-│   ├── clustering.py
-│   ├── reporting.py
-│   └── utils.py
-├── scripts/
-│   └── run_pipeline.py
-├── data/
-│   ├── raw/
-│   └── processed/
-├── artifacts/
-├── tests/
-│   ├── __init__.py
-│   ├── test_simulator.py
-│   ├── test_optimization.py
-│   └── test_clustering.py
-└── notebooks/
-    └── exploration.ipynb
-```
+- `artifacts/` and `data/processed/` are output-oriented directories. They are useful for local analysis but should not be treated as primary source code.
+- `docs/notes/claude-edits.md` is historical implementation context, not part of the runtime app.
+- The root `Procfile` starts the FastAPI service, not the frontend or Node backend.
+- The repository still contains archived notes and reference documents in `docs/`; those are useful for context but are not always current design specs.
