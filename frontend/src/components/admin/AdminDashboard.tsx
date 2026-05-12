@@ -380,15 +380,12 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
     return <span className="px-2 py-1 text-xs rounded-full bg-slate-100 text-slate-600">No Trade Data</span>;
   };
 
+  const isSignupValid = (item: GroupedAdminSignupItem) =>
+    item.reviewStatus === "ACTIVE" && !item.doNotContact;
+
   const getSignupReviewBadge = (item: GroupedAdminSignupItem) => {
-    if (item.reviewStatus === "INVALID") {
-      return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-700">Invalid</span>;
-    }
-    if (item.reviewStatus === "SUSPECT") {
-      return <span className="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-700">Suspect</span>;
-    }
-    if (item.doNotContact) {
-      return <span className="px-2 py-1 text-xs rounded-full bg-slate-200 text-slate-700">Do Not Contact</span>;
+    if (!isSignupValid(item)) {
+      return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-700">Not Valid</span>;
     }
     return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">Valid</span>;
   };
@@ -431,7 +428,10 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
 
   const filteredSignupItems = signupItems.filter((item) => {
     const matchesFilter = signupFilter === "all" || item.sourceTypes.includes(signupFilter);
-    const matchesReviewFilter = signupReviewFilter === "all" || item.reviewStatus === signupReviewFilter;
+    const matchesReviewFilter =
+      signupReviewFilter === "all" ||
+      (signupReviewFilter === "ACTIVE" && isSignupValid(item)) ||
+      (signupReviewFilter === "INVALID" && !isSignupValid(item));
     const query = signupSearchQuery.trim().toLowerCase();
     const matchesSearch =
       !query ||
@@ -439,8 +439,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
       (item.name || "").toLowerCase().includes(query) ||
       item.details.some((detail) => detail.toLowerCase().includes(query)) ||
       item.sourceTypes.some((sourceType) => getSignupSourceLabel(sourceType).toLowerCase().includes(query)) ||
-      item.reviewStatus.toLowerCase().includes(query) ||
-      (item.doNotContact && "do not contact".includes(query));
+      (isSignupValid(item) ? "valid" : "not valid").includes(query);
 
     return matchesFilter && matchesReviewFilter && matchesSearch;
   });
@@ -471,7 +470,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
       label: string;
       total: number;
       valid: number;
-      contactable: number;
+      notValid: number;
       landing: number;
       investor: number;
       applications: number;
@@ -485,7 +484,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
         label: bucketDate.toLocaleDateString(undefined, config.labelOptions),
         total: 0,
         valid: 0,
-        contactable: 0,
+        notValid: 0,
         landing: 0,
         investor: 0,
         applications: 0,
@@ -505,11 +504,10 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
       }
 
       bucket.total += 1;
-      if (item.reviewStatus !== "INVALID") {
+      if (isSignupValid(item)) {
         bucket.valid += 1;
-      }
-      if (item.reviewStatus !== "INVALID" && !item.doNotContact) {
-        bucket.contactable += 1;
+      } else {
+        bucket.notValid += 1;
       }
       if (item.sourceTypes.includes("landing_waitlist")) {
         bucket.landing += 1;
@@ -1986,17 +1984,16 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
         {/* SIGNUPS SECTION */}
         {activeSection === "signups" && (
           <div className="space-y-6">
+            {(() => {
+              const binaryValidCount = signupItems.filter(isSignupValid).length;
+              const binaryInvalidCount = signupItems.length - binaryValidCount;
+              return (
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <div className="text-sm text-slate-600">Valid Emails</div>
-                  <div className="mt-1 text-3xl text-slate-900">{signupSummary.validUniqueEmails}</div>
-                  <div className="text-xs text-slate-600">Excludes emails marked invalid</div>
-                </div>
-                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                  <div className="text-sm text-slate-600">Landing Page Signups</div>
-                  <div className="mt-1 text-3xl text-slate-900">{signupSummary.landingSignupCount}</div>
-                  <div className="text-xs text-blue-700">Valid unique emails from landing page</div>
+                  <div className="text-sm text-slate-600">Total Signups</div>
+                  <div className="mt-1 text-3xl text-slate-900">{binaryValidCount}</div>
+                  <div className="text-xs text-slate-600">All signups currently marked valid</div>
                 </div>
                 <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-4">
                   <div className="text-sm text-slate-600">Investor Signups</div>
@@ -2009,12 +2006,19 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                   <div className="text-xs text-amber-700">Valid applicant emails</div>
                 </div>
                 <div className="rounded-lg border border-teal-200 bg-teal-50 p-4">
-                  <div className="text-sm text-slate-600">Contactable Emails</div>
-                  <div className="mt-1 text-3xl text-slate-900">{signupSummary.contactableUniqueEmails}</div>
-                  <div className="text-xs text-teal-700">Valid emails not marked do not contact</div>
+                  <div className="text-sm text-slate-600">Trader Accounts</div>
+                  <div className="mt-1 text-3xl text-slate-900">{signupSummary.traderAccountSignupCount}</div>
+                  <div className="text-xs text-teal-700">Valid trader accounts created</div>
+                </div>
+                <div className="rounded-lg border border-rose-200 bg-rose-50 p-4">
+                  <div className="text-sm text-slate-600">Not Valid Emails</div>
+                  <div className="mt-1 text-3xl text-slate-900">{binaryInvalidCount}</div>
+                  <div className="text-xs text-rose-700">Includes suspect, invalid, and blocked signups</div>
                 </div>
               </div>
             </div>
+              );
+            })()}
 
             <div className="bg-white rounded-lg shadow-sm border border-slate-200">
               <div className="border-b border-slate-200 bg-slate-50 p-4">
@@ -2051,10 +2055,10 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                       <Legend />
                       <Line type="monotone" dataKey="total" name="All signups" stroke="#0f172a" strokeWidth={2} dot={false} />
                       <Line type="monotone" dataKey="valid" name="Valid" stroke="#16a34a" strokeWidth={2} dot={false} />
-                      <Line type="monotone" dataKey="landing" name="Landing page" stroke="#2563eb" strokeWidth={2} dot={false} />
                       <Line type="monotone" dataKey="investor" name="Investor" stroke="#0891b2" strokeWidth={2} dot={false} />
                       <Line type="monotone" dataKey="applications" name="Applications" stroke="#d97706" strokeWidth={2} dot={false} />
                       <Line type="monotone" dataKey="accounts" name="Trader accounts" stroke="#0d9488" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="notValid" name="Not valid" stroke="#e11d48" strokeWidth={2} dot={false} />
                     </LineChart>
                   </ResponsiveContainer>
                 ) : (
@@ -2103,18 +2107,15 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                       >
                         <option value="all">All Review States</option>
                         <option value="ACTIVE">Valid</option>
-                        <option value="SUSPECT">Suspect</option>
-                        <option value="INVALID">Invalid</option>
+                        <option value="INVALID">Not Valid</option>
                       </select>
                     </div>
                   </div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
                   <span className="rounded-full bg-slate-100 px-2 py-1">Raw: {signupSummary.totalUniqueEmails}</span>
-                  <span className="rounded-full bg-green-100 px-2 py-1 text-green-700">Valid: {signupSummary.validUniqueEmails}</span>
-                  <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-700">Suspect: {signupSummary.suspectUniqueEmails}</span>
-                  <span className="rounded-full bg-red-100 px-2 py-1 text-red-700">Invalid: {signupSummary.invalidUniqueEmails}</span>
-                  <span className="rounded-full bg-slate-200 px-2 py-1 text-slate-700">DNC: {signupSummary.totalUniqueEmails - signupSummary.contactableUniqueEmails}</span>
+                  <span className="rounded-full bg-green-100 px-2 py-1 text-green-700">Valid: {signupItems.filter(isSignupValid).length}</span>
+                  <span className="rounded-full bg-red-100 px-2 py-1 text-red-700">Not Valid: {signupItems.filter((item) => !isSignupValid(item)).length}</span>
                 </div>
               </div>
               <div className="overflow-x-auto">
@@ -2182,26 +2183,10 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                             <button
                               type="button"
                               disabled={signupActionPendingEmail === item.email}
-                              onClick={() => handleSignupReviewUpdate(item, "SUSPECT", true)}
-                              className="rounded-full border border-amber-200 px-3 py-1 text-xs text-amber-700 transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              Suspect
-                            </button>
-                            <button
-                              type="button"
-                              disabled={signupActionPendingEmail === item.email}
                               onClick={() => handleSignupReviewUpdate(item, "INVALID", true)}
                               className="rounded-full border border-red-200 px-3 py-1 text-xs text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                              Invalid
-                            </button>
-                            <button
-                              type="button"
-                              disabled={signupActionPendingEmail === item.email}
-                              onClick={() => handleSignupReviewUpdate(item, item.reviewStatus, !item.doNotContact)}
-                              className="rounded-full border border-slate-300 px-3 py-1 text-xs text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {item.doNotContact ? "Allow Contact" : "Do Not Contact"}
+                              Not Valid
                             </button>
                           </div>
                         </td>
