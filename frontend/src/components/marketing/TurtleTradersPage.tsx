@@ -98,22 +98,22 @@ function riskPillClass(riskLevel: string) {
 
 export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
   return (
-    <div className="min-h-screen bg-[#08141a] pt-20 text-white">
-      <section className="border-b border-white/10 bg-[radial-gradient(circle_at_top,rgba(45,212,191,0.12),transparent_28%),linear-gradient(180deg,#08141a_0%,#0d1b22_100%)] px-4 py-16 sm:px-6">
+    <div className="min-h-screen bg-white pt-20">
+      <section className="border-b border-slate-200 bg-[radial-gradient(circle_at_top,rgba(20,184,166,0.10),transparent_24%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-4 py-16 sm:px-6">
         <div className="mx-auto max-w-[1180px]">
           <div className="max-w-3xl">
-            <div className="mb-4 inline-flex rounded-full border border-teal-300/20 bg-teal-300/10 px-3 py-1 text-xs uppercase tracking-[0.2em] text-teal-100">
+            <div className="mb-4 inline-flex rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs uppercase tracking-[0.2em] text-teal-700">
               Public trader board
             </div>
-            <h1 className="text-4xl leading-tight text-white sm:text-5xl">Turtle Traders</h1>
-            <p className="mt-5 text-lg leading-relaxed text-slate-200">
+            <h1 className="text-4xl leading-tight text-slate-900 sm:text-5xl">Turtle Traders</h1>
+            <p className="mt-5 text-lg leading-relaxed text-slate-600">
               A premium public leaderboard for traders using the journal. Clear numbers, strict ranking logic, and no unnecessary extras.
             </p>
           </div>
         </div>
       </section>
 
-      <section className="bg-[#f4f7f8] px-4 py-14 text-slate-950 sm:px-6">
+      <section className="bg-white px-4 py-14 text-slate-950 sm:px-6">
         <div className="mx-auto max-w-[1180px]">
           <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -127,13 +127,13 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_28px_90px_rgba(2,12,20,0.10)]">
-            <div className="border-b border-slate-200 bg-[#0b1820] px-6 py-4 text-sm text-slate-200">
+          <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_28px_90px_rgba(2,12,20,0.08)]">
+            <div className="border-b border-slate-200 bg-slate-900 px-6 py-4 text-sm text-slate-100">
               Ranked by verified journal data
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[920px]">
-                <thead className="bg-[#eef3f5]">
+                <thead className="bg-slate-50">
                   <tr>
                     <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Name</th>
                     <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Market</th>
@@ -172,30 +172,30 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
             </div>
           </div>
 
-          <div className="mt-8 rounded-[28px] border border-white/10 bg-[#0b1820] p-6 text-white shadow-[0_24px_70px_rgba(2,12,20,0.22)]">
-            <div className="flex flex-col gap-3 border-b border-white/10 pb-5 sm:flex-row sm:items-end sm:justify-between">
+          <div className="mt-8 rounded-[28px] border border-slate-200 bg-slate-50 p-6 text-slate-950 shadow-[0_24px_70px_rgba(2,12,20,0.06)]">
+            <div className="flex flex-col gap-3 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h3 className="text-2xl text-white">How we decide who is best</h3>
-                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-300">
+                <h3 className="text-2xl text-slate-900">How we decide who is best</h3>
+                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
                   The board score is not just raw profit. It rewards traders who produce strong returns with repeatability and controlled risk.
                 </p>
               </div>
-              <div className="rounded-full bg-teal-400 px-4 py-2 text-xs font-medium uppercase tracking-[0.18em] text-slate-950">
+              <div className="rounded-full bg-teal-600 px-4 py-2 text-xs font-medium uppercase tracking-[0.18em] text-white">
                 Scoring model
               </div>
             </div>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {scoringModel.map((item) => (
-                <div key={item.name} className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                  <div className="text-sm uppercase tracking-[0.16em] text-slate-300">{item.name}</div>
-                  <div className="mt-3 text-3xl text-white">{item.weight}</div>
-                  <p className="mt-3 text-sm leading-relaxed text-slate-300">{item.detail}</p>
+                <div key={item.name} className="rounded-2xl border border-slate-200 bg-white p-5">
+                  <div className="text-sm uppercase tracking-[0.16em] text-slate-600">{item.name}</div>
+                  <div className="mt-3 text-3xl text-slate-900">{item.weight}</div>
+                  <p className="mt-3 text-sm leading-relaxed text-slate-600">{item.detail}</p>
                 </div>
               ))}
             </div>
 
-            <div className="mt-6 rounded-2xl border border-teal-300/15 bg-teal-300/10 px-5 py-4 text-sm leading-relaxed text-teal-50">
+            <div className="mt-6 rounded-2xl border border-teal-200 bg-teal-50 px-5 py-4 text-sm leading-relaxed text-slate-700">
               Risk score matters because two traders can post similar returns while taking completely different levels of exposure. The better rank goes to the trader producing cleaner results with more controlled risk.
             </div>
           </div>
