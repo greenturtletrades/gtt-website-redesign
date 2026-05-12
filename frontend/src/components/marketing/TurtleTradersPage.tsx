@@ -214,10 +214,10 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
             ) : null}
           </div>
 
-          <div className="mt-8 rounded-2xl border border-slate-200 bg-[#f8fafc] p-6 text-slate-950 shadow-lg">
+          <div className="mt-8 rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-6 text-slate-950 shadow-lg">
             <div className="flex flex-col gap-3 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <div className="mb-3 inline-flex rounded-full border border-teal-100 bg-teal-50 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-teal-700">
+                <div className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-teal-700">
                   Scoring model
                 </div>
                 <h3 className="text-2xl text-slate-900">How we decide who is best</h3>
@@ -237,7 +237,7 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
               ))}
             </div>
 
-            <div className="mt-6 rounded-2xl border border-cyan-100 bg-cyan-50 px-5 py-4 text-sm leading-relaxed text-slate-700">
+            <div className="mt-6 rounded-2xl border border-teal-200 bg-teal-50 px-5 py-4 text-sm leading-relaxed text-slate-700">
               In practice, this means the strongest traders are not simply the ones showing the highest headline returns. The better rank goes to the trader combining verified performance, repeatability, meaningful sample size, and disciplined risk management.
             </div>
           </div>
