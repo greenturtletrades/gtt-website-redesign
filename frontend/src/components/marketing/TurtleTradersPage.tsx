@@ -123,6 +123,7 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
               <table className="w-full min-w-[920px]">
                 <thead className="bg-slate-50">
                   <tr>
+                    <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Rank</th>
                     <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Trader</th>
                     <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Market</th>
                     <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Percentile PNL</th>
@@ -135,15 +136,13 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                 <tbody>
                   {traders.map((trader, index) => (
                     <tr key={trader.name} className="border-t border-slate-100 transition-colors odd:bg-white even:bg-slate-50/40 hover:bg-teal-50/60">
+                      <td className="px-5 py-4 text-sm font-semibold tabular-nums text-slate-900">
+                        {index + 1}
+                      </td>
                       <td className="px-5 py-4">
-                        <div className="flex items-center gap-4">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-teal-200 bg-teal-50 text-xs font-semibold text-teal-700">
-                            {index + 1}
-                          </div>
-                          <div>
-                            <div className="text-sm font-semibold text-slate-950">{trader.name}</div>
-                            <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Verified</div>
-                          </div>
+                        <div>
+                          <div className="text-sm font-semibold text-slate-950">{trader.name}</div>
+                          <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Verified</div>
                         </div>
                       </td>
                       <td className="px-5 py-4">
