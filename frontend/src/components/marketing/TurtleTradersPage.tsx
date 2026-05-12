@@ -117,13 +117,10 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
         <div className="mx-auto max-w-[1180px]">
           <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-3xl text-slate-950">Top journaled traders</h2>
+              <h2 className="text-3xl text-slate-950">Verified trader performance</h2>
               <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
-                Built like a market board, but for public trader performance. One clean table. One clear scoring model.
+                We verify trader data for you, so investors are not relying on screenshots, bold claims, or blind trust.
               </p>
-            </div>
-            <div className="rounded-full border border-slate-300 bg-white px-4 py-2 text-xs uppercase tracking-[0.18em] text-slate-700">
-              Live board preview
             </div>
           </div>
 
