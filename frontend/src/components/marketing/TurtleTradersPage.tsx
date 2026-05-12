@@ -8,56 +8,56 @@ const traders = [
   {
     name: "Toni",
     market: "Indices",
-    percentilePnl: "98th",
-    averageR: "+2.4R",
+    percentilePnl: "98%",
+    riskPerTrade: "0.75%",
     totalTrades: 184,
     riskLevel: "Low",
-    boardScore: "94",
+    lastUpdated: "2h ago",
   },
   {
     name: "Praise M.",
     market: "FX",
-    percentilePnl: "95th",
-    averageR: "+2.1R",
+    percentilePnl: "95%",
+    riskPerTrade: "1.00%",
     totalTrades: 201,
     riskLevel: "Medium",
-    boardScore: "91",
+    lastUpdated: "5h ago",
   },
   {
     name: "Javan B.",
     market: "Indices",
-    percentilePnl: "93rd",
-    averageR: "+1.9R",
+    percentilePnl: "93%",
+    riskPerTrade: "0.60%",
     totalTrades: 166,
     riskLevel: "Low",
-    boardScore: "88",
+    lastUpdated: "1d ago",
   },
   {
     name: "Patricia P.",
     market: "Commodities",
-    percentilePnl: "89th",
-    averageR: "+1.7R",
+    percentilePnl: "89%",
+    riskPerTrade: "1.20%",
     totalTrades: 148,
     riskLevel: "Medium",
-    boardScore: "85",
+    lastUpdated: "1d ago",
   },
   {
     name: "Finlay T.",
     market: "FX",
-    percentilePnl: "86th",
-    averageR: "+1.5R",
+    percentilePnl: "86%",
+    riskPerTrade: "1.80%",
     totalTrades: 139,
     riskLevel: "High",
-    boardScore: "82",
+    lastUpdated: "2d ago",
   },
   {
     name: "L. Harper",
     market: "Stocks",
-    percentilePnl: "83rd",
-    averageR: "+1.3R",
+    percentilePnl: "83%",
+    riskPerTrade: "0.90%",
     totalTrades: 122,
     riskLevel: "Medium",
-    boardScore: "79",
+    lastUpdated: "3d ago",
   },
 ];
 
@@ -119,10 +119,10 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                     <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Name</th>
                     <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Market</th>
                     <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Percentile PNL</th>
-                    <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Average R</th>
+                    <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Risk Per Trade</th>
                     <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Total Trades</th>
                     <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Risk Level</th>
-                    <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Board Score</th>
+                    <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Last Updated</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -130,7 +130,7 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                     <tr key={trader.name} className="border-t border-slate-200">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-4">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-950 text-xs font-medium text-white">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 bg-slate-100 text-xs font-medium text-slate-900">
                             {index + 1}
                           </div>
                           <div className="text-sm font-medium text-slate-950">{trader.name}</div>
@@ -138,14 +138,14 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                       </td>
                       <td className="px-5 py-4 text-sm text-slate-700">{trader.market}</td>
                       <td className="px-5 py-4 text-sm text-slate-950">{trader.percentilePnl}</td>
-                      <td className="px-5 py-4 text-sm font-medium text-emerald-700">{trader.averageR}</td>
+                      <td className="px-5 py-4 text-sm font-medium text-slate-950">{trader.riskPerTrade}</td>
                       <td className="px-5 py-4 text-sm text-slate-950">{trader.totalTrades}</td>
                       <td className="px-5 py-4">
                         <span className={`rounded-full px-3 py-1 text-xs font-medium ${riskPillClass(trader.riskLevel)}`}>
                           {trader.riskLevel}
                         </span>
                       </td>
-                      <td className="px-5 py-4 text-sm font-semibold text-slate-950">{trader.boardScore}</td>
+                      <td className="px-5 py-4 text-sm text-slate-700">{trader.lastUpdated}</td>
                     </tr>
                   ))}
                 </tbody>
