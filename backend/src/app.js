@@ -2099,6 +2099,7 @@ function parseOriginSuffixes(value) {
     .filter(Boolean);
 }
 
+const allowAllOrigins = process.env.CORS_ALLOW_ALL_ORIGINS === "true";
 const allowRailwayAppOrigins = process.env.ALLOW_RAILWAY_APP_ORIGINS === "true";
 const allowedOriginSuffixes = parseOriginSuffixes(process.env.CORS_ALLOWED_ORIGIN_SUFFIXES);
 
@@ -2120,6 +2121,10 @@ function isAllowedOrigin(origin) {
   const normalizedOrigin = normalizeOrigin(origin);
   if (!normalizedOrigin) {
     return false;
+  }
+
+  if (allowAllOrigins) {
+    return true;
   }
 
   if (allowedOrigins.includes(normalizedOrigin)) {
