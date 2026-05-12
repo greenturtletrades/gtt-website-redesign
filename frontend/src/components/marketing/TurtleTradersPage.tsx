@@ -109,43 +109,51 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
           </div>
 
           <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_28px_90px_rgba(2,12,20,0.08)]">
-            <div className="border-b border-slate-200 bg-slate-900 px-6 py-4 text-sm text-slate-100">
-              Ranked by verified journal data
+            <div className="flex flex-col gap-2 border-b border-slate-200 bg-slate-900 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm text-slate-100">Ranked by verified journal data</div>
+              <div className="text-xs uppercase tracking-[0.18em] text-slate-400">Updated as traders submit data</div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[920px]">
                 <thead className="bg-[#eef3f5]">
                   <tr>
-                    <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Name</th>
+                    <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Trader</th>
                     <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Market</th>
-                    <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Percentile PNL</th>
-                    <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Risk Per Trade</th>
-                    <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Total Trades</th>
-                    <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Risk Level</th>
-                    <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Last Updated</th>
+                    <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Percentile PNL</th>
+                    <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Risk Per Trade</th>
+                    <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Total Trades</th>
+                    <th className="px-5 py-4 text-center text-[11px] uppercase tracking-[0.2em] text-slate-600">Risk Level</th>
+                    <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Last Updated</th>
                   </tr>
                 </thead>
                 <tbody>
                   {traders.map((trader, index) => (
-                    <tr key={trader.name} className="border-t border-slate-200">
+                    <tr key={trader.name} className="border-t border-slate-200 transition-colors odd:bg-white even:bg-slate-50/55 hover:bg-teal-50/45">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-4">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 bg-slate-100 text-xs font-medium text-slate-900">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 bg-white text-xs font-semibold text-slate-900 shadow-sm">
                             {index + 1}
                           </div>
-                          <div className="text-sm font-medium text-slate-950">{trader.name}</div>
+                          <div>
+                            <div className="text-sm font-semibold text-slate-950">{trader.name}</div>
+                            <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Verified</div>
+                          </div>
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-sm text-slate-700">{trader.market}</td>
-                      <td className="px-5 py-4 text-sm text-slate-950">{trader.percentilePnl}</td>
-                      <td className="px-5 py-4 text-sm font-medium text-slate-950">{trader.riskPerTrade}</td>
-                      <td className="px-5 py-4 text-sm text-slate-950">{trader.totalTrades}</td>
                       <td className="px-5 py-4">
+                        <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700">
+                          {trader.market}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 text-right text-sm font-semibold tabular-nums text-slate-950">{trader.percentilePnl}</td>
+                      <td className="px-5 py-4 text-right text-sm font-medium tabular-nums text-slate-950">{trader.riskPerTrade}</td>
+                      <td className="px-5 py-4 text-right text-sm font-medium tabular-nums text-slate-950">{trader.totalTrades}</td>
+                      <td className="px-5 py-4 text-center">
                         <span className={`rounded-full px-3 py-1 text-xs font-medium ${riskPillClass(trader.riskLevel)}`}>
                           {trader.riskLevel}
                         </span>
                       </td>
-                      <td className="px-5 py-4 text-sm text-slate-700">{trader.lastUpdated}</td>
+                      <td className="px-5 py-4 text-right text-sm tabular-nums text-slate-700">{trader.lastUpdated}</td>
                     </tr>
                   ))}
                 </tbody>
