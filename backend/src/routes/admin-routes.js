@@ -99,6 +99,11 @@ function registerAdminRoutes(app, {
     };
   }
 
+  function isInternalTestTraderUser(user) {
+    const reason = typeof user?.billingExemptReason === "string" ? user.billingExemptReason.toLowerCase() : "";
+    return reason.includes("internal test user");
+  }
+
   app.get("/api/admin/trader-applications", authRequired, adminRequired, async (req, res, next) => {
     try {
       const { status } = req.query;
@@ -173,7 +178,7 @@ function registerAdminRoutes(app, {
 
   app.get("/api/admin/traders", authRequired, adminRequired, async (req, res, next) => {
     try {
-      const [users, applications] = await Promise.all([
+      const [allUsers, applications] = await Promise.all([
         prisma.user.findMany({
           where: { role: "TRADER", ...getNonDeletedUserWhere() },
           orderBy: { createdAt: "desc" },
@@ -208,6 +213,8 @@ function registerAdminRoutes(app, {
           orderBy: { submittedAt: "desc" },
         }),
       ]);
+
+      const users = allUsers.filter((user) => !isInternalTestTraderUser(user));
 
       const usersByEmail = new Map(
         users.map((user) => [user.email.trim().toLowerCase(), user])
@@ -308,7 +315,6 @@ function registerAdminRoutes(app, {
         }),
         prisma.user.findMany({
           where: {
-            role: "TRADER",
             billingExempt: true,
             ...getNonDeletedUserWhere(),
           },
@@ -321,7 +327,9 @@ function registerAdminRoutes(app, {
 
       const items = [
         ...adminUsers.map(buildAdminStaffMember),
-        ...testUsers.map(buildTestTraderStaffMember),
+        ...testUsers
+          .filter((user) => user.role === "TRADER" || isInternalTestTraderUser(user))
+          .map(buildTestTraderStaffMember),
       ];
 
       const envEmail = (env.ADMIN_EMAIL || "greenturtlrtraders26@gmail.com").trim().toLowerCase();
@@ -1028,15 +1036,7 @@ function registerAdminRoutes(app, {
 
         return res.json({
           ok: true,
-          trader: {
-            id: updated.id,
-            email: updated.email,
-            name:
-              `${updated.profile?.firstName || ""} ${updated.profile?.lastName || ""}`.trim() ||
-              updated.email.split("@")[0],
-            billingExempt: true,
-            billingExemptReason: updated.billingExemptReason,
-          },
+          staffMember: buildTestTraderStaffMember(updated),
         });
       }
 
@@ -1085,15 +1085,7 @@ function registerAdminRoutes(app, {
 
       return res.json({
         ok: true,
-        trader: {
-          id: user.id,
-          email: user.email,
-          name:
-            `${user.profile?.firstName || ""} ${user.profile?.lastName || ""}`.trim() ||
-            user.email.split("@")[0],
-          billingExempt: true,
-          billingExemptReason: user.billingExemptReason,
-        },
+        staffMember: buildTestTraderStaffMember(user),
       });
     } catch (err) {
       return next(err);
@@ -1102,7 +1094,7 @@ function registerAdminRoutes(app, {
 
   app.get("/api/admin/signups", authRequired, adminRequired, async (req, res, next) => {
     try {
-      const [waitlistEntries, traderApplications, traderUsers, signupReviews] = await Promise.all([
+      const [waitlistEntries, traderApplications, allTraderUsers, signupReviews] = await Promise.all([
         prisma.waitlistEntry.findMany({
           orderBy: { createdAt: "desc" },
         }),
@@ -1118,6 +1110,8 @@ function registerAdminRoutes(app, {
           orderBy: { updatedAt: "desc" },
         }),
       ]);
+
+      const traderUsers = allTraderUsers.filter((user) => !isInternalTestTraderUser(user));
 
       const rawItems = [
         ...waitlistEntries.map((entry) => ({

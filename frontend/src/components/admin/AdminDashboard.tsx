@@ -370,6 +370,13 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
     );
   };
 
+  const hasAdminActions = (staff: AdminStaffMember) =>
+    Boolean(
+      staff.billingExemptReason ||
+      (currentAdminIsSuperAdmin && staff.role === "admin") ||
+      (currentAdminIsSuperAdmin && staff.source !== "environment")
+    );
+
   const getAnalysisStatusBadge = (status: AdminTrader["analysisStatus"]) => {
     if (status === "ANALYSIS_READY") {
       return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">Analysis Ready</span>;
@@ -1820,16 +1827,18 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                                 Trader access enabled
                               </span>
                             )}
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setOpenAdminActionMenuId((current) => (current === staff.id ? null : staff.id))
-                              }
-                              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-700 transition-colors hover:bg-slate-100"
-                            >
-                              Actions
-                            </button>
-                            {openAdminActionMenuId === staff.id && (
+                            {hasAdminActions(staff) && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setOpenAdminActionMenuId((current) => (current === staff.id ? null : staff.id))
+                                }
+                                className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-700 transition-colors hover:bg-slate-100"
+                              >
+                                Actions
+                              </button>
+                            )}
+                            {hasAdminActions(staff) && openAdminActionMenuId === staff.id && (
                               <div className="absolute right-0 top-full z-20 mt-2 w-56 rounded-lg border border-slate-200 bg-white p-2 shadow-xl">
                                 {staff.billingExemptReason && (
                                   <button
