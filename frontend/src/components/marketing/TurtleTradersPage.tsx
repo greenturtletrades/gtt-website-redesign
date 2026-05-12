@@ -100,7 +100,7 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
   return (
     <div className="min-h-screen bg-white pt-20">
       <section className="bg-[#f4f7f8] px-4 py-16 text-slate-950 sm:px-6">
-        <div className="mx-auto max-w-[1180px]">
+        <div className="mx-auto max-w-[1100px]">
           <div className="mb-10 text-center">
             <h1 className="text-4xl leading-tight text-slate-900 sm:text-5xl">Turtle Traders Leaderboard</h1>
             <p className="mx-auto mt-5 max-w-3xl text-base font-semibold leading-relaxed text-slate-900 sm:text-lg">
@@ -108,12 +108,12 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
             </p>
           </div>
 
-          <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_28px_90px_rgba(2,12,20,0.08)]">
+          <div className="mx-auto overflow-hidden rounded-[36px] border border-slate-200 bg-white shadow-[0_28px_90px_rgba(2,12,20,0.08)]">
             <div className="flex flex-col gap-2 border-b border-slate-200 bg-teal-600 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-sm text-white">Ranked by verified journal data</div>
               <div className="text-xs uppercase tracking-[0.18em] text-teal-50">Updated as traders submit data</div>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto px-2 pb-2 sm:px-3 sm:pb-3">
               <table className="w-full min-w-[920px]">
                 <thead className="bg-[#eef3f5]">
                   <tr>
