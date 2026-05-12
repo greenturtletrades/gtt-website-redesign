@@ -109,9 +109,9 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
           </div>
 
           <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_28px_90px_rgba(2,12,20,0.08)]">
-            <div className="flex flex-col gap-2 border-b border-slate-200 bg-slate-900 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="text-sm text-slate-100">Ranked by verified journal data</div>
-              <div className="text-xs uppercase tracking-[0.18em] text-slate-400">Updated as traders submit data</div>
+            <div className="flex flex-col gap-2 border-b border-slate-200 bg-teal-600 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm text-white">Ranked by verified journal data</div>
+              <div className="text-xs uppercase tracking-[0.18em] text-teal-50">Updated as traders submit data</div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[920px]">
