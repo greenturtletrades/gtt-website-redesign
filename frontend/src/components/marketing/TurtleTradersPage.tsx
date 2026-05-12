@@ -99,29 +99,17 @@ function riskPillClass(riskLevel: string) {
 export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
   return (
     <div className="min-h-screen bg-white pt-20">
-      <section className="border-b border-slate-200 bg-[#eef3f5] px-4 py-16 sm:px-6">
+      <section className="bg-[#f4f7f8] px-4 py-16 text-slate-950 sm:px-6">
         <div className="mx-auto max-w-[1180px]">
-          <div className="mx-auto max-w-3xl text-center">
+          <div className="mb-10 text-center">
             <div className="mb-4 inline-flex rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs uppercase tracking-[0.2em] text-teal-700">
               Public trader board
             </div>
             <h1 className="text-4xl leading-tight text-slate-900 sm:text-5xl">Turtle Traders</h1>
-            <p className="mt-5 text-lg leading-relaxed text-slate-600">
-              A premium public leaderboard for traders using the journal. Clear numbers, strict ranking logic, and no unnecessary extras.
+            <h2 className="mt-6 text-2xl text-slate-900 sm:text-3xl">Verified trader performance</h2>
+            <p className="mx-auto mt-3 max-w-3xl text-base leading-relaxed text-slate-600 sm:text-lg">
+              A premium public leaderboard for traders using the journal. We verify trader data for you, so investors are not relying on screenshots, bold claims, or blind trust.
             </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-[#f4f7f8] px-4 py-14 text-slate-950 sm:px-6">
-        <div className="mx-auto max-w-[1180px]">
-          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-3xl text-slate-950">Verified trader performance</h2>
-              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
-                We verify trader data for you, so investors are not relying on screenshots, bold claims, or blind trust.
-              </p>
-            </div>
           </div>
 
           <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_28px_90px_rgba(2,12,20,0.08)]">
