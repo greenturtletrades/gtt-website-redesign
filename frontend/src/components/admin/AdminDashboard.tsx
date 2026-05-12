@@ -468,9 +468,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
     const bucketMs = config.stepDays * 24 * 60 * 60 * 1000;
     const buckets = new Map<string, {
       label: string;
-      total: number;
       valid: number;
-      notValid: number;
       landing: number;
       investor: number;
       applications: number;
@@ -482,9 +480,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
       const key = bucketDate.toISOString();
       buckets.set(key, {
         label: bucketDate.toLocaleDateString(undefined, config.labelOptions),
-        total: 0,
         valid: 0,
-        notValid: 0,
         landing: 0,
         investor: 0,
         applications: 0,
@@ -503,23 +499,20 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
         return;
       }
 
-      bucket.total += 1;
       if (isSignupValid(item)) {
         bucket.valid += 1;
-      } else {
-        bucket.notValid += 1;
-      }
-      if (item.sourceTypes.includes("landing_waitlist")) {
-        bucket.landing += 1;
-      }
-      if (item.sourceTypes.includes("investor_waitlist")) {
-        bucket.investor += 1;
-      }
-      if (item.sourceTypes.includes("trader_application")) {
-        bucket.applications += 1;
-      }
-      if (item.sourceTypes.includes("trader_account")) {
-        bucket.accounts += 1;
+        if (item.sourceTypes.includes("landing_waitlist")) {
+          bucket.landing += 1;
+        }
+        if (item.sourceTypes.includes("investor_waitlist")) {
+          bucket.investor += 1;
+        }
+        if (item.sourceTypes.includes("trader_application")) {
+          bucket.applications += 1;
+        }
+        if (item.sourceTypes.includes("trader_account")) {
+          bucket.accounts += 1;
+        }
       }
     });
 
@@ -2053,12 +2046,10 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                         contentStyle={{ backgroundColor: "#fff", border: "1px solid #e2e8f0", borderRadius: "8px" }}
                       />
                       <Legend />
-                      <Line type="monotone" dataKey="total" name="All signups" stroke="#0f172a" strokeWidth={2} dot={false} />
-                      <Line type="monotone" dataKey="valid" name="Valid" stroke="#16a34a" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="valid" name="Total valid" stroke="#0f172a" strokeWidth={2} dot={false} />
                       <Line type="monotone" dataKey="investor" name="Investor" stroke="#0891b2" strokeWidth={2} dot={false} />
                       <Line type="monotone" dataKey="applications" name="Applications" stroke="#d97706" strokeWidth={2} dot={false} />
                       <Line type="monotone" dataKey="accounts" name="Trader accounts" stroke="#0d9488" strokeWidth={2} dot={false} />
-                      <Line type="monotone" dataKey="notValid" name="Not valid" stroke="#e11d48" strokeWidth={2} dot={false} />
                     </LineChart>
                   </ResponsiveContainer>
                 ) : (
