@@ -99,7 +99,7 @@ function riskPillClass(riskLevel: string) {
 export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
   return (
     <div className="min-h-screen bg-white pt-20">
-      <section className="border-b border-slate-200 bg-[radial-gradient(circle_at_top,rgba(20,184,166,0.10),transparent_24%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-4 py-16 sm:px-6">
+      <section className="border-b border-slate-200 bg-[radial-gradient(circle_at_top,rgba(20,184,166,0.10),transparent_24%),linear-gradient(180deg,#ffffff_0%,#f4f7f8_100%)] px-4 py-16 sm:px-6">
         <div className="mx-auto max-w-[1180px]">
           <div className="max-w-3xl">
             <div className="mb-4 inline-flex rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs uppercase tracking-[0.2em] text-teal-700">
@@ -113,7 +113,7 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
         </div>
       </section>
 
-      <section className="bg-white px-4 py-14 text-slate-950 sm:px-6">
+      <section className="bg-[#f4f7f8] px-4 py-14 text-slate-950 sm:px-6">
         <div className="mx-auto max-w-[1180px]">
           <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -133,7 +133,7 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[920px]">
-                <thead className="bg-slate-50">
+                <thead className="bg-[#eef3f5]">
                   <tr>
                     <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Name</th>
                     <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Market</th>
@@ -172,7 +172,7 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
             </div>
           </div>
 
-          <div className="mt-8 rounded-[28px] border border-slate-200 bg-slate-50 p-6 text-slate-950 shadow-[0_24px_70px_rgba(2,12,20,0.06)]">
+          <div className="mt-8 rounded-[28px] border border-slate-200 bg-white p-6 text-slate-950 shadow-[0_24px_70px_rgba(2,12,20,0.06)]">
             <div className="flex flex-col gap-3 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h3 className="text-2xl text-slate-900">How we decide who is best</h3>
