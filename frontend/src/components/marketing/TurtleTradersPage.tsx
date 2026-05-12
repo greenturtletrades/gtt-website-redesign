@@ -65,22 +65,22 @@ const scoringModel = [
   {
     name: "Percentile PNL",
     weight: "35%",
-    detail: "The stronger the trader performs against the rest of the board, the more weight they carry.",
+    detail: "Higher percentile performance carries more weight because it shows how strongly a trader is performing against the rest of the board.",
   },
   {
-    name: "Average R",
+    name: "Risk Per Trade",
     weight: "30%",
-    detail: "Higher returns per unit of risk rank better than raw profit without efficiency.",
+    detail: "We value traders who keep position risk controlled instead of forcing performance with oversized exposure.",
   },
   {
     name: "Total Trades",
     weight: "20%",
-    detail: "A wider sample beats a short hot streak. Repetition matters.",
+    detail: "A larger verified sample matters more than a short burst of good results.",
   },
   {
     name: "Risk Score",
     weight: "15%",
-    detail: "Lower and more controlled exposure ranks above unstable risk taking.",
+    detail: "Lower and more disciplined risk ranks above unstable or inconsistent exposure.",
   },
 ];
 
@@ -172,7 +172,7 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
               <div>
                 <h3 className="text-2xl text-slate-900">How we decide who is best</h3>
                 <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
-                  The board score is not just raw profit. It rewards traders who produce strong returns with repeatability and controlled risk.
+                  The leaderboard is designed to reward traders who perform well consistently, with verified data and disciplined risk control.
                 </p>
               </div>
               <div className="rounded-full bg-gradient-to-r from-teal-600 to-cyan-600 px-4 py-2 text-xs font-medium uppercase tracking-[0.18em] text-white">
@@ -191,7 +191,7 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
             </div>
 
             <div className="mt-6 rounded-2xl border border-teal-200 bg-teal-50 px-5 py-4 text-sm leading-relaxed text-slate-700">
-              Risk score matters because two traders can post similar returns while taking completely different levels of exposure. The better rank goes to the trader producing cleaner results with more controlled risk.
+              Two traders can show similar results while taking very different levels of risk. The stronger rank goes to the trader delivering cleaner performance with better control.
             </div>
           </div>
         </div>
