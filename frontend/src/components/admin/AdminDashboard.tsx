@@ -1,5 +1,5 @@
 import { Users, TrendingUp, Activity, Shield, Search, BarChart3, Brain, Eye, Filter, Calendar, UserX, BookOpen, UserPlus, DollarSign, CreditCard, PoundSterling, Lock, Unlock, KeyRound, RefreshCw } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { TraderDetailsModal } from "./TraderDetailsModal";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import {
@@ -82,6 +82,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
   const [signupSearchQuery, setSignupSearchQuery] = useState("");
   const [signupFilter, setSignupFilter] = useState<"all" | GroupedAdminSignupItem["sourceTypes"][number]>("all");
   const [signupReviewFilter, setSignupReviewFilter] = useState<"all" | GroupedAdminSignupItem["reviewStatus"]>("all");
+  const [signupTrendPeriod, setSignupTrendPeriod] = useState<"30d" | "3m" | "6m" | "1y" | "all">("6m");
   const [signupActionPendingEmail, setSignupActionPendingEmail] = useState<string | null>(null);
   const [showInviteStaff, setShowInviteStaff] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -392,6 +393,42 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
     return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">Valid</span>;
   };
 
+  const getSignupTrendConfig = (period: typeof signupTrendPeriod) => {
+    if (period === "30d") {
+      return {
+        start: new Date(Date.now() - 29 * 24 * 60 * 60 * 1000),
+        stepDays: 1,
+        labelOptions: { month: "short", day: "numeric" } as const,
+      };
+    }
+    if (period === "3m") {
+      return {
+        start: new Date(Date.now() - 89 * 24 * 60 * 60 * 1000),
+        stepDays: 7,
+        labelOptions: { month: "short", day: "numeric" } as const,
+      };
+    }
+    if (period === "6m") {
+      return {
+        start: new Date(Date.now() - 181 * 24 * 60 * 60 * 1000),
+        stepDays: 7,
+        labelOptions: { month: "short", day: "numeric" } as const,
+      };
+    }
+    if (period === "1y") {
+      return {
+        start: new Date(new Date().getFullYear(), new Date().getMonth() - 11, 1),
+        stepDays: 30,
+        labelOptions: { month: "short", year: "2-digit" } as const,
+      };
+    }
+    return {
+      start: null as Date | null,
+      stepDays: 30,
+      labelOptions: { month: "short", year: "2-digit" } as const,
+    };
+  };
+
   const filteredSignupItems = signupItems.filter((item) => {
     const matchesFilter = signupFilter === "all" || item.sourceTypes.includes(signupFilter);
     const matchesReviewFilter = signupReviewFilter === "all" || item.reviewStatus === signupReviewFilter;
@@ -407,6 +444,89 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
 
     return matchesFilter && matchesReviewFilter && matchesSearch;
   });
+
+  const signupTrendData = useMemo(() => {
+    const config = getSignupTrendConfig(signupTrendPeriod);
+    const datedItems = filteredSignupItems
+      .map((item) => ({
+        item,
+        date: new Date(item.submittedAt),
+      }))
+      .filter(({ date }) => !Number.isNaN(date.getTime()))
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    if (datedItems.length === 0) {
+      return [];
+    }
+
+    const rawStart = config.start ? new Date(config.start) : new Date(datedItems[0].date);
+    rawStart.setHours(0, 0, 0, 0);
+
+    const rawEnd = new Date();
+    rawEnd.setHours(23, 59, 59, 999);
+
+    const bucketStart = new Date(rawStart);
+    const bucketMs = config.stepDays * 24 * 60 * 60 * 1000;
+    const buckets = new Map<string, {
+      label: string;
+      total: number;
+      valid: number;
+      contactable: number;
+      landing: number;
+      investor: number;
+      applications: number;
+      accounts: number;
+    }>();
+
+    for (let cursor = bucketStart.getTime(); cursor <= rawEnd.getTime(); cursor += bucketMs) {
+      const bucketDate = new Date(cursor);
+      const key = bucketDate.toISOString();
+      buckets.set(key, {
+        label: bucketDate.toLocaleDateString(undefined, config.labelOptions),
+        total: 0,
+        valid: 0,
+        contactable: 0,
+        landing: 0,
+        investor: 0,
+        applications: 0,
+        accounts: 0,
+      });
+    }
+
+    datedItems.forEach(({ item, date }) => {
+      if (date < bucketStart || date > rawEnd) {
+        return;
+      }
+      const bucketIndex = Math.floor((date.getTime() - bucketStart.getTime()) / bucketMs);
+      const key = new Date(bucketStart.getTime() + bucketIndex * bucketMs).toISOString();
+      const bucket = buckets.get(key);
+      if (!bucket) {
+        return;
+      }
+
+      bucket.total += 1;
+      if (item.reviewStatus !== "INVALID") {
+        bucket.valid += 1;
+      }
+      if (item.reviewStatus !== "INVALID" && !item.doNotContact) {
+        bucket.contactable += 1;
+      }
+      if (item.sourceTypes.includes("landing_waitlist")) {
+        bucket.landing += 1;
+      }
+      if (item.sourceTypes.includes("investor_waitlist")) {
+        bucket.investor += 1;
+      }
+      if (item.sourceTypes.includes("trader_application")) {
+        bucket.applications += 1;
+      }
+      if (item.sourceTypes.includes("trader_account")) {
+        bucket.accounts += 1;
+      }
+    });
+
+    return Array.from(buckets.values());
+  }, [filteredSignupItems, signupTrendPeriod]);
 
   const reloadSignups = async () => {
     const signupResponse = await fetchAdminSignups();
@@ -1893,6 +2013,55 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                   <div className="mt-1 text-3xl text-slate-900">{signupSummary.contactableUniqueEmails}</div>
                   <div className="text-xs text-teal-700">Valid emails not marked do not contact</div>
                 </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200">
+              <div className="border-b border-slate-200 bg-slate-50 p-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <h2 className="text-lg text-slate-900">Signup Trend</h2>
+                    <p className="text-sm text-slate-600">
+                      Unique signup records over time, using the current signup filters.
+                    </p>
+                  </div>
+                  <select
+                    value={signupTrendPeriod}
+                    onChange={(e) => setSignupTrendPeriod(e.target.value as typeof signupTrendPeriod)}
+                    className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-teal-500"
+                  >
+                    <option value="30d">Last 30 Days</option>
+                    <option value="3m">Last 3 Months</option>
+                    <option value="6m">Last 6 Months</option>
+                    <option value="1y">Last Year</option>
+                    <option value="all">All Time</option>
+                  </select>
+                </div>
+              </div>
+              <div className="p-6">
+                {signupTrendData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={320}>
+                    <LineChart data={signupTrendData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis dataKey="label" stroke="#64748b" style={{ fontSize: "12px" }} />
+                      <YAxis stroke="#64748b" style={{ fontSize: "12px" }} allowDecimals={false} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "#fff", border: "1px solid #e2e8f0", borderRadius: "8px" }}
+                      />
+                      <Legend />
+                      <Line type="monotone" dataKey="total" name="All signups" stroke="#0f172a" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="valid" name="Valid" stroke="#16a34a" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="landing" name="Landing page" stroke="#2563eb" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="investor" name="Investor" stroke="#0891b2" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="applications" name="Applications" stroke="#d97706" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="accounts" name="Trader accounts" stroke="#0d9488" strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-600">
+                    No signup trend data is available for the current filters yet.
+                  </div>
+                )}
               </div>
             </div>
 
