@@ -170,13 +170,13 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
           <div className="mt-8 rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-6 text-slate-950 shadow-lg">
             <div className="flex flex-col gap-3 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
               <div>
+                <div className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-teal-700">
+                  Scoring model
+                </div>
                 <h3 className="text-2xl text-slate-900">How we decide who is best</h3>
                 <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
                   The leaderboard is designed to reward traders who perform well consistently, with verified data and disciplined risk control.
                 </p>
-              </div>
-              <div className="rounded-full bg-gradient-to-r from-teal-600 to-cyan-600 px-4 py-2 text-xs font-medium uppercase tracking-[0.18em] text-white">
-                Scoring model
               </div>
             </div>
 
