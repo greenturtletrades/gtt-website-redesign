@@ -99,7 +99,7 @@ function riskPillClass(riskLevel: string) {
 export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
   return (
     <div className="min-h-screen bg-white pt-20">
-      <section className="w-full bg-gradient-to-br from-teal-50 via-white to-cyan-50 py-16 sm:py-20 px-4 sm:px-6 relative overflow-hidden text-slate-950">
+      <section className="w-full bg-gradient-to-br from-teal-100 via-slate-50 to-cyan-100 py-16 sm:py-20 px-4 sm:px-6 relative overflow-hidden text-slate-950">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#0d948808_1px,transparent_1px),linear-gradient(to_bottom,#0d948808_1px,transparent_1px)] bg-[size:6rem_6rem] opacity-15"></div>
 
         <div className="mx-auto max-w-7xl relative z-10">
