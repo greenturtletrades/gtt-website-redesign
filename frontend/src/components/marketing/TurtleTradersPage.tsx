@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Footer } from "./Footer";
 
 interface TurtleTradersPageProps {
@@ -65,22 +66,22 @@ const scoringModel = [
   {
     name: "Percentile PNL",
     weight: "35%",
-    detail: "Higher percentile performance carries more weight because it shows how strongly a trader is performing against the rest of the board.",
+    detail: "This measures how strongly a trader is performing relative to the rest of the verified leaderboard. Higher percentile performance matters because it shows whether strong returns are actually competitive when compared against other tracked traders.",
   },
   {
     name: "Risk Per Trade",
     weight: "30%",
-    detail: "We value traders who keep position risk controlled instead of forcing performance with oversized exposure.",
+    detail: "We place significant weight on how much capital is being risked on each trade. Traders who keep risk controlled rank better than traders who try to manufacture performance through oversized exposure.",
   },
   {
     name: "Total Trades",
     weight: "20%",
-    detail: "A larger verified sample matters more than a short burst of good results.",
+    detail: "A larger verified trade sample gives more confidence in the result. This helps prevent a trader from ranking highly based on only a small number of successful trades.",
   },
   {
     name: "Risk Score",
     weight: "15%",
-    detail: "Lower and more disciplined risk ranks above unstable or inconsistent exposure.",
+    detail: "This reflects how disciplined and stable a trader's overall risk behaviour is. Lower and more consistent risk ranks above unstable exposure, even if short-term returns look similar.",
   },
 ];
 
@@ -97,6 +98,21 @@ function riskPillClass(riskLevel: string) {
 }
 
 export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showAllRows, setShowAllRows] = useState(false);
+
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const filteredTraders = traders.filter((trader) => {
+    if (!normalizedSearch) {
+      return true;
+    }
+
+    return trader.name.toLowerCase().includes(normalizedSearch);
+  });
+
+  const visibleTraders = showAllRows || normalizedSearch ? filteredTraders : filteredTraders.slice(0, 5);
+  const hasHiddenRows = !normalizedSearch && filteredTraders.length > 5;
+
   return (
     <div className="min-h-screen bg-white pt-20">
       <section className="w-full bg-gradient-to-br from-teal-50 via-cyan-50 to-teal-50 py-16 sm:py-20 px-4 sm:px-6 relative overflow-hidden text-slate-950">
@@ -110,7 +126,7 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
           <div className="mb-12 text-center">
             <h1 className="text-4xl leading-tight text-slate-900 sm:text-5xl md:text-6xl tracking-tight">Turtle Traders Leaderboard</h1>
             <p className="mx-auto mt-5 max-w-3xl text-base font-semibold leading-relaxed text-slate-900 sm:text-lg">
-              If a trader is not verified with us, investors should not be expected to trust the performance being shown.
+              Verified data matters. Traders who are not verified by Green Turtle Trades should not be relied on for investment decisions.
             </p>
           </div>
 
@@ -118,6 +134,29 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
             <div className="flex flex-col gap-2 border-b border-teal-200 bg-gradient-to-r from-teal-600 to-cyan-600 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-sm text-white">Ranked by verified journal data</div>
               <div className="text-xs uppercase tracking-[0.18em] text-cyan-50">Updated as traders submit data</div>
+            </div>
+            <div className="flex flex-col gap-3 border-b border-slate-200 bg-white px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="w-full sm:max-w-xs">
+                <label className="mb-2 block text-[11px] uppercase tracking-[0.18em] text-slate-600">
+                  Search Trader
+                </label>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Search by trader name"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
+                />
+              </div>
+              {hasHiddenRows ? (
+                <button
+                  type="button"
+                  onClick={() => setShowAllRows((current) => !current)}
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 transition-colors hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700"
+                >
+                  {showAllRows ? "Show Top 5" : "Show Full Leaderboard"}
+                </button>
+              ) : null}
             </div>
             <div className="overflow-x-auto p-2 sm:p-3">
               <table className="w-full min-w-[920px]">
@@ -134,10 +173,13 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {traders.map((trader, index) => (
+                  {visibleTraders.map((trader) => {
+                    const rank = traders.findIndex((row) => row.name === trader.name) + 1;
+
+                    return (
                     <tr key={trader.name} className="border-t border-slate-100 transition-colors odd:bg-white even:bg-slate-50/40 hover:bg-teal-50/60">
                       <td className="px-5 py-4 text-sm font-semibold tabular-nums text-slate-900">
-                        {index + 1}
+                        {rank}
                       </td>
                       <td className="px-5 py-4">
                         <div>
@@ -160,10 +202,16 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                       </td>
                       <td className="px-5 py-4 text-right text-sm tabular-nums text-slate-700">{trader.lastUpdated}</td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
+            {normalizedSearch && visibleTraders.length === 0 ? (
+              <div className="border-t border-slate-200 px-6 py-5 text-sm text-slate-600">
+                No verified traders match that search yet.
+              </div>
+            ) : null}
           </div>
 
           <div className="mt-8 rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-6 text-slate-950 shadow-lg">
@@ -174,7 +222,7 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                 </div>
                 <h3 className="text-2xl text-slate-900">How we decide who is best</h3>
                 <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
-                  The leaderboard is designed to reward traders who perform well consistently, with verified data and disciplined risk control.
+                  The leaderboard is not built around one lucky month or one impressive screenshot. It is designed to reward traders who show strong verified performance over time, while managing risk in a way that investors can understand and trust.
                 </p>
               </div>
             </div>
@@ -190,7 +238,7 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
             </div>
 
             <div className="mt-6 rounded-2xl border border-teal-200 bg-teal-50 px-5 py-4 text-sm leading-relaxed text-slate-700">
-              Two traders can show similar results while taking very different levels of risk. The stronger rank goes to the trader delivering cleaner performance with better control.
+              In practice, this means the strongest traders are not simply the ones showing the highest headline returns. The better rank goes to the trader combining verified performance, repeatability, meaningful sample size, and disciplined risk management.
             </div>
           </div>
         </div>
