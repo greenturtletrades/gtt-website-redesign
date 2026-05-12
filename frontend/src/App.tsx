@@ -10,6 +10,7 @@ import { TraderApplicationStatus } from "./components/onboarding/TraderApplicati
 import { ContactPage } from "./components/marketing/ContactPage";
 import { Header } from "./components/marketing/Header";
 import { LandingPage } from "./components/marketing/LandingPage";
+import { TurtleTradersPage } from "./components/marketing/TurtleTradersPage";
 import { PrivacyPolicy } from "./components/legal/PrivacyPolicy";
 import { RiskDisclosure } from "./components/legal/RiskDisclosure";
 import { TermsOfService } from "./components/legal/TermsOfService";
@@ -28,6 +29,7 @@ export type UserType = "trader" | "admin" | null;
 export type ViewType =
   | "landing"
   | "turtle-analytics"
+  | "turtle-traders"
   | "ea-code"
   | "settings"
   | "terms"
@@ -471,6 +473,10 @@ export default function App() {
             onSubscribe={() => setShowSubscriptionModal(true)}
           />
         )
+      )}
+
+      {!isAdminRoute && currentView === "turtle-traders" && (
+        <TurtleTradersPage onNavigateLegal={(page) => setCurrentView(page)} />
       )}
 
       {checkoutPending && (

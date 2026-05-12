@@ -1,4 +1,4 @@
-import { LogOut, Menu, X, BarChart3, Home, Brain } from "lucide-react";
+import { LogOut, Menu, X, BarChart3, Home, Brain, Trophy } from "lucide-react";
 import { UserType, ViewType } from "../../App";
 import logoFull from "figma:asset/8db911c3a67b2195489de29cf1364c8b6b381bc4.png";
 import { useState, useEffect } from "react";
@@ -79,6 +79,17 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
                 Turtle Analytics
               </button>
               <button
+                onClick={() => onNavigate("turtle-traders")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                  currentView === "turtle-traders"
+                    ? "bg-teal-100 text-teal-700"
+                    : "text-slate-600 hover:text-teal-600"
+                }`}
+              >
+                <Trophy className="w-4 h-4" />
+                Turtle Traders
+              </button>
+              <button
                 onClick={onTraderClick}
                 className="bg-teal-600 text-white px-6 py-2 rounded-lg hover:bg-teal-700 transition-colors"
               >
@@ -108,6 +119,17 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
               >
                 <BarChart3 className="w-4 h-4" />
                 Analytics
+              </button>
+              <button
+                onClick={() => onNavigate("turtle-traders")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                  currentView === "turtle-traders"
+                    ? "bg-teal-100 text-teal-700"
+                    : "text-slate-600 hover:text-teal-600"
+                }`}
+              >
+                <Trophy className="w-4 h-4" />
+                Turtle Traders
               </button>
               <button
                 onClick={onLogout}
@@ -158,6 +180,17 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
                   Turtle Analytics
                 </button>
                 <button
+                  onClick={() => handleNavigation(() => onNavigate("turtle-traders"))}
+                  className={`w-full flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${
+                    currentView === "turtle-traders"
+                      ? "bg-teal-100 text-teal-700"
+                      : "text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  <Trophy className="w-5 h-5" />
+                  Turtle Traders
+                </button>
+                <button
                   onClick={() => handleNavigation(onTraderClick)}
                   className="w-full bg-teal-600 text-white px-4 py-3 rounded-lg hover:bg-teal-700 transition-colors"
                 >
@@ -187,6 +220,17 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
                 >
                   <BarChart3 className="w-4 h-4" />
                   Analytics
+                </button>
+                <button
+                  onClick={() => handleNavigation(() => onNavigate("turtle-traders"))}
+                  className={`w-full flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${
+                    currentView === "turtle-traders"
+                      ? "bg-teal-100 text-teal-700"
+                      : "text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  <Trophy className="w-4 h-4" />
+                  Turtle Traders
                 </button>
                 <button
                   onClick={() => handleNavigation(onLogout)}
