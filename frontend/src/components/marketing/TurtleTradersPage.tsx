@@ -102,13 +102,9 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
       <section className="bg-[#f4f7f8] px-4 py-16 text-slate-950 sm:px-6">
         <div className="mx-auto max-w-[1180px]">
           <div className="mb-10 text-center">
-            <div className="mb-4 inline-flex rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs uppercase tracking-[0.2em] text-teal-700">
-              Public trader board
-            </div>
-            <h1 className="text-4xl leading-tight text-slate-900 sm:text-5xl">Turtle Traders</h1>
-            <h2 className="mt-6 text-2xl text-slate-900 sm:text-3xl">Verified trader performance</h2>
-            <p className="mx-auto mt-3 max-w-3xl text-base leading-relaxed text-slate-600 sm:text-lg">
-              A premium public leaderboard for traders using the journal. We verify trader data for you, so investors are not relying on screenshots, bold claims, or blind trust.
+            <h1 className="text-4xl leading-tight text-slate-900 sm:text-5xl">Turtle Traders Leaderboard</h1>
+            <p className="mx-auto mt-5 max-w-3xl text-base font-semibold leading-relaxed text-slate-900 sm:text-lg">
+              If a trader is not verified with us, investors should not be expected to trust the performance being shown.
             </p>
           </div>
 
