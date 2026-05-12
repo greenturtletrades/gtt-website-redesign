@@ -2088,6 +2088,20 @@ app.use((req, res, next) => {
   next();
 });
 
+function normalizeOrigin(value) {
+  return typeof value === "string" ? value.trim().replace(/\/+$/, "") : "";
+}
+
+function parseOriginSuffixes(value) {
+  return String(value || "")
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+const allowRailwayAppOrigins = process.env.ALLOW_RAILWAY_APP_ORIGINS === "true";
+const allowedOriginSuffixes = parseOriginSuffixes(process.env.CORS_ALLOWED_ORIGIN_SUFFIXES);
+
 const allowedOrigins = Array.from(
   new Set(
     [
@@ -2096,15 +2110,47 @@ const allowedOrigins = Array.from(
       process.env.APP_URL,
       process.env.FRONTEND_URL,
       process.env.PUBLIC_FRONTEND_URL,
-    ].filter((value) => typeof value === "string" && value.trim())
+    ]
+      .map(normalizeOrigin)
+      .filter(Boolean)
   )
 );
+
+function isAllowedOrigin(origin) {
+  const normalizedOrigin = normalizeOrigin(origin);
+  if (!normalizedOrigin) {
+    return false;
+  }
+
+  if (allowedOrigins.includes(normalizedOrigin)) {
+    return true;
+  }
+
+  let parsedOrigin;
+  try {
+    parsedOrigin = new URL(normalizedOrigin);
+  } catch {
+    return false;
+  }
+
+  const hostname = parsedOrigin.hostname.toLowerCase();
+
+  if (allowRailwayAppOrigins && parsedOrigin.protocol === "https:" && hostname.endsWith(".up.railway.app")) {
+    return true;
+  }
+
+  if (allowedOriginSuffixes.some((suffix) => hostname === suffix || hostname.endsWith(`.${suffix}`))) {
+    return true;
+  }
+
+  return false;
+}
 
 // CORS
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || isAllowedOrigin(origin)) {
         return callback(null, true);
       }
       return callback(new Error("Not allowed by CORS"));
@@ -2124,7 +2170,7 @@ app.use((req, res, next) => {
     return next();
   }
 
-  const trustedOrigin = getTrustedRequestOrigin(req, allowedOrigins);
+  const trustedOrigin = getTrustedRequestOrigin(req, allowedOrigins, isAllowedOrigin);
   if (!trustedOrigin) {
     return res.status(403).json({ ok: false, error: "Blocked by CSRF protection" });
   }

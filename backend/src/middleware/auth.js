@@ -172,9 +172,18 @@ function createAuthHelpers({
     return next();
   }
 
-  function getTrustedRequestOrigin(req, allowedOrigins) {
+  function getTrustedRequestOrigin(req, allowedOrigins, isAllowedOrigin = null) {
     const origin = getHeaderValue(req.headers.origin);
-    if (origin && allowedOrigins.includes(origin)) {
+    const matchesOrigin = (value) =>
+      Boolean(
+        value &&
+        (
+          allowedOrigins.includes(value) ||
+          (typeof isAllowedOrigin === "function" && isAllowedOrigin(value))
+        )
+      );
+
+    if (matchesOrigin(origin)) {
       return origin;
     }
 
@@ -182,7 +191,7 @@ function createAuthHelpers({
     if (referer) {
       try {
         const refererOrigin = new URL(referer).origin;
-        if (allowedOrigins.includes(refererOrigin)) {
+        if (matchesOrigin(refererOrigin)) {
           return refererOrigin;
         }
       } catch {
