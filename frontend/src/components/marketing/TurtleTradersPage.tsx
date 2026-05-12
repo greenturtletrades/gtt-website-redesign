@@ -99,9 +99,9 @@ function riskPillClass(riskLevel: string) {
 export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
   return (
     <div className="min-h-screen bg-white pt-20">
-      <section className="border-b border-slate-200 bg-[radial-gradient(circle_at_top,rgba(20,184,166,0.10),transparent_24%),linear-gradient(180deg,#ffffff_0%,#f4f7f8_100%)] px-4 py-16 sm:px-6">
+      <section className="border-b border-slate-200 bg-[#eef3f5] px-4 py-16 sm:px-6">
         <div className="mx-auto max-w-[1180px]">
-          <div className="max-w-3xl">
+          <div className="mx-auto max-w-3xl text-center">
             <div className="mb-4 inline-flex rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs uppercase tracking-[0.2em] text-teal-700">
               Public trader board
             </div>
