@@ -99,23 +99,25 @@ function riskPillClass(riskLevel: string) {
 export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
   return (
     <div className="min-h-screen bg-white pt-20">
-      <section className="bg-[#f4f7f8] px-4 py-16 text-slate-950 sm:px-6">
-        <div className="mx-auto max-w-[1100px]">
-          <div className="mb-10 text-center">
-            <h1 className="text-4xl leading-tight text-slate-900 sm:text-5xl">Turtle Traders Leaderboard</h1>
+      <section className="w-full bg-gradient-to-br from-teal-50 via-white to-cyan-50 py-16 sm:py-20 px-4 sm:px-6 relative overflow-hidden text-slate-950">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#0d948808_1px,transparent_1px),linear-gradient(to_bottom,#0d948808_1px,transparent_1px)] bg-[size:6rem_6rem] opacity-15"></div>
+
+        <div className="mx-auto max-w-7xl relative z-10">
+          <div className="mb-12 text-center">
+            <h1 className="text-4xl leading-tight text-slate-900 sm:text-5xl md:text-6xl tracking-tight">Turtle Traders Leaderboard</h1>
             <p className="mx-auto mt-5 max-w-3xl text-base font-semibold leading-relaxed text-slate-900 sm:text-lg">
               If a trader is not verified with us, investors should not be expected to trust the performance being shown.
             </p>
           </div>
 
-          <div className="mx-auto overflow-hidden rounded-[36px] border border-slate-200 bg-white shadow-[0_28px_90px_rgba(2,12,20,0.08)]">
-            <div className="flex flex-col gap-2 border-b border-slate-200 bg-teal-600 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mx-auto overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+            <div className="flex flex-col gap-2 border-b border-teal-200 bg-gradient-to-r from-teal-600 to-cyan-600 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-sm text-white">Ranked by verified journal data</div>
-              <div className="text-xs uppercase tracking-[0.18em] text-teal-50">Updated as traders submit data</div>
+              <div className="text-xs uppercase tracking-[0.18em] text-cyan-50">Updated as traders submit data</div>
             </div>
-            <div className="overflow-x-auto px-2 pb-2 sm:px-3 sm:pb-3">
+            <div className="overflow-x-auto p-2 sm:p-3">
               <table className="w-full min-w-[920px]">
-                <thead className="bg-[#eef3f5]">
+                <thead className="bg-slate-50">
                   <tr>
                     <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Trader</th>
                     <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Market</th>
@@ -128,10 +130,10 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                 </thead>
                 <tbody>
                   {traders.map((trader, index) => (
-                    <tr key={trader.name} className="border-t border-slate-200 transition-colors odd:bg-white even:bg-slate-50/55 hover:bg-teal-50/45">
+                    <tr key={trader.name} className="border-t border-slate-100 transition-colors odd:bg-white even:bg-slate-50/40 hover:bg-teal-50/60">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-4">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 bg-white text-xs font-semibold text-slate-900 shadow-sm">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-teal-200 bg-teal-50 text-xs font-semibold text-teal-700">
                             {index + 1}
                           </div>
                           <div>
@@ -141,7 +143,7 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                         </div>
                       </td>
                       <td className="px-5 py-4">
-                        <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700">
+                        <span className="rounded-full border border-teal-100 bg-teal-50 px-3 py-1 text-xs font-medium text-teal-700">
                           {trader.market}
                         </span>
                       </td>
@@ -161,7 +163,7 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
             </div>
           </div>
 
-          <div className="mt-8 rounded-[28px] border border-slate-200 bg-white p-6 text-slate-950 shadow-[0_24px_70px_rgba(2,12,20,0.06)]">
+          <div className="mt-8 rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-6 text-slate-950 shadow-lg">
             <div className="flex flex-col gap-3 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h3 className="text-2xl text-slate-900">How we decide who is best</h3>
@@ -169,14 +171,14 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                   The board score is not just raw profit. It rewards traders who produce strong returns with repeatability and controlled risk.
                 </p>
               </div>
-              <div className="rounded-full bg-teal-600 px-4 py-2 text-xs font-medium uppercase tracking-[0.18em] text-white">
+              <div className="rounded-full bg-gradient-to-r from-teal-600 to-cyan-600 px-4 py-2 text-xs font-medium uppercase tracking-[0.18em] text-white">
                 Scoring model
               </div>
             </div>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {scoringModel.map((item) => (
-                <div key={item.name} className="rounded-2xl border border-slate-200 bg-white p-5">
+                <div key={item.name} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                   <div className="text-sm uppercase tracking-[0.16em] text-slate-600">{item.name}</div>
                   <div className="mt-3 text-3xl text-slate-900">{item.weight}</div>
                   <p className="mt-3 text-sm leading-relaxed text-slate-600">{item.detail}</p>
