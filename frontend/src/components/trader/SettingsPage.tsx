@@ -348,9 +348,6 @@ export function SettingsPage({
     return `${brand} ending ${method.last4}${expiry}`;
   };
 
-  const mlChargesDueDisplay = formatMoney(billingSummary?.mlRunChargesDue ?? null, "GBP");
-  const totalPaidBillingDisplay = formatMoney(billingSummary?.totalPaidBilling ?? null, "GBP");
-
   const liveSubscriptionStatus = (() => {
     if (billingSummary?.subscriptionStatus) {
       const status = billingSummary.subscriptionStatus.toLowerCase();
@@ -660,7 +657,7 @@ export function SettingsPage({
                                 : liveSubscriptionStatus === "internal"
                                   ? "Internal"
                                 : liveSubscriptionStatus === "not_started"
-                                  ? "Free"
+                                  ? "Free Account"
                                   : liveSubscriptionStatus}
                           </span>
                         </div>
@@ -688,13 +685,15 @@ export function SettingsPage({
                       </div>
 
                       <div className="grid gap-4 md:grid-cols-2">
-                        <div className="rounded-lg border border-slate-200 bg-white p-5">
-                          <div className="text-sm text-slate-500">Current Billing Method</div>
-                          <div className="mt-2 text-slate-900">{billingLoading ? "Loading..." : formatBillingMethod()}</div>
-                          <p className="mt-2 text-sm text-slate-600">
-                            Payment methods are managed securely in Stripe. Your full card details are never stored in this app.
-                          </p>
-                        </div>
+                        {!isFreePlan && (
+                          <div className="rounded-lg border border-slate-200 bg-white p-5">
+                            <div className="text-sm text-slate-500">Billing Information</div>
+                            <div className="mt-2 text-slate-900">{billingLoading ? "Loading..." : formatBillingMethod()}</div>
+                            <p className="mt-2 text-sm text-slate-600">
+                              Payment methods are managed securely in Stripe. Your full card details are never stored in this app.
+                            </p>
+                          </div>
+                        )}
 
                         <div className="rounded-lg border border-slate-200 bg-white p-5">
                         <div className="text-sm text-slate-500">Billing Actions</div>
@@ -708,43 +707,43 @@ export function SettingsPage({
                               {startingUpgradeCheckout ? "Starting Checkout..." : "Upgrade Subscription"}
                             </button>
                           )}
-                          <button
-                            onClick={handleUpdateBillingMethod}
-                              disabled={
-                                openingBillingPortal ||
-                                billingSummary?.stripeConfigured === false ||
-                                isFreePlan
-                              }
+                          {!isFreePlan && (
+                            <button
+                              onClick={handleUpdateBillingMethod}
+                              disabled={openingBillingPortal || billingSummary?.stripeConfigured === false}
                               className="rounded-lg bg-teal-600 px-4 py-2 text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
                             >
-                              {openingBillingPortal ? "Opening..." : billingSummary?.currentBillingMethod ? "Update Billing Method" : "Add Billing Method"}
+                              {openingBillingPortal ? "Opening..." : "Update Billing Information"}
                             </button>
+                          )}
                           </div>
                           <p className="mt-2 text-sm text-slate-600">
                             {isFreePlan
-                              ? "Free accounts do not have a Stripe billing profile yet. Start checkout to upgrade, then you can manage cards and billing methods here."
+                              ? "Upgrade here when you want to unlock ML model runs."
                               : "Use the secure Stripe billing portal to update the card or payment method used for platform access charges."}
                           </p>
                         </div>
                       </div>
 
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
-                          <div className="text-sm text-amber-700">ML Usage Charges Due</div>
-                          <div className="mt-2 text-2xl text-slate-900">{billingLoading ? "Loading..." : mlChargesDueDisplay}</div>
-                          <p className="mt-2 text-sm text-slate-600">
-                            Stripe-backed ML usage currently scheduled on your next subscription invoice.
-                          </p>
-                        </div>
+                      {!isFreePlan && (
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
+                            <div className="text-sm text-amber-700">ML Usage Charges Due</div>
+                            <div className="mt-2 text-2xl text-slate-900">{billingLoading ? "Loading..." : formatMoney(billingSummary?.mlRunChargesDue ?? null, "GBP")}</div>
+                            <p className="mt-2 text-sm text-slate-600">
+                              Stripe-backed ML usage currently scheduled on your next subscription invoice.
+                            </p>
+                          </div>
 
-                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5">
-                          <div className="text-sm text-emerald-700">Total Billing Paid</div>
-                          <div className="mt-2 text-2xl text-slate-900">{billingLoading ? "Loading..." : totalPaidBillingDisplay}</div>
-                          <p className="mt-2 text-sm text-slate-600">
-                            Stripe invoices actually collected and paid so far. Upcoming usage is not included until Stripe bills it.
-                          </p>
+                          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5">
+                            <div className="text-sm text-emerald-700">Total Billing Paid</div>
+                            <div className="mt-2 text-2xl text-slate-900">{billingLoading ? "Loading..." : formatMoney(billingSummary?.totalPaidBilling ?? null, "GBP")}</div>
+                            <p className="mt-2 text-sm text-slate-600">
+                              Stripe invoices actually collected and paid so far. Upcoming usage is not included until Stripe bills it.
+                            </p>
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       <div className="flex flex-wrap gap-3">
                         {(liveSubscriptionStatus === "active" || liveSubscriptionStatus === "trialing") && onPauseSubscription && (
@@ -788,89 +787,93 @@ export function SettingsPage({
                         </p>
                       </div>
 
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-6">
-                        <h3 className="text-slate-900">ML Run Charges</h3>
-                        {!billingSummary?.recentMlRunCharges?.length ? (
-                          <p className="mt-2 text-sm text-slate-600">
-                            No completed ML run charges have been recorded for this account yet.
-                          </p>
-                        ) : (
-                          <div className="mt-4 overflow-x-auto">
-                            <table className="min-w-full text-left text-sm">
-                              <thead className="text-slate-500">
-                                <tr>
-                                  <th className="pb-2 pr-4">Date</th>
-                                  <th className="pb-2 pr-4">Mode</th>
-                                  <th className="pb-2 pr-4">Trades</th>
-                                  <th className="pb-2 pr-4">Amount</th>
-                                  <th className="pb-2 pr-4">Status</th>
-                                </tr>
-                              </thead>
-                              <tbody className="text-slate-700">
-                                {billingSummary.recentMlRunCharges.map((run) => (
-                                  <tr key={run.id} className="border-t border-slate-200">
-                                    <td className="py-3 pr-4">{formatTimestamp(run.completedAt || run.createdAt)}</td>
-                                    <td className="py-3 pr-4">{run.mode}</td>
-                                    <td className="py-3 pr-4">{run.tradesAnalysed ?? "—"}</td>
-                                    <td className="py-3 pr-4">{formatMoney(run.amount, "GBP")}</td>
-                                    <td className="py-3 pr-4">
-                                      {run.status === "paid"
-                                        ? "Paid"
-                                        : run.status === "pending"
-                                          ? "Pending payment"
-                                          : run.status === "reported"
-                                            ? "Added to next monthly invoice"
-                                          : run.status === "failed"
-                                            ? "Payment failed"
-                                            : run.status === "report_failed"
-                                              ? "Usage reporting failed"
-                                            : run.status === "no_charge"
-                                              ? "No charge"
-                                              : "Due"}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                      {!isFreePlan && (
+                        <>
+                          <div className="rounded-lg border border-slate-200 bg-slate-50 p-6">
+                            <h3 className="text-slate-900">ML Run Charges</h3>
+                            {!billingSummary?.recentMlRunCharges?.length ? (
+                              <p className="mt-2 text-sm text-slate-600">
+                                No completed ML run charges have been recorded for this account yet.
+                              </p>
+                            ) : (
+                              <div className="mt-4 overflow-x-auto">
+                                <table className="min-w-full text-left text-sm">
+                                  <thead className="text-slate-500">
+                                    <tr>
+                                      <th className="pb-2 pr-4">Date</th>
+                                      <th className="pb-2 pr-4">Mode</th>
+                                      <th className="pb-2 pr-4">Trades</th>
+                                      <th className="pb-2 pr-4">Amount</th>
+                                      <th className="pb-2 pr-4">Status</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="text-slate-700">
+                                    {billingSummary.recentMlRunCharges.map((run) => (
+                                      <tr key={run.id} className="border-t border-slate-200">
+                                        <td className="py-3 pr-4">{formatTimestamp(run.completedAt || run.createdAt)}</td>
+                                        <td className="py-3 pr-4">{run.mode}</td>
+                                        <td className="py-3 pr-4">{run.tradesAnalysed ?? "—"}</td>
+                                        <td className="py-3 pr-4">{formatMoney(run.amount, "GBP")}</td>
+                                        <td className="py-3 pr-4">
+                                          {run.status === "paid"
+                                            ? "Paid"
+                                            : run.status === "pending"
+                                              ? "Pending payment"
+                                              : run.status === "reported"
+                                                ? "Added to next monthly invoice"
+                                              : run.status === "failed"
+                                                ? "Payment failed"
+                                                : run.status === "report_failed"
+                                                  ? "Usage reporting failed"
+                                                : run.status === "no_charge"
+                                                  ? "No charge"
+                                                  : "Due"}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
 
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-6">
-                        <h3 className="text-slate-900">Billing History</h3>
-                        {!billingSummary?.recentInvoices?.length ? (
-                          <p className="mt-2 text-sm text-slate-600">
-                            No paid or failed Stripe billing records have been recorded for this account yet.
-                          </p>
-                        ) : (
-                          <div className="mt-4 overflow-x-auto">
-                            <table className="min-w-full text-left text-sm">
-                              <thead className="text-slate-500">
-                                <tr>
-                                  <th className="pb-2 pr-4">Date</th>
-                                  <th className="pb-2 pr-4">Status</th>
-                                  <th className="pb-2 pr-4">Amount</th>
-                                  <th className="pb-2 pr-4">Period</th>
-                                </tr>
-                              </thead>
-                              <tbody className="text-slate-700">
-                                {billingSummary.recentInvoices.map((invoice) => (
-                                  <tr key={invoice.id} className="border-t border-slate-200">
-                                    <td className="py-3 pr-4">{formatTimestamp(invoice.occurredAt)}</td>
-                                    <td className="py-3 pr-4">{invoice.status || "Unknown"}</td>
-                                    <td className="py-3 pr-4">{formatMoney(invoice.amountPaid ?? invoice.amount, invoice.currency)}</td>
-                                    <td className="py-3 pr-4">
-                                      {invoice.periodStart && invoice.periodEnd
-                                        ? `${formatTimestamp(invoice.periodStart)} to ${formatTimestamp(invoice.periodEnd)}`
-                                        : "—"}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                          <div className="rounded-lg border border-slate-200 bg-slate-50 p-6">
+                            <h3 className="text-slate-900">Billing History</h3>
+                            {!billingSummary?.recentInvoices?.length ? (
+                              <p className="mt-2 text-sm text-slate-600">
+                                No paid or failed Stripe billing records have been recorded for this account yet.
+                              </p>
+                            ) : (
+                              <div className="mt-4 overflow-x-auto">
+                                <table className="min-w-full text-left text-sm">
+                                  <thead className="text-slate-500">
+                                    <tr>
+                                      <th className="pb-2 pr-4">Date</th>
+                                      <th className="pb-2 pr-4">Status</th>
+                                      <th className="pb-2 pr-4">Amount</th>
+                                      <th className="pb-2 pr-4">Period</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="text-slate-700">
+                                    {billingSummary.recentInvoices.map((invoice) => (
+                                      <tr key={invoice.id} className="border-t border-slate-200">
+                                        <td className="py-3 pr-4">{formatTimestamp(invoice.occurredAt)}</td>
+                                        <td className="py-3 pr-4">{invoice.status || "Unknown"}</td>
+                                        <td className="py-3 pr-4">{formatMoney(invoice.amountPaid ?? invoice.amount, invoice.currency)}</td>
+                                        <td className="py-3 pr-4">
+                                          {invoice.periodStart && invoice.periodEnd
+                                            ? `${formatTimestamp(invoice.periodStart)} to ${formatTimestamp(invoice.periodEnd)}`
+                                            : "—"}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
+                        </>
+                      )}
                     </div>
                   )}
 
