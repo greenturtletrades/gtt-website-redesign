@@ -37,6 +37,7 @@ import {
   type EaDiagnosticsResponse,
   type EaStatusResponse,
 } from "../../api/settings";
+import { createCheckoutSession } from "../../api/subscription";
 import { ApiError, clearStoredToken } from "../../api/client";
 
 interface SettingsPageProps {
@@ -94,6 +95,7 @@ export function SettingsPage({
   const [ownReferralDurationDays, setOwnReferralDurationDays] = useState(0);
   const [billingLoading, setBillingLoading] = useState(true);
   const [openingBillingPortal, setOpeningBillingPortal] = useState(false);
+  const [startingUpgradeCheckout, setStartingUpgradeCheckout] = useState(false);
   const [refreshingEaHealth, setRefreshingEaHealth] = useState(false);
   const [copiedValue, setCopiedValue] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -359,6 +361,11 @@ export function SettingsPage({
     return subscriptionStatus;
   })();
 
+  const isFreePlan =
+    !billingSummary?.billingExempt &&
+    !billingSummary?.platformComped &&
+    liveSubscriptionStatus === "not_started";
+
   const handleUpdateBillingMethod = async () => {
     setOpeningBillingPortal(true);
     setPageError(null);
@@ -368,6 +375,26 @@ export function SettingsPage({
     } catch (error) {
       setPageError(error instanceof Error ? error.message : "Unable to open secure billing portal.");
       setOpeningBillingPortal(false);
+    }
+  };
+
+  const handleUpgradeSubscription = async () => {
+    setStartingUpgradeCheckout(true);
+    setPageError(null);
+    try {
+      const response = await createCheckoutSession(billingSummary?.referralCode || undefined);
+      if (response.bypass) {
+        window.location.reload();
+        return;
+      }
+      if (response.url) {
+        window.location.assign(response.url);
+        return;
+      }
+      throw new Error("Checkout session did not return a URL.");
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : "Unable to start the upgrade checkout.");
+      setStartingUpgradeCheckout(false);
     }
   };
 
@@ -620,7 +647,9 @@ export function SettingsPage({
                                 ? "Internal company account with billing exemption"
                                 : billingSummary?.platformComped
                                   ? "Complimentary platform access is active on this account"
-                                : "£10/month + £0.20 per trade analysed"}
+                                : isFreePlan
+                                  ? "Free account active. Journal, settings, and account access are available without billing."
+                                  : "£10/month + £0.20 per trade analysed"}
                             </p>
                           </div>
                           <span className={`rounded-full px-3 py-1 text-sm ${liveSubscriptionStatus === "paused" ? "bg-amber-100 text-amber-700" : liveSubscriptionStatus === "active" || liveSubscriptionStatus === "trialing" ? "bg-teal-600 text-white" : "bg-slate-200 text-slate-700"}`}>
@@ -631,7 +660,7 @@ export function SettingsPage({
                                 : liveSubscriptionStatus === "internal"
                                   ? "Internal"
                                 : liveSubscriptionStatus === "not_started"
-                                  ? "Not Started"
+                                  ? "Free"
                                   : liveSubscriptionStatus}
                           </span>
                         </div>
@@ -651,6 +680,11 @@ export function SettingsPage({
                             Referral code `{billingSummary.referralCode}` is active: {billingSummary.accountDiscountPercent}% off account billing and {billingSummary.mlRunDiscountPercent}% off ML runs.
                           </p>
                         )}
+                        {isFreePlan && (
+                          <p className="mt-4 text-sm text-slate-700">
+                            Upgrade from here whenever you want to unlock ML model runs and connect Stripe billing to this account.
+                          </p>
+                        )}
                       </div>
 
                       <div className="grid gap-4 md:grid-cols-2">
@@ -665,16 +699,31 @@ export function SettingsPage({
                         <div className="rounded-lg border border-slate-200 bg-white p-5">
                         <div className="text-sm text-slate-500">Billing Actions</div>
                         <div className="mt-3 flex flex-wrap gap-3">
+                          {isFreePlan && (
+                            <button
+                              onClick={handleUpgradeSubscription}
+                              disabled={startingUpgradeCheckout}
+                              className="rounded-lg bg-teal-600 px-4 py-2 text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
+                            >
+                              {startingUpgradeCheckout ? "Starting Checkout..." : "Upgrade Subscription"}
+                            </button>
+                          )}
                           <button
                             onClick={handleUpdateBillingMethod}
-                              disabled={openingBillingPortal || billingSummary?.stripeConfigured === false}
+                              disabled={
+                                openingBillingPortal ||
+                                billingSummary?.stripeConfigured === false ||
+                                isFreePlan
+                              }
                               className="rounded-lg bg-teal-600 px-4 py-2 text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
                             >
                               {openingBillingPortal ? "Opening..." : billingSummary?.currentBillingMethod ? "Update Billing Method" : "Add Billing Method"}
                             </button>
                           </div>
                           <p className="mt-2 text-sm text-slate-600">
-                            Use the secure Stripe billing portal to update the card or payment method used for platform access charges.
+                            {isFreePlan
+                              ? "Free accounts do not have a Stripe billing profile yet. Start checkout to upgrade, then you can manage cards and billing methods here."
+                              : "Use the secure Stripe billing portal to update the card or payment method used for platform access charges."}
                           </p>
                         </div>
                       </div>
@@ -719,15 +768,23 @@ export function SettingsPage({
                       <div className={`rounded-lg border p-5 ${
                         liveSubscriptionStatus === "paused"
                           ? "border-amber-200 bg-amber-50"
+                          : isFreePlan
+                            ? "border-sky-200 bg-sky-50"
                           : "border-slate-200 bg-slate-50"
                       }`}>
                         <div className="text-sm text-slate-500">
-                          {liveSubscriptionStatus === "paused" ? "Paused Subscription Access" : "Active Subscription Access"}
+                          {liveSubscriptionStatus === "paused"
+                            ? "Paused Subscription Access"
+                            : isFreePlan
+                              ? "Free Account Access"
+                              : "Active Subscription Access"}
                         </div>
                         <p className="mt-2 text-sm text-slate-700">
                           {liveSubscriptionStatus === "paused"
                             ? "Platform billing is paused. You can still sign in and access your account, journal, and settings, but new ML model runs are disabled until you resume the subscription."
-                            : "Your subscription currently allows both account access and new ML model runs. Pause it any time to stop monthly billing while keeping login access to your account."}
+                            : isFreePlan
+                              ? "This account is currently on the free tier. You can sign in, use your journal, and manage settings now. Upgrade when you want ML model runs."
+                              : "Your subscription currently allows both account access and new ML model runs. Pause it any time to stop monthly billing while keeping login access to your account."}
                         </p>
                       </div>
 
