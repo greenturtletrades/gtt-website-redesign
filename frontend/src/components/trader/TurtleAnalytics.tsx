@@ -14,6 +14,7 @@ interface TurtleAnalyticsProps {
   userType: UserType;
   subscriptionTier?: "payg" | "premium";
   subscriptionStatus?: "active" | "paused" | "cancelling" | "not_started" | "trialing";
+  mlModelAccessEnabled?: boolean;
   onSignUp?: () => void;
   onLogout?: () => void;
   onSettings?: () => void;
@@ -25,6 +26,7 @@ export function TurtleAnalytics({
   userType,
   subscriptionTier = "payg",
   subscriptionStatus = "not_started",
+  mlModelAccessEnabled = false,
   onSignUp,
   onLogout,
   onPauseSubscription,
@@ -918,6 +920,7 @@ export function TurtleAnalytics({
   const effectiveTradeCount = Math.min(Math.max(selectedTradeCount, minTradeSelection), maxTradeSelection);
   const canRunTradeAnalysis = analysisOptions.availableTradeCount >= minTradeSelection;
   const isSubscriptionPaused = subscriptionStatus === "paused";
+  const canRunMlModel = mlModelAccessEnabled && !isSubscriptionPaused;
   const referralDiscountFactor = Math.max(0, 1 - (analysisOptions.mlRunDiscountPercent || 0) / 100);
   const estimatedModalCost =
     analysisMode === "trades"
@@ -1375,16 +1378,23 @@ export function TurtleAnalytics({
               <div className="flex flex-col items-center gap-3">
                 <button
                   onClick={() => {
-                    if (!isSubscriptionPaused) {
+                    if (canRunMlModel) {
                       setShowRunModelModal(true);
                     }
                   }}
-                  disabled={isRunningModel || isSubscriptionPaused}
+                  disabled={isRunningModel || !canRunMlModel}
                   className={`px-8 py-3 rounded-lg transition-all flex items-center gap-2 ${
-                    isRunningModel || isSubscriptionPaused
+                    isRunningModel || !canRunMlModel
                       ? "bg-slate-400 text-white cursor-not-allowed"
                       : "bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:from-teal-700 hover:to-cyan-700 shadow-lg hover:shadow-xl"
                   }`}
+                  title={
+                    isSubscriptionPaused
+                      ? "Resume your subscription in Settings to run the ML model"
+                      : !mlModelAccessEnabled
+                        ? "Subscribe to unlock ML model runs"
+                        : ""
+                  }
                 >
                   {isRunningModel ? (
                     <>
@@ -1405,6 +1415,11 @@ export function TurtleAnalytics({
                 {isSubscriptionPaused && (
                   <div className="max-w-sm rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-center text-xs text-amber-800">
                     Subscription paused. You can still access your account, but new ML model runs are locked until you resume billing in Settings.
+                  </div>
+                )}
+                {!mlModelAccessEnabled && (
+                  <div className="max-w-sm rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-center text-xs text-sky-800">
+                    Your account, journal, and settings are unlocked. Subscribe when you want to run the ML model.
                   </div>
                 )}
               </div>
@@ -2963,6 +2978,12 @@ export function TurtleAnalytics({
                 </div>
               )}
 
+              {!mlModelAccessEnabled && (
+                <div className="mb-6 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+                  Free account mode is active. You can use the journal and account area now, but subscribing is still required before running the ML model.
+                </div>
+              )}
+
               {/* MetaTrader 5 Credentials */}
               {analysisMode === "mt5" && (
                 <div className="mb-6 space-y-4">
@@ -3390,12 +3411,12 @@ export function TurtleAnalytics({
                 <button
                   onClick={handleRunModel}
                   disabled={
-                    isSubscriptionPaused ||
+                    !canRunMlModel ||
                     (analysisMode === "csv" && !csvFile) ||
                     (analysisMode === "trades" && !canRunTradeAnalysis)
                   }
                   className={`px-8 py-3 rounded-lg shadow-lg transition-all flex items-center gap-2 ${
-                    isSubscriptionPaused ||
+                    !canRunMlModel ||
                     (analysisMode === "csv" && !csvFile) ||
                     (analysisMode === "trades" && !canRunTradeAnalysis)
                       ? 'bg-slate-400 text-slate-200 cursor-not-allowed'
@@ -3404,6 +3425,8 @@ export function TurtleAnalytics({
                   title={
                     isSubscriptionPaused
                       ? 'Resume your subscription to run the ML model'
+                      : !mlModelAccessEnabled
+                      ? 'Subscribe to unlock ML model runs'
                       : analysisMode === "csv" && !csvFile
                       ? 'Please select a CSV file'
                       : analysisMode === "trades" && !canRunTradeAnalysis

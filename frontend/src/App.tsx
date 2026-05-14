@@ -71,6 +71,13 @@ export default function App() {
   const [checkoutExhausted, setCheckoutExhausted] = useState(false);
   const [resetToken, setResetToken] = useState<string | null>(null);
 
+  const hasMlModelAccess = (status: string | undefined, billingExempt: boolean) => {
+    if (billingExempt) {
+      return true;
+    }
+    return status === "active" || status === "trialing" || status === "cancelling";
+  };
+
   useEffect(() => {
     getConfig()
       .then(cfg => setMlEnabled(cfg.ml_enabled))
@@ -106,7 +113,7 @@ export default function App() {
           const accountState = await fetchAccountState();
           const status = accountState.account.billing?.subscriptionStatus?.toLowerCase();
           const exempt = Boolean(accountState.account.billingExempt);
-          if (accountState.ok && (status === "active" || status === "trialing" || exempt)) {
+          if (accountState.ok && hasMlModelAccess(status, exempt)) {
             setCheckoutPending(false);
             setUserType("trader");
             setTurtleAnalyticsAuthed(true);
@@ -162,9 +169,8 @@ export default function App() {
             setSubscriptionStatus("not_started");
           }
           setUserType("trader");
-          const hasSubscription = Boolean(nextStatus && nextStatus !== "not_started");
           const isBillingExempt = Boolean(accountState.account.billingExempt);
-          setTurtleAnalyticsAuthed(hasSubscription || isBillingExempt);
+          setTurtleAnalyticsAuthed(hasMlModelAccess(nextStatus, isBillingExempt));
         } else if (accountState.ok && accountState.account.role === "ADMIN" && accountState.account.status === "ACTIVE") {
           setUserType("admin");
           setCurrentAdminIsSuperAdmin(Boolean(accountState.account.isSuperAdmin));
@@ -256,9 +262,13 @@ export default function App() {
       setPendingReferralCode(details?.referralCode?.trim().toUpperCase() || "");
       setCurrentUserName(details?.name?.trim() || "Trader");
       setCurrentUserEmail(details?.email?.trim() || "");
-      setShowSubscriptionModal(true);
+      setSelectedSubscriptionPlan("payg");
+      setSubscriptionStatus("not_started");
+      setUserType("trader");
+      setTurtleAnalyticsAuthed(false);
+      setCurrentView("turtle-analytics");
     } else {
-      // Login flow — check real subscription status before granting dashboard access
+      // Login flow — load real billing state so ML access is gated correctly.
       setSelectedSubscriptionPlan("payg");
       setCurrentUserName(details?.name?.trim() || currentUserName);
       setCurrentUserEmail(details?.email?.trim() || currentUserEmail);
@@ -268,8 +278,7 @@ export default function App() {
         if (accountState.ok) {
           const status = accountState.account.billing?.subscriptionStatus?.toLowerCase();
           const exempt = Boolean(accountState.account.billingExempt);
-          const hasSub = Boolean(status && status !== "not_started");
-          setTurtleAnalyticsAuthed(hasSub || exempt);
+          setTurtleAnalyticsAuthed(hasMlModelAccess(status, exempt));
         } else {
           setTurtleAnalyticsAuthed(false);
         }
@@ -454,11 +463,12 @@ export default function App() {
               </p>
             </div>
           </div>
-        ) : userType === "trader" && turtleAnalyticsAuthed ? (
+        ) : userType === "trader" ? (
           <TurtleAnalytics
             userType={userType} 
             subscriptionTier={selectedSubscriptionPlan || "payg"}
             subscriptionStatus={subscriptionStatus}
+            mlModelAccessEnabled={turtleAnalyticsAuthed}
             onSignUp={handleTraderClick} 
             onLogout={handleLogout}
             onSettings={handleOpenSettings}
