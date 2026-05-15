@@ -949,11 +949,6 @@ export function TurtleAnalytics({
   const canRunMlModel = mlModelAccessEnabled && !isSubscriptionPaused;
   const isFreeFetchFlow = !mlModelAccessEnabled;
 
-  useEffect(() => {
-    if (!mlModelAccessEnabled && activeTab === "analytics" && !reportData) {
-      setActiveTab("journal");
-    }
-  }, [activeTab, mlModelAccessEnabled, reportData]);
   const referralDiscountFactor = Math.max(0, 1 - (analysisOptions.mlRunDiscountPercent || 0) / 100);
   const estimatedModalCost =
     analysisMode === "trades"
