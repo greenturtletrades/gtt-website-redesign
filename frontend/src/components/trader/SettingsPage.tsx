@@ -105,6 +105,7 @@ export function SettingsPage({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteReason, setDeleteReason] = useState("");
   const [deleteFeedback, setDeleteFeedback] = useState("");
+  const [selectedDataSource, setSelectedDataSource] = useState<"csv" | "metatrader" | "trader212">("metatrader");
   const [leaderboardSettings, setLeaderboardSettings] = useState({
     optIn: false,
     displayName: "",
@@ -197,7 +198,7 @@ export function SettingsPage({
   const tabs = [
     { id: "account", label: "Account", icon: User },
     { id: "subscription", label: "Subscription & Billing", icon: CreditCard },
-    { id: "ea-code", label: "MetaTrader Setup", icon: Code },
+    { id: "ea-code", label: "Data Fetching", icon: Code },
     { id: "api-keys", label: "API Keys", icon: Key },
     { id: "referrals", label: "Referrals", icon: Gift },
   ] as const;
@@ -601,26 +602,6 @@ export function SettingsPage({
                             className="w-full rounded-lg border border-slate-300 px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
                           />
                         </div>
-                        <div>
-                          <label className="mb-2 block text-slate-700">MetaTrader ID</label>
-                          <input
-                            type="text"
-                            value={formData.mtUsername}
-                            onChange={(e) => setFormData((current) => ({ ...current, mtUsername: e.target.value }))}
-                            className="w-full rounded-lg border border-slate-300 px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
-                            placeholder="Your MT4/MT5 account login"
-                          />
-                        </div>
-                        <div>
-                          <label className="mb-2 block text-slate-700">Broker Name</label>
-                          <input
-                            type="text"
-                            value={formData.broker}
-                            onChange={(e) => setFormData((current) => ({ ...current, broker: e.target.value }))}
-                            className="w-full rounded-lg border border-slate-300 px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
-                            placeholder="e.g. IC Markets"
-                          />
-                        </div>
                       </div>
 
                       <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
@@ -1022,8 +1003,120 @@ export function SettingsPage({
                   {activeTab === "ea-code" && (
                     <div className="space-y-6">
                       <div>
-                        <h2 className="text-xl text-slate-900">MetaTrader Setup</h2>
-                        <p className="mt-1 text-sm text-slate-600">Use your live API key and MetaTrader account to install, connect, and run the EA.</p>
+                        <h2 className="text-xl text-slate-900">Data Fetching</h2>
+                        <p className="mt-1 text-sm text-slate-600">Choose how this account will bring trade data into the journal as integrations expand.</p>
+                      </div>
+
+                      <div className="rounded-lg border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-5">
+                        <div className="mb-4">
+                          <div className="text-xs uppercase tracking-[0.18em] text-teal-700">Data Sources</div>
+                          <h3 className="mt-2 text-slate-900">Choose your import route</h3>
+                          <p className="mt-1 text-sm text-slate-600">
+                            MetaTrader is live today. CSV uploads and Trader212 support are shown here so the settings layout is ready for the next integrations.
+                          </p>
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-3">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedDataSource("csv")}
+                            className={`rounded-2xl border p-5 text-left transition-all ${
+                              selectedDataSource === "csv"
+                                ? "border-teal-500 bg-teal-50 shadow-md shadow-teal-100"
+                                : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-sm"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="text-lg text-slate-900">CSV</div>
+                              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] uppercase tracking-[0.16em] text-slate-600">
+                                Planned
+                              </span>
+                            </div>
+                            <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                              Upload exported trade history files directly into the journal without using a broker integration.
+                            </p>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setSelectedDataSource("metatrader")}
+                            className={`rounded-2xl border p-5 text-left transition-all ${
+                              selectedDataSource === "metatrader"
+                                ? "border-teal-500 bg-teal-50 shadow-md shadow-teal-100"
+                                : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-sm"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="text-lg text-slate-900">MetaTrader</div>
+                              <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] uppercase tracking-[0.16em] text-emerald-700">
+                                Live
+                              </span>
+                            </div>
+                            <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                              Connect the EA, fetch account history, and keep this account synced through MT4 or MT5.
+                            </p>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setSelectedDataSource("trader212")}
+                            className={`rounded-2xl border p-5 text-left transition-all ${
+                              selectedDataSource === "trader212"
+                                ? "border-teal-500 bg-teal-50 shadow-md shadow-teal-100"
+                                : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-sm"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="text-lg text-slate-900">Trader212</div>
+                              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] uppercase tracking-[0.16em] text-slate-600">
+                                Planned
+                              </span>
+                            </div>
+                            <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                              Future broker sync for investors and traders who want journal imports outside MetaTrader.
+                            </p>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg border border-slate-200 bg-white p-5">
+                        <div className="mb-4">
+                          <h3 className="text-slate-900">Account Connection Details</h3>
+                          <p className="mt-1 text-sm text-slate-600">
+                            Save the MetaTrader login and broker you want this account connected to.
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                          <div>
+                            <label className="mb-2 block text-slate-700">MetaTrader ID</label>
+                            <input
+                              type="text"
+                              value={formData.mtUsername}
+                              onChange={(e) => setFormData((current) => ({ ...current, mtUsername: e.target.value }))}
+                              className="w-full rounded-lg border border-slate-300 px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
+                              placeholder="Your MT4/MT5 account login"
+                            />
+                          </div>
+                          <div>
+                            <label className="mb-2 block text-slate-700">Broker Name</label>
+                            <input
+                              type="text"
+                              value={formData.broker}
+                              onChange={(e) => setFormData((current) => ({ ...current, broker: e.target.value }))}
+                              className="w-full rounded-lg border border-slate-300 px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
+                              placeholder="e.g. IC Markets"
+                            />
+                          </div>
+                        </div>
+                        <div className="mt-4">
+                          <button
+                            onClick={handleSaveAccount}
+                            disabled={savingAccount}
+                            className="rounded-lg bg-teal-600 px-5 py-2 text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
+                          >
+                            {savingAccount ? "Saving..." : "Save MetaTrader Setup"}
+                          </button>
+                        </div>
                       </div>
 
                       <div className={`rounded-lg border p-4 ${eaHealthTone.panelClass}`}>
@@ -1086,16 +1179,6 @@ export function SettingsPage({
                             </ul>
                           </div>
                         ) : null}
-                      </div>
-
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                        <div className="mb-2 text-sm text-slate-600">MetaTrader ID</div>
-                        <div className="text-slate-900">{formData.mtUsername || "Not set yet"}</div>
-                      </div>
-
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                        <div className="mb-2 text-sm text-slate-600">Broker</div>
-                        <div className="text-slate-900">{formData.broker || "Not set yet"}</div>
                       </div>
 
                       <div className="rounded-lg border border-slate-200 p-4">
