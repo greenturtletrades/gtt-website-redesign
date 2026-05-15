@@ -164,7 +164,7 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6 }}
-                className="relative rounded-lg p-4 transition-all border border-cyan-300/40 bg-cyan-400/10 backdrop-blur-sm"
+                className="relative cursor-pointer rounded-lg p-4 transition-all border border-slate-400/30 bg-white/5 backdrop-blur-sm hover:border-slate-400 hover:shadow-md hover:scale-105"
               >
                 <div className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-teal-500 rounded-lg flex items-center justify-center mb-3">
                   <BookOpen className="w-5 h-5 text-white" />
@@ -172,16 +172,10 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
 
                 <div className="flex items-center justify-between gap-3 mb-2">
                   <h3 className="text-white">Free Account</h3>
-                  <span className="rounded-full border border-cyan-300/40 bg-cyan-400/10 px-3 py-1 text-xs text-cyan-100">
-                    No monthly cost
-                  </span>
                 </div>
                 <div className="mb-3">
                   <span className="text-2xl font-semibold text-white">£0</span>
                   <span className="text-slate-300 text-sm">/month</span>
-                  <div className="mt-1">
-                    <span className="text-slate-300 text-sm">Upgrade later when you need ML runs</span>
-                  </div>
                 </div>
 
                 <ul className="space-y-2 mb-4">
