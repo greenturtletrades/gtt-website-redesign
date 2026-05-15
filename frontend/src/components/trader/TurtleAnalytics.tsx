@@ -32,7 +32,9 @@ export function TurtleAnalytics({
   onPauseSubscription,
   onResumeSubscription,
 }: TurtleAnalyticsProps) {
-  const [activeTab, setActiveTab] = useState<"analytics" | "journal" | "history" | "settings" | "guide">("analytics");
+  const [activeTab, setActiveTab] = useState<"analytics" | "journal" | "history" | "settings" | "guide">(
+    () => (mlModelAccessEnabled ? "analytics" : "journal")
+  );
   const [isRunningModel, setIsRunningModel] = useState(false);
   const [isFetchingTradeData, setIsFetchingTradeData] = useState(false);
   const [lastRunTime, setLastRunTime] = useState<Date | null>(null);
@@ -946,6 +948,12 @@ export function TurtleAnalytics({
   const isSubscriptionPaused = subscriptionStatus === "paused";
   const canRunMlModel = mlModelAccessEnabled && !isSubscriptionPaused;
   const isFreeFetchFlow = !mlModelAccessEnabled;
+
+  useEffect(() => {
+    if (!mlModelAccessEnabled && activeTab === "analytics" && !reportData) {
+      setActiveTab("journal");
+    }
+  }, [activeTab, mlModelAccessEnabled, reportData]);
   const referralDiscountFactor = Math.max(0, 1 - (analysisOptions.mlRunDiscountPercent || 0) / 100);
   const estimatedModalCost =
     analysisMode === "trades"
@@ -1915,23 +1923,31 @@ export function TurtleAnalytics({
               <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
                 <div className="mx-auto max-w-2xl text-center">
                   <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-teal-100">
-                    <Brain className="h-7 w-7 text-teal-700" />
+                    {mlModelAccessEnabled ? <Brain className="h-7 w-7 text-teal-700" /> : <Sparkles className="h-7 w-7 text-teal-700" />}
                   </div>
-                  <h1 className="text-3xl text-slate-900">No analysis data yet</h1>
+                  <h1 className="text-3xl text-slate-900">
+                    {mlModelAccessEnabled ? "No analysis data yet" : "Upgrade Plan To Use This Section"}
+                  </h1>
                   <p className="mt-3 text-slate-600">
-                    This analytics view now only shows completed ML output from your own account. Run the model once, or upload a CSV, and the dashboard will populate with your real trading data.
+                    {mlModelAccessEnabled
+                      ? "This analytics view now only shows completed ML output from your own account. Run the model once, or upload a CSV, and the dashboard will populate with your real trading data."
+                      : "Your free account already supports journal imports and trade storage. Upgrade your plan when you want to unlock the full analytics dashboard and run the ML model on the data already stored in your account."}
                   </p>
                   <div className="mt-6 flex justify-center">
                     <button
                       onClick={() => setShowRunModelModal(true)}
-                      disabled={isRunningModel}
+                      disabled={isRunningModel || isFetchingTradeData}
                       className={`rounded-lg px-6 py-3 text-white transition-all ${
-                        isRunningModel
+                        isRunningModel || isFetchingTradeData
                           ? "cursor-not-allowed bg-slate-400"
                           : "bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700"
                       }`}
                     >
-                      {isRunningModel ? "Running Analysis..." : "Run First Analysis"}
+                      {mlModelAccessEnabled
+                        ? isRunningModel
+                          ? "Running Analysis..."
+                          : "Run First Analysis"
+                        : "Upgrade Plan"}
                     </button>
                   </div>
                 </div>
