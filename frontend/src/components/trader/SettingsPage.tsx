@@ -65,7 +65,7 @@ export function SettingsPage({
   onResumeSubscription,
 }: SettingsPageProps) {
   const [activeTab, setActiveTab] = useState<
-    "account" | "subscription" | "ea-code" | "api-keys" | "referrals"
+    "account" | "subscription" | "ea-code" | "referrals"
   >("account");
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
@@ -194,14 +194,6 @@ export function SettingsPage({
       cancelled = true;
     };
   }, [userEmail, userName]);
-
-  const tabs = [
-    { id: "account", label: "Account", icon: User },
-    { id: "subscription", label: "Subscription & Billing", icon: CreditCard },
-    { id: "ea-code", label: "Data Fetching", icon: Code },
-    { id: "api-keys", label: "API Keys", icon: Key },
-    { id: "referrals", label: "Referrals", icon: Gift },
-  ] as const;
 
   const setTransientSuccess = (message: string) => {
     setSuccessMessage(message);
@@ -394,6 +386,18 @@ export function SettingsPage({
     !billingSummary?.platformComped &&
     liveSubscriptionStatus === "not_started";
   const isLeaderboardEligible = leaderboardSettings.eligibleTradeCount >= leaderboardSettings.minimumTradeCount;
+  const tabs = [
+    { id: "account", label: "Account", icon: User },
+    { id: "subscription", label: "Subscription & Billing", icon: CreditCard },
+    { id: "ea-code", label: "Data Fetching", icon: Code },
+    ...(!isFreePlan ? ([{ id: "referrals", label: "Referrals", icon: Gift }] as const) : []),
+  ] as const;
+
+  useEffect(() => {
+    if (isFreePlan && activeTab === "referrals") {
+      setActiveTab("account");
+    }
+  }, [activeTab, isFreePlan]);
 
   const handleUpdateBillingMethod = async () => {
     setOpeningBillingPortal(true);
@@ -1079,286 +1083,313 @@ export function SettingsPage({
                         </div>
                       </div>
 
-                      <div className="rounded-lg border border-slate-200 bg-white p-5">
-                        <div className="mb-4">
-                          <h3 className="text-slate-900">Account Connection Details</h3>
-                          <p className="mt-1 text-sm text-slate-600">
-                            Save the MetaTrader login and broker you want this account connected to.
-                          </p>
-                        </div>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                          <div>
-                            <label className="mb-2 block text-slate-700">MetaTrader ID</label>
-                            <input
-                              type="text"
-                              value={formData.mtUsername}
-                              onChange={(e) => setFormData((current) => ({ ...current, mtUsername: e.target.value }))}
-                              className="w-full rounded-lg border border-slate-300 px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
-                              placeholder="Your MT4/MT5 account login"
-                            />
+                      {selectedDataSource === "csv" && (
+                        <div className="rounded-lg border border-slate-200 bg-white p-6">
+                          <div className="mb-5">
+                            <h3 className="text-slate-900">CSV fields needed for the model</h3>
+                            <p className="mt-1 text-sm text-slate-600">Required for a valid import</p>
                           </div>
-                          <div>
-                            <label className="mb-2 block text-slate-700">Broker Name</label>
-                            <input
-                              type="text"
-                              value={formData.broker}
-                              onChange={(e) => setFormData((current) => ({ ...current, broker: e.target.value }))}
-                              className="w-full rounded-lg border border-slate-300 px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
-                              placeholder="e.g. IC Markets"
-                            />
-                          </div>
-                        </div>
-                        <div className="mt-4">
-                          <button
-                            onClick={handleSaveAccount}
-                            disabled={savingAccount}
-                            className="rounded-lg bg-teal-600 px-5 py-2 text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
-                          >
-                            {savingAccount ? "Saving..." : "Save MetaTrader Setup"}
-                          </button>
-                        </div>
-                      </div>
 
-                      <div className={`rounded-lg border p-4 ${eaHealthTone.panelClass}`}>
-                        <div className="flex flex-wrap items-start justify-between gap-4">
-                          <div>
-                            <div className="flex items-center gap-3">
-                              <Activity className="h-5 w-5 text-slate-700" />
-                              <h3 className="text-slate-900">EA Health</h3>
-                              <span className={`rounded-full px-3 py-1 text-xs ${eaHealthTone.badgeClass}`}>
-                                {eaHealthTone.badge}
-                              </span>
+                          <div className="grid gap-4 md:grid-cols-3">
+                            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                              <div className="text-sm uppercase tracking-[0.16em] text-slate-500">Required</div>
+                              <p className="mt-3 text-sm leading-relaxed text-slate-700">
+                                <span className="font-medium text-slate-900">Required for a valid import:</span> entry_date,
+                                exit_date, entry_price, exit_price, direction/side, and a trade identifier such as
+                                symbol or pair.
+                              </p>
                             </div>
-                            <p className="mt-2 text-sm text-slate-700">{eaHealthTone.copy}</p>
-                          </div>
-                          <button
-                            onClick={handleRefreshEaHealth}
-                            disabled={refreshingEaHealth}
-                            className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm text-slate-700 shadow-sm ring-1 ring-slate-200 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70"
-                          >
-                            <RefreshCw className={`h-4 w-4 ${refreshingEaHealth ? "animate-spin" : ""}`} />
-                            {refreshingEaHealth ? "Refreshing..." : "Refresh Health"}
-                          </button>
-                        </div>
-
-                        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-                          <div className="rounded-lg bg-white/80 p-3 ring-1 ring-slate-200">
-                            <div className="text-xs text-slate-500">Last Seen</div>
-                            <div className="mt-1 text-sm text-slate-900">{formatTimestamp(eaStatus?.eaLastSeenAt || null)}</div>
-                          </div>
-                          <div className="rounded-lg bg-white/80 p-3 ring-1 ring-slate-200">
-                            <div className="text-xs text-slate-500">Last Heartbeat</div>
-                            <div className="mt-1 text-sm text-slate-900">{formatTimestamp(eaStatus?.eaLastHeartbeatAt || null)}</div>
-                          </div>
-                          <div className="rounded-lg bg-white/80 p-3 ring-1 ring-slate-200">
-                            <div className="text-xs text-slate-500">Last History Export</div>
-                            <div className="mt-1 text-sm text-slate-900">{formatTimestamp(eaStatus?.eaLastExportAt || null)}</div>
-                          </div>
-                        </div>
-
-                        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-                          <div className="rounded-lg bg-white/80 p-3 ring-1 ring-slate-200">
-                            <div className="text-xs text-slate-500">Expected API Host</div>
-                            <div className="mt-1 break-all text-sm text-slate-900">{eaDiagnostics?.expected.apiBaseUrl || "Unknown"}</div>
-                          </div>
-                          <div className="rounded-lg bg-white/80 p-3 ring-1 ring-slate-200">
-                            <div className="text-xs text-slate-500">Online Window</div>
-                            <div className="mt-1 text-sm text-slate-900">
-                              {eaStatus?.onlineWindowMinutes ? `${eaStatus.onlineWindowMinutes} minutes` : "15 minutes"}
+                            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                              <div className="text-sm uppercase tracking-[0.16em] text-slate-500">Recommended</div>
+                              <p className="mt-3 text-sm leading-relaxed text-slate-700">
+                                <span className="font-medium text-slate-900">Recommended for accurate ML analysis:</span>{" "}
+                                stop_loss, take_profit, realised P/L, position size/volume, and timestamps with entry
+                                and exit times.
+                              </p>
                             </div>
-                          </div>
-                        </div>
-
-                        {eaDiagnostics?.hints?.length ? (
-                          <div className="mt-4 rounded-lg bg-white/80 p-4 ring-1 ring-slate-200">
-                            <div className="mb-2 text-sm text-slate-700">Connection Hints</div>
-                            <ul className="space-y-2 text-sm text-slate-600">
-                              {eaDiagnostics.hints.slice(0, 3).map((hint) => (
-                                <li key={hint}>• {hint}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        ) : null}
-                      </div>
-
-                      <div className="rounded-lg border border-slate-200 p-4">
-                        <div className="mb-2 flex items-center justify-between">
-                          <div>
-                            <div className="text-sm text-slate-600">Current API key</div>
-                            <div className="text-slate-900">
-                              {currentApiKey
-                                ? currentApiKey
-                                : managedEaApiKey
-                                  ? `MetaTrader EA key ending ${managedEaApiKey.last4}`
-                                  : activeApiKeys[0]
-                                    ? `Active key ending ${activeApiKeys[0].last4}`
-                                  : "No API key generated yet"}
-                            </div>
-                          </div>
-                          {currentApiKey && (
-                            <button
-                              onClick={() => handleCopy("ea-key", currentApiKey)}
-                              className="rounded-lg bg-teal-600 px-3 py-2 text-sm text-white transition-colors hover:bg-teal-700"
-                            >
-                              {copiedValue === "ea-key" ? "Copied!" : "Copy"}
-                            </button>
-                          )}
-                        </div>
-                        {!activeApiKeys[0] && !currentApiKey && (
-                          <button
-                            onClick={handleCreateApiKey}
-                            disabled={creatingApiKey}
-                            className="mt-2 rounded-lg bg-slate-900 px-4 py-2 text-white transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
-                          >
-                            {creatingApiKey ? "Generating..." : "Generate API Key"}
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="rounded-lg border border-slate-200 bg-white p-4">
-                        <div className="mb-3">
-                          <div className="text-sm text-slate-600">Linked EA download</div>
-                          <div className="text-slate-900">
-                            Generate an MT4 or MT5 file with your managed API key and broker account already wired in. The EA waits for a model-run request, then uploads fresh historical trades.
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap gap-3">
-                          <button
-                            onClick={() => handleDownloadEa("MT4")}
-                            disabled={downloadingEaPlatform !== null}
-                            className="rounded-lg bg-teal-600 px-4 py-2 text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
-                          >
-                            {downloadingEaPlatform === "MT4" ? "Generating MT4..." : "Download MT4 EA"}
-                          </button>
-                          <button
-                            onClick={() => handleDownloadEa("MT5")}
-                            disabled={downloadingEaPlatform !== null}
-                            className="rounded-lg border border-teal-200 bg-teal-50 px-4 py-2 text-teal-700 transition-colors hover:bg-teal-100 disabled:cursor-not-allowed disabled:opacity-70"
-                          >
-                            {downloadingEaPlatform === "MT5" ? "Generating MT5..." : "Download MT5 EA"}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-5">
-                        <div className="mb-3 text-slate-900">How To Set Up The EA In MetaTrader</div>
-                        <div className="space-y-4 text-sm text-slate-700">
-                          <div className="rounded-lg border border-slate-200 bg-white p-4">
-                            <div className="text-slate-900">1. Install the EA file</div>
-                            <p className="mt-1 text-slate-600">
-                              Download the MT4 or MT5 EA above, then place the file in your platform&apos;s <span className="font-mono">Experts</span> folder and restart MetaTrader if needed.
-                            </p>
-                          </div>
-
-                          <div className="rounded-lg border border-slate-200 bg-white p-4">
-                            <div className="text-slate-900">2. Compile it in MetaEditor if needed</div>
-                            <p className="mt-1 text-slate-600">
-                              If MetaTrader does not show the EA in Navigator straight away, open the file in <span className="font-mono">MetaEditor</span>, press <span className="font-mono">Compile</span>, and make sure there are no compile errors before going back to the platform.
-                            </p>
-                          </div>
-
-                          <div className="rounded-lg border border-slate-200 bg-white p-4">
-                            <div className="text-slate-900">3. Allow web requests to the backend</div>
-                            <p className="mt-1 text-slate-600">
-                              In MetaTrader go to <span className="font-mono">Tools → Options → Expert Advisors</span>, tick <span className="font-mono">Allow WebRequest for listed URL</span>, and add the backend public domain shown in EA diagnostics.
-                            </p>
-                            <p className="mt-2 text-slate-600">
-                              Use this exact backend URL:
-                            </p>
-                            <div className="mt-2 rounded bg-slate-100 px-3 py-2 font-mono text-xs text-slate-800 break-all">
-                              {eaDiagnostics?.expected.apiBaseUrl || "Backend URL unavailable"}
+                            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                              <div className="text-sm uppercase tracking-[0.16em] text-slate-500">Richer Analytics</div>
+                              <p className="mt-3 text-sm leading-relaxed text-slate-700">
+                                <span className="font-medium text-slate-900">Needed for richer analytics:</span> mfe
+                                and mae for exit analysis, plus valid timing data for time-of-day and hold-time
+                                sections.
+                              </p>
                             </div>
                           </div>
 
-                          <div className="rounded-lg border border-slate-200 bg-white p-4">
-                            <div className="text-slate-900">4. Attach the EA to a chart</div>
-                            <p className="mt-1 text-slate-600">
-                              Open any active chart in MetaTrader, drag the EA onto the chart, and enable <span className="font-mono">Algo Trading</span> / <span className="font-mono">AutoTrading</span> so the EA can respond to export requests.
-                            </p>
-                          </div>
-
-                          <div className="rounded-lg border border-slate-200 bg-white p-4">
-                            <div className="text-slate-900">5. Keep the terminal running</div>
-                            <p className="mt-1 text-slate-600">
-                              The EA only sends trade history when the terminal is open, logged into the correct broker account, and the EA is still attached to the chart.
-                            </p>
-                          </div>
-
-                          <div className="rounded-lg border border-slate-200 bg-white p-4">
-                            <div className="text-slate-900">6. Run analysis from this platform</div>
-                            <p className="mt-1 text-slate-600">
-                              When you press <span className="font-mono">Run Model Analysis</span>, the backend requests a fresh history export from MetaTrader. If no new trades appear, check the EA health panel above, confirm the WebRequest URL, and make sure the EA is attached to a live chart.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === "api-keys" && (
-                    <div className="space-y-6">
-                      <div className="flex items-center justify-between gap-4">
-                        <div>
-                          <h2 className="text-xl text-slate-900">API Keys</h2>
-                          <p className="mt-1 text-sm text-slate-600">These keys are loaded from the backend and can be copied or revoked.</p>
-                        </div>
-                        <button
-                          onClick={handleCreateApiKey}
-                          disabled={creatingApiKey}
-                          className="rounded-lg bg-teal-600 px-4 py-2 text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
-                        >
-                          {creatingApiKey ? "Creating..." : "Create API Key"}
-                        </button>
-                      </div>
-
-                      {freshApiKey && (
-                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <div className="text-sm text-emerald-700">New API key</div>
-                              <div className="mt-1 break-all font-mono text-sm text-emerald-900">{freshApiKey}</div>
-                            </div>
-                            <button
-                              onClick={() => handleCopy("fresh-key", freshApiKey)}
-                              className="rounded-lg bg-emerald-600 px-3 py-2 text-sm text-white hover:bg-emerald-700"
-                            >
-                              {copiedValue === "fresh-key" ? "Copied!" : "Copy"}
-                            </button>
+                          <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-relaxed text-slate-700">
+                            If those richer fields are missing, the run can still complete, but some analytics cards
+                            will be simplified or left blank.
                           </div>
                         </div>
                       )}
 
-                      <div className="space-y-3">
-                        {apiKeys.length === 0 ? (
-                          <div className="rounded-lg border border-slate-200 bg-slate-50 p-6 text-sm text-slate-600">
-                            No API keys yet.
+                      {selectedDataSource === "trader212" && (
+                        <div className="rounded-lg border border-slate-200 bg-white p-6">
+                          <div className="flex flex-wrap items-start justify-between gap-4">
+                            <div>
+                              <h3 className="text-slate-900">Trader212 integration</h3>
+                              <p className="mt-2 max-w-2xl text-sm text-slate-600">
+                                This layout is reserved for the Trader212 import flow. Later this section can hold the
+                                connection instructions, CSV/export rules, and any account-linking steps needed for that
+                                integration.
+                              </p>
+                            </div>
+                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs uppercase tracking-[0.16em] text-slate-600">
+                              Planned
+                            </span>
                           </div>
-                        ) : (
-                          apiKeys.map((item) => (
-                            <div key={item.id} className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 p-4">
+                        </div>
+                      )}
+
+                      {selectedDataSource === "metatrader" && (
+                        <>
+                          <div className="rounded-lg border border-slate-200 bg-white p-5">
+                            <div className="mb-4">
+                              <h3 className="text-slate-900">Account Connection Details</h3>
+                              <p className="mt-1 text-sm text-slate-600">
+                                Save the MetaTrader login and broker you want this account connected to.
+                              </p>
+                            </div>
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                               <div>
-                                <div className="text-slate-900">{item.name}</div>
-                                <div className="text-sm text-slate-600">
-                                  Ending {item.last4} • {item.revokedAt ? "Revoked" : "Active"}
+                                <label className="mb-2 block text-slate-700">MetaTrader ID</label>
+                                <input
+                                  type="text"
+                                  value={formData.mtUsername}
+                                  onChange={(e) => setFormData((current) => ({ ...current, mtUsername: e.target.value }))}
+                                  className="w-full rounded-lg border border-slate-300 px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                  placeholder="Your MT4/MT5 account login"
+                                />
+                              </div>
+                              <div>
+                                <label className="mb-2 block text-slate-700">Broker Name</label>
+                                <input
+                                  type="text"
+                                  value={formData.broker}
+                                  onChange={(e) => setFormData((current) => ({ ...current, broker: e.target.value }))}
+                                  className="w-full rounded-lg border border-slate-300 px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                  placeholder="e.g. IC Markets"
+                                />
+                              </div>
+                            </div>
+                            <div className="mt-4">
+                              <button
+                                onClick={handleSaveAccount}
+                                disabled={savingAccount}
+                                className="rounded-lg bg-teal-600 px-5 py-2 text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
+                              >
+                                {savingAccount ? "Saving..." : "Save MetaTrader Setup"}
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className={`rounded-lg border p-4 ${eaHealthTone.panelClass}`}>
+                            <div className="flex flex-wrap items-start justify-between gap-4">
+                              <div>
+                                <div className="flex items-center gap-3">
+                                  <Activity className="h-5 w-5 text-slate-700" />
+                                  <h3 className="text-slate-900">EA Health</h3>
+                                  <span className={`rounded-full px-3 py-1 text-xs ${eaHealthTone.badgeClass}`}>
+                                    {eaHealthTone.badge}
+                                  </span>
+                                </div>
+                                <p className="mt-2 text-sm text-slate-700">{eaHealthTone.copy}</p>
+                              </div>
+                              <button
+                                onClick={handleRefreshEaHealth}
+                                disabled={refreshingEaHealth}
+                                className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm text-slate-700 shadow-sm ring-1 ring-slate-200 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70"
+                              >
+                                <RefreshCw className={`h-4 w-4 ${refreshingEaHealth ? "animate-spin" : ""}`} />
+                                {refreshingEaHealth ? "Refreshing..." : "Refresh Health"}
+                              </button>
+                            </div>
+
+                            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+                              <div className="rounded-lg bg-white/80 p-3 ring-1 ring-slate-200">
+                                <div className="text-xs text-slate-500">Last Seen</div>
+                                <div className="mt-1 text-sm text-slate-900">{formatTimestamp(eaStatus?.eaLastSeenAt || null)}</div>
+                              </div>
+                              <div className="rounded-lg bg-white/80 p-3 ring-1 ring-slate-200">
+                                <div className="text-xs text-slate-500">Last Heartbeat</div>
+                                <div className="mt-1 text-sm text-slate-900">{formatTimestamp(eaStatus?.eaLastHeartbeatAt || null)}</div>
+                              </div>
+                              <div className="rounded-lg bg-white/80 p-3 ring-1 ring-slate-200">
+                                <div className="text-xs text-slate-500">Last History Export</div>
+                                <div className="mt-1 text-sm text-slate-900">{formatTimestamp(eaStatus?.eaLastExportAt || null)}</div>
+                              </div>
+                            </div>
+
+                            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+                              <div className="rounded-lg bg-white/80 p-3 ring-1 ring-slate-200">
+                                <div className="text-xs text-slate-500">Expected API Host</div>
+                                <div className="mt-1 break-all text-sm text-slate-900">{eaDiagnostics?.expected.apiBaseUrl || "Unknown"}</div>
+                              </div>
+                              <div className="rounded-lg bg-white/80 p-3 ring-1 ring-slate-200">
+                                <div className="text-xs text-slate-500">Online Window</div>
+                                <div className="mt-1 text-sm text-slate-900">
+                                  {eaStatus?.onlineWindowMinutes ? `${eaStatus.onlineWindowMinutes} minutes` : "15 minutes"}
                                 </div>
                               </div>
-                              {!item.revokedAt && (
-                                <button
-                                  onClick={() => handleRevokeApiKey(item.id)}
-                                  disabled={regeneratingApiKeyId === item.id}
-                                  className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-70"
-                                >
-                                  {regeneratingApiKeyId === item.id ? "Revoking..." : "Revoke"}
-                                </button>
+                            </div>
+
+                            {eaDiagnostics?.hints?.length ? (
+                              <div className="mt-4 rounded-lg bg-white/80 p-4 ring-1 ring-slate-200">
+                                <div className="mb-2 text-sm text-slate-700">Connection Hints</div>
+                                <ul className="space-y-2 text-sm text-slate-600">
+                                  {eaDiagnostics.hints.slice(0, 3).map((hint) => (
+                                    <li key={hint}>• {hint}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ) : null}
+                          </div>
+
+                          <div className="rounded-lg border border-slate-200 bg-white p-5">
+                            <div className="flex items-center justify-between gap-4">
+                              <div>
+                                <h3 className="text-slate-900">API Keys</h3>
+                                <p className="mt-1 text-sm text-slate-600">These keys are loaded from the backend and can be copied or revoked.</p>
+                              </div>
+                              <button
+                                onClick={handleCreateApiKey}
+                                disabled={creatingApiKey}
+                                className="rounded-lg bg-teal-600 px-4 py-2 text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
+                              >
+                                {creatingApiKey ? "Creating..." : "Create API Key"}
+                              </button>
+                            </div>
+
+                            {freshApiKey && (
+                              <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                                <div className="flex items-center justify-between gap-3">
+                                  <div>
+                                    <div className="text-sm text-emerald-700">New API key</div>
+                                    <div className="mt-1 break-all font-mono text-sm text-emerald-900">{freshApiKey}</div>
+                                  </div>
+                                  <button
+                                    onClick={() => handleCopy("fresh-key", freshApiKey)}
+                                    className="rounded-lg bg-emerald-600 px-3 py-2 text-sm text-white hover:bg-emerald-700"
+                                  >
+                                    {copiedValue === "fresh-key" ? "Copied!" : "Copy"}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="mt-4 space-y-3">
+                              {apiKeys.length === 0 ? (
+                                <div className="rounded-lg border border-slate-200 bg-slate-50 p-6 text-sm text-slate-600">
+                                  No API keys yet.
+                                </div>
+                              ) : (
+                                apiKeys.map((item) => (
+                                  <div key={item.id} className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 p-4">
+                                    <div>
+                                      <div className="text-slate-900">{item.name}</div>
+                                      <div className="text-sm text-slate-600">
+                                        Ending {item.last4} • {item.revokedAt ? "Revoked" : "Active"}
+                                      </div>
+                                    </div>
+                                    {!item.revokedAt && (
+                                      <button
+                                        onClick={() => handleRevokeApiKey(item.id)}
+                                        disabled={regeneratingApiKeyId === item.id}
+                                        className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-70"
+                                      >
+                                        {regeneratingApiKeyId === item.id ? "Revoking..." : "Revoke"}
+                                      </button>
+                                    )}
+                                  </div>
+                                ))
                               )}
                             </div>
-                          ))
-                        )}
-                      </div>
 
-                      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                        Never share your API key publicly. Revoking a key immediately disconnects any EA using it.
-                      </div>
+                            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                              Never share your API key publicly. Revoking a key immediately disconnects any EA using it.
+                            </div>
+                          </div>
+
+                          <div className="rounded-lg border border-slate-200 bg-white p-4">
+                            <div className="mb-3">
+                              <div className="text-sm text-slate-600">Linked EA download</div>
+                              <div className="text-slate-900">
+                                Generate an MT4 or MT5 file with your managed API key and broker account already wired in. The EA waits for a model-run request, then uploads fresh historical trades.
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-3">
+                              <button
+                                onClick={() => handleDownloadEa("MT4")}
+                                disabled={downloadingEaPlatform !== null}
+                                className="rounded-lg bg-teal-600 px-4 py-2 text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
+                              >
+                                {downloadingEaPlatform === "MT4" ? "Generating MT4..." : "Download MT4 EA"}
+                              </button>
+                              <button
+                                onClick={() => handleDownloadEa("MT5")}
+                                disabled={downloadingEaPlatform !== null}
+                                className="rounded-lg border border-teal-200 bg-teal-50 px-4 py-2 text-teal-700 transition-colors hover:bg-teal-100 disabled:cursor-not-allowed disabled:opacity-70"
+                              >
+                                {downloadingEaPlatform === "MT5" ? "Generating MT5..." : "Download MT5 EA"}
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="rounded-lg border border-slate-200 bg-slate-50 p-5">
+                            <div className="mb-3 text-slate-900">How To Set Up The EA In MetaTrader</div>
+                            <div className="space-y-4 text-sm text-slate-700">
+                              <div className="rounded-lg border border-slate-200 bg-white p-4">
+                                <div className="text-slate-900">1. Install the EA file</div>
+                                <p className="mt-1 text-slate-600">
+                                  Download the MT4 or MT5 EA above, then place the file in your platform&apos;s <span className="font-mono">Experts</span> folder and restart MetaTrader if needed.
+                                </p>
+                              </div>
+
+                              <div className="rounded-lg border border-slate-200 bg-white p-4">
+                                <div className="text-slate-900">2. Compile it in MetaEditor if needed</div>
+                                <p className="mt-1 text-slate-600">
+                                  If MetaTrader does not show the EA in Navigator straight away, open the file in <span className="font-mono">MetaEditor</span>, press <span className="font-mono">Compile</span>, and make sure there are no compile errors before going back to the platform.
+                                </p>
+                              </div>
+
+                              <div className="rounded-lg border border-slate-200 bg-white p-4">
+                                <div className="text-slate-900">3. Allow web requests to the backend</div>
+                                <p className="mt-1 text-slate-600">
+                                  In MetaTrader go to <span className="font-mono">Tools → Options → Expert Advisors</span>, tick <span className="font-mono">Allow WebRequest for listed URL</span>, and add the backend public domain shown in EA diagnostics.
+                                </p>
+                                <p className="mt-2 text-slate-600">
+                                  Use this exact backend URL:
+                                </p>
+                                <div className="mt-2 rounded bg-slate-100 px-3 py-2 font-mono text-xs text-slate-800 break-all">
+                                  {eaDiagnostics?.expected.apiBaseUrl || "Backend URL unavailable"}
+                                </div>
+                              </div>
+
+                              <div className="rounded-lg border border-slate-200 bg-white p-4">
+                                <div className="text-slate-900">4. Attach the EA to a chart</div>
+                                <p className="mt-1 text-slate-600">
+                                  Open any active chart in MetaTrader, drag the EA onto the chart, and enable <span className="font-mono">Algo Trading</span> / <span className="font-mono">AutoTrading</span> so the EA can respond to export requests.
+                                </p>
+                              </div>
+
+                              <div className="rounded-lg border border-slate-200 bg-white p-4">
+                                <div className="text-slate-900">5. Keep the terminal running</div>
+                                <p className="mt-1 text-slate-600">
+                                  The EA only sends trade history when the terminal is open, logged into the correct broker account, and the EA is still attached to the chart.
+                                </p>
+                              </div>
+
+                              <div className="rounded-lg border border-slate-200 bg-white p-4">
+                                <div className="text-slate-900">6. Run analysis from this platform</div>
+                                <p className="mt-1 text-slate-600">
+                                  When you press <span className="font-mono">Run Model Analysis</span>, the backend requests a fresh history export from MetaTrader. If no new trades appear, check the EA health panel above, confirm the WebRequest URL, and make sure the EA is attached to a live chart.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
 
