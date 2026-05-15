@@ -298,6 +298,21 @@ function registerAnalyticsRoutes(app, {
       const accountState = await buildAccountStatePayload(req.user.id);
       const tradeCountAfter = Array.isArray(accountState.trades) ? accountState.trades.length : tradeCountBefore;
       const importedTradeCount = Math.max(0, tradeCountAfter - tradeCountBefore);
+      await prisma.analysisRun.create({
+        data: {
+          userId: req.user.id,
+          status: "COMPLETED",
+          mode: "journal_fetch",
+          requestedTrades: null,
+          tradesAnalysed: importedTradeCount,
+          cost: 0,
+          periodDescription:
+            importedTradeCount > 0
+              ? `Fetched ${importedTradeCount} trade${importedTradeCount === 1 ? "" : "s"} from MetaTrader`
+              : "Refreshed MetaTrader journal data",
+          completedAt: new Date(),
+        },
+      });
 
       return res.json({
         ok: true,
@@ -350,6 +365,21 @@ function registerAnalyticsRoutes(app, {
         syncStoredTrades: false,
       });
       const accountState = await buildAccountStatePayload(req.user.id);
+      await prisma.analysisRun.create({
+        data: {
+          userId: req.user.id,
+          status: "COMPLETED",
+          mode: "journal_csv_import",
+          requestedTrades: parsedTrades.length,
+          tradesAnalysed: persistSummary.stored,
+          cost: 0,
+          periodDescription:
+            persistSummary.stored > 0
+              ? `Imported ${persistSummary.stored} trade${persistSummary.stored === 1 ? "" : "s"} from CSV`
+              : "Refreshed journal with CSV data",
+          completedAt: new Date(),
+        },
+      });
 
       return res.json({
         ok: true,

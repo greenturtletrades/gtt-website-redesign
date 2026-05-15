@@ -709,7 +709,7 @@ export function TurtleAnalytics({
   interface ModelRunLog {
     id: string;
     timestamp: Date;
-    mode: "trades" | "months" | "csv" | "auto";
+    mode: string;
     tradesAnalysed: number;
     periodDescription: string;
     dateRangeStart: Date;
@@ -733,7 +733,7 @@ export function TurtleAnalytics({
   const mapRunHistoryItem = (item: any): ModelRunLog => ({
     id: String(item.id),
     timestamp: item.createdAt ? new Date(item.createdAt) : new Date(),
-    mode: item.mode === "months" || item.mode === "csv" || item.mode === "auto" ? item.mode : "trades",
+    mode: typeof item.mode === "string" && item.mode ? item.mode : "trades",
     tradesAnalysed: typeof item.tradesAnalysed === "number" ? item.tradesAnalysed : 0,
     periodDescription: typeof item.periodDescription === "string" && item.periodDescription
       ? item.periodDescription
@@ -836,6 +836,28 @@ export function TurtleAnalytics({
       setDeleteRunPrompt(null);
     }
   };
+
+  const getLedgerModeLabel = (mode: string) => {
+    switch (mode) {
+      case "auto":
+        return "Auto";
+      case "months":
+        return "By time";
+      case "csv":
+        return "CSV analysis";
+      case "mt5":
+        return "MT5 analysis";
+      case "journal_fetch":
+        return "EA import";
+      case "journal_csv_import":
+        return "CSV import";
+      default:
+        return "By trades";
+    }
+  };
+
+  const isImportLedgerEntry = (mode: string) =>
+    mode === "journal_fetch" || mode === "journal_csv_import";
   
   // Scroll to top whenever tab changes
   useEffect(() => {
@@ -1664,7 +1686,7 @@ export function TurtleAnalytics({
         </section>
       ) : activeTab === "history" ? (
         <>
-          {/* Model Run History Log */}
+          {/* Account Ledger */}
           <section className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
             {runHistoryError && (
               <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
@@ -1680,12 +1702,12 @@ export function TurtleAnalytics({
                     </div>
                     <div>
                       <h2 className="text-slate-900 text-xl">
-                        {subscriptionTier === "premium" ? "Auto-Analysis Updates" : "Model Run History"}
+                        {subscriptionTier === "premium" ? "Account Ledger" : "Account Ledger"}
                       </h2>
                       <p className="text-slate-600 text-sm">
-                        {subscriptionTier === "premium" 
-                          ? "Automatic updates after each trade • Real-time analysis" 
-                          : "Non-overlapping analysis periods • Mathematically combined"}
+                        {subscriptionTier === "premium"
+                          ? "Imports, account activity, and automatic analysis updates"
+                          : "Imports, journal activity, and ML analysis records in one place"}
                       </p>
                     </div>
                   </div>
@@ -1709,9 +1731,9 @@ export function TurtleAnalytics({
                     <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-200">
                       <BookOpen className="h-6 w-6 text-slate-600" />
                     </div>
-                    <h3 className="text-lg text-slate-900">No analysis runs yet</h3>
+                    <h3 className="text-lg text-slate-900">No ledger activity yet</h3>
                     <p className="mt-2 text-sm text-slate-600">
-                      Completed ML runs will appear here after you run the model or upload a trade-history CSV.
+                      Trade imports and completed ML runs will appear here after you fetch data, upload a CSV, or run the model.
                     </p>
                   </div>
                 ) : (
@@ -1786,25 +1808,27 @@ export function TurtleAnalytics({
                             <div className="text-slate-500 text-xs">
                               {run.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                             </div>
-                            <button
-                              onClick={() =>
-                                setDeleteRunPrompt({
-                                  id: run.id,
-                                  periodDescription: run.periodDescription,
-                                  deletedData: run.deletedData,
-                                  status: run.status,
-                                })
-                              }
-                              disabled={run.status === "running" || run.deletedData || deletingRunId === run.id}
-                              className={`mt-3 inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs transition-colors ${
-                                run.status === "running" || run.deletedData || deletingRunId === run.id
-                                  ? "cursor-not-allowed bg-slate-200 text-slate-500"
-                                  : "bg-rose-50 text-rose-700 hover:bg-rose-100"
-                              }`}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                              {deletingRunId === run.id ? "Deleting..." : run.deletedData ? "Data Deleted" : "Delete Data"}
-                            </button>
+                            {!isImportLedgerEntry(run.mode) && (
+                              <button
+                                onClick={() =>
+                                  setDeleteRunPrompt({
+                                    id: run.id,
+                                    periodDescription: run.periodDescription,
+                                    deletedData: run.deletedData,
+                                    status: run.status,
+                                  })
+                                }
+                                disabled={run.status === "running" || run.deletedData || deletingRunId === run.id}
+                                className={`mt-3 inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs transition-colors ${
+                                  run.status === "running" || run.deletedData || deletingRunId === run.id
+                                    ? "cursor-not-allowed bg-slate-200 text-slate-500"
+                                    : "bg-rose-50 text-rose-700 hover:bg-rose-100"
+                                }`}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                {deletingRunId === run.id ? "Deleting..." : run.deletedData ? "Data Deleted" : "Delete Data"}
+                              </button>
+                            )}
                           </div>
                         </div>
 
@@ -1813,7 +1837,7 @@ export function TurtleAnalytics({
                           <div className="flex items-center gap-2">
                             <BarChart3 className={`w-4 h-4 ${index === 0 ? 'text-teal-600' : 'text-slate-500'}`} />
                             <div>
-                              <div className="text-xs text-slate-600">Trades</div>
+                              <div className="text-xs text-slate-600">{isImportLedgerEntry(run.mode) ? "Imported" : "Trades"}</div>
                               <div className={`text-sm ${index === 0 ? 'text-teal-900' : 'text-slate-900'}`}>
                                 {run.tradesAnalysed}
                               </div>
@@ -1828,11 +1852,11 @@ export function TurtleAnalytics({
                             <div>
                               <div className="text-xs text-slate-600">Mode</div>
                               <div className={`text-sm capitalize ${index === 0 ? 'text-teal-900' : 'text-slate-900'}`}>
-                                {run.mode === "auto" ? "Auto" : run.mode}
+                                {getLedgerModeLabel(run.mode)}
                               </div>
                             </div>
                           </div>
-                          {subscriptionTier === "payg" && (
+                          {subscriptionTier === "payg" && !isImportLedgerEntry(run.mode) && (
                             <div className="flex items-center gap-2">
                               <PoundSterling className={`w-4 h-4 ${index === 0 ? 'text-teal-600' : 'text-slate-500'}`} />
                               <div>
@@ -1872,9 +1896,8 @@ export function TurtleAnalytics({
                         </>
                       ) : (
                         <>
-                          <strong>Non-Overlapping Analysis:</strong> Each run analyses a distinct time period. 
-                          The ML model mathematically combines all runs to provide comprehensive insights across your entire trading history. 
-                          The latest run (highlighted) shows your most recent test structure.
+                          <strong>Ledger View:</strong> This combines trade imports and ML analysis records in one timeline.
+                          Imported journal data can be analysed later after upgrade, and completed ML runs remain visible alongside those imports.
                         </>
                       )}
                     </div>
@@ -3002,22 +3025,22 @@ export function TurtleAnalytics({
                       </div>
                     </div>
                   </div>
-                  <label className="mt-4 flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={replaceCsvDataset}
-                      onChange={(e) => setReplaceCsvDataset(e.target.checked)}
-                      className="mt-1 h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
-                    />
-                    <div>
-                      <div className="text-sm text-slate-900">Replace account dataset with this CSV</div>
-                      <div className="text-xs text-slate-500 mt-1">
-                        {isFreeFetchFlow
-                          ? "Clears saved journal trades before importing this file."
-                          : "Clears saved analysis runs, snapshots, and remembered journal trades before importing this file."}
+                  {!isFreeFetchFlow && (
+                    <label className="mt-4 flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={replaceCsvDataset}
+                        onChange={(e) => setReplaceCsvDataset(e.target.checked)}
+                        className="mt-1 h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                      />
+                      <div>
+                        <div className="text-sm text-slate-900">Replace account dataset with this CSV</div>
+                        <div className="text-xs text-slate-500 mt-1">
+                          Clears saved analysis runs, snapshots, and remembered journal trades before importing this file.
+                        </div>
                       </div>
-                    </div>
-                  </label>
+                    </label>
+                  )}
                 </div>
               )}
 
