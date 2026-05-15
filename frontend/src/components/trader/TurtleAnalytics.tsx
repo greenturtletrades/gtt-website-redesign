@@ -7,7 +7,7 @@ import { motion } from "motion/react";
 import { ProfileDropdown } from "./ProfileDropdown";
 import { SettingsPage } from "./SettingsPage";
 import { ApiError, API_BASE, clearStoredToken } from "../../api/client";
-import { deleteAnalysisRun, fetchAnalysisOptions, pollAnalysisJob, startAnalysis, startCsvAnalysis, startMt5Analysis } from "../../api/analysis";
+import { deleteAnalysisRun, fetchAnalysisOptions, fetchTradeData, importCsvTradeData, pollAnalysisJob, startAnalysis, startCsvAnalysis, startMt5Analysis } from "../../api/analysis";
 import { fetchAccountState, fetchPersistedAnalysisState, type PersistedAnalysisStateResponse } from "../../api/settings";
 
 interface TurtleAnalyticsProps {
@@ -34,6 +34,7 @@ export function TurtleAnalytics({
 }: TurtleAnalyticsProps) {
   const [activeTab, setActiveTab] = useState<"analytics" | "journal" | "history" | "settings" | "guide">("analytics");
   const [isRunningModel, setIsRunningModel] = useState(false);
+  const [isFetchingTradeData, setIsFetchingTradeData] = useState(false);
   const [lastRunTime, setLastRunTime] = useState<Date | null>(null);
   const [showRunModelModal, setShowRunModelModal] = useState(false);
   const [selectedTradeCount, setSelectedTradeCount] = useState(565);
@@ -49,6 +50,7 @@ export function TurtleAnalytics({
   const [statsData, setStatsData] = useState({ tradesAnalysed: 0, simulationsRun: 0, regimesFound: 0, avgRMultiple: 0 });
   const [reportData, setReportData] = useState<any>(null);
   const [modelRunError, setModelRunError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [runHistoryError, setRunHistoryError] = useState<string | null>(null);
   const [storedJournalEntries, setStoredJournalEntries] = useState<any[]>([]);
   const [storedJournalPnlMeta, setStoredJournalPnlMeta] = useState<any>(null);
@@ -921,6 +923,7 @@ export function TurtleAnalytics({
   const canRunTradeAnalysis = analysisOptions.availableTradeCount >= minTradeSelection;
   const isSubscriptionPaused = subscriptionStatus === "paused";
   const canRunMlModel = mlModelAccessEnabled && !isSubscriptionPaused;
+  const isFreeFetchFlow = !mlModelAccessEnabled;
   const referralDiscountFactor = Math.max(0, 1 - (analysisOptions.mlRunDiscountPercent || 0) / 100);
   const estimatedModalCost =
     analysisMode === "trades"
@@ -936,6 +939,7 @@ export function TurtleAnalytics({
   
   const handleRunModel = async () => {
     setModelRunError(null);
+    setActionMessage(null);
     setShowRunModelModal(false);
     setIsRunningModel(true);
 
@@ -1074,6 +1078,36 @@ export function TurtleAnalytics({
 
     setIsRunningModel(false);
     setLastRunTime(now);
+  };
+
+  const handleFetchTradeData = async () => {
+    setModelRunError(null);
+    setActionMessage(null);
+    setIsFetchingTradeData(true);
+    try {
+      const payload =
+        analysisMode === "csv" && csvFile
+          ? await importCsvTradeData(csvFile, replaceCsvDataset)
+          : await fetchTradeData();
+      setAnalysisOptions({
+        availableTradeCount: payload.analysisOptions?.availableTradeCount ?? 0,
+        minimumTradeCount: payload.analysisOptions?.minimumTradeCount ?? 10,
+        recommendedTradeCount: payload.analysisOptions?.recommendedTradeCount ?? 200,
+        mlRunDiscountPercent: payload.analysisOptions?.mlRunDiscountPercent ?? 0,
+        accountDiscountPercent: payload.analysisOptions?.accountDiscountPercent ?? 0,
+        referralCode: payload.analysisOptions?.referralCode ?? null,
+        latestAnalysis: payload.analysisOptions?.latestAnalysis ?? null,
+      });
+      setStoredJournalEntries(Array.isArray(payload.trades) ? payload.trades : []);
+      setStoredJournalPnlMeta(payload.pnlMeta ?? null);
+      setActionMessage(payload.message);
+      setShowRunModelModal(false);
+      setActiveTab("journal");
+    } catch (error) {
+      setModelRunError(error instanceof Error ? error.message : "Trade data could not be fetched.");
+    } finally {
+      setIsFetchingTradeData(false);
+    }
   };
   
   const handleTradeCountEdit = (value: string) => {
@@ -1378,13 +1412,13 @@ export function TurtleAnalytics({
               <div className="flex flex-col items-center gap-3">
                 <button
                   onClick={() => {
-                    if (canRunMlModel) {
+                    if (isFreeFetchFlow || canRunMlModel) {
                       setShowRunModelModal(true);
                     }
                   }}
-                  disabled={isRunningModel || !canRunMlModel}
+                  disabled={isRunningModel || isFetchingTradeData || (mlModelAccessEnabled && !canRunMlModel)}
                   className={`px-8 py-3 rounded-lg transition-all flex items-center gap-2 ${
-                    isRunningModel || !canRunMlModel
+                    isRunningModel || isFetchingTradeData || (mlModelAccessEnabled && !canRunMlModel)
                       ? "bg-slate-400 text-white cursor-not-allowed"
                       : "bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:from-teal-700 hover:to-cyan-700 shadow-lg hover:shadow-xl"
                   }`}
@@ -1392,19 +1426,24 @@ export function TurtleAnalytics({
                     isSubscriptionPaused
                       ? "Resume your subscription in Settings to run the ML model"
                       : !mlModelAccessEnabled
-                        ? "Subscribe to unlock ML model runs"
+                        ? "Open data import options for your journal"
                         : ""
                   }
                 >
-                  {isRunningModel ? (
+                  {isFetchingTradeData ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      Fetching Trade Data...
+                    </>
+                  ) : isRunningModel ? (
                     <>
                       <RefreshCw className="w-5 h-5 animate-spin" />
                       Running Analysis...
                     </>
                   ) : (
                     <>
-                      <Brain className="w-5 h-5" />
-                      Run Model Analysis
+                      {mlModelAccessEnabled ? <Brain className="w-5 h-5" /> : <RefreshCw className="w-5 h-5" />}
+                      {mlModelAccessEnabled ? "Run Model Analysis" : "Fetch Data"}
                     </>
                   )}
                 </button>
@@ -1419,7 +1458,7 @@ export function TurtleAnalytics({
                 )}
                 {!mlModelAccessEnabled && (
                   <div className="max-w-sm rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-center text-xs text-sky-800">
-                    Your account, journal, and settings are unlocked. Subscribe when you want to run the ML model.
+                    Your account, journal, and settings are unlocked. Use Fetch Data to pull trades in from MetaTrader, then upgrade when you want to run the ML model.
                   </div>
                 )}
               </div>
@@ -1427,6 +1466,14 @@ export function TurtleAnalytics({
           </div>
         </div>
       </section>
+
+      {actionMessage && (
+        <section className="max-w-5xl mx-auto px-4 sm:px-6 pt-6">
+          <div className="rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800">
+            {actionMessage}
+          </div>
+        </section>
+      )}
 
       {/* Conditional Content Based on Active Tab */}
       {activeTab === "journal" ? (
@@ -2819,12 +2866,14 @@ export function TurtleAnalytics({
 
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-12 h-12 bg-gradient-to-r from-teal-600 to-cyan-600 rounded-lg flex items-center justify-center">
-                  <Brain className="w-6 h-6 text-white" />
+                  {isFreeFetchFlow ? <RefreshCw className="w-6 h-6 text-white" /> : <Brain className="w-6 h-6 text-white" />}
                 </div>
-                <h2 className="text-slate-900 text-2xl">Configure Analysis</h2>
+                <h2 className="text-slate-900 text-2xl">{isFreeFetchFlow ? "Fetch Trade Data" : "Configure Analysis"}</h2>
               </div>
               <p className="text-slate-600 text-sm">
-                Choose how much trading history to analyse with the ML model
+                {isFreeFetchFlow
+                  ? "Choose how you want to import trade data into your journal."
+                  : "Choose how much trading history to analyse with the ML model"}
               </p>
             </div>
 
@@ -2832,8 +2881,8 @@ export function TurtleAnalytics({
             <div className="p-6 sm:p-8 max-h-[60vh] overflow-y-auto">
               {/* Analysis Mode Selection */}
               <div className="mb-6">
-                <label className="text-slate-700 mb-3 block">Analysis Range:</label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <label className="text-slate-700 mb-3 block">{isFreeFetchFlow ? "Import Method:" : "Analysis Range:"}</label>
+                <div className={`grid gap-3 ${isFreeFetchFlow ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-4"}`}>
                   <button
                     onClick={() => setAnalysisMode("trades")}
                     className={`p-4 rounded-lg border-2 transition-all ${
@@ -2846,22 +2895,24 @@ export function TurtleAnalytics({
                       analysisMode === "trades" ? "text-teal-600" : "text-slate-400"
                     }`} />
                     <div className="text-sm text-slate-900">By Trades</div>
-                    <div className="text-xs text-slate-500">Last X trades</div>
+                    <div className="text-xs text-slate-500">{isFreeFetchFlow ? "Fetch from EA" : "Last X trades"}</div>
                   </button>
-                  <button
-                    onClick={() => setAnalysisMode("months")}
-                    className={`p-4 rounded-lg border-2 transition-all ${
-                      analysisMode === "months"
-                        ? "border-teal-600 bg-teal-50"
-                        : "border-slate-200 hover:border-slate-300"
-                    }`}
-                  >
-                    <Calendar className={`w-6 h-6 mx-auto mb-2 ${
-                      analysisMode === "months" ? "text-teal-600" : "text-slate-400"
-                    }`} />
-                    <div className="text-sm text-slate-900">By Time</div>
-                    <div className="text-xs text-slate-500">Last X months</div>
-                  </button>
+                  {!isFreeFetchFlow && (
+                    <button
+                      onClick={() => setAnalysisMode("months")}
+                      className={`p-4 rounded-lg border-2 transition-all ${
+                        analysisMode === "months"
+                          ? "border-teal-600 bg-teal-50"
+                          : "border-slate-200 hover:border-slate-300"
+                      }`}
+                    >
+                      <Calendar className={`w-6 h-6 mx-auto mb-2 ${
+                        analysisMode === "months" ? "text-teal-600" : "text-slate-400"
+                      }`} />
+                      <div className="text-sm text-slate-900">By Time</div>
+                      <div className="text-xs text-slate-500">Last X months</div>
+                    </button>
+                  )}
                   <button
                     onClick={() => setAnalysisMode("csv")}
                     className={`p-4 rounded-lg border-2 transition-all ${
@@ -2874,22 +2925,24 @@ export function TurtleAnalytics({
                       analysisMode === "csv" ? "text-teal-600" : "text-slate-400"
                     }`} />
                     <div className="text-sm text-slate-900">Upload CSV</div>
-                    <div className="text-xs text-slate-500">Your trade file</div>
+                    <div className="text-xs text-slate-500">{isFreeFetchFlow ? "Import into journal" : "Your trade file"}</div>
                   </button>
-                  <button
-                    onClick={() => setAnalysisMode("mt5")}
-                    className={`p-4 rounded-lg border-2 transition-all ${
-                      analysisMode === "mt5"
-                        ? "border-teal-600 bg-teal-50"
-                        : "border-slate-200 hover:border-slate-300"
-                    }`}
-                  >
-                    <Monitor className={`w-6 h-6 mx-auto mb-2 ${
-                      analysisMode === "mt5" ? "text-teal-600" : "text-slate-400"
-                    }`} />
-                    <div className="text-sm text-slate-900">MetaTrader</div>
-                    <div className="text-xs text-slate-500">Connect MT5</div>
-                  </button>
+                  {!isFreeFetchFlow && (
+                    <button
+                      onClick={() => setAnalysisMode("mt5")}
+                      className={`p-4 rounded-lg border-2 transition-all ${
+                        analysisMode === "mt5"
+                          ? "border-teal-600 bg-teal-50"
+                          : "border-slate-200 hover:border-slate-300"
+                      }`}
+                    >
+                      <Monitor className={`w-6 h-6 mx-auto mb-2 ${
+                        analysisMode === "mt5" ? "text-teal-600" : "text-slate-400"
+                      }`} />
+                      <div className="text-sm text-slate-900">MetaTrader</div>
+                      <div className="text-xs text-slate-500">Connect MT5</div>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -2959,7 +3012,9 @@ export function TurtleAnalytics({
                     <div>
                       <div className="text-sm text-slate-900">Replace account dataset with this CSV</div>
                       <div className="text-xs text-slate-500 mt-1">
-                        Clears saved analysis runs, snapshots, and remembered journal trades before importing this file.
+                        {isFreeFetchFlow
+                          ? "Clears saved journal trades before importing this file."
+                          : "Clears saved analysis runs, snapshots, and remembered journal trades before importing this file."}
                       </div>
                     </div>
                   </label>
@@ -3148,7 +3203,7 @@ export function TurtleAnalytics({
                 </div>
               )}
 
-              {analysisMode === "trades" && !canRunTradeAnalysis && (
+              {!isFreeFetchFlow && analysisMode === "trades" && !canRunTradeAnalysis && (
                 <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
                   <div className="flex items-start gap-2">
                     <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
@@ -3166,7 +3221,7 @@ export function TurtleAnalytics({
               )}
 
               {/* Month Slider */}
-              {analysisMode === "months" && (
+              {!isFreeFetchFlow && analysisMode === "months" && (
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-4">
                     <label className="text-slate-700">Number of Months:</label>
@@ -3255,7 +3310,7 @@ export function TurtleAnalytics({
               )}
 
               {/* Overlap Detection Warning */}
-              {overlapInfo.hasOverlap && (
+              {!isFreeFetchFlow && overlapInfo.hasOverlap && (
                 <div className={`mb-4 p-4 rounded-lg border-2 ${
                   overlapInfo.overlapPercentage >= 80 
                     ? 'bg-red-50 border-red-300' 
@@ -3319,7 +3374,7 @@ export function TurtleAnalytics({
               )}
 
               {/* No Overlap - Green Light */}
-              {!overlapInfo.hasOverlap && modelRunHistory.length > 0 && (
+              {!isFreeFetchFlow && !overlapInfo.hasOverlap && modelRunHistory.length > 0 && (
                 <div className="mb-4 p-4 bg-green-50 border-2 border-green-300 rounded-lg">
                   <div className="flex items-start gap-2">
                     <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
@@ -3336,7 +3391,7 @@ export function TurtleAnalytics({
                 </div>
               )}
 
-              {analysisMode === "trades" && analysisOptions.availableTradeCount > 0 && (
+              {!isFreeFetchFlow && analysisMode === "trades" && analysisOptions.availableTradeCount > 0 && (
                 <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="flex items-start gap-2">
                     <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
@@ -3360,19 +3415,23 @@ export function TurtleAnalytics({
                 <div className="flex items-start gap-2">
                   <Clock className="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <div className="text-teal-900 text-sm mb-1">Processing Time</div>
+                    <div className="text-teal-900 text-sm mb-1">{isFreeFetchFlow ? "Import Time" : "Processing Time"}</div>
                     <p className="text-teal-700 text-xs">
-                      This can take a few seconds depending on the number of trades analysed and the optimisation workload in this run.
+                      {isFreeFetchFlow
+                        ? "This can take a few seconds depending on how many trades are returned from MetaTrader or included in your CSV."
+                        : "This can take a few seconds depending on the number of trades analysed and the optimisation workload in this run."}
                     </p>
                     <p className="text-teal-600 text-xs mt-1">
-                      Leave the platform open while the model finishes and saves the latest report.
+                      {isFreeFetchFlow
+                        ? "Leave the platform open while the import finishes and the journal refreshes."
+                        : "Leave the platform open while the model finishes and saves the latest report."}
                     </p>
                   </div>
                 </div>
               </div>
 
               {/* Cost Summary - Only for PAYG */}
-              {subscriptionTier === "payg" && (
+              {!isFreeFetchFlow && subscriptionTier === "payg" && (
                 <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
                   <div className="flex items-start gap-2">
                     <PoundSterling className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -3409,33 +3468,39 @@ export function TurtleAnalytics({
                   Cancel
                 </button>
                 <button
-                  onClick={handleRunModel}
+                  onClick={isFreeFetchFlow ? handleFetchTradeData : handleRunModel}
                   disabled={
-                    !canRunMlModel ||
+                    (isFreeFetchFlow
+                      ? (analysisMode === "csv" && !csvFile)
+                      : !canRunMlModel) ||
                     (analysisMode === "csv" && !csvFile) ||
-                    (analysisMode === "trades" && !canRunTradeAnalysis)
+                    (!isFreeFetchFlow && analysisMode === "trades" && !canRunTradeAnalysis)
                   }
                   className={`px-8 py-3 rounded-lg shadow-lg transition-all flex items-center gap-2 ${
-                    !canRunMlModel ||
+                    (isFreeFetchFlow
+                      ? (analysisMode === "csv" && !csvFile)
+                      : !canRunMlModel) ||
                     (analysisMode === "csv" && !csvFile) ||
-                    (analysisMode === "trades" && !canRunTradeAnalysis)
+                    (!isFreeFetchFlow && analysisMode === "trades" && !canRunTradeAnalysis)
                       ? 'bg-slate-400 text-slate-200 cursor-not-allowed'
                       : 'bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:from-teal-700 hover:to-cyan-700'
                   }`}
                   title={
-                    isSubscriptionPaused
+                    !isFreeFetchFlow && isSubscriptionPaused
                       ? 'Resume your subscription to run the ML model'
-                      : !mlModelAccessEnabled
+                      : isFreeFetchFlow && analysisMode === "csv" && !csvFile
+                      ? 'Please select a CSV file'
+                      : !isFreeFetchFlow && !mlModelAccessEnabled
                       ? 'Subscribe to unlock ML model runs'
                       : analysisMode === "csv" && !csvFile
                       ? 'Please select a CSV file'
-                      : analysisMode === "trades" && !canRunTradeAnalysis
+                      : !isFreeFetchFlow && analysisMode === "trades" && !canRunTradeAnalysis
                         ? 'At least 10 exported MetaTrader trades are required'
                         : ''
                   }
                 >
-                  <Brain className="w-5 h-5" />
-                  Run Analysis
+                  {isFreeFetchFlow ? <RefreshCw className="w-5 h-5" /> : <Brain className="w-5 h-5" />}
+                  {isFreeFetchFlow ? "Import Data" : "Run Analysis"}
                 </button>
               </div>
             </div>

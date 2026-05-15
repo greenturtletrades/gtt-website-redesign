@@ -28,6 +28,18 @@ export interface StartAnalysisResponse {
   storedTradeCount?: number;
 }
 
+export interface FetchTradeDataResponse {
+  ok: boolean;
+  importedTradeCount: number;
+  message: string;
+  analysisOptions: AnalysisOptionsResponse;
+  trades: unknown[];
+  pnlMeta: {
+    currency_pnl_available: boolean;
+    message: string | null;
+  };
+}
+
 export interface AnalysisJobResponse {
   status: string;
   error?: string;
@@ -94,4 +106,33 @@ export async function startCsvAnalysis(file: File, replaceDataset = false) {
 
 export function pollAnalysisJob(jobId: string) {
   return apiGet<AnalysisJobResponse>(`/api/analyse/${jobId}`);
+}
+
+export function fetchTradeData() {
+  return apiPost<FetchTradeDataResponse>("/api/trades/fetch", {});
+}
+
+export async function importCsvTradeData(file: File, replaceDataset = false) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const csvUrl = new URL(`${API_BASE}/api/trades/import-csv`);
+  if (replaceDataset) {
+    csvUrl.searchParams.set("replace", "1");
+  }
+
+  const response = await fetch(csvUrl.toString(), {
+    method: "POST",
+    credentials: "include",
+    headers: getAuthHeaders(),
+    body: formData,
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const msg = (payload && (payload.error || payload.detail || payload.message)) || "Failed to import CSV";
+    throw new ApiError(msg, response.status, payload);
+  }
+
+  return payload as FetchTradeDataResponse;
 }

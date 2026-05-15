@@ -272,6 +272,103 @@ function registerAnalyticsRoutes(app, {
     }
   });
 
+  app.post("/api/trades/fetch", authRequired, async (req, res, next) => {
+    try {
+      const brokerAccounts = await prisma.brokerAccount.findMany({
+        where: { userId: req.user.id, isActive: true },
+        select: { id: true },
+      });
+      const brokerAccountIds = brokerAccounts.map((account) => account.id);
+
+      if (brokerAccountIds.length === 0) {
+        return res.status(400).json({
+          ok: false,
+          error: "No active MetaTrader account is connected yet. Add your broker account in Settings before fetching trade data.",
+        });
+      }
+
+      const tradeCountBefore = await prisma.storedTrade.count({
+        where: { userId: req.user.id },
+      });
+
+      const analysisOptions = await buildAnalysisOptionsPayload(req.user.id, {
+        requestFresh: true,
+        syncStoredTrades: true,
+      });
+      const accountState = await buildAccountStatePayload(req.user.id);
+      const tradeCountAfter = Array.isArray(accountState.trades) ? accountState.trades.length : tradeCountBefore;
+      const importedTradeCount = Math.max(0, tradeCountAfter - tradeCountBefore);
+
+      return res.json({
+        ok: true,
+        importedTradeCount,
+        message:
+          importedTradeCount > 0
+            ? `Fetched ${importedTradeCount} new trade${importedTradeCount === 1 ? "" : "s"} into your journal.`
+            : "No new closed trades were available from MetaTrader right now, but your journal has been refreshed.",
+        analysisOptions,
+        trades: accountState.trades,
+        pnlMeta: accountState.pnlMeta,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  app.post("/api/trades/import-csv", authRequired, async (req, res, next) => {
+    try {
+      const replaceDataset =
+        req.query.replace === "1" ||
+        req.query.replace === "true" ||
+        req.query.replace === "yes";
+      const brokerAccountId = await getPreferredBrokerAccountId(req.user.id);
+      const parsedTrades = await parseCsvTradesFromPython(req);
+
+      if (replaceDataset) {
+        await prisma.$transaction(async (tx) => {
+          await tx.analysisRun.deleteMany({
+            where: { userId: req.user.id },
+          });
+
+          await tx.analysisSnapshot.deleteMany({
+            where: { userId: req.user.id },
+          });
+
+          await tx.storedTrade.deleteMany({
+            where: { userId: req.user.id },
+          });
+        });
+      }
+
+      const persistSummary = await persistTradesToMemory(req.user.id, parsedTrades, {
+        brokerAccountId,
+        source: "csv_import",
+        seenAt: new Date(),
+      });
+      const analysisOptions = await buildAnalysisOptionsPayload(req.user.id, {
+        requestFresh: false,
+        syncStoredTrades: false,
+      });
+      const accountState = await buildAccountStatePayload(req.user.id);
+
+      return res.json({
+        ok: true,
+        importedTradeCount: persistSummary.stored,
+        duplicateTradeCount: persistSummary.updated,
+        invalidTradeCount: persistSummary.invalid,
+        message:
+          persistSummary.stored > 0
+            ? `Imported ${persistSummary.stored} new trade${persistSummary.stored === 1 ? "" : "s"} into your journal.`
+            : "This CSV did not add any new trades, but your journal has been refreshed.",
+        analysisOptions,
+        trades: accountState.trades,
+        pnlMeta: accountState.pnlMeta,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
   app.patch("/api/trades/:tradeIdentity/journal", authRequired, async (req, res, next) => {
     try {
       const tradeIdentity = decodeURIComponent(req.params.tradeIdentity || "");
@@ -627,8 +724,14 @@ function registerAnalyticsRoutes(app, {
       });
       const brokerAccountIds = brokerAccounts.map((b) => b.id);
       let persistSummary = { stored: 0, updated: 0, invalid: 0 };
+      let pendingTrades = await loadStoredTradesForAnalysis(req.user.id, {
+        mode,
+        tradeCount,
+        months,
+        pendingOnly: true,
+      });
 
-      if (brokerAccountIds.length > 0) {
+      if (brokerAccountIds.length > 0 && pendingTrades.length === 0) {
         const exportRequestToken = crypto.randomUUID();
         const exportRequestedAt = new Date();
 
@@ -682,14 +785,14 @@ function registerAnalyticsRoutes(app, {
           persistSummary.updated += summary.updated;
           persistSummary.invalid += summary.invalid;
         }
-      }
 
-      const pendingTrades = await loadStoredTradesForAnalysis(req.user.id, {
-        mode,
-        tradeCount,
-        months,
-        pendingOnly: true,
-      });
+        pendingTrades = await loadStoredTradesForAnalysis(req.user.id, {
+          mode,
+          tradeCount,
+          months,
+          pendingOnly: true,
+        });
+      }
 
       if (pendingTrades.length === 0) {
         analysisRun = await createFailedAnalysisRun(req.user.id, {
