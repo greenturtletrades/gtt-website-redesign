@@ -10,10 +10,15 @@ function createAccountStateHelpers({
   storedTradeToJournalEntry,
 }) {
   async function buildUserAccountState(userId, sessionRole = null) {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: { profile: true },
-    });
+    const [user, storedTradeCount] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        include: { profile: true },
+      }),
+      prisma.storedTrade.count({
+        where: { userId },
+      }),
+    ]);
 
     if (!user) {
       return null;
@@ -36,6 +41,13 @@ function createAccountStateHelpers({
         profile: user.profile,
         billing: billingPayload?.billing || null,
         ownReferralCode,
+        leaderboard: {
+          optIn: Boolean(user.leaderboardOptIn),
+          displayName: user.leaderboardDisplayName || null,
+          publishedAt: user.leaderboardPublishedAt ? user.leaderboardPublishedAt.toISOString() : null,
+          eligibleTradeCount: storedTradeCount,
+          minimumTradeCount: 10,
+        },
       },
     };
   }

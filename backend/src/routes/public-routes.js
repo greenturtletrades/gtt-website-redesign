@@ -1,5 +1,121 @@
 const crypto = require("crypto");
 
+const LEADERBOARD_MINIMUM_TRADES = 10;
+
+function calculateTradeRMultiple(trade) {
+  const riskPerTrade =
+    typeof trade.entryPrice === "number" && typeof trade.stopLoss === "number"
+      ? Math.abs(trade.entryPrice - trade.stopLoss)
+      : 0;
+
+  if (!(riskPerTrade > 0) || typeof trade.exitPrice !== "number") {
+    return 0;
+  }
+
+  return trade.side === "SHORT"
+    ? (trade.entryPrice - trade.exitPrice) / riskPerTrade
+    : (trade.exitPrice - trade.entryPrice) / riskPerTrade;
+}
+
+function calculateAverageRiskPercent(trades) {
+  const riskPercents = trades
+    .map((trade) => {
+      if (typeof trade.entryPrice !== "number" || trade.entryPrice <= 0 || typeof trade.stopLoss !== "number") {
+        return null;
+      }
+
+      return (Math.abs(trade.entryPrice - trade.stopLoss) / trade.entryPrice) * 100;
+    })
+    .filter((value) => typeof value === "number" && Number.isFinite(value));
+
+  if (!riskPercents.length) {
+    return 0;
+  }
+
+  return riskPercents.reduce((sum, value) => sum + value, 0) / riskPercents.length;
+}
+
+function resolveRiskLevel(riskPerTradePercent) {
+  if (riskPerTradePercent <= 1) {
+    return "Low";
+  }
+
+  if (riskPerTradePercent <= 1.5) {
+    return "Medium";
+  }
+
+  return "High";
+}
+
+function classifySymbolMarket(symbol) {
+  const normalized = String(symbol || "").trim().toUpperCase();
+  if (!normalized) {
+    return "Mixed";
+  }
+
+  if (/^(XAU|XAG|USOIL|UKOIL|WTI|BRENT|NGAS)/.test(normalized)) {
+    return "Commodities";
+  }
+
+  if (
+    /^(US30|US100|NAS100|SPX500|GER40|UK100|JP225|AUS200|FRA40|EU50|DJI|NDX|SPX)/.test(normalized)
+  ) {
+    return "Indices";
+  }
+
+  if (/^[A-Z]{6}$/.test(normalized)) {
+    return "FX";
+  }
+
+  return "Stocks";
+}
+
+function resolveDominantMarket(trades) {
+  const counts = new Map();
+
+  for (const trade of trades) {
+    const market = classifySymbolMarket(trade.symbol);
+    counts.set(market, (counts.get(market) || 0) + 1);
+  }
+
+  const sortedMarkets = [...counts.entries()].sort((left, right) => right[1] - left[1]);
+  return sortedMarkets[0]?.[0] || "Mixed";
+}
+
+function calculateWinRate(trades) {
+  if (!trades.length) {
+    return 0;
+  }
+
+  const winningTrades = trades.filter((trade) => calculateTradeRMultiple(trade) > 0).length;
+  return (winningTrades / trades.length) * 100;
+}
+
+function calculateTotalR(trades) {
+  return trades.reduce((sum, trade) => sum + calculateTradeRMultiple(trade), 0);
+}
+
+function calculatePercentileRanks(values, { descending = true } = {}) {
+  if (!values.length) {
+    return [];
+  }
+
+  if (values.length === 1) {
+    return [100];
+  }
+
+  const sorted = [...values].sort((left, right) => (
+    descending ? right.value - left.value : left.value - right.value
+  ));
+  const rankMap = new Map();
+
+  sorted.forEach((item, index) => {
+    rankMap.set(item.id, 100 - (index / (sorted.length - 1)) * 100);
+  });
+
+  return values.map((item) => rankMap.get(item.id) || 0);
+}
+
 function registerPublicRoutes(app, {
   prisma,
   sendEmail,
@@ -7,6 +123,145 @@ function registerPublicRoutes(app, {
   brokerPlatforms,
   experienceLevels,
 }) {
+  app.get("/api/public/leaderboard", async (req, res, next) => {
+    try {
+      const users = await prisma.user.findMany({
+        where: {
+          role: "TRADER",
+          status: "ACTIVE",
+          leaderboardOptIn: true,
+        },
+        select: {
+          id: true,
+          leaderboardDisplayName: true,
+          leaderboardPublishedAt: true,
+          profile: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+          analysisSnapshots: {
+            orderBy: {
+              updatedAt: "desc",
+            },
+            take: 1,
+            select: {
+              updatedAt: true,
+              totalR: true,
+              winRate: true,
+            },
+          },
+          storedTrades: {
+            orderBy: {
+              exitTime: "desc",
+            },
+            select: {
+              symbol: true,
+              side: true,
+              entryPrice: true,
+              exitPrice: true,
+              stopLoss: true,
+              updatedAt: true,
+            },
+          },
+        },
+      });
+
+      const eligibleRows = users
+        .map((user) => {
+          if (user.storedTrades.length < LEADERBOARD_MINIMUM_TRADES) {
+            return null;
+          }
+
+          const latestSnapshot = user.analysisSnapshots[0] || null;
+          const tradeCount = user.storedTrades.length;
+          const averageRiskPercent = calculateAverageRiskPercent(user.storedTrades);
+          const totalR = typeof latestSnapshot?.totalR === "number"
+            ? latestSnapshot.totalR
+            : calculateTotalR(user.storedTrades);
+          const winRate = typeof latestSnapshot?.winRate === "number"
+            ? latestSnapshot.winRate
+            : calculateWinRate(user.storedTrades);
+          const latestTradeUpdatedAt = user.storedTrades[0]?.updatedAt || null;
+          const lastUpdatedAt = latestSnapshot?.updatedAt || latestTradeUpdatedAt || user.leaderboardPublishedAt || null;
+          const fallbackName = [user.profile?.firstName, user.profile?.lastName]
+            .filter((value) => typeof value === "string" && value.trim())
+            .join(" ")
+            .trim();
+
+          return {
+            id: user.id,
+            displayName: user.leaderboardDisplayName || fallbackName || "Trader",
+            market: resolveDominantMarket(user.storedTrades),
+            totalTrades: tradeCount,
+            averageRiskPercent,
+            riskLevel: resolveRiskLevel(averageRiskPercent),
+            totalR,
+            winRate,
+            lastUpdatedAt: lastUpdatedAt ? lastUpdatedAt.toISOString() : null,
+            source: latestSnapshot ? "analysis" : "journal",
+          };
+        })
+        .filter(Boolean);
+
+      const performancePercentiles = calculatePercentileRanks(
+        eligibleRows.map((row) => ({ id: row.id, value: row.totalR })),
+        { descending: true },
+      );
+      const riskScores = calculatePercentileRanks(
+        eligibleRows.map((row) => ({ id: row.id, value: row.averageRiskPercent })),
+        { descending: false },
+      );
+      const tradeScores = calculatePercentileRanks(
+        eligibleRows.map((row) => ({ id: row.id, value: row.totalTrades })),
+        { descending: true },
+      );
+      const stabilityScores = calculatePercentileRanks(
+        eligibleRows.map((row) => ({ id: row.id, value: row.winRate })),
+        { descending: true },
+      );
+
+      const leaderboard = eligibleRows
+        .map((row, index) => ({
+          ...row,
+          percentilePnl: Math.round(performancePercentiles[index]),
+          score:
+            performancePercentiles[index] * 0.35 +
+            riskScores[index] * 0.30 +
+            tradeScores[index] * 0.20 +
+            stabilityScores[index] * 0.15,
+        }))
+        .sort((left, right) => {
+          if (right.score !== left.score) {
+            return right.score - left.score;
+          }
+
+          return right.percentilePnl - left.percentilePnl;
+        })
+        .map((row, index) => ({
+          rank: index + 1,
+          id: row.id,
+          name: row.displayName,
+          market: row.market,
+          percentilePnl: row.percentilePnl,
+          riskPerTradePercent: Number(row.averageRiskPercent.toFixed(2)),
+          totalTrades: row.totalTrades,
+          riskLevel: row.riskLevel,
+          lastUpdatedAt: row.lastUpdatedAt,
+          source: row.source,
+        }));
+
+      return res.json({
+        ok: true,
+        minimumTradeCount: LEADERBOARD_MINIMUM_TRADES,
+        leaderboard,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
   app.post("/api/trader/apply", async (req, res, next) => {
     try {
       const {

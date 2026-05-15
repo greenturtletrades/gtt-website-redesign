@@ -31,6 +31,7 @@ import {
   fetchApiKeys,
   fetchBrokerAccounts,
   revokeApiKey,
+  updateLeaderboardPreferences,
   updateBrokerAccount,
   updateProfile,
   type ApiKeyRecord,
@@ -104,6 +105,14 @@ export function SettingsPage({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteReason, setDeleteReason] = useState("");
   const [deleteFeedback, setDeleteFeedback] = useState("");
+  const [leaderboardSettings, setLeaderboardSettings] = useState({
+    optIn: false,
+    displayName: "",
+    eligibleTradeCount: 0,
+    minimumTradeCount: 10,
+    publishedAt: null as string | null,
+  });
+  const [savingLeaderboard, setSavingLeaderboard] = useState(false);
 
   const deleteReasonsRequiringExplanation = new Set([
     "technical-issues",
@@ -156,6 +165,13 @@ export function SettingsPage({
         setEaStatus(eaStatusResponse);
         setEaDiagnostics(eaDiagnosticsResponse);
         setBillingSummary(accountState.account.billing);
+        setLeaderboardSettings({
+          optIn: accountState.account.leaderboard?.optIn || false,
+          displayName: accountState.account.leaderboard?.displayName || "",
+          eligibleTradeCount: accountState.account.leaderboard?.eligibleTradeCount || 0,
+          minimumTradeCount: accountState.account.leaderboard?.minimumTradeCount || 10,
+          publishedAt: accountState.account.leaderboard?.publishedAt || null,
+        });
         setOwnReferralCode(accountState.account.ownReferralCode?.code || null);
         setOwnReferralDiscountPercent(accountState.account.ownReferralCode?.accountDiscountPercent || 0);
         setOwnReferralDurationDays(accountState.account.ownReferralCode?.durationDays || 0);
@@ -376,6 +392,7 @@ export function SettingsPage({
     !billingSummary?.billingExempt &&
     !billingSummary?.platformComped &&
     liveSubscriptionStatus === "not_started";
+  const isLeaderboardEligible = leaderboardSettings.eligibleTradeCount >= leaderboardSettings.minimumTradeCount;
 
   const handleUpdateBillingMethod = async () => {
     setOpeningBillingPortal(true);
@@ -406,6 +423,28 @@ export function SettingsPage({
     } catch (error) {
       setPageError(error instanceof Error ? error.message : "Unable to start the upgrade checkout.");
       setStartingUpgradeCheckout(false);
+    }
+  };
+
+  const handleSaveLeaderboardSettings = async () => {
+    setSavingLeaderboard(true);
+    setPageError(null);
+    try {
+      const response = await updateLeaderboardPreferences({
+        leaderboardOptIn: leaderboardSettings.optIn,
+        leaderboardDisplayName: leaderboardSettings.displayName,
+      });
+      setTransientSuccess("Leaderboard settings saved.");
+      setLeaderboardSettings((current) => ({
+        ...current,
+        optIn: response.leaderboard.optIn,
+        displayName: response.leaderboard.displayName || "",
+        publishedAt: response.leaderboard.publishedAt,
+      }));
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : "Unable to save leaderboard settings.");
+    } finally {
+      setSavingLeaderboard(false);
     }
   };
 
@@ -616,6 +655,94 @@ export function SettingsPage({
                         >
                           {changingPassword ? "Updating..." : "Update Password"}
                         </button>
+                      </div>
+
+                      <div className="rounded-lg border border-teal-200 bg-teal-50 p-5">
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                          <div>
+                            <h3 className="text-slate-900">Public Leaderboard</h3>
+                            <p className="mt-2 max-w-2xl text-sm text-slate-700">
+                              Publish summary performance on the public Turtle Traders leaderboard if you want to. Raw trades stay private.
+                            </p>
+                          </div>
+                          <span className={`rounded-full px-3 py-1 text-sm ${leaderboardSettings.optIn ? "bg-teal-600 text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"}`}>
+                            {leaderboardSettings.optIn ? "Public" : "Private"}
+                          </span>
+                        </div>
+
+                        <div className="mt-5 grid gap-4 md:grid-cols-2">
+                          <label className="rounded-lg border border-white/70 bg-white/80 p-4">
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="checkbox"
+                                checked={leaderboardSettings.optIn}
+                                onChange={(event) =>
+                                  setLeaderboardSettings((current) => ({ ...current, optIn: event.target.checked }))
+                                }
+                                className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                              />
+                              <div>
+                                <div className="text-sm text-slate-900">Show my performance publicly</div>
+                                <div className="text-xs text-slate-600">You can turn this off at any time.</div>
+                              </div>
+                            </div>
+                          </label>
+
+                          <div className="rounded-lg border border-white/70 bg-white/80 p-4">
+                            <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Eligibility</div>
+                            <div className="mt-2 text-sm text-slate-900">
+                              {leaderboardSettings.eligibleTradeCount} imported trades on account
+                            </div>
+                            <div className="mt-1 text-xs text-slate-600">
+                              Minimum required for public ranking: {leaderboardSettings.minimumTradeCount} trades
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-4">
+                          <label className="mb-2 block text-slate-700">Public Display Name</label>
+                          <input
+                            type="text"
+                            value={leaderboardSettings.displayName}
+                            onChange={(event) =>
+                              setLeaderboardSettings((current) => ({ ...current, displayName: event.target.value }))
+                            }
+                            maxLength={40}
+                            className="w-full rounded-lg border border-slate-300 px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
+                            placeholder={formData.fullName || "Trader alias"}
+                          />
+                          <p className="mt-2 text-sm text-slate-600">
+                            Only your chosen display name and summary stats are public.
+                          </p>
+                        </div>
+
+                        <div className={`mt-4 rounded-lg border p-4 ${isLeaderboardEligible ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
+                          <div className="text-sm text-slate-900">
+                            {isLeaderboardEligible
+                              ? "This account is eligible for the public leaderboard."
+                              : "Import more trades before this account can rank publicly."}
+                          </div>
+                          <p className="mt-1 text-sm text-slate-700">
+                            {isLeaderboardEligible
+                              ? "Once enabled, your verified journal performance can appear on the Turtle Traders leaderboard."
+                              : `This account currently has ${leaderboardSettings.eligibleTradeCount} imported trades. Bring it up to ${leaderboardSettings.minimumTradeCount} to appear publicly.`}
+                          </p>
+                        </div>
+
+                        <div className="mt-5 flex flex-wrap items-center gap-3">
+                          <button
+                            onClick={handleSaveLeaderboardSettings}
+                            disabled={savingLeaderboard}
+                            className="rounded-lg bg-teal-600 px-5 py-2 text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
+                          >
+                            {savingLeaderboard ? "Saving..." : "Save Leaderboard Settings"}
+                          </button>
+                          {leaderboardSettings.publishedAt ? (
+                            <div className="text-sm text-slate-600">
+                              Public settings last updated {formatTimestamp(leaderboardSettings.publishedAt)}
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
 
                       <div className="flex flex-wrap gap-3">

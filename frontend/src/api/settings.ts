@@ -149,6 +149,13 @@ export interface AccountStateResponse {
     billingExempt?: boolean;
     profile?: AuthUser["profile"] | null;
     billing: BillingSummaryResponse["billing"] | null;
+    leaderboard?: {
+      optIn: boolean;
+      displayName: string | null;
+      publishedAt: string | null;
+      eligibleTradeCount: number;
+      minimumTradeCount: number;
+    } | null;
     ownReferralCode?: {
       id: string;
       code: string;
@@ -208,10 +215,18 @@ export interface PersistedAnalysisStateResponse {
   };
 }
 
-export function updateProfile(fullName: string, email: string) {
+export function updateProfile(
+  fullName: string,
+  email: string,
+  options?: {
+    leaderboardOptIn?: boolean;
+    leaderboardDisplayName?: string;
+  },
+) {
   return apiPatch<{ ok: boolean; user: AuthUser }>("/api/me/profile", {
     fullName,
     email,
+    ...(options || {}),
   });
 }
 
@@ -288,6 +303,20 @@ export function fetchBillingSummary() {
 
 export function fetchAccountState() {
   return apiGet<AccountStateResponse>("/api/me/account-state");
+}
+
+export function updateLeaderboardPreferences(input: {
+  leaderboardOptIn: boolean;
+  leaderboardDisplayName?: string;
+}) {
+  return apiPatch<{
+    ok: boolean;
+    leaderboard: {
+      optIn: boolean;
+      displayName: string | null;
+      publishedAt: string | null;
+    };
+  }>("/api/me/leaderboard", input);
 }
 
 export function fetchPersistedAnalysisState() {

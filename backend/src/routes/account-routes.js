@@ -51,6 +51,24 @@ function registerAccountRoutes(app, {
     return typeof value === "string" && value.trim() ? value.trim() : null;
   }
 
+  function deriveLeaderboardDisplayName(user, requestedDisplayName = null) {
+    const trimmedRequested = normalizeOptionalTrimmedString(requestedDisplayName);
+    if (trimmedRequested) {
+      return trimmedRequested.slice(0, 40);
+    }
+
+    const profileName = [user.profile?.firstName, user.profile?.lastName]
+      .filter((value) => typeof value === "string" && value.trim())
+      .join(" ")
+      .trim();
+
+    if (profileName) {
+      return profileName.slice(0, 40);
+    }
+
+    return user.email.split("@")[0].slice(0, 40);
+  }
+
   async function buildPendingMlChargeSummary(userId, user) {
     const outstandingMlCharges = await prisma.analysisRun.aggregate({
       where: {
@@ -575,7 +593,7 @@ function registerAccountRoutes(app, {
 
   app.patch("/api/me/profile", authRequired, async (req, res, next) => {
     try {
-      const { fullName, email } = req.body || {};
+      const { fullName, email, leaderboardOptIn, leaderboardDisplayName } = req.body || {};
 
       if (fullName !== undefined && typeof fullName !== "string") {
         return res.status(400).json({ ok: false, error: "Full name must be a string" });
@@ -583,6 +601,14 @@ function registerAccountRoutes(app, {
 
       if (email !== undefined && typeof email !== "string") {
         return res.status(400).json({ ok: false, error: "Email must be a string" });
+      }
+
+      if (leaderboardOptIn !== undefined && typeof leaderboardOptIn !== "boolean") {
+        return res.status(400).json({ ok: false, error: "Leaderboard opt-in must be a boolean" });
+      }
+
+      if (leaderboardDisplayName !== undefined && typeof leaderboardDisplayName !== "string") {
+        return res.status(400).json({ ok: false, error: "Leaderboard display name must be a string" });
       }
 
       const user = await prisma.user.findUnique({
@@ -611,6 +637,23 @@ function registerAccountRoutes(app, {
           }
           data.email = normalizedEmail;
         }
+      }
+
+      if (leaderboardDisplayName !== undefined) {
+        const normalizedDisplayName = leaderboardDisplayName.trim();
+        if (normalizedDisplayName.length > 40) {
+          return res.status(400).json({ ok: false, error: "Leaderboard display name must be 40 characters or fewer" });
+        }
+      }
+
+      if (leaderboardOptIn !== undefined) {
+        data.leaderboardOptIn = leaderboardOptIn;
+        data.leaderboardDisplayName = deriveLeaderboardDisplayName(user, leaderboardDisplayName);
+        data.leaderboardPublishedAt = leaderboardOptIn
+          ? user.leaderboardPublishedAt || new Date()
+          : null;
+      } else if (leaderboardDisplayName !== undefined) {
+        data.leaderboardDisplayName = deriveLeaderboardDisplayName(user, leaderboardDisplayName);
       }
 
       const { firstName, lastName } = splitFullName(fullName !== undefined ? fullName : "");
@@ -649,6 +692,59 @@ function registerAccountRoutes(app, {
           role: updated.role,
           status: updated.status,
           profile: updated.profile,
+          leaderboardOptIn: Boolean(updated.leaderboardOptIn),
+          leaderboardDisplayName: updated.leaderboardDisplayName || null,
+          leaderboardPublishedAt: updated.leaderboardPublishedAt ? updated.leaderboardPublishedAt.toISOString() : null,
+        },
+      });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  app.patch("/api/me/leaderboard", authRequired, async (req, res, next) => {
+    try {
+      const { leaderboardOptIn, leaderboardDisplayName } = req.body || {};
+
+      if (typeof leaderboardOptIn !== "boolean") {
+        return res.status(400).json({ ok: false, error: "Leaderboard opt-in must be a boolean" });
+      }
+
+      if (leaderboardDisplayName !== undefined && typeof leaderboardDisplayName !== "string") {
+        return res.status(400).json({ ok: false, error: "Leaderboard display name must be a string" });
+      }
+
+      const normalizedDisplayName = typeof leaderboardDisplayName === "string" ? leaderboardDisplayName.trim() : "";
+      if (normalizedDisplayName.length > 40) {
+        return res.status(400).json({ ok: false, error: "Leaderboard display name must be 40 characters or fewer" });
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: req.user.id },
+        include: { profile: true },
+      });
+
+      if (!user) {
+        return res.status(404).json({ ok: false, error: "User not found" });
+      }
+
+      const updated = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          leaderboardOptIn,
+          leaderboardDisplayName: deriveLeaderboardDisplayName(user, normalizedDisplayName),
+          leaderboardPublishedAt: leaderboardOptIn
+            ? user.leaderboardPublishedAt || new Date()
+            : null,
+        },
+      });
+
+      return res.json({
+        ok: true,
+        leaderboard: {
+          optIn: Boolean(updated.leaderboardOptIn),
+          displayName: updated.leaderboardDisplayName || null,
+          publishedAt: updated.leaderboardPublishedAt ? updated.leaderboardPublishedAt.toISOString() : null,
         },
       });
     } catch (err) {

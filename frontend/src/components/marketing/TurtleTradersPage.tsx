@@ -1,66 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Footer } from "./Footer";
+import { fetchPublicLeaderboard } from "../../api/public";
+import type { PublicLeaderboardRow } from "../../api/public";
 
 interface TurtleTradersPageProps {
   onNavigateLegal?: (page: "terms" | "privacy" | "risk-disclosure" | "contact") => void;
 }
-
-const traders = [
-  {
-    name: "Toni",
-    market: "Indices",
-    percentilePnl: "98%",
-    riskPerTrade: "0.75%",
-    totalTrades: 184,
-    riskLevel: "Low",
-    lastUpdated: "2h ago",
-  },
-  {
-    name: "Praise M.",
-    market: "FX",
-    percentilePnl: "95%",
-    riskPerTrade: "1.00%",
-    totalTrades: 201,
-    riskLevel: "Medium",
-    lastUpdated: "5h ago",
-  },
-  {
-    name: "Javan B.",
-    market: "Indices",
-    percentilePnl: "93%",
-    riskPerTrade: "0.60%",
-    totalTrades: 166,
-    riskLevel: "Low",
-    lastUpdated: "1d ago",
-  },
-  {
-    name: "Patricia P.",
-    market: "Commodities",
-    percentilePnl: "89%",
-    riskPerTrade: "1.20%",
-    totalTrades: 148,
-    riskLevel: "Medium",
-    lastUpdated: "1d ago",
-  },
-  {
-    name: "Finlay T.",
-    market: "FX",
-    percentilePnl: "86%",
-    riskPerTrade: "1.80%",
-    totalTrades: 139,
-    riskLevel: "High",
-    lastUpdated: "2d ago",
-  },
-  {
-    name: "L. Harper",
-    market: "Stocks",
-    percentilePnl: "83%",
-    riskPerTrade: "0.90%",
-    totalTrades: 122,
-    riskLevel: "Medium",
-    lastUpdated: "3d ago",
-  },
-];
 
 const scoringModel = [
   {
@@ -97,9 +42,75 @@ function riskPillClass(riskLevel: string) {
   return "bg-rose-100 text-rose-700";
 }
 
+function formatRiskPercent(value: number) {
+  return `${value.toFixed(2)}%`;
+}
+
+function formatRelativeTimestamp(value: string | null) {
+  if (!value) {
+    return "Just updated";
+  }
+
+  const date = new Date(value);
+  const diffMs = Date.now() - date.getTime();
+
+  if (!Number.isFinite(diffMs) || diffMs < 0) {
+    return "Just updated";
+  }
+
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  if (diffHours < 1) {
+    const diffMinutes = Math.max(1, Math.floor(diffMs / (1000 * 60)));
+    return `${diffMinutes}m ago`;
+  }
+
+  if (diffHours < 24) {
+    return `${diffHours}h ago`;
+  }
+
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d ago`;
+}
+
 export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [showAllRows, setShowAllRows] = useState(false);
+  const [traders, setTraders] = useState<PublicLeaderboardRow[]>([]);
+  const [minimumTradeCount, setMinimumTradeCount] = useState(10);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadLeaderboard = async () => {
+      try {
+        const response = await fetchPublicLeaderboard();
+        if (cancelled) {
+          return;
+        }
+
+        setTraders(response.leaderboard);
+        setMinimumTradeCount(response.minimumTradeCount);
+        setLoadError(null);
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        setLoadError(error instanceof Error ? error.message : "Unable to load the public leaderboard.");
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadLeaderboard();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const filteredTraders = traders.filter((trader) => {
@@ -126,14 +137,14 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
           <div className="mb-12 text-center">
             <h1 className="text-4xl leading-tight text-slate-900 sm:text-5xl md:text-6xl tracking-tight">Turtle Traders Leaderboard</h1>
             <p className="mx-auto mt-5 max-w-3xl text-base font-semibold leading-relaxed text-slate-900 sm:text-lg">
-              Verified data matters. Traders who are not verified by Green Turtle Trades should not be relied on for investment decisions.
+              Verified data matters. Traders choose whether to publish summary performance from their own imported account data. Raw trades stay private.
             </p>
           </div>
 
           <div className="mx-auto overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
             <div className="flex flex-col gap-2 border-b border-teal-200 bg-gradient-to-r from-teal-600 to-cyan-600 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="text-sm text-white">Ranked by verified journal data</div>
-              <div className="text-xs uppercase tracking-[0.18em] text-cyan-50">Updated as traders submit data</div>
+              <div className="text-sm text-white">Ranked by verified account data</div>
+              <div className="text-xs uppercase tracking-[0.18em] text-cyan-50">Only opt-in traders with {minimumTradeCount}+ imported trades appear</div>
             </div>
             <div className="flex flex-col gap-3 border-b border-slate-200 bg-white px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="w-full sm:max-w-xs">
@@ -173,18 +184,39 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                   </tr>
                 </thead>
                 <tbody>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={8} className="px-5 py-8 text-center text-sm text-slate-600">
+                        Loading public leaderboard...
+                      </td>
+                    </tr>
+                  ) : null}
+                  {!loading && loadError ? (
+                    <tr>
+                      <td colSpan={8} className="px-5 py-8 text-center text-sm text-red-600">
+                        {loadError}
+                      </td>
+                    </tr>
+                  ) : null}
+                  {!loading && !loadError && visibleTraders.length === 0 && !normalizedSearch ? (
+                    <tr>
+                      <td colSpan={8} className="px-5 py-8 text-center text-sm text-slate-600">
+                        No public trader performance has been published yet.
+                      </td>
+                    </tr>
+                  ) : null}
                   {visibleTraders.map((trader) => {
-                    const rank = traders.findIndex((row) => row.name === trader.name) + 1;
-
                     return (
-                    <tr key={trader.name} className="border-t border-slate-100 transition-colors odd:bg-white even:bg-slate-50/40 hover:bg-teal-50/60">
+                    <tr key={trader.id} className="border-t border-slate-100 transition-colors odd:bg-white even:bg-slate-50/40 hover:bg-teal-50/60">
                       <td className="px-5 py-4 text-sm font-semibold tabular-nums text-slate-900">
-                        {rank}
+                        {trader.rank}
                       </td>
                       <td className="px-5 py-4">
                         <div>
                           <div className="text-sm font-semibold text-slate-950">{trader.name}</div>
-                          <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Verified</div>
+                          <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                            {trader.source === "analysis" ? "Verified Analysis" : "Verified Journal"}
+                          </div>
                         </div>
                       </td>
                       <td className="px-5 py-4">
@@ -192,15 +224,15 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                           {trader.market}
                         </span>
                       </td>
-                      <td className="px-5 py-4 text-right text-sm font-semibold tabular-nums text-slate-950">{trader.percentilePnl}</td>
-                      <td className="px-5 py-4 text-right text-sm font-medium tabular-nums text-slate-950">{trader.riskPerTrade}</td>
+                      <td className="px-5 py-4 text-right text-sm font-semibold tabular-nums text-slate-950">{trader.percentilePnl}%</td>
+                      <td className="px-5 py-4 text-right text-sm font-medium tabular-nums text-slate-950">{formatRiskPercent(trader.riskPerTradePercent)}</td>
                       <td className="px-5 py-4 text-right text-sm font-medium tabular-nums text-slate-950">{trader.totalTrades}</td>
                       <td className="px-5 py-4 text-center">
                         <span className={`rounded-full px-3 py-1 text-xs font-medium ${riskPillClass(trader.riskLevel)}`}>
                           {trader.riskLevel}
                         </span>
                       </td>
-                      <td className="px-5 py-4 text-right text-sm tabular-nums text-slate-700">{trader.lastUpdated}</td>
+                      <td className="px-5 py-4 text-right text-sm tabular-nums text-slate-700">{formatRelativeTimestamp(trader.lastUpdatedAt)}</td>
                     </tr>
                     );
                   })}
