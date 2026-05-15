@@ -652,7 +652,7 @@ export function SettingsPage({
                             <div className="flex items-center gap-2">
                               <Sparkles className="h-5 w-5 text-teal-600" />
                               <h3 className="text-lg text-slate-900">
-                                {isFreePlan ? "Free, Pay-As-You-Go" : "Pay-As-You-Go"}
+                                {isFreePlan ? "Free Account" : "Pay-As-You-Go"}
                               </h3>
                             </div>
                             <p className="mt-2 text-sm text-slate-600">
