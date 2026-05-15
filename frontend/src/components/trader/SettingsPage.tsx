@@ -15,6 +15,8 @@ import {
   User,
   Code,
   Activity,
+  X,
+  Calculator,
 } from "lucide-react";
 import {
   createBillingPortalSession,
@@ -98,6 +100,7 @@ export function SettingsPage({
   const [startingUpgradeCheckout, setStartingUpgradeCheckout] = useState(false);
   const [refreshingEaHealth, setRefreshingEaHealth] = useState(false);
   const [copiedValue, setCopiedValue] = useState<string | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteReason, setDeleteReason] = useState("");
   const [deleteFeedback, setDeleteFeedback] = useState("");
@@ -112,6 +115,17 @@ export function SettingsPage({
   const activeApiKeys = apiKeys.filter((item) => !item.revokedAt);
   const managedEaApiKey = activeApiKeys.find((item) => item.name === "MetaTrader EA") || null;
   const currentApiKey = freshApiKey || null;
+  const upgradeFeatures = [
+    "£10/month base subscription",
+    "£0.20 per trade analysed",
+    "Access to Turtle Analytics",
+    "Trade Journal",
+    "Full counterfactual analysis",
+    "MFE/MAE analysis",
+    "Market regime clustering",
+    "Trailing stop optimisation",
+    "Email support",
+  ];
 
   useEffect(() => {
     let cancelled = false;
@@ -637,7 +651,9 @@ export function SettingsPage({
                           <div>
                             <div className="flex items-center gap-2">
                               <Sparkles className="h-5 w-5 text-teal-600" />
-                              <h3 className="text-lg text-slate-900">Pay-As-You-Go</h3>
+                              <h3 className="text-lg text-slate-900">
+                                {isFreePlan ? "Free, Pay-As-You-Go" : "Pay-As-You-Go"}
+                              </h3>
                             </div>
                             <p className="mt-2 text-sm text-slate-600">
                               {billingSummary?.billingExempt
@@ -700,11 +716,10 @@ export function SettingsPage({
                         <div className="mt-3 flex flex-wrap gap-3">
                           {isFreePlan && (
                             <button
-                              onClick={handleUpgradeSubscription}
-                              disabled={startingUpgradeCheckout}
+                              onClick={() => setShowUpgradeModal(true)}
                               className="rounded-lg bg-teal-600 px-4 py-2 text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
                             >
-                              {startingUpgradeCheckout ? "Starting Checkout..." : "Upgrade Subscription"}
+                              Upgrade Subscription
                             </button>
                           )}
                           {!isFreePlan && (
@@ -1251,6 +1266,68 @@ export function SettingsPage({
                 className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
               >
                 Confirm Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showUpgradeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="relative w-full max-w-3xl rounded-xl bg-white p-6 shadow-xl">
+            <button
+              onClick={() => setShowUpgradeModal(false)}
+              className="absolute right-4 top-4 text-slate-400 transition-colors hover:text-slate-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="pr-10">
+              <p className="text-sm uppercase tracking-[0.2em] text-teal-600">Upgrade Plan</p>
+              <h3 className="mt-2 text-2xl text-slate-900">What You Get Access To</h3>
+              <p className="mt-2 text-sm text-slate-600">
+                Subscribe to unlock comprehensive trading analytics from inside your account settings.
+              </p>
+            </div>
+
+            <div className="mt-6 rounded-xl border border-teal-200 bg-gradient-to-br from-teal-50 to-cyan-50 p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500">
+                  <Calculator className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-xl text-slate-900">Pay-As-You-Go</h4>
+                  <div className="mt-2 flex items-end gap-2">
+                    <span className="text-3xl font-semibold text-slate-900">£10</span>
+                    <span className="pb-1 text-sm text-slate-600">/month</span>
+                  </div>
+                  <p className="mt-1 text-sm text-slate-600">+ £0.20 per trade</p>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {upgradeFeatures.map((feature) => (
+                  <div key={feature} className="flex items-start gap-2 rounded-lg bg-white/80 px-3 py-3 ring-1 ring-teal-100">
+                    <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-teal-600" />
+                    <span className="text-sm text-slate-700">{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button
+                onClick={() => setShowUpgradeModal(false)}
+                className="rounded-lg border border-slate-300 px-5 py-3 text-slate-700 transition-colors hover:bg-slate-50"
+              >
+                Not Now
+              </button>
+              <button
+                onClick={handleUpgradeSubscription}
+                disabled={startingUpgradeCheckout}
+                className="rounded-lg bg-teal-600 px-6 py-3 text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {startingUpgradeCheckout ? "Starting Checkout..." : "Continue to Upgrade"}
               </button>
             </div>
           </div>

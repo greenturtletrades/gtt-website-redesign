@@ -155,11 +155,59 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
           <div className="mb-12">
             <h2 className="text-white text-2xl sm:text-3xl mb-4 text-center">What You Get Access To</h2>
             <p className="text-teal-100 text-center mb-8 max-w-2xl mx-auto">
-              Subscribe to unlock comprehensive trading analytics
+              Start with free account access, then upgrade when you want the full analytics stack.
             </p>
             
-            <div className="max-w-md mx-auto">
-              {/* Pay-As-You-Go Plan */}
+            <div className="grid max-w-5xl gap-6 mx-auto md:grid-cols-2">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+                className="relative rounded-lg p-4 transition-all border border-cyan-300/40 bg-cyan-400/10 backdrop-blur-sm"
+              >
+                <div className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-teal-500 rounded-lg flex items-center justify-center mb-3">
+                  <BookOpen className="w-5 h-5 text-white" />
+                </div>
+
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <h3 className="text-white">Free Account</h3>
+                  <span className="rounded-full border border-cyan-300/40 bg-cyan-400/10 px-3 py-1 text-xs text-cyan-100">
+                    No monthly cost
+                  </span>
+                </div>
+                <div className="mb-3">
+                  <span className="text-2xl font-semibold text-white">£0</span>
+                  <span className="text-slate-300 text-sm">/month</span>
+                  <div className="mt-1">
+                    <span className="text-slate-300 text-sm">Upgrade later when you need ML runs</span>
+                  </div>
+                </div>
+
+                <ul className="space-y-2 mb-4">
+                  <li className="flex items-start gap-2 text-sm">
+                    <Check className="w-4 h-4 text-cyan-300 flex-shrink-0 mt-0.5" />
+                    <span className="text-slate-200">Free account access</span>
+                  </li>
+                  <li className="flex items-start gap-2 text-sm">
+                    <Check className="w-4 h-4 text-cyan-300 flex-shrink-0 mt-0.5" />
+                    <span className="text-slate-200">Trade Journal</span>
+                  </li>
+                  <li className="flex items-start gap-2 text-sm">
+                    <Check className="w-4 h-4 text-cyan-300 flex-shrink-0 mt-0.5" />
+                    <span className="text-slate-200">Account settings and profile management</span>
+                  </li>
+                  <li className="flex items-start gap-2 text-sm">
+                    <Check className="w-4 h-4 text-cyan-300 flex-shrink-0 mt-0.5" />
+                    <span className="text-slate-200">MetaTrader setup preparation</span>
+                  </li>
+                  <li className="flex items-start gap-2 text-sm">
+                    <Check className="w-4 h-4 text-cyan-300 flex-shrink-0 mt-0.5" />
+                    <span className="text-slate-200">Upgrade to ML analytics whenever you are ready</span>
+                  </li>
+                </ul>
+              </motion.div>
+
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
