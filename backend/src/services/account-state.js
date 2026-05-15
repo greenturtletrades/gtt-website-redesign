@@ -161,9 +161,7 @@ function createAccountStateHelpers({
       trades: storedTrades.map(storedTradeToJournalEntry),
       pnlMeta: {
         currency_pnl_available: hasCurrencyPnl,
-        message: hasCurrencyPnl
-          ? null
-          : "These stored trades do not include realised profit/loss fields yet, so the journal is shown in R-multiples until richer trade data is synced.",
+        message: null,
       },
     };
   }

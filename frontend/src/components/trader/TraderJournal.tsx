@@ -382,7 +382,7 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
             </div>
           </div>
 
-          {!hasCurrencyPnl && (
+          {!hasCurrencyPnl && recentEntries.length > 0 && (
             <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
               {pnlMeta?.message || "No position sizing found, so currency profit/loss cannot be calculated for this journal."}
             </div>
