@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, Activity, Target, Clock, AlertTriangle, Zap, RefreshCw, Brain, CheckCircle, Award, Shield, XCircle, Calendar, Percent, BarChart3, TrendingUpDown, Layers, Settings, GitBranch, Filter, BookOpen, Sparkles, Lock, ChevronRight, Maximize2, Minimize2, X, PoundSterling, ChevronDown, ChevronUp, Trash2, Monitor } from "lucide-react";
+import { TrendingUp, TrendingDown, Activity, Target, Clock, AlertTriangle, Zap, RefreshCw, Brain, CheckCircle, Award, Shield, XCircle, Calendar, Percent, BarChart3, TrendingUpDown, Layers, Settings, GitBranch, Filter, BookOpen, Sparkles, Lock, ChevronRight, Maximize2, Minimize2, X, PoundSterling, ChevronDown, ChevronUp, Trash2, Monitor, Check, Calculator } from "lucide-react";
 import { UserType } from "../../App";
 import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Cell, PieChart, Pie, ComposedChart, ReferenceLine } from "recharts";
 import { useState, useEffect, useMemo } from "react";
@@ -9,6 +9,7 @@ import { SettingsPage } from "./SettingsPage";
 import { ApiError, API_BASE, clearStoredToken } from "../../api/client";
 import { deleteAnalysisRun, fetchAnalysisOptions, fetchTradeData, importCsvTradeData, pollAnalysisJob, startAnalysis, startCsvAnalysis, startMt5Analysis } from "../../api/analysis";
 import { fetchAccountState, fetchPersistedAnalysisState, type PersistedAnalysisStateResponse } from "../../api/settings";
+import { createCheckoutSession } from "../../api/subscription";
 
 interface TurtleAnalyticsProps {
   userType: UserType;
@@ -39,6 +40,8 @@ export function TurtleAnalytics({
   const [isFetchingTradeData, setIsFetchingTradeData] = useState(false);
   const [lastRunTime, setLastRunTime] = useState<Date | null>(null);
   const [showRunModelModal, setShowRunModelModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [startingUpgradeCheckout, setStartingUpgradeCheckout] = useState(false);
   const [selectedTradeCount, setSelectedTradeCount] = useState(565);
   const [selectedMonths, setSelectedMonths] = useState(12);
   const [analysisMode, setAnalysisMode] = useState<"trades" | "months" | "csv" | "mt5">("trades");
@@ -75,6 +78,17 @@ export function TurtleAnalytics({
     referralCode: null,
     latestAnalysis: null,
   });
+  const upgradeFeatures = [
+    "£10/month base subscription",
+    "£0.20 per trade analysed",
+    "Access to Turtle Analytics",
+    "Trade Journal",
+    "Full counterfactual analysis",
+    "MFE/MAE analysis",
+    "Market regime clustering",
+    "Trailing stop optimisation",
+    "Email support",
+  ];
 
   const formatAccountMetric = (value: number | null) =>
     value === null || !Number.isFinite(value)
@@ -836,6 +850,26 @@ export function TurtleAnalytics({
     } finally {
       setDeletingRunId(null);
       setDeleteRunPrompt(null);
+    }
+  };
+
+  const handleUpgradeSubscription = async () => {
+    setStartingUpgradeCheckout(true);
+    setModelRunError(null);
+    try {
+      const response = await createCheckoutSession(analysisOptions.referralCode || undefined);
+      if (response.bypass) {
+        window.location.reload();
+        return;
+      }
+      if (response.url) {
+        window.location.assign(response.url);
+        return;
+      }
+      throw new Error("Checkout session did not return a URL.");
+    } catch (error) {
+      setModelRunError(error instanceof Error ? error.message : "Unable to start the upgrade checkout.");
+      setStartingUpgradeCheckout(false);
     }
   };
 
@@ -1930,10 +1964,10 @@ export function TurtleAnalytics({
                   </p>
                   <div className="mt-6 flex justify-center">
                     <button
-                      onClick={() => setShowRunModelModal(true)}
-                      disabled={isRunningModel || isFetchingTradeData}
+                      onClick={() => (mlModelAccessEnabled ? setShowRunModelModal(true) : setShowUpgradeModal(true))}
+                      disabled={isRunningModel || isFetchingTradeData || startingUpgradeCheckout}
                       className={`rounded-lg px-6 py-3 text-white transition-all ${
-                        isRunningModel || isFetchingTradeData
+                        isRunningModel || isFetchingTradeData || startingUpgradeCheckout
                           ? "cursor-not-allowed bg-slate-400"
                           : "bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700"
                       }`}
@@ -1942,7 +1976,9 @@ export function TurtleAnalytics({
                         ? isRunningModel
                           ? "Running Analysis..."
                           : "Run First Analysis"
-                        : "Upgrade Plan"}
+                        : startingUpgradeCheckout
+                          ? "Opening Upgrade..."
+                          : "Upgrade Plan"}
                     </button>
                   </div>
                 </div>
@@ -2886,6 +2922,68 @@ export function TurtleAnalytics({
       )}
 
       {/* Run Model Configuration Modal */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="relative w-full max-w-3xl rounded-xl bg-white p-6 shadow-xl">
+            <button
+              onClick={() => setShowUpgradeModal(false)}
+              className="absolute right-4 top-4 text-slate-400 transition-colors hover:text-slate-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="pr-10">
+              <p className="text-sm uppercase tracking-[0.2em] text-teal-600">Upgrade Plan</p>
+              <h3 className="mt-2 text-2xl text-slate-900">What You Get Access To</h3>
+              <p className="mt-2 text-sm text-slate-600">
+                Subscribe to unlock comprehensive trading analytics from inside your account dashboard.
+              </p>
+            </div>
+
+            <div className="mt-6 rounded-xl border border-teal-200 bg-gradient-to-br from-teal-50 to-cyan-50 p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500">
+                  <Calculator className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-xl text-slate-900">Pay-As-You-Go</h4>
+                  <div className="mt-2 flex items-end gap-2">
+                    <span className="text-3xl font-semibold text-slate-900">£10</span>
+                    <span className="pb-1 text-sm text-slate-600">/month</span>
+                  </div>
+                  <p className="mt-1 text-sm text-slate-600">+ £0.20 per trade</p>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {upgradeFeatures.map((feature) => (
+                  <div key={feature} className="flex items-start gap-2 rounded-lg bg-white/80 px-3 py-3 ring-1 ring-teal-100">
+                    <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-teal-600" />
+                    <span className="text-sm text-slate-700">{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button
+                onClick={() => setShowUpgradeModal(false)}
+                className="rounded-lg border border-slate-300 px-5 py-3 text-slate-700 transition-colors hover:bg-slate-50"
+              >
+                Not Now
+              </button>
+              <button
+                onClick={handleUpgradeSubscription}
+                disabled={startingUpgradeCheckout}
+                className="rounded-lg bg-gradient-to-r from-teal-600 to-cyan-600 px-5 py-3 text-white transition-all hover:from-teal-700 hover:to-cyan-700 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {startingUpgradeCheckout ? "Opening Checkout..." : "Continue to Upgrade"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showRunModelModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-white rounded-xl max-w-2xl w-full my-8 relative">
