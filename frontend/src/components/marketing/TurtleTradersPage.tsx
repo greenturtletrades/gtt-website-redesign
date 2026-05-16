@@ -144,7 +144,6 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
           <div className="mx-auto overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
             <div className="flex flex-col gap-2 border-b border-teal-200 bg-gradient-to-r from-teal-600 to-cyan-600 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-sm text-white">Ranked by verified account data</div>
-              <div className="text-xs uppercase tracking-[0.18em] text-cyan-50">Only opt-in traders with {minimumTradeCount}+ imported trades appear</div>
             </div>
             <div className="flex flex-col gap-3 border-b border-slate-200 bg-white px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="w-full sm:max-w-xs">
