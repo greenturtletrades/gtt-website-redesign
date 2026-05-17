@@ -263,6 +263,7 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
     ? activeEntries.reduce((sum, e) => sum + (e.result ?? 0), 0)
     : null;
   const avgR = activeEntries.length > 0 ? activeEntries.reduce((sum, e) => sum + e.rMultiple, 0) / activeEntries.length : 0;
+  const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0;
 
   // Calculate monthly PnL
   const monthlyPnL = activeEntries.reduce((acc, entry) => {
@@ -353,7 +354,7 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
           </div>
 
           {/* Summary Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             <div className="bg-white border border-teal-200 rounded-lg p-4 shadow-sm">
               <div className="text-slate-600 text-sm mb-1">Total Trades</div>
               <div className="text-teal-600 text-2xl">{totalTrades}</div>
@@ -372,6 +373,12 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
                 totalPnL === null ? "text-slate-500" : totalPnL >= 0 ? "text-teal-600" : "text-red-600"
               }`}>
                 {formatPnl(totalPnL)}
+              </div>
+            </div>
+            <div className="bg-white border border-teal-200 rounded-lg p-4 shadow-sm">
+              <div className="text-slate-600 text-sm mb-1">Win Rate</div>
+              <div className={`text-2xl ${winRate >= 50 ? "text-teal-600" : "text-slate-700"}`}>
+                {winRate.toFixed(1)}%
               </div>
             </div>
             <div className="bg-white border border-teal-200 rounded-lg p-4 shadow-sm">

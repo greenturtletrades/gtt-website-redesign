@@ -245,6 +245,7 @@ function registerPublicRoutes(app, {
           name: row.displayName,
           market: row.market,
           percentilePnl: row.percentilePnl,
+          winRate: typeof row.winRate === "number" ? Number((row.winRate * 100).toFixed(1)) : null,
           riskPerTradePercent: Number(row.averageRiskPercent.toFixed(2)),
           totalTrades: row.totalTrades,
           riskLevel: row.riskLevel,

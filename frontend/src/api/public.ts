@@ -6,6 +6,7 @@ export interface PublicLeaderboardRow {
   name: string;
   market: string;
   percentilePnl: number;
+  winRate: number | null;
   riskPerTradePercent: number;
   totalTrades: number;
   riskLevel: "Low" | "Medium" | "High";
