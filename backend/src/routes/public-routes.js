@@ -95,6 +95,40 @@ function calculateTotalR(trades) {
   return trades.reduce((sum, trade) => sum + calculateTradeRMultiple(trade), 0);
 }
 
+function calculateVerifiedCurrencyPnl(trades) {
+  let hasCurrencyPnl = false;
+
+  const total = trades.reduce((sum, trade) => {
+    const profit = typeof trade.profit === "number" ? trade.profit : 0;
+    const commission = typeof trade.commission === "number" ? trade.commission : 0;
+    const swap = typeof trade.swap === "number" ? trade.swap : 0;
+    const tradeHasCurrencyPnl =
+      typeof trade.profit === "number" ||
+      typeof trade.commission === "number" ||
+      typeof trade.swap === "number";
+
+    if (tradeHasCurrencyPnl) {
+      hasCurrencyPnl = true;
+    }
+
+    return sum + profit + commission + swap;
+  }, 0);
+
+  return hasCurrencyPnl ? total : null;
+}
+
+function normalizeSnapshotWinRate(value) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return null;
+  }
+
+  if (value <= 1) {
+    return value * 100;
+  }
+
+  return value;
+}
+
 function calculatePercentileRanks(values, { descending = true } = {}) {
   if (!values.length) {
     return [];
@@ -162,6 +196,9 @@ function registerPublicRoutes(app, {
               entryPrice: true,
               exitPrice: true,
               stopLoss: true,
+              profit: true,
+              commission: true,
+              swap: true,
               updatedAt: true,
             },
           },
@@ -177,11 +214,13 @@ function registerPublicRoutes(app, {
           const latestSnapshot = user.analysisSnapshots[0] || null;
           const tradeCount = user.storedTrades.length;
           const averageRiskPercent = calculateAverageRiskPercent(user.storedTrades);
+          const verifiedPnl = calculateVerifiedCurrencyPnl(user.storedTrades);
           const totalR = typeof latestSnapshot?.totalR === "number"
             ? latestSnapshot.totalR
             : calculateTotalR(user.storedTrades);
+          const performanceValue = verifiedPnl !== null ? verifiedPnl : totalR;
           const winRate = typeof latestSnapshot?.winRate === "number"
-            ? latestSnapshot.winRate
+            ? normalizeSnapshotWinRate(latestSnapshot.winRate)
             : calculateWinRate(user.storedTrades);
           const latestTradeUpdatedAt = user.storedTrades[0]?.updatedAt || null;
           const lastUpdatedAt = latestSnapshot?.updatedAt || latestTradeUpdatedAt || user.leaderboardPublishedAt || null;
@@ -197,6 +236,8 @@ function registerPublicRoutes(app, {
             totalTrades: tradeCount,
             averageRiskPercent,
             riskLevel: resolveRiskLevel(averageRiskPercent),
+            verifiedPnl,
+            performanceValue,
             totalR,
             winRate,
             lastUpdatedAt: lastUpdatedAt ? lastUpdatedAt.toISOString() : null,
@@ -206,7 +247,7 @@ function registerPublicRoutes(app, {
         .filter(Boolean);
 
       const performancePercentiles = calculatePercentileRanks(
-        eligibleRows.map((row) => ({ id: row.id, value: row.totalR })),
+        eligibleRows.map((row) => ({ id: row.id, value: row.performanceValue })),
         { descending: true },
       );
       const riskScores = calculatePercentileRanks(
@@ -245,7 +286,8 @@ function registerPublicRoutes(app, {
           name: row.displayName,
           market: row.market,
           percentilePnl: row.percentilePnl,
-          winRate: typeof row.winRate === "number" ? Number((row.winRate * 100).toFixed(1)) : null,
+          verifiedPnl: row.verifiedPnl !== null ? Number(row.verifiedPnl.toFixed(2)) : null,
+          winRate: typeof row.winRate === "number" ? Number(row.winRate.toFixed(1)) : null,
           riskPerTradePercent: Number(row.averageRiskPercent.toFixed(2)),
           totalTrades: row.totalTrades,
           riskLevel: row.riskLevel,
