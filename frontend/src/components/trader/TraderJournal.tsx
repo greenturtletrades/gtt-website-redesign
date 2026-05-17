@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Plus, Edit2, Trash2, Search, Calendar, TrendingUp, TrendingDown, BookOpen, Save, X } from "lucide-react";
 import { Activity } from "lucide-react";
 import React from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, LineChart, Line, XAxis, YAxis } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, AreaChart, Area } from "recharts";
 import { updateTradeJournalEntry } from "../../api/trades";
 
 interface JournalEntry {
@@ -387,27 +387,71 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
                   {hasCurrencyPnl ? "Cumulative verified journal P/L" : "Cumulative journal performance in R-multiples"}
                 </div>
               </div>
-              <div className="mt-5 h-36 w-full rounded-lg border border-teal-100 bg-white/70 p-2">
+              <div className="mt-5 h-40 w-full rounded-lg border border-teal-100 bg-white/80 p-3">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={equityCurveData}>
+                  <AreaChart
+                    data={equityCurveData}
+                    margin={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                  >
+                    <defs>
+                      <linearGradient id="journalEquityFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop
+                          offset="0%"
+                          stopColor={(hasCurrencyPnl ? totalPnL ?? 0 : equityCurveData[equityCurveData.length - 1]?.equity ?? 0) >= 0 ? "#14b8a6" : "#f87171"}
+                          stopOpacity={0.28}
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor={(hasCurrencyPnl ? totalPnL ?? 0 : equityCurveData[equityCurveData.length - 1]?.equity ?? 0) >= 0 ? "#14b8a6" : "#f87171"}
+                          stopOpacity={0.02}
+                        />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" vertical={false} />
                     <XAxis dataKey="index" hide />
                     <YAxis hide domain={["auto", "auto"]} />
                     <Tooltip
+                      contentStyle={{
+                        borderRadius: "12px",
+                        border: "1px solid #cbd5e1",
+                        backgroundColor: "#ffffff",
+                      }}
                       formatter={(value: number) => [
                         hasCurrencyPnl ? formatPnl(value) : `${value.toFixed(2)}R`,
                         "Equity",
                       ]}
                       labelFormatter={(label) => `Trade ${label}`}
                     />
+                    <Area
+                      type="monotone"
+                      dataKey="equity"
+                      fill="url(#journalEquityFill)"
+                      stroke="none"
+                    />
                     <Line
                       type="monotone"
                       dataKey="equity"
                       stroke={(hasCurrencyPnl ? totalPnL ?? 0 : equityCurveData[equityCurveData.length - 1]?.equity ?? 0) >= 0 ? "#0d9488" : "#dc2626"}
-                      strokeWidth={3}
-                      dot={false}
-                      activeDot={{ r: 4 }}
+                      strokeWidth={3.5}
+                      dot={(props) => {
+                        const { cx, cy, index } = props;
+                        if (index !== 0 && index !== equityCurveData.length - 1) {
+                          return <></>;
+                        }
+                        return (
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r={4.5}
+                            fill={(hasCurrencyPnl ? totalPnL ?? 0 : equityCurveData[equityCurveData.length - 1]?.equity ?? 0) >= 0 ? "#0d9488" : "#dc2626"}
+                            stroke="#ffffff"
+                            strokeWidth={2}
+                          />
+                        );
+                      }}
+                      activeDot={{ r: 5 }}
                     />
-                  </LineChart>
+                  </AreaChart>
                 </ResponsiveContainer>
               </div>
             </div>
