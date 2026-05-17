@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Mail, Lock, User, Key, Gift, CheckCircle } from "lucide-react";
+import { X, Mail, Lock, User, Gift, CheckCircle } from "lucide-react";
 import { login, register, forgotPassword } from "../../api/auth";
 import { setStoredToken } from "../../api/client";
 
@@ -17,7 +17,7 @@ export function AuthModal({ type, onClose, onComplete, initialMode = "signup" }:
     email: "",
     password: "",
     confirmPassword: "",
-    metaTraderUsername: "",
+    tradingPlatform: "MetaTrader",
     referralCode: ""
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -60,7 +60,7 @@ export function AuthModal({ type, onClose, onComplete, initialMode = "signup" }:
             email: formData.email,
             password: formData.password,
             name: formData.name,
-            metaTraderUsername: formData.metaTraderUsername,
+            brokerName: formData.tradingPlatform,
             referralCode: formData.referralCode,
           })
         : await login(formData.email, formData.password);
@@ -231,18 +231,17 @@ export function AuthModal({ type, onClose, onComplete, initialMode = "signup" }:
           {type === "trader" && isSignUp && (
             <>
               <div>
-                <label className="block text-slate-700 mb-1.5 sm:mb-2 text-sm sm:text-base">MetaTrader ID</label>
-                <div className="relative">
-                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
-                  <input
-                    type="text"
-                    value={formData.metaTraderUsername}
-                    onChange={(e) => setFormData({ ...formData, metaTraderUsername: e.target.value })}
-                    className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm sm:text-base"
-                    placeholder="MetaTrader ID"
-                    required
-                  />
-                </div>
+                <label className="block text-slate-700 mb-1.5 sm:mb-2 text-sm sm:text-base">Trading Platform</label>
+                <select
+                  value={formData.tradingPlatform}
+                  onChange={(e) => setFormData({ ...formData, tradingPlatform: e.target.value })}
+                  className="w-full px-4 py-2.5 sm:py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm sm:text-base bg-white"
+                  required
+                >
+                  <option value="MetaTrader">MetaTrader</option>
+                  <option value="Trading 212">Trading 212</option>
+                  <option value="Other">Other</option>
+                </select>
               </div>
 
               <div>
