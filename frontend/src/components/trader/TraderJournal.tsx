@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Plus, Edit2, Trash2, Search, Calendar, TrendingUp, TrendingDown, BookOpen, Save, X } from "lucide-react";
 import { Activity } from "lucide-react";
 import React from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, LineChart, Line, XAxis, YAxis } from "recharts";
 import { updateTradeJournalEntry } from "../../api/trades";
 
 interface JournalEntry {
@@ -264,6 +264,23 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
     : null;
   const avgR = activeEntries.length > 0 ? activeEntries.reduce((sum, e) => sum + e.rMultiple, 0) / activeEntries.length : 0;
   const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0;
+  const equityCurveData = activeEntries
+    .slice()
+    .sort((a, b) => {
+      const aTime = new Date(`${a.date}T${a.exitTime || a.entryTime || "00:00"}`).getTime();
+      const bTime = new Date(`${b.date}T${b.exitTime || b.entryTime || "00:00"}`).getTime();
+      return aTime - bTime;
+    })
+    .reduce<Array<{ index: number; label: string; equity: number }>>((acc, entry, index) => {
+      const previousEquity = acc.length > 0 ? acc[acc.length - 1].equity : 0;
+      const tradeValue = hasCurrencyPnl ? entry.result ?? 0 : entry.rMultiple;
+      acc.push({
+        index: index + 1,
+        label: entry.date,
+        equity: previousEquity + tradeValue,
+      });
+      return acc;
+    }, []);
 
   // Calculate monthly PnL
   const monthlyPnL = activeEntries.reduce((acc, entry) => {
@@ -353,8 +370,53 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
             </div>
           </div>
 
+          {equityCurveData.length > 0 && (
+            <div className="mb-6 rounded-xl border border-teal-200 bg-gradient-to-br from-white via-teal-50/40 to-cyan-50/60 p-5 shadow-sm">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <div className="text-xs uppercase tracking-[0.18em] text-teal-700">Equity Curve</div>
+                  <div className={`mt-2 text-3xl sm:text-4xl ${
+                    (hasCurrencyPnl ? totalPnL ?? 0 : equityCurveData[equityCurveData.length - 1]?.equity ?? 0) >= 0
+                      ? "text-teal-600"
+                      : "text-red-600"
+                  }`}>
+                    {hasCurrencyPnl
+                      ? formatPnl(totalPnL)
+                      : `${(equityCurveData[equityCurveData.length - 1]?.equity ?? 0).toFixed(2)}R`}
+                  </div>
+                  <div className="mt-2 text-sm text-slate-600">
+                    {hasCurrencyPnl ? "Cumulative verified journal P/L" : "Cumulative journal performance in R-multiples"}
+                  </div>
+                </div>
+                <div className="h-36 w-full lg:max-w-[520px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={equityCurveData}>
+                      <XAxis dataKey="index" hide />
+                      <YAxis hide domain={["auto", "auto"]} />
+                      <Tooltip
+                        formatter={(value: number) => [
+                          hasCurrencyPnl ? formatPnl(value) : `${value.toFixed(2)}R`,
+                          "Equity",
+                        ]}
+                        labelFormatter={(label) => `Trade ${label}`}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="equity"
+                        stroke={(hasCurrencyPnl ? totalPnL ?? 0 : equityCurveData[equityCurveData.length - 1]?.equity ?? 0) >= 0 ? "#0d9488" : "#dc2626"}
+                        strokeWidth={3}
+                        dot={false}
+                        activeDot={{ r: 4 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Summary Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="bg-white border border-teal-200 rounded-lg p-4 shadow-sm">
               <div className="text-slate-600 text-sm mb-1">Total Trades</div>
               <div className="text-teal-600 text-2xl">{totalTrades}</div>
@@ -366,14 +428,6 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
             <div className="bg-white border border-teal-200 rounded-lg p-4 shadow-sm">
               <div className="text-slate-600 text-sm mb-1">Losers</div>
               <div className="text-red-600 text-2xl">{losingTrades}</div>
-            </div>
-            <div className="bg-white border border-teal-200 rounded-lg p-4 shadow-sm">
-              <div className="text-slate-600 text-sm mb-1">Profit / Loss</div>
-              <div className={`text-2xl ${
-                totalPnL === null ? "text-slate-500" : totalPnL >= 0 ? "text-teal-600" : "text-red-600"
-              }`}>
-                {formatPnl(totalPnL)}
-              </div>
             </div>
             <div className="bg-white border border-teal-200 rounded-lg p-4 shadow-sm">
               <div className="text-slate-600 text-sm mb-1">Win Rate</div>
