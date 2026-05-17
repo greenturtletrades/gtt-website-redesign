@@ -331,7 +331,7 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
       {/* Header Section */}
       <div className="w-full bg-white py-8 px-4 sm:px-6 border-b border-slate-200">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
+          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h2 className="text-slate-900 mb-2 text-2xl sm:text-3xl">Trading Journal</h2>
               <p className="text-slate-600 text-base">
@@ -340,7 +340,7 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
                   : "No imported trades yet. Run the analytics model or add your own journal notes to start building your record."}
               </p>
             </div>
-            <div className="bg-teal-50 border border-teal-200 rounded-lg px-4 py-3">
+            <div className="rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 lg:min-w-[260px]">
               <div className="flex items-center gap-2">
                 <Activity className="w-5 h-5 text-teal-600" />
                 <div>
@@ -354,38 +354,42 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
           </div>
 
           {/* Summary Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-            <div className="bg-white border border-teal-200 rounded-lg p-4 shadow-sm">
-              <div className="text-slate-600 text-sm mb-1">Total Trades</div>
-              <div className="text-teal-600 text-2xl">{totalTrades}</div>
-            </div>
-            <div className="bg-white border border-teal-200 rounded-lg p-4 shadow-sm">
-              <div className="text-slate-600 text-sm mb-1">Winners</div>
-              <div className="text-emerald-600 text-2xl">{winningTrades}</div>
-            </div>
-            <div className="bg-white border border-teal-200 rounded-lg p-4 shadow-sm">
-              <div className="text-slate-600 text-sm mb-1">Losers</div>
-              <div className="text-red-600 text-2xl">{losingTrades}</div>
-            </div>
-            <div className="bg-white border border-teal-200 rounded-lg p-4 shadow-sm">
-              <div className="text-slate-600 text-sm mb-1">Profit / Loss</div>
-              <div className={`text-2xl ${
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-12">
+            <div className="col-span-2 rounded-xl border border-teal-200 bg-gradient-to-br from-teal-50 via-white to-cyan-50 p-5 shadow-sm lg:col-span-4">
+              <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Profit / Loss</div>
+              <div className={`mt-2 text-3xl sm:text-4xl ${
                 totalPnL === null ? "text-slate-500" : totalPnL >= 0 ? "text-teal-600" : "text-red-600"
               }`}>
                 {formatPnl(totalPnL)}
               </div>
+              <div className="mt-2 text-sm text-slate-600">
+                {hasCurrencyPnl ? "Verified journal result across imported trades." : "Waiting for richer profit and loss data."}
+              </div>
             </div>
-            <div className="bg-white border border-teal-200 rounded-lg p-4 shadow-sm">
-              <div className="text-slate-600 text-sm mb-1">Win Rate</div>
-              <div className={`text-2xl ${winRate >= 50 ? "text-teal-600" : "text-slate-700"}`}>
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:col-span-2">
+              <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Total Trades</div>
+              <div className="mt-2 text-2xl text-slate-900">{totalTrades}</div>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:col-span-2">
+              <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Winners</div>
+              <div className="mt-2 text-2xl text-emerald-600">{winningTrades}</div>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:col-span-2">
+              <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Losers</div>
+              <div className="mt-2 text-2xl text-red-600">{losingTrades}</div>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:col-span-2">
+              <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Win Rate</div>
+              <div className={`mt-2 text-2xl ${winRate >= 50 ? "text-teal-600" : "text-slate-700"}`}>
                 {winRate.toFixed(1)}%
               </div>
             </div>
-            <div className="bg-white border border-teal-200 rounded-lg p-4 shadow-sm">
-              <div className="text-slate-600 text-sm mb-1">Avg R</div>
-              <div className={`text-2xl ${avgR >= 0 ? "text-teal-600" : "text-red-600"}`}>
+            <div className="col-span-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:col-span-4">
+              <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Avg R</div>
+              <div className={`mt-2 text-2xl ${avgR >= 0 ? "text-teal-600" : "text-red-600"}`}>
                 {avgR.toFixed(2)}
               </div>
+              <div className="mt-2 text-sm text-slate-600">Average outcome per trade in R-multiples.</div>
             </div>
           </div>
 
