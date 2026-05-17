@@ -372,45 +372,43 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
 
           {equityCurveData.length > 0 && (
             <div className="mb-6 rounded-xl border border-teal-200 bg-gradient-to-br from-white via-teal-50/40 to-cyan-50/60 p-5 shadow-sm">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <div>
-                  <div className="text-xs uppercase tracking-[0.18em] text-teal-700">Equity Curve</div>
-                  <div className={`mt-2 text-3xl sm:text-4xl ${
-                    (hasCurrencyPnl ? totalPnL ?? 0 : equityCurveData[equityCurveData.length - 1]?.equity ?? 0) >= 0
-                      ? "text-teal-600"
-                      : "text-red-600"
-                  }`}>
-                    {hasCurrencyPnl
-                      ? formatPnl(totalPnL)
-                      : `${(equityCurveData[equityCurveData.length - 1]?.equity ?? 0).toFixed(2)}R`}
-                  </div>
-                  <div className="mt-2 text-sm text-slate-600">
-                    {hasCurrencyPnl ? "Cumulative verified journal P/L" : "Cumulative journal performance in R-multiples"}
-                  </div>
+              <div>
+                <div className="text-xs uppercase tracking-[0.18em] text-teal-700">Equity Curve</div>
+                <div className={`mt-2 text-3xl sm:text-4xl ${
+                  (hasCurrencyPnl ? totalPnL ?? 0 : equityCurveData[equityCurveData.length - 1]?.equity ?? 0) >= 0
+                    ? "text-teal-600"
+                    : "text-red-600"
+                }`}>
+                  {hasCurrencyPnl
+                    ? formatPnl(totalPnL)
+                    : `${(equityCurveData[equityCurveData.length - 1]?.equity ?? 0).toFixed(2)}R`}
                 </div>
-                <div className="h-36 w-full lg:max-w-[520px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={equityCurveData}>
-                      <XAxis dataKey="index" hide />
-                      <YAxis hide domain={["auto", "auto"]} />
-                      <Tooltip
-                        formatter={(value: number) => [
-                          hasCurrencyPnl ? formatPnl(value) : `${value.toFixed(2)}R`,
-                          "Equity",
-                        ]}
-                        labelFormatter={(label) => `Trade ${label}`}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="equity"
-                        stroke={(hasCurrencyPnl ? totalPnL ?? 0 : equityCurveData[equityCurveData.length - 1]?.equity ?? 0) >= 0 ? "#0d9488" : "#dc2626"}
-                        strokeWidth={3}
-                        dot={false}
-                        activeDot={{ r: 4 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                <div className="mt-2 text-sm text-slate-600">
+                  {hasCurrencyPnl ? "Cumulative verified journal P/L" : "Cumulative journal performance in R-multiples"}
                 </div>
+              </div>
+              <div className="mt-5 h-36 w-full rounded-lg border border-teal-100 bg-white/70 p-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={equityCurveData}>
+                    <XAxis dataKey="index" hide />
+                    <YAxis hide domain={["auto", "auto"]} />
+                    <Tooltip
+                      formatter={(value: number) => [
+                        hasCurrencyPnl ? formatPnl(value) : `${value.toFixed(2)}R`,
+                        "Equity",
+                      ]}
+                      labelFormatter={(label) => `Trade ${label}`}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="equity"
+                      stroke={(hasCurrencyPnl ? totalPnL ?? 0 : equityCurveData[equityCurveData.length - 1]?.equity ?? 0) >= 0 ? "#0d9488" : "#dc2626"}
+                      strokeWidth={3}
+                      dot={false}
+                      activeDot={{ r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </div>
           )}
