@@ -21,6 +21,7 @@ enum BrokerPlatform {
   MT4
   MT5
   CTRADER
+  TRADING212
 }
 
 enum ExperienceLevel {
@@ -92,6 +93,9 @@ model User {
   leaderboardOptIn        Boolean         @default(false)
   leaderboardDisplayName  String?
   leaderboardPublishedAt  DateTime?
+  trading212ApiKeyEncrypted    String?
+  trading212ApiSecretEncrypted String?
+  trading212Environment        String?
 }
 
 model AccountDeletionAudit {

@@ -21,7 +21,7 @@ const { registerPublicRoutes } = require("./routes/public-routes");
 
 const app = express();
 
-const brokerPlatforms = new Set(["MT4", "MT5", "CTRADER"]);
+const brokerPlatforms = new Set(["MT4", "MT5", "CTRADER", "TRADING212"]);
 const experienceLevels = new Set(["BEGINNER", "INTERMEDIATE", "ADVANCED"]);
 const applicationStatuses = new Set(["PENDING", "APPROVED", "REJECTED"]);
 const staffPortalRoles = new Set(["ADMIN"]);
@@ -1317,6 +1317,269 @@ async function syncStoredTradesFromMt(userId, brokerAccountIds, { requestFresh =
   return events;
 }
 
+function getIntegrationEncryptionKey() {
+  const secret = process.env.APP_ENCRYPTION_KEY || process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("APP_ENCRYPTION_KEY or JWT_SECRET is required for encrypted integrations");
+  }
+  return crypto.createHash("sha256").update(secret).digest();
+}
+
+function encryptSecret(value) {
+  if (typeof value !== "string" || !value.trim()) {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", getIntegrationEncryptionKey(), iv);
+  const encrypted = Buffer.concat([cipher.update(trimmedValue, "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return [
+    "v1",
+    iv.toString("base64"),
+    tag.toString("base64"),
+    encrypted.toString("base64"),
+    trimmedValue.slice(-4),
+  ].join(":");
+}
+
+function decryptSecret(payload) {
+  if (typeof payload !== "string" || !payload.trim()) {
+    return "";
+  }
+
+  const [version, ivText, tagText, encryptedText] = payload.split(":");
+  if (version !== "v1" || !ivText || !tagText || !encryptedText) {
+    throw new Error("Invalid encrypted secret payload");
+  }
+
+  const decipher = crypto.createDecipheriv(
+    "aes-256-gcm",
+    getIntegrationEncryptionKey(),
+    Buffer.from(ivText, "base64"),
+  );
+  decipher.setAuthTag(Buffer.from(tagText, "base64"));
+  const decrypted = Buffer.concat([
+    decipher.update(Buffer.from(encryptedText, "base64")),
+    decipher.final(),
+  ]);
+  return decrypted.toString("utf8");
+}
+
+async function fetchTrading212Json(path, { apiKey, apiSecret, environment = "live" }) {
+  const baseUrl =
+    environment === "demo"
+      ? "https://demo.trading212.com"
+      : "https://live.trading212.com";
+  const authHeader = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64");
+  const response = await fetch(`${baseUrl}${path}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Basic ${authHeader}`,
+      Accept: "application/json",
+    },
+  });
+
+  const text = await response.text();
+  let payload = null;
+
+  try {
+    payload = text ? JSON.parse(text) : null;
+  } catch {
+    payload = null;
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      payload?.error || payload?.message || `Trading 212 request failed with ${response.status}`,
+    );
+  }
+
+  return payload;
+}
+
+async function fetchTrading212AccountInfo({ apiKey, apiSecret, environment = "live" }) {
+  return fetchTrading212Json("/api/v0/equity/account/info", {
+    apiKey,
+    apiSecret,
+    environment,
+  });
+}
+
+async function fetchTrading212HistoricalOrders({ apiKey, apiSecret, environment = "live", limit = 50 } = {}) {
+  const items = [];
+  let nextPagePath = `/api/v0/equity/history/orders?limit=${Math.max(1, Math.min(50, Number(limit) || 50))}`;
+  let pageCount = 0;
+
+  while (nextPagePath && pageCount < 200) {
+    const payload = await fetchTrading212Json(nextPagePath, {
+      apiKey,
+      apiSecret,
+      environment,
+    });
+
+    if (Array.isArray(payload?.items)) {
+      items.push(...payload.items);
+    }
+
+    nextPagePath =
+      typeof payload?.nextPagePath === "string" && payload.nextPagePath.trim()
+        ? payload.nextPagePath.trim()
+        : null;
+    pageCount += 1;
+  }
+
+  return items;
+}
+
+function buildTrading212TradesFromHistory(historicalOrders) {
+  if (!Array.isArray(historicalOrders) || historicalOrders.length === 0) {
+    return [];
+  }
+
+  const fills = historicalOrders
+    .map((item, index) => {
+      const order = item?.order && typeof item.order === "object" ? item.order : {};
+      const fill = item?.fill && typeof item.fill === "object" ? item.fill : {};
+      const side = typeof order.side === "string" ? order.side.toUpperCase() : "";
+      const ticker =
+        typeof order.ticker === "string" && order.ticker.trim()
+          ? order.ticker.trim()
+          : typeof order.instrument?.ticker === "string" && order.instrument.ticker.trim()
+            ? order.instrument.ticker.trim()
+            : "";
+      const quantity = Math.abs(Number(fill.quantity ?? order.filledQuantity ?? order.quantity ?? 0));
+      const price = Number(fill.price);
+      const filledAt = typeof fill.filledAt === "string" ? fill.filledAt : order.createdAt;
+
+      if (!side || !ticker || !(quantity > 0) || !Number.isFinite(price) || !filledAt) {
+        return null;
+      }
+
+      const taxTotal = Array.isArray(fill.walletImpact?.taxes)
+        ? fill.walletImpact.taxes.reduce((sum, tax) => sum + (Number(tax?.quantity) || 0), 0)
+        : 0;
+
+      return {
+        orderId: String(order.id ?? index),
+        fillId: String(fill.id ?? index),
+        side,
+        ticker,
+        quantity,
+        price,
+        filledAt,
+        realisedProfitLoss:
+          typeof fill.walletImpact?.realisedProfitLoss === "number"
+            ? fill.walletImpact.realisedProfitLoss
+            : null,
+        taxTotal,
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) => (Date.parse(left.filledAt) || 0) - (Date.parse(right.filledAt) || 0));
+
+  const inventoryByTicker = new Map();
+  const closedTrades = [];
+
+  for (const fill of fills) {
+    const inventory = inventoryByTicker.get(fill.ticker) || [];
+
+    if (fill.side === "BUY") {
+      inventory.push({
+        fillId: fill.fillId,
+        filledAt: fill.filledAt,
+        price: fill.price,
+        remainingQuantity: fill.quantity,
+      });
+      inventoryByTicker.set(fill.ticker, inventory);
+      continue;
+    }
+
+    if (fill.side !== "SELL") {
+      continue;
+    }
+
+    let remainingToMatch = fill.quantity;
+    let matchIndex = 0;
+
+    while (remainingToMatch > 1e-9 && inventory.length > 0) {
+      const entryLot = inventory[0];
+      const matchedQuantity = Math.min(entryLot.remainingQuantity, remainingToMatch);
+      const quantityShare = matchedQuantity / fill.quantity;
+      const fallbackProfit = (fill.price - entryLot.price) * matchedQuantity;
+      const allocatedProfit =
+        typeof fill.realisedProfitLoss === "number"
+          ? fill.realisedProfitLoss * quantityShare
+          : fallbackProfit;
+      const allocatedCommission = fill.taxTotal > 0 ? -fill.taxTotal * quantityShare : null;
+
+      closedTrades.push({
+        trade_id: `${fill.orderId}:${entryLot.fillId}:${matchIndex}`,
+        symbol: fill.ticker,
+        side: "LONG",
+        entry_time: entryLot.filledAt,
+        exit_time: fill.filledAt,
+        entry_price: entryLot.price,
+        exit_price: fill.price,
+        stop_loss: entryLot.price,
+        take_profit: fill.price,
+        volume: matchedQuantity,
+        profit: Number(allocatedProfit.toFixed(6)),
+        commission:
+          typeof allocatedCommission === "number"
+            ? Number(allocatedCommission.toFixed(6))
+            : null,
+        swap: 0,
+        mfe: null,
+        mae: null,
+        raw_source: "trading212_api",
+      });
+
+      entryLot.remainingQuantity -= matchedQuantity;
+      remainingToMatch -= matchedQuantity;
+      matchIndex += 1;
+
+      if (entryLot.remainingQuantity <= 1e-9) {
+        inventory.shift();
+      }
+    }
+
+    inventoryByTicker.set(fill.ticker, inventory);
+  }
+
+  return closedTrades;
+}
+
+async function ensureTrading212BrokerAccount(userId, { accountNumber = "TRADING212" } = {}) {
+  const existing = await prisma.brokerAccount.findFirst({
+    where: {
+      userId,
+      platform: "TRADING212",
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  if (existing?.id) {
+    return existing.id;
+  }
+
+  const created = await prisma.brokerAccount.create({
+    data: {
+      userId,
+      platform: "TRADING212",
+      brokerName: "Trading 212",
+      accountNumber: accountNumber || "TRADING212",
+      label: "Trading 212",
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  return created.id;
+}
+
 const {
   formatReferralCode,
   ensureTraderOwnedReferralCode,
@@ -2290,6 +2553,7 @@ registerIntegrationRoutes(app, {
   buildEaSource,
   buildEaConnectionStatus,
   toIsoOrNull,
+  encryptSecret,
 });
 
 // ---------------------------------------------------------------------------
@@ -2326,6 +2590,11 @@ registerAnalyticsRoutes(app, {
   buildSnapshotReport,
   analysisJobContext,
   analysisDataDeletedMarker: ANALYSIS_DATA_DELETED_MARKER,
+  decryptSecret,
+  fetchTrading212AccountInfo,
+  fetchTrading212HistoricalOrders,
+  buildTrading212TradesFromHistory,
+  ensureTrading212BrokerAccount,
 });
 
 registerPlatformRoutes(app, {

@@ -48,6 +48,15 @@ function createAccountStateHelpers({
           eligibleTradeCount: storedTradeCount,
           minimumTradeCount: 10,
         },
+        trading212: {
+          configured: Boolean(user.trading212ApiKeyEncrypted && user.trading212ApiSecretEncrypted),
+          apiKeyLast4:
+            typeof user.trading212ApiKeyEncrypted === "string" &&
+            user.trading212ApiKeyEncrypted.includes(":")
+              ? user.trading212ApiKeyEncrypted.split(":").pop() || null
+              : null,
+          environment: user.trading212Environment || "live",
+        },
       },
     };
   }

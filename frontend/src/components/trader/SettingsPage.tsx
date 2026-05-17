@@ -30,10 +30,12 @@ import {
   fetchEaStatus,
   fetchApiKeys,
   fetchBrokerAccounts,
+  fetchTrading212Trades,
   revokeApiKey,
   updateLeaderboardPreferences,
   updateBrokerAccount,
   updateProfile,
+  updateTrading212Config,
   type ApiKeyRecord,
   type BillingSummaryResponse,
   type BrokerAccount,
@@ -106,6 +108,15 @@ export function SettingsPage({
   const [deleteReason, setDeleteReason] = useState("");
   const [deleteFeedback, setDeleteFeedback] = useState("");
   const [selectedDataSource, setSelectedDataSource] = useState<"csv" | "metatrader" | "trader212">("metatrader");
+  const [trading212Config, setTrading212Config] = useState({
+    apiKey: "",
+    apiSecret: "",
+    environment: "live" as "live" | "demo",
+    configured: false,
+    apiKeyLast4: null as string | null,
+  });
+  const [savingTrading212, setSavingTrading212] = useState(false);
+  const [fetchingTrading212, setFetchingTrading212] = useState(false);
   const [leaderboardSettings, setLeaderboardSettings] = useState({
     optIn: false,
     displayName: "",
@@ -166,6 +177,13 @@ export function SettingsPage({
         setEaStatus(eaStatusResponse);
         setEaDiagnostics(eaDiagnosticsResponse);
         setBillingSummary(accountState.account.billing);
+        setTrading212Config({
+          apiKey: "",
+          apiSecret: "",
+          environment: accountState.account.trading212?.environment || "live",
+          configured: accountState.account.trading212?.configured || false,
+          apiKeyLast4: accountState.account.trading212?.apiKeyLast4 || null,
+        });
         setLeaderboardSettings({
           optIn: accountState.account.leaderboard?.optIn || false,
           displayName: accountState.account.leaderboard?.displayName || "",
@@ -453,6 +471,60 @@ export function SettingsPage({
     }
   };
 
+  const handleSaveTrading212Config = async () => {
+    const trimmedApiKey = trading212Config.apiKey.trim();
+    const trimmedApiSecret = trading212Config.apiSecret.trim();
+
+    if (!trimmedApiKey || !trimmedApiSecret) {
+      setPageError("Enter both Trading 212 credentials before saving this connection.");
+      return;
+    }
+
+    setSavingTrading212(true);
+    setPageError(null);
+    try {
+      const response = await updateTrading212Config({
+        apiKey: trimmedApiKey,
+        apiSecret: trimmedApiSecret,
+        environment: trading212Config.environment,
+      });
+      setTrading212Config((current) => ({
+        ...current,
+        apiKey: "",
+        apiSecret: "",
+        configured: response.trading212.configured,
+        apiKeyLast4: response.trading212.apiKeyLast4,
+        environment: response.trading212.environment,
+      }));
+      setTransientSuccess(
+        response.trading212.configured ? "Trading 212 connection saved." : "Trading 212 connection removed.",
+      );
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : "Unable to save Trading 212 settings.");
+    } finally {
+      setSavingTrading212(false);
+    }
+  };
+
+  const handleFetchTrading212Data = async () => {
+    setFetchingTrading212(true);
+    setPageError(null);
+    try {
+      const response = await fetchTrading212Trades();
+      const accountState = await fetchAccountState();
+      setLeaderboardSettings((current) => ({
+        ...current,
+        eligibleTradeCount: accountState.account.leaderboard?.eligibleTradeCount || current.eligibleTradeCount,
+        minimumTradeCount: accountState.account.leaderboard?.minimumTradeCount || current.minimumTradeCount,
+      }));
+      setTransientSuccess(response.message);
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : "Unable to fetch Trading 212 data.");
+    } finally {
+      setFetchingTrading212(false);
+    }
+  };
+
   const eaHealthTone = eaStatus?.eaConnected
     ? {
         badge: "Live",
@@ -701,7 +773,7 @@ export function SettingsPage({
                           </p>
                         </div>
 
-                        <div className={`mt-4 rounded-lg border p-4 ${isLeaderboardEligible ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
+                        <div className={`mt-6 rounded-lg border p-4 ${isLeaderboardEligible ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
                           <div className="text-sm text-slate-900">
                             {isLeaderboardEligible
                               ? "This account is eligible for the public leaderboard."
@@ -714,7 +786,7 @@ export function SettingsPage({
                           </p>
                         </div>
 
-                        <div className="mt-5 flex flex-wrap items-center gap-3">
+                        <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
                           <button
                             onClick={handleSaveLeaderboardSettings}
                             disabled={savingLeaderboard}
@@ -1016,7 +1088,8 @@ export function SettingsPage({
                           <div className="text-xs uppercase tracking-[0.18em] text-teal-700">Data Sources</div>
                           <h3 className="mt-2 text-slate-900">Choose your import route</h3>
                           <p className="mt-1 text-sm text-slate-600">
-                            MetaTrader is live today. CSV uploads and Trader212 support are shown here so the settings layout is ready for the next integrations.
+                            Use MetaTrader or Trading 212 to pull trades into the journal, or review the CSV format
+                            needed for manual imports and future integrations.
                           </p>
                         </div>
 
@@ -1033,7 +1106,7 @@ export function SettingsPage({
                             <div className="flex items-center justify-between gap-3">
                               <div className="text-lg text-slate-900">CSV</div>
                               <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] uppercase tracking-[0.16em] text-slate-600">
-                                Planned
+                                Format Guide
                               </span>
                             </div>
                             <p className="mt-3 text-sm leading-relaxed text-slate-600">
@@ -1071,13 +1144,13 @@ export function SettingsPage({
                             }`}
                           >
                             <div className="flex items-center justify-between gap-3">
-                              <div className="text-lg text-slate-900">Trader212</div>
-                              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] uppercase tracking-[0.16em] text-slate-600">
-                                Planned
+                              <div className="text-lg text-slate-900">Trading 212</div>
+                              <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] uppercase tracking-[0.16em] text-emerald-700">
+                                Live
                               </span>
                             </div>
                             <p className="mt-3 text-sm leading-relaxed text-slate-600">
-                              Future broker sync for investors and traders who want journal imports outside MetaTrader.
+                              Connect a Trading 212 account with API keys to import journal data and account history.
                             </p>
                           </button>
                         </div>
@@ -1125,19 +1198,141 @@ export function SettingsPage({
                       )}
 
                       {selectedDataSource === "trader212" && (
-                        <div className="rounded-lg border border-slate-200 bg-white p-6">
-                          <div className="flex flex-wrap items-start justify-between gap-4">
-                            <div>
-                              <h3 className="text-slate-900">Trader212 integration</h3>
-                              <p className="mt-2 max-w-2xl text-sm text-slate-600">
-                                This layout is reserved for the Trader212 import flow. Later this section can hold the
-                                connection instructions, CSV/export rules, and any account-linking steps needed for that
-                                integration.
-                              </p>
+                        <div className="space-y-6">
+                          <div className="rounded-lg border border-slate-200 bg-white p-6">
+                            <div className="flex flex-wrap items-start justify-between gap-4">
+                              <div>
+                                <h3 className="text-slate-900">Trading 212 integration</h3>
+                                <p className="mt-2 max-w-2xl text-sm text-slate-600">
+                                  This import path uses Trading 212 API keys to pull account history into the journal.
+                                  It supports journal imports and core performance tracking, but some richer analytics
+                                  may stay limited compared with MetaTrader trade data.
+                                </p>
+                              </div>
+                              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs uppercase tracking-[0.16em] text-emerald-700">
+                                Live
+                              </span>
                             </div>
-                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs uppercase tracking-[0.16em] text-slate-600">
-                              Planned
-                            </span>
+
+                            <div className="mt-5 grid gap-4 md:grid-cols-2">
+                              <div>
+                                <label className="mb-2 block text-slate-700">Trading 212 API Key</label>
+                                <input
+                                  type="password"
+                                  value={trading212Config.apiKey}
+                                  onChange={(e) =>
+                                    setTrading212Config((current) => ({ ...current, apiKey: e.target.value }))
+                                  }
+                                  className="w-full rounded-lg border border-slate-300 px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                  placeholder={trading212Config.configured ? "Saved key on file" : "Paste your Trading 212 API key"}
+                                />
+                              </div>
+                              <div>
+                                <label className="mb-2 block text-slate-700">Trading 212 API Secret</label>
+                                <input
+                                  type="password"
+                                  value={trading212Config.apiSecret}
+                                  onChange={(e) =>
+                                    setTrading212Config((current) => ({ ...current, apiSecret: e.target.value }))
+                                  }
+                                  className="w-full rounded-lg border border-slate-300 px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                  placeholder={trading212Config.configured ? "Saved secret on file" : "Paste your Trading 212 API secret"}
+                                />
+                              </div>
+                              <div>
+                                <label className="mb-2 block text-slate-700">Environment</label>
+                                <select
+                                  value={trading212Config.environment}
+                                  onChange={(e) =>
+                                    setTrading212Config((current) => ({
+                                      ...current,
+                                      environment: e.target.value === "demo" ? "demo" : "live",
+                                    }))
+                                  }
+                                  className="w-full rounded-lg border border-slate-300 px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                >
+                                  <option value="live">Live</option>
+                                  <option value="demo">Demo</option>
+                                </select>
+                              </div>
+                              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Connection Status</div>
+                                <div className="mt-2 text-sm text-slate-900">
+                                  {trading212Config.configured
+                                    ? `Configured • API key ending ${trading212Config.apiKeyLast4 || "unknown"}`
+                                    : "No Trading 212 API key saved yet"}
+                                </div>
+                                <div className="mt-2 text-sm text-slate-600">
+                                  {trading212Config.environment === "demo"
+                                    ? "Using the Trading 212 demo environment."
+                                    : "Using the Trading 212 live environment."}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="mt-5 flex flex-wrap gap-3">
+                              <button
+                                onClick={handleSaveTrading212Config}
+                                disabled={savingTrading212}
+                                className="rounded-lg bg-teal-600 px-5 py-2 text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
+                              >
+                                {savingTrading212 ? "Saving..." : "Save Trading 212 Connection"}
+                              </button>
+                              <button
+                                onClick={handleFetchTrading212Data}
+                                disabled={fetchingTrading212 || !trading212Config.configured}
+                                className="rounded-lg border border-slate-300 bg-white px-5 py-2 text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70"
+                              >
+                                {fetchingTrading212 ? "Fetching..." : "Fetch Trading 212 Data"}
+                              </button>
+                            </div>
+
+                            <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-relaxed text-slate-700">
+                              Trading 212 imports are designed to populate the journal like the MetaTrader EA path.
+                              Some deeper model fields such as stop loss, take profit, MFE, and MAE may not be
+                              available from the API in the same way, so richer analytics can stay simplified until
+                              that data exists.
+                            </div>
+                          </div>
+
+                          <div className="rounded-lg border border-slate-200 bg-white p-6">
+                            <div className="flex items-start justify-between gap-4">
+                              <div>
+                                <h3 className="text-slate-900">How this import works</h3>
+                                <p className="mt-2 text-sm text-slate-600">
+                                  The backend pairs filled buys and sells from Trading 212 history into closed journal
+                                  trades so this account can store and review them in the same journal experience as EA
+                                  imports.
+                                </p>
+                              </div>
+                              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs uppercase tracking-[0.16em] text-slate-600">
+                                Journal Ready
+                              </span>
+                            </div>
+
+                            <div className="mt-5 grid gap-4 md:grid-cols-3">
+                              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                                <div className="text-sm uppercase tracking-[0.16em] text-slate-500">Imported</div>
+                                <p className="mt-3 text-sm leading-relaxed text-slate-700">
+                                  Filled orders, symbols, entry and exit prices, quantities, timestamps, and realised
+                                  profit/loss.
+                                </p>
+                              </div>
+                              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                                <div className="text-sm uppercase tracking-[0.16em] text-slate-500">Approximated</div>
+                                <p className="mt-3 text-sm leading-relaxed text-slate-700">
+                                  Closed trades are reconstructed from historical fills so the journal can track
+                                  completed positions cleanly.
+                                </p>
+                              </div>
+                              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                                <div className="text-sm uppercase tracking-[0.16em] text-slate-500">Limited</div>
+                                <p className="mt-3 text-sm leading-relaxed text-slate-700">
+                                  Stop loss, take profit, MFE, MAE, and some richer analytics sections may remain
+                                  blank or simplified when the API does not provide those fields.
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       )}

@@ -26,6 +26,11 @@ function registerAnalyticsRoutes(app, {
   buildSnapshotReport,
   analysisJobContext,
   analysisDataDeletedMarker,
+  decryptSecret,
+  fetchTrading212AccountInfo,
+  fetchTrading212HistoricalOrders,
+  buildTrading212TradesFromHistory,
+  ensureTrading212BrokerAccount,
 }) {
   function normalizeTradeIdentityList(values) {
     if (!Array.isArray(values)) {
@@ -390,6 +395,87 @@ function registerAnalyticsRoutes(app, {
           persistSummary.stored > 0
             ? `Imported ${persistSummary.stored} new trade${persistSummary.stored === 1 ? "" : "s"} into your journal.`
             : "This CSV did not add any new trades, but your journal has been refreshed.",
+        analysisOptions,
+        trades: accountState.trades,
+        pnlMeta: accountState.pnlMeta,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  app.post("/api/trades/fetch/trading212", authRequired, async (req, res, next) => {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: req.user.id },
+        select: {
+          trading212ApiKeyEncrypted: true,
+          trading212ApiSecretEncrypted: true,
+          trading212Environment: true,
+        },
+      });
+
+      if (!user?.trading212ApiKeyEncrypted || !user?.trading212ApiSecretEncrypted) {
+        return res.status(400).json({
+          ok: false,
+          error: "Save your Trading 212 API key and secret in Settings before importing journal data.",
+        });
+      }
+
+      const apiKey = decryptSecret(user.trading212ApiKeyEncrypted);
+      const apiSecret = decryptSecret(user.trading212ApiSecretEncrypted);
+      const environment = user.trading212Environment === "demo" ? "demo" : "live";
+
+      const [accountInfo, historicalOrders, tradeCountBefore] = await Promise.all([
+        fetchTrading212AccountInfo({ apiKey, apiSecret, environment }),
+        fetchTrading212HistoricalOrders({ apiKey, apiSecret, environment }),
+        prisma.storedTrade.count({ where: { userId: req.user.id } }),
+      ]);
+
+      const brokerAccountId = await ensureTrading212BrokerAccount(req.user.id, {
+        accountNumber: accountInfo?.id ? String(accountInfo.id) : "TRADING212",
+      });
+      const parsedTrades = buildTrading212TradesFromHistory(historicalOrders);
+      const persistSummary = await persistTradesToMemory(req.user.id, parsedTrades, {
+        brokerAccountId,
+        source: "trading212_api",
+        seenAt: new Date(),
+      });
+      const analysisOptions = await buildAnalysisOptionsPayload(req.user.id, {
+        requestFresh: false,
+        syncStoredTrades: false,
+      });
+      const accountState = await buildAccountStatePayload(req.user.id);
+      const tradeCountAfter = Array.isArray(accountState.trades)
+        ? accountState.trades.length
+        : tradeCountBefore;
+      const importedTradeCount = Math.max(0, tradeCountAfter - tradeCountBefore);
+
+      await prisma.analysisRun.create({
+        data: {
+          userId: req.user.id,
+          status: "COMPLETED",
+          mode: "journal_trading212_import",
+          requestedTrades: historicalOrders.length,
+          tradesAnalysed: importedTradeCount,
+          cost: 0,
+          periodDescription:
+            importedTradeCount > 0
+              ? `Imported ${importedTradeCount} trade${importedTradeCount === 1 ? "" : "s"} from Trading 212`
+              : "Refreshed Trading 212 journal data",
+          completedAt: new Date(),
+        },
+      });
+
+      return res.json({
+        ok: true,
+        importedTradeCount,
+        duplicateTradeCount: persistSummary.updated,
+        invalidTradeCount: persistSummary.invalid,
+        message:
+          importedTradeCount > 0
+            ? `Imported ${importedTradeCount} trade${importedTradeCount === 1 ? "" : "s"} from Trading 212 into your journal.`
+            : "No new closed Trading 212 trades were imported, but your journal has been refreshed.",
         analysisOptions,
         trades: accountState.trades,
         pnlMeta: accountState.pnlMeta,

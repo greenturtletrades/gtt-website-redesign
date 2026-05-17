@@ -12,6 +12,7 @@ function registerIntegrationRoutes(app, {
   buildEaSource,
   buildEaConnectionStatus,
   toIsoOrNull,
+  encryptSecret,
 }) {
   app.post("/api/broker-accounts", authRequired, async (req, res, next) => {
     try {
@@ -220,6 +221,53 @@ function registerIntegrationRoutes(app, {
       }
 
       return res.json({ ok: true });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  app.patch("/api/trading212/config", authRequired, async (req, res, next) => {
+    try {
+      const environment = req.body?.environment === "demo" ? "demo" : "live";
+      const apiKey = typeof req.body?.apiKey === "string" ? req.body.apiKey.trim() : "";
+      const apiSecret = typeof req.body?.apiSecret === "string" ? req.body.apiSecret.trim() : "";
+      const clearConfig = !apiKey && !apiSecret;
+
+      if (!clearConfig && (!apiKey || !apiSecret)) {
+        return res.status(400).json({
+          ok: false,
+          error: "Both Trading 212 API key and API secret are required.",
+        });
+      }
+
+      const updated = await prisma.user.update({
+        where: { id: req.user.id },
+        data: clearConfig
+          ? {
+              trading212ApiKeyEncrypted: null,
+              trading212ApiSecretEncrypted: null,
+              trading212Environment: null,
+            }
+          : {
+              trading212ApiKeyEncrypted: encryptSecret(apiKey),
+              trading212ApiSecretEncrypted: encryptSecret(apiSecret),
+              trading212Environment: environment,
+            },
+        select: {
+          trading212ApiKeyEncrypted: true,
+          trading212ApiSecretEncrypted: true,
+          trading212Environment: true,
+        },
+      });
+
+      return res.json({
+        ok: true,
+        trading212: {
+          configured: Boolean(updated.trading212ApiKeyEncrypted && updated.trading212ApiSecretEncrypted),
+          apiKeyLast4: clearConfig ? null : apiKey.slice(-4),
+          environment: updated.trading212Environment || "live",
+        },
+      });
     } catch (err) {
       return next(err);
     }

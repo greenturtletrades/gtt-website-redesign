@@ -3,7 +3,7 @@ import type { AuthUser } from "./auth";
 
 export interface BrokerAccount {
   id: string;
-  platform: "MT4" | "MT5" | "CTRADER";
+  platform: "MT4" | "MT5" | "CTRADER" | "TRADING212";
   brokerName: string | null;
   accountNumber: string;
   label: string | null;
@@ -156,6 +156,11 @@ export interface AccountStateResponse {
       eligibleTradeCount: number;
       minimumTradeCount: number;
     } | null;
+    trading212?: {
+      configured: boolean;
+      apiKeyLast4: string | null;
+      environment: "live" | "demo";
+    } | null;
     ownReferralCode?: {
       id: string;
       code: string;
@@ -208,6 +213,28 @@ export interface PersistedAnalysisStateResponse {
     deletedData?: boolean;
     status: string;
   }>;
+  trades: unknown[];
+  pnlMeta: {
+    currency_pnl_available: boolean;
+    message: string | null;
+  };
+}
+
+export interface Trading212ConfigResponse {
+  ok: boolean;
+  trading212: {
+    configured: boolean;
+    apiKeyLast4: string | null;
+    environment: "live" | "demo";
+  };
+}
+
+export interface TradeImportResponse {
+  ok: boolean;
+  importedTradeCount: number;
+  duplicateTradeCount?: number;
+  invalidTradeCount?: number;
+  message: string;
   trades: unknown[];
   pnlMeta: {
     currency_pnl_available: boolean;
@@ -325,4 +352,16 @@ export function fetchPersistedAnalysisState() {
 
 export function createBillingPortalSession() {
   return apiPost<{ ok: boolean; url: string }>("/api/billing/portal-session", {});
+}
+
+export function updateTrading212Config(input: {
+  apiKey?: string;
+  apiSecret?: string;
+  environment?: "live" | "demo";
+}) {
+  return apiPatch<Trading212ConfigResponse>("/api/trading212/config", input);
+}
+
+export function fetchTrading212Trades() {
+  return apiPost<TradeImportResponse>("/api/trades/fetch/trading212", {});
 }
