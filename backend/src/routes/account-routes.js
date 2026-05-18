@@ -51,6 +51,15 @@ function registerAccountRoutes(app, {
     return typeof value === "string" && value.trim() ? value.trim() : null;
   }
 
+  function getAppUrl() {
+    return (
+      normalizeOptionalTrimmedString(env.APP_URL) ||
+      normalizeOptionalTrimmedString(env.FRONTEND_URL) ||
+      normalizeOptionalTrimmedString(env.PUBLIC_FRONTEND_URL) ||
+      "http://localhost:5173"
+    );
+  }
+
   async function buildPendingMlChargeSummary(userId, user) {
     const outstandingMlCharges = await prisma.analysisRun.aggregate({
       where: {
@@ -404,7 +413,7 @@ function registerAccountRoutes(app, {
           data: { passwordResetToken: tokenHash, passwordResetExpiresAt: expiresAt },
         });
 
-        const appUrl = env.APP_URL || "http://localhost:5173";
+        const appUrl = getAppUrl();
         const resetUrl = `${appUrl}?reset=${rawToken}`;
 
         return sendEmail({

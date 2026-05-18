@@ -29,6 +29,19 @@ function registerAdminRoutes(app, {
     return typeof email === "string" ? email.trim().toLowerCase() : "";
   }
 
+  function normalizeOptionalTrimmedString(value) {
+    return typeof value === "string" && value.trim() ? value.trim() : null;
+  }
+
+  function getAppUrl() {
+    return (
+      normalizeOptionalTrimmedString(env.APP_URL) ||
+      normalizeOptionalTrimmedString(env.FRONTEND_URL) ||
+      normalizeOptionalTrimmedString(env.PUBLIC_FRONTEND_URL) ||
+      "http://localhost:5173"
+    );
+  }
+
   function buildGroupedSignupItems(items, reviewsByEmail) {
     return Array.from(
       items.reduce((map, item) => {
@@ -694,7 +707,7 @@ function registerAdminRoutes(app, {
         data: { passwordResetToken: tokenHash, passwordResetExpiresAt: expiresAt },
       });
 
-      const appUrl = env.APP_URL || "http://localhost:5173";
+      const appUrl = getAppUrl();
       const resetUrl = `${appUrl}?reset=${rawToken}`;
 
       await sendEmail({

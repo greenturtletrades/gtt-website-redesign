@@ -50,19 +50,22 @@ require.cache[prismaPath] = {
   exports: { prisma: prismaMock },
 };
 
+let sendEmailImpl = async () => ({ ok: true });
+
 const emailPath = require.resolve("./services/email");
 require.cache[emailPath] = {
   id: emailPath,
   filename: emailPath,
   loaded: true,
   exports: {
-    sendEmail: async () => ({ ok: true }),
+    sendEmail: (...args) => sendEmailImpl(...args),
   },
 };
 
 const app = require("./app");
 
 function resetPrisma() {
+  sendEmailImpl = async () => ({ ok: true });
   prismaMock.user.findMany = async () => [];
   prismaMock.user.findFirst = async () => null;
   prismaMock.user.findUnique = async () => null;
@@ -455,6 +458,50 @@ test("POST /api/auth/forgot-password stores reset token for existing trader and 
       "expiry should be in the future"
     );
   });
+});
+
+test("POST /api/auth/forgot-password uses FRONTEND_URL when APP_URL is unset", async () => {
+  const originalAppUrl = process.env.APP_URL;
+  const originalFrontendUrl = process.env.FRONTEND_URL;
+  const originalPublicFrontendUrl = process.env.PUBLIC_FRONTEND_URL;
+  const sentEmails = [];
+
+  process.env.APP_URL = "";
+  process.env.FRONTEND_URL = "https://app.greenturtletrades.test";
+  process.env.PUBLIC_FRONTEND_URL = "";
+
+  sendEmailImpl = async (payload) => {
+    sentEmails.push(payload);
+    return { ok: true };
+  };
+
+  prismaMock.user.findUnique = async ({ where }) => {
+    if (where.email === "trader@gtt.local") {
+      return { id: "user-1", email: "trader@gtt.local", role: "TRADER" };
+    }
+    return null;
+  };
+  prismaMock.user.update = async () => ({});
+
+  try {
+    await withServer(async (server) => {
+      const response = await request(server, "/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "trader@gtt.local" }),
+      });
+
+      assert.equal(response.status, 200);
+      assert.equal(response.body.ok, true);
+    });
+
+    assert.equal(sentEmails.length, 1);
+    assert.match(sentEmails[0].text, /https:\/\/app\.greenturtletrades\.test\?reset=/);
+  } finally {
+    process.env.APP_URL = originalAppUrl;
+    process.env.FRONTEND_URL = originalFrontendUrl;
+    process.env.PUBLIC_FRONTEND_URL = originalPublicFrontendUrl;
+  }
 });
 
 // ---------------------------------------------------------------------------
