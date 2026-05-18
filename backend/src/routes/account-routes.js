@@ -376,6 +376,62 @@ function registerAccountRoutes(app, {
     }
   });
 
+  app.post("/api/admin/forgot-password", rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    keyPrefix: "admin-forgot-password",
+    message: "Too many password reset requests. Please try again later.",
+  }), async (req, res, next) => {
+    try {
+      const { email } = req.body || {};
+      if (!email || typeof email !== "string") {
+        return res.status(400).json({ ok: false, error: "Email is required" });
+      }
+
+      const normalizedEmail = email.trim().toLowerCase();
+      const adminUser = await prisma.user.findFirst({
+        where: {
+          email: normalizedEmail,
+          role: {
+            in: Array.from(staffPortalRoles),
+          },
+        },
+        select: { id: true, email: true, status: true },
+      });
+
+      if (adminUser && adminUser.status !== "DISABLED") {
+        const rawToken = crypto.randomBytes(32).toString("hex");
+        const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+        await prisma.user.update({
+          where: { id: adminUser.id },
+          data: { passwordResetToken: tokenHash, passwordResetExpiresAt: expiresAt },
+        });
+
+        const appUrl = getAppUrl().replace(/\/+$/, "");
+        const resetUrl = `${appUrl}/admin?reset=${rawToken}&resetRole=admin`;
+
+        return sendEmail({
+          to: adminUser.email,
+          subject: "Reset your Green Turtle Trades admin password",
+          html: `
+            <p>Hi,</p>
+            <p>We received a request to reset your admin password. Click the link below to choose a new one:</p>
+            <p><a href="${resetUrl}">${resetUrl}</a></p>
+            <p>This link expires in 1 hour. If you didn't request a reset, you can safely ignore this email.</p>
+            <p>Green Turtle Trades</p>
+          `,
+          text: `Reset your admin password: ${resetUrl}\n\nThis link expires in 1 hour.`,
+        }).catch(() => {}).then(() => res.json({ ok: true }));
+      }
+
+      return res.json({ ok: true });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
   app.post("/api/auth/logout", authRequired, async (req, res, next) => {
     try {
       clearSessionCookie(res);

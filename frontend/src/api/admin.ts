@@ -205,6 +205,10 @@ export function adminLogin(email: string, password: string) {
   return apiPost<AdminLoginResponse>("/api/admin/login", { email, password });
 }
 
+export function adminForgotPassword(email: string) {
+  return apiPost<{ ok: boolean }>("/api/admin/forgot-password", { email });
+}
+
 export function inviteAdmin(email: string, temporaryCode: string, accessLevel: "admin" | "super_admin" = "admin") {
   return apiPost<{ ok: boolean; staffMember: AdminStaffMember }>("/api/admin/staff/invite", {
     email,

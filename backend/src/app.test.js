@@ -504,6 +504,69 @@ test("POST /api/auth/forgot-password uses FRONTEND_URL when APP_URL is unset", a
   }
 });
 
+test("POST /api/admin/forgot-password returns 400 when email is missing", async () => {
+  await withServer(async (server) => {
+    const response = await request(server, "/api/admin/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+
+    assert.equal(response.status, 400);
+    assert.equal(response.body.ok, false);
+  });
+});
+
+test("POST /api/admin/forgot-password stores reset token for existing admin and sends admin reset URL", async () => {
+  const originalAppUrl = process.env.APP_URL;
+  const originalFrontendUrl = process.env.FRONTEND_URL;
+  const originalPublicFrontendUrl = process.env.PUBLIC_FRONTEND_URL;
+  const sentEmails = [];
+  const updatedData = {};
+
+  process.env.APP_URL = "https://app.greenturtletrades.test";
+  process.env.FRONTEND_URL = "";
+  process.env.PUBLIC_FRONTEND_URL = "";
+
+  sendEmailImpl = async (payload) => {
+    sentEmails.push(payload);
+    return { ok: true };
+  };
+
+  prismaMock.user.findFirst = async ({ where }) => {
+    if (where.email === "admin@gtt.local") {
+      return { id: "admin-1", email: "admin@gtt.local", status: "ACTIVE" };
+    }
+    return null;
+  };
+  prismaMock.user.update = async ({ data }) => {
+    Object.assign(updatedData, data);
+    return {};
+  };
+
+  try {
+    await withServer(async (server) => {
+      const response = await request(server, "/api/admin/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "admin@gtt.local" }),
+      });
+
+      assert.equal(response.status, 200);
+      assert.equal(response.body.ok, true);
+    });
+
+    assert.ok(updatedData.passwordResetToken, "should store a hashed reset token");
+    assert.ok(updatedData.passwordResetExpiresAt instanceof Date, "should set a reset expiry");
+    assert.equal(sentEmails.length, 1);
+    assert.match(sentEmails[0].text, /https:\/\/app\.greenturtletrades\.test\/admin\?reset=.*resetRole=admin/);
+  } finally {
+    process.env.APP_URL = originalAppUrl;
+    process.env.FRONTEND_URL = originalFrontendUrl;
+    process.env.PUBLIC_FRONTEND_URL = originalPublicFrontendUrl;
+  }
+});
+
 // ---------------------------------------------------------------------------
 // PATCH /api/admin/traders/:id/status
 // ---------------------------------------------------------------------------
