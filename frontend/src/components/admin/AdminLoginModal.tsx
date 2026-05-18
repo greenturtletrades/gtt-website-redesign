@@ -13,6 +13,7 @@ export function AdminLoginModal({ onClose, onSuccess }: AdminLoginModalProps) {
     email: "",
     password: "",
   });
+  const [showRecoveryHelp, setShowRecoveryHelp] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [mustChangePassword, setMustChangePassword] = useState(false);
@@ -146,6 +147,25 @@ export function AdminLoginModal({ onClose, onSuccess }: AdminLoginModalProps) {
                     />
                   </div>
                 </div>
+
+                <div className="text-right -mt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowRecoveryHelp((current) => !current);
+                      setError("");
+                    }}
+                    className="text-teal-600 text-xs hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+
+                {showRecoveryHelp && (
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                    Admin password reset is not self-service yet. Contact a super admin to issue a new temporary admin code.
+                  </div>
+                )}
               </>
             )}
 
