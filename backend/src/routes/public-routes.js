@@ -74,7 +74,7 @@ function classifySymbolMarket(symbol) {
   return "Stocks";
 }
 
-function resolveDominantMarket(trades) {
+function resolveMarketSummary(trades) {
   const counts = new Map();
 
   for (const trade of trades) {
@@ -83,7 +83,18 @@ function resolveDominantMarket(trades) {
   }
 
   const sortedMarkets = [...counts.entries()].sort((left, right) => right[1] - left[1]);
-  return sortedMarkets[0]?.[0] || "Mixed";
+  if (sortedMarkets.length === 0) {
+    return "Mixed";
+  }
+
+  if (sortedMarkets.length === 1) {
+    return sortedMarkets[0][0];
+  }
+
+  const primaryMarkets = sortedMarkets.slice(0, 2).map(([market]) => market);
+  return sortedMarkets.length > 2
+    ? `${primaryMarkets.join(" + ")} + More`
+    : primaryMarkets.join(" + ");
 }
 
 function calculateWinRate(trades) {
@@ -105,6 +116,27 @@ function calculateAverageR(totalR, totalTrades) {
   }
 
   return totalR / totalTrades;
+}
+
+function calculateProfitFactor(trades) {
+  const rValues = trades
+    .map((trade) => calculateTradeRMultiple(trade))
+    .filter((value) => typeof value === "number" && Number.isFinite(value));
+
+  const grossProfit = rValues.filter((value) => value > 0).reduce((sum, value) => sum + value, 0);
+  const grossLoss = Math.abs(
+    rValues.filter((value) => value < 0).reduce((sum, value) => sum + value, 0)
+  );
+
+  if (!(grossProfit > 0) && !(grossLoss > 0)) {
+    return null;
+  }
+
+  if (!(grossLoss > 0)) {
+    return Infinity;
+  }
+
+  return grossProfit / grossLoss;
 }
 
 function calculateVerifiedCurrencyPnl(trades) {
@@ -231,6 +263,7 @@ function registerPublicRoutes(app, {
             ? latestSnapshot.totalR
             : calculateTotalR(user.storedTrades);
           const averageR = calculateAverageR(totalR, tradeCount);
+          const profitFactor = calculateProfitFactor(user.storedTrades);
           const winRate = typeof latestSnapshot?.winRate === "number"
             ? normalizeSnapshotWinRate(latestSnapshot.winRate)
             : calculateWinRate(user.storedTrades);
@@ -244,13 +277,14 @@ function registerPublicRoutes(app, {
           return {
             id: user.id,
             displayName: user.leaderboardDisplayName || fallbackName || "Trader",
-            market: resolveDominantMarket(user.storedTrades),
+            market: resolveMarketSummary(user.storedTrades),
             totalTrades: tradeCount,
             averageRiskPercent,
             riskLevel: resolveRiskLevel(averageRiskPercent),
             verifiedPnl,
             totalR,
             averageR,
+            profitFactor,
             winRate,
             lastUpdatedAt: lastUpdatedAt ? lastUpdatedAt.toISOString() : null,
             source: latestSnapshot ? "analysis" : "journal",
@@ -317,7 +351,13 @@ function registerPublicRoutes(app, {
           riskPerTradePercent:
             typeof row.averageRiskPercent === "number" ? Number(row.averageRiskPercent.toFixed(2)) : null,
           totalTrades: row.totalTrades,
-          avgRMultiple: typeof row.averageR === "number" ? Number(row.averageR.toFixed(2)) : null,
+          expectancyR: typeof row.averageR === "number" ? Number(row.averageR.toFixed(2)) : null,
+          profitFactor:
+            row.profitFactor === Infinity
+              ? null
+              : typeof row.profitFactor === "number" && Number.isFinite(row.profitFactor)
+                ? Number(row.profitFactor.toFixed(2))
+                : null,
           riskLevel: row.riskLevel,
           lastUpdatedAt: row.lastUpdatedAt,
           source: row.source,

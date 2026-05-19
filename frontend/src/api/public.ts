@@ -10,7 +10,8 @@ export interface PublicLeaderboardRow {
   winRate: number | null;
   riskPerTradePercent: number | null;
   totalTrades: number;
-  avgRMultiple: number | null;
+  expectancyR: number | null;
+  profitFactor: number | null;
   riskLevel: "Low" | "Medium" | "High" | "N/A";
   lastUpdatedAt: string | null;
   source: "analysis" | "journal";

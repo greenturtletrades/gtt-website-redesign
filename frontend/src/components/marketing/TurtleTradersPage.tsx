@@ -24,9 +24,9 @@ const scoringModel = [
     detail: "A larger verified trade sample gives more confidence in the result. This helps prevent a trader from ranking highly based on only a small number of successful trades.",
   },
   {
-    name: "Avg R",
+    name: "Expectancy",
     weight: "15%",
-    detail: "Average R summarises how much each trade returns relative to its risk. It is useful because it compares traders on trade quality rather than raw account size.",
+    detail: "Expectancy is the average R-multiple per trade. It shows the average edge a trader produces each time they take risk, which makes it a strong measure of trade quality over time.",
   },
 ];
 
@@ -62,12 +62,20 @@ function formatWinRate(value: number | null) {
   return `${value.toFixed(1)}%`;
 }
 
-function formatAvgR(value: number | null) {
+function formatExpectancy(value: number | null) {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return "N/A";
   }
 
   return `${value.toFixed(2)}R`;
+}
+
+function formatProfitFactor(value: number | null) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "N/A";
+  }
+
+  return value.toFixed(2);
 }
 
 function formatRelativeTimestamp(value: string | null) {
@@ -202,7 +210,7 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                     <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Win Rate</th>
                     <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Risk Per Trade</th>
                     <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Total Trades</th>
-                    <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Avg R</th>
+                    <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Expectancy</th>
                     <th className="px-5 py-4 text-center text-[11px] uppercase tracking-[0.2em] text-slate-600">Risk Level</th>
                     <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Last Updated</th>
                   </tr>
@@ -250,13 +258,11 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                       </td>
                       <td className="px-5 py-4 text-right">
                         <div className="text-sm font-semibold tabular-nums text-slate-950">{formatWinRate(trader.winRate)}</div>
-                        {typeof trader.percentilePnl === "number" ? (
-                          <div className="text-[11px] text-slate-500">P&amp;L percentile {trader.percentilePnl}%</div>
-                        ) : null}
+                        <div className="text-[11px] text-slate-500">Profit factor {formatProfitFactor(trader.profitFactor)}</div>
                       </td>
                       <td className="px-5 py-4 text-right text-sm font-medium tabular-nums text-slate-950">{formatRiskPercent(trader.riskPerTradePercent)}</td>
                       <td className="px-5 py-4 text-right text-sm font-medium tabular-nums text-slate-950">{trader.totalTrades}</td>
-                      <td className="px-5 py-4 text-right text-sm font-medium tabular-nums text-slate-950">{formatAvgR(trader.avgRMultiple)}</td>
+                      <td className="px-5 py-4 text-right text-sm font-medium tabular-nums text-slate-950">{formatExpectancy(trader.expectancyR)}</td>
                       <td className="px-5 py-4 text-center">
                         <span className={`rounded-full px-3 py-1 text-xs font-medium ${riskPillClass(trader.riskLevel)}`}>
                           {trader.riskLevel}
@@ -300,7 +306,7 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
             </div>
 
             <div className="mt-6 rounded-2xl border border-teal-200 bg-teal-50 px-5 py-4 text-sm leading-relaxed text-slate-700">
-              In practice, this means the strongest traders are not simply the ones showing the biggest headline gain. The better rank goes to the trader combining win rate, trade quality, meaningful sample size, and controlled risk. When verified currency P&amp;L data exists, we can also show it quietly as extra context, but the board does not depend on it.
+              In practice, this means the strongest traders are not simply the ones showing the biggest headline gain. The better rank goes to the trader combining win rate, expectancy, meaningful sample size, and controlled risk. Profit factor is shown as extra context because it helps explain how efficiently a trader converts wins versus losses.
             </div>
           </div>
         </div>

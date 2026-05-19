@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Edit2, Trash2, Search, Calendar, TrendingUp, TrendingDown, BookOpen, Save, X } from "lucide-react";
+import { Plus, Edit2, Trash2, Search, Calendar, TrendingUp, TrendingDown, BookOpen, Save, X, Activity } from "lucide-react";
 import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, AreaChart, Area } from "recharts";
 import { updateTradeJournalEntry } from "../../api/trades";
@@ -116,6 +116,7 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [journalView, setJournalView] = useState<"journal" | "stats">("journal");
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -327,6 +328,68 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
     .map(([pair, count]) => ({ pair, count }));
+  const totalWinningR = activeEntries
+    .filter((entry) => entry.rMultiple > 0)
+    .reduce((sum, entry) => sum + entry.rMultiple, 0);
+  const totalLosingRAbs = Math.abs(
+    activeEntries
+      .filter((entry) => entry.rMultiple < 0)
+      .reduce((sum, entry) => sum + entry.rMultiple, 0)
+  );
+  const profitFactor =
+    totalWinningR <= 0 && totalLosingRAbs <= 0
+      ? null
+      : totalLosingRAbs <= 0
+        ? null
+        : totalWinningR / totalLosingRAbs;
+  const averageWinnerR = winningTrades > 0 ? totalWinningR / winningTrades : null;
+  const averageLoserR = losingTrades > 0 ? totalLosingRAbs / losingTrades : null;
+  const payoffRatio =
+    averageWinnerR !== null && averageLoserR !== null && averageLoserR > 0
+      ? averageWinnerR / averageLoserR
+      : null;
+  const bestTrade = activeEntries.reduce<JournalEntry | null>((best, entry) => {
+    if (!best || entry.rMultiple > best.rMultiple) return entry;
+    return best;
+  }, null);
+  const worstTrade = activeEntries.reduce<JournalEntry | null>((worst, entry) => {
+    if (!worst || entry.rMultiple < worst.rMultiple) return entry;
+    return worst;
+  }, null);
+  const longTrades = activeEntries.filter((entry) => entry.direction === "long").length;
+  const shortTrades = activeEntries.filter((entry) => entry.direction === "short").length;
+  const bestMonth = monthlyData.reduce<(typeof monthlyData)[number] | null>((best, month) => {
+    if (!best || month.avgR > best.avgR) return month;
+    return best;
+  }, null);
+  const worstMonth = monthlyData.reduce<(typeof monthlyData)[number] | null>((worst, month) => {
+    if (!worst || month.avgR < worst.avgR) return month;
+    return worst;
+  }, null);
+  let currentWinStreak = 0;
+  let currentLossStreak = 0;
+  let maxWinStreak = 0;
+  let maxLossStreak = 0;
+  for (const entry of activeEntries
+    .slice()
+    .sort((a, b) => {
+      const aTime = new Date(`${a.date}T${a.exitTime || a.entryTime || "00:00"}`).getTime();
+      const bTime = new Date(`${b.date}T${b.exitTime || b.entryTime || "00:00"}`).getTime();
+      return aTime - bTime;
+    })) {
+    if (isWinningTrade(entry)) {
+      currentWinStreak += 1;
+      currentLossStreak = 0;
+      maxWinStreak = Math.max(maxWinStreak, currentWinStreak);
+    } else if (isLosingTrade(entry)) {
+      currentLossStreak += 1;
+      currentWinStreak = 0;
+      maxLossStreak = Math.max(maxLossStreak, currentLossStreak);
+    } else {
+      currentWinStreak = 0;
+      currentLossStreak = 0;
+    }
+  }
   const assetBreakdown = topInstruments.map(({ pair, count }) => ({
     name: pair,
     value: count,
@@ -356,9 +419,29 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
                   : "No imported trades yet. Run the analytics model or add your own journal notes to start building your record."}
               </p>
             </div>
+            <div className="inline-flex rounded-xl border border-slate-200 bg-slate-100 p-1">
+              <button
+                type="button"
+                onClick={() => setJournalView("journal")}
+                className={`rounded-lg px-4 py-2 text-sm transition-colors ${
+                  journalView === "journal" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Journal View
+              </button>
+              <button
+                type="button"
+                onClick={() => setJournalView("stats")}
+                className={`rounded-lg px-4 py-2 text-sm transition-colors ${
+                  journalView === "stats" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Stats Cards
+              </button>
+            </div>
           </div>
 
-          {equityCurveData.length > 0 && (
+          {journalView === "journal" && equityCurveData.length > 0 && (
             <div className="mb-6 rounded-xl border border-teal-200 bg-gradient-to-br from-white via-teal-50/40 to-cyan-50/60 p-5 shadow-sm">
               <div>
                 <div className="text-xs uppercase tracking-[0.18em] text-teal-700">Equity Curve</div>
@@ -473,13 +556,111 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
             </div>
           </div>
 
-          {!hasCurrencyPnl && recentEntries.length > 0 && (
+          {journalView === "journal" && !hasCurrencyPnl && recentEntries.length > 0 && (
             <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
               {pnlMeta?.message || "No position sizing found, so currency profit/loss cannot be calculated for this journal."}
             </div>
           )}
 
-          {recentEntries.length > 0 && (
+          {journalView === "stats" && activeEntries.length > 0 && (
+            <div className="mt-8 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Expectancy</div>
+                  <div className={`mt-2 text-3xl ${avgR >= 0 ? "text-teal-600" : "text-red-600"}`}>{avgR.toFixed(2)}R</div>
+                  <div className="mt-1 text-sm text-slate-600">Average R per trade</div>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Profit Factor</div>
+                  <div className="mt-2 text-3xl text-slate-900">{profitFactor === null ? "N/A" : profitFactor.toFixed(2)}</div>
+                  <div className="mt-1 text-sm text-slate-600">Gross wins divided by gross losses</div>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Payoff Ratio</div>
+                  <div className="mt-2 text-3xl text-slate-900">{payoffRatio === null ? "N/A" : payoffRatio.toFixed(2)}</div>
+                  <div className="mt-1 text-sm text-slate-600">Average winner versus average loser</div>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Unique Assets</div>
+                  <div className="mt-2 text-3xl text-slate-900">{Object.keys(instrumentCounts).length}</div>
+                  <div className="mt-1 text-sm text-slate-600">Distinct instruments traded</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Best Trade</div>
+                  <div className="mt-2 text-2xl text-teal-600">{bestTrade ? `${bestTrade.rMultiple.toFixed(2)}R` : "N/A"}</div>
+                  <div className="mt-1 text-sm text-slate-600">{bestTrade ? bestTrade.pair : "No trade data"}</div>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Worst Trade</div>
+                  <div className="mt-2 text-2xl text-red-600">{worstTrade ? `${worstTrade.rMultiple.toFixed(2)}R` : "N/A"}</div>
+                  <div className="mt-1 text-sm text-slate-600">{worstTrade ? worstTrade.pair : "No trade data"}</div>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Longest Held</div>
+                  <div className="mt-2 text-2xl text-slate-900">{longestHeldTrade ? `${longestHeldTrade.duration}m` : "N/A"}</div>
+                  <div className="mt-1 text-sm text-slate-600">{longestHeldTrade ? longestHeldTrade.pair : "No trade data"}</div>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Avg Duration</div>
+                  <div className="mt-2 text-2xl text-slate-900">{averageDuration}m</div>
+                  <div className="mt-1 text-sm text-slate-600">Average time in trade</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Long vs Short</div>
+                  <div className="mt-2 text-2xl text-slate-900">{longTrades} / {shortTrades}</div>
+                  <div className="mt-1 text-sm text-slate-600">Long trades versus short trades</div>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Max Win Streak</div>
+                  <div className="mt-2 text-2xl text-teal-600">{maxWinStreak}</div>
+                  <div className="mt-1 text-sm text-slate-600">Best consecutive winners</div>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Max Loss Streak</div>
+                  <div className="mt-2 text-2xl text-red-600">{maxLossStreak}</div>
+                  <div className="mt-1 text-sm text-slate-600">Worst consecutive losers</div>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Best Asset</div>
+                  <div className="mt-2 text-2xl text-slate-900">{topInstruments[0]?.pair || "N/A"}</div>
+                  <div className="mt-1 text-sm text-slate-600">{topInstruments[0]?.count || 0} trades</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Best Month</div>
+                  <div className="mt-2 text-2xl text-teal-600">
+                    {bestMonth
+                      ? new Date(bestMonth.month + "-01").toLocaleDateString("en-US", { month: "long", year: "numeric" })
+                      : "N/A"}
+                  </div>
+                  <div className="mt-1 text-sm text-slate-600">
+                    {bestMonth ? `${bestMonth.avgR.toFixed(2)}R avg across ${bestMonth.trades} trades` : "No monthly data"}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Worst Month</div>
+                  <div className="mt-2 text-2xl text-red-600">
+                    {worstMonth
+                      ? new Date(worstMonth.month + "-01").toLocaleDateString("en-US", { month: "long", year: "numeric" })
+                      : "N/A"}
+                  </div>
+                  <div className="mt-1 text-sm text-slate-600">
+                    {worstMonth ? `${worstMonth.avgR.toFixed(2)}R avg across ${worstMonth.trades} trades` : "No monthly data"}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {journalView === "journal" && recentEntries.length > 0 && (
             <div className="mt-8">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <div className="lg:col-span-2">
@@ -679,7 +860,7 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
           )}
 
           {/* Monthly PnL Table */}
-          {monthlyData.length > 0 && (
+          {journalView === "journal" && monthlyData.length > 0 && (
             <div className="mt-8">
               <h3 className="text-slate-900 mb-4 text-xl flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-teal-600" />
@@ -939,6 +1120,7 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
           )}
 
           {/* Search */}
+          {journalView === "journal" && (
           <div className="mt-6 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input
@@ -949,6 +1131,7 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
               className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
           </div>
+          )}
         </div>
       </div>
 

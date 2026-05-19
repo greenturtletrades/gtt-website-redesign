@@ -721,7 +721,7 @@ export function TurtleAnalytics({
     }));
   };
   
-  // Model Run History Log
+  // Account Ledger Log
   interface ModelRunLog {
     id: string;
     timestamp: Date;
@@ -1405,7 +1405,7 @@ export function TurtleAnalytics({
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
-                Model Run History
+                Account Ledger
               </button>
               <button
                 onClick={() => setActiveTab("guide")}
