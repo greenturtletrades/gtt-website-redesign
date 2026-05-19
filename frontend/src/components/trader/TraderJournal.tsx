@@ -91,6 +91,23 @@ function extractBaseAsset(pair: string): string | null {
   return symbol;
 }
 
+function formatDuration(minutes: number): string {
+  const safeMinutes = Math.max(0, Math.round(minutes));
+  const days = Math.floor(safeMinutes / (24 * 60));
+  const hours = Math.floor((safeMinutes % (24 * 60)) / 60);
+  const remainingMinutes = safeMinutes % 60;
+
+  if (days > 0) {
+    return `${days}d ${hours}h ${remainingMinutes}m`;
+  }
+
+  if (safeMinutes >= 60) {
+    return `${Math.floor(safeMinutes / 60)}h ${remainingMinutes}m`;
+  }
+
+  return `${safeMinutes}m`;
+}
+
 export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = "" }: TraderJournalProps) {
   const numberFormatter = new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 2,
@@ -600,12 +617,12 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                   <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Longest Held</div>
-                  <div className="mt-2 text-2xl text-slate-900">{longestHeldTrade ? `${longestHeldTrade.duration}m` : "N/A"}</div>
+                  <div className="mt-2 text-2xl text-slate-900">{longestHeldTrade ? formatDuration(longestHeldTrade.duration) : "N/A"}</div>
                   <div className="mt-1 text-sm text-slate-600">{longestHeldTrade ? longestHeldTrade.pair : "No trade data"}</div>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                   <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Avg Duration</div>
-                  <div className="mt-2 text-2xl text-slate-900">{averageDuration}m</div>
+                  <div className="mt-2 text-2xl text-slate-900">{formatDuration(averageDuration)}</div>
                   <div className="mt-1 text-sm text-slate-600">Average time in trade</div>
                 </div>
               </div>
@@ -738,7 +755,7 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
                           </div>
                           <div>
                             <div className="text-slate-500">Duration</div>
-                            <div className="text-slate-800">{entry.duration}m</div>
+                            <div className="text-slate-800">{formatDuration(entry.duration)}</div>
                           </div>
                         </div>
                         {(entry.notes.trim() || entry.emotions.trim() || entry.lessonsLearned.trim()) && (
@@ -779,7 +796,7 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
                       </div>
                       <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
                         <div className="text-slate-500 text-xs mb-1">Avg Duration</div>
-                        <div className="text-slate-900 text-xl">{averageDuration}m</div>
+                        <div className="text-slate-900 text-xl">{formatDuration(averageDuration)}</div>
                       </div>
                     </div>
 
@@ -849,7 +866,7 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
                               {longestHeldTrade.direction.toUpperCase()}
                             </span>
                           </div>
-                          <div className="text-slate-600 text-sm">{longestHeldTrade.duration} minutes</div>
+                          <div className="text-slate-600 text-sm">{formatDuration(longestHeldTrade.duration)}</div>
                         </div>
                       </div>
                     )}
@@ -857,6 +874,20 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Search */}
+          {journalView === "journal" && (
+          <div className="mt-6 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search journal entries..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          </div>
           )}
 
           {/* Monthly PnL Table */}
@@ -1119,19 +1150,6 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
             </div>
           )}
 
-          {/* Search */}
-          {journalView === "journal" && (
-          <div className="mt-6 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search journal entries..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-            />
-          </div>
-          )}
         </div>
       </div>
 
