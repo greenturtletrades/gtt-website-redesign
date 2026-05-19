@@ -192,8 +192,9 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
   const totalTraders = accountTraders.length;
   const activeTraders = accountTraders.filter((trader) => trader.accountStatus === "ACTIVE").length;
   const premiumCount = accountTraders.filter((trader) => trader.plan === "premium").length;
+  const freeCount = accountTraders.filter((trader) => trader.plan === "free").length;
   const paygCount = accountTraders.filter((trader) => trader.plan === "payg").length;
-  const activeEaConnections = accountTraders.filter((trader) => trader.lastEaSyncAt !== null).length;
+  const tradersWithDataPulls = accountTraders.filter((trader) => trader.lastEaSyncAt !== null).length;
   const deletedAccountsCount = deletionAudits.length;
   const displayTotalUsers = totalTraders;
   const currentMonth = new Date().getMonth();
@@ -259,6 +260,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
   const recentRecords = churnItems.slice(0, 8);
   const financeSummary = financeData?.summary ?? {
     traderAccounts: 0,
+    freeAccounts: 0,
     paygAccounts: 0,
     premiumAccounts: 0,
     stripeCustomers: 0,
@@ -322,9 +324,13 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
   };
 
   const getPlanBadge = (plan: string) => {
-    return plan === "premium" 
-      ? <span className="px-2 py-1 text-xs rounded-full bg-teal-100 text-teal-700">Premium</span>
-      : <span className="px-2 py-1 text-xs rounded-full bg-slate-100 text-slate-700">PAYG</span>;
+    if (plan === "premium") {
+      return <span className="px-2 py-1 text-xs rounded-full bg-teal-100 text-teal-700">Premium</span>;
+    }
+    if (plan === "free") {
+      return <span className="px-2 py-1 text-xs rounded-full bg-cyan-100 text-cyan-700">Free</span>;
+    }
+    return <span className="px-2 py-1 text-xs rounded-full bg-slate-100 text-slate-700">PAYG</span>;
   };
 
   const formatDate = (value: string | null) => {
@@ -1017,9 +1023,9 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                     <div className="text-xs text-red-600">Cancellation feedback submitted</div>
                   </div>
                   <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-4">
-                    <div className="text-slate-600 text-sm mb-1">Connected EA Accounts</div>
-                    <div className="text-3xl text-slate-900 mb-1">{activeEaConnections}</div>
-                    <div className="text-xs text-amber-600">Trader accounts with EA activity</div>
+                    <div className="text-slate-600 text-sm mb-1">Accounts With Data Pulls</div>
+                    <div className="text-3xl text-slate-900 mb-1">{tradersWithDataPulls}</div>
+                    <div className="text-xs text-amber-600">Trader accounts with imports or synced activity</div>
                   </div>
                 </div>
 
@@ -1079,7 +1085,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
               <div className="border-b border-slate-200 bg-slate-50 p-4">
                 <h2 className="text-lg text-slate-900 flex items-center gap-2">
                   <Brain className="w-5 h-5 text-purple-600" />
-                  Account And EA Activity
+                  Account And Data Activity
                 </h2>
               </div>
               <div className="p-6">
@@ -1100,9 +1106,9 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                     <div className="text-xs text-cyan-600">Traders with API keys configured</div>
                   </div>
                   <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-4">
-                    <div className="text-slate-600 text-sm mb-1">Connected EA Traders</div>
-                    <div className="text-3xl text-slate-900 mb-1">{activeEaConnections}</div>
-                    <div className="text-xs text-slate-600">Have at least one synced EA event</div>
+                    <div className="text-slate-600 text-sm mb-1">Traders With Data Pulls</div>
+                    <div className="text-3xl text-slate-900 mb-1">{tradersWithDataPulls}</div>
+                    <div className="text-xs text-slate-600">Have imported trades or synced connection activity</div>
                   </div>
                 </div>
 
@@ -1164,7 +1170,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
 
               {/* Stats Row */}
               <div className="border-b border-slate-200 p-4">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
                   <div>
                     <div className="text-slate-600 text-xs mb-1">Total Traders</div>
                     <div className="text-2xl text-slate-900">{displayTotalUsers}</div>
@@ -1172,6 +1178,10 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                   <div>
                     <div className="text-slate-600 text-xs mb-1">Active Traders</div>
                     <div className="text-2xl text-green-600">{activeTraders}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-600 text-xs mb-1">Free</div>
+                    <div className="text-2xl text-cyan-600">{freeCount}</div>
                   </div>
                   <div>
                     <div className="text-slate-600 text-xs mb-1">Premium</div>
@@ -1197,7 +1207,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Broker Accounts</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Stored Trades</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Exports</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Last EA Sync</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Last Data Pull</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Actions</th>
                     </tr>
                   </thead>
@@ -1364,10 +1374,15 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
                 <div className="text-slate-600 text-sm mb-1">Trader Accounts</div>
                 <div className="text-3xl text-slate-900">{financeSummary.traderAccounts}</div>
+              </div>
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+                <div className="text-slate-600 text-sm mb-1">Free Accounts</div>
+                <div className="text-3xl text-cyan-600">{financeSummary.freeAccounts}</div>
+                <div className="text-xs text-slate-500 mt-1">Accounts currently on the free plan</div>
               </div>
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
                 <div className="text-slate-600 text-sm mb-1">Subscribed Accounts</div>
@@ -1375,9 +1390,9 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                 <div className="text-xs text-slate-500 mt-1">Accounts with a linked Stripe subscription</div>
               </div>
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-                <div className="text-slate-600 text-sm mb-1">Not Yet Subscribed</div>
-                <div className="text-3xl text-slate-900">{Math.max(financeSummary.traderAccounts - financeSummary.premiumAccounts, 0)}</div>
-                <div className="text-xs text-slate-500 mt-1">Accounts without a linked Stripe subscription</div>
+                <div className="text-slate-600 text-sm mb-1">PAYG Accounts</div>
+                <div className="text-3xl text-slate-900">{financeSummary.paygAccounts}</div>
+                <div className="text-xs text-slate-500 mt-1">Accounts set to pay-as-you-go without an active subscription link</div>
               </div>
             </div>
 
@@ -1449,9 +1464,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                           </div>
                         </td>
                         <td className="py-4 px-4">
-                          <span className={`px-2 py-1 text-xs rounded-full ${account.plan === "premium" ? "bg-teal-100 text-teal-700" : "bg-slate-100 text-slate-700"}`}>
-                            {account.plan === "premium" ? "Subscribed" : "Not subscribed"}
-                          </span>
+                          {getPlanBadge(account.plan)}
                         </td>
                         <td className="py-4 px-4 text-slate-900 text-sm">{account.stripeCustomerLinked ? "Linked" : "Not linked"}</td>
                         <td className="py-4 px-4 text-slate-900 text-sm">{account.stripeSubscriptionLinked ? "Active link" : "No link"}</td>

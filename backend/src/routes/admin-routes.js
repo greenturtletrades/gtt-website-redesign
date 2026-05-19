@@ -104,6 +104,96 @@ function registerAdminRoutes(app, {
     return reason.includes("internal test user");
   }
 
+  function resolveTraderPlan(user) {
+    if (typeof user?.plan === "string" && user.plan.trim()) {
+      return user.plan.trim().toLowerCase() === "free" ? "free" : "payg";
+    }
+
+    return "payg";
+  }
+
+  function calculateTradeRMultiple(trade) {
+    const riskPerTrade =
+      typeof trade.entryPrice === "number" && typeof trade.stopLoss === "number"
+        ? Math.abs(trade.entryPrice - trade.stopLoss)
+        : 0;
+
+    if (!(riskPerTrade > 0) || typeof trade.exitPrice !== "number") {
+      return 0;
+    }
+
+    return trade.side === "SHORT"
+      ? (trade.entryPrice - trade.exitPrice) / riskPerTrade
+      : (trade.exitPrice - trade.entryPrice) / riskPerTrade;
+  }
+
+  function normalizeSnapshotWinRate(value) {
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      return null;
+    }
+
+    return value <= 1 ? value * 100 : value;
+  }
+
+  function calculateFallbackTradeMetrics(trades) {
+    if (!Array.isArray(trades) || trades.length === 0) {
+      return {
+        tradesAnalysed: 0,
+        avgRMultiple: null,
+        winRate: null,
+        sharpeRatio: null,
+        maxDrawdownR: null,
+        totalR: null,
+      };
+    }
+
+    const rValues = trades
+      .map((trade) => calculateTradeRMultiple(trade))
+      .filter((value) => typeof value === "number" && Number.isFinite(value));
+
+    if (!rValues.length) {
+      return {
+        tradesAnalysed: trades.length,
+        avgRMultiple: null,
+        winRate: null,
+        sharpeRatio: null,
+        maxDrawdownR: null,
+        totalR: null,
+      };
+    }
+
+    const tradesAnalysed = trades.length;
+    const totalR = rValues.reduce((sum, value) => sum + value, 0);
+    const avgRMultiple = totalR / tradesAnalysed;
+    const winRate = (rValues.filter((value) => value > 0).length / tradesAnalysed) * 100;
+
+    let runningTotal = 0;
+    let peak = 0;
+    let maxDrawdownR = 0;
+    for (const value of rValues) {
+      runningTotal += value;
+      peak = Math.max(peak, runningTotal);
+      maxDrawdownR = Math.min(maxDrawdownR, runningTotal - peak);
+    }
+
+    const mean = avgRMultiple;
+    const variance = rValues.reduce((sum, value) => sum + ((value - mean) ** 2), 0) / tradesAnalysed;
+    const standardDeviation = Math.sqrt(variance);
+    const sharpeRatio =
+      standardDeviation > 0
+        ? (mean / standardDeviation) * Math.sqrt(tradesAnalysed)
+        : null;
+
+    return {
+      tradesAnalysed,
+      avgRMultiple,
+      winRate,
+      sharpeRatio,
+      maxDrawdownR,
+      totalR,
+    };
+  }
+
   app.get("/api/admin/trader-applications", authRequired, adminRequired, async (req, res, next) => {
     try {
       const { status } = req.query;
@@ -207,6 +297,18 @@ function registerAdminRoutes(app, {
                 analysisRuns: true,
               },
             },
+            storedTrades: {
+              orderBy: {
+                exitTime: "desc",
+              },
+              select: {
+                side: true,
+                entryPrice: true,
+                exitPrice: true,
+                stopLoss: true,
+                updatedAt: true,
+              },
+            },
           },
         }),
         prisma.traderApplication.findMany({
@@ -233,6 +335,9 @@ function registerAdminRoutes(app, {
           const application = applicationsByEmail.get(email) || null;
           const brokerAccounts = user?.brokerAccounts || [];
           const latestSnapshot = user?.analysisSnapshots?.[0] || null;
+          const storedTrades = user?.storedTrades || [];
+          const storedTradeCount = user?._count?.storedTrades || 0;
+          const fallbackMetrics = calculateFallbackTradeMetrics(storedTrades);
           const eaEvents = brokerAccounts.flatMap((account) => account.eaEvents);
           const tradeEventCount = eaEvents.filter((event) => event.type === "TRADE_EVENT").length;
           const historyExportCount = eaEvents.filter((event) => event.type === "HISTORY_EXPORT").length;
@@ -249,6 +354,8 @@ function registerAdminRoutes(app, {
           const applicationName = application?.fullName?.trim() || "";
           const latestBrokerAccount = brokerAccounts.find((account) => account.isActive) || brokerAccounts[0] || null;
           const derivedName = profileName || applicationName || email.split("@")[0];
+          const latestStoredTradeAt = storedTrades[0]?.updatedAt || null;
+          const resolvedPlan = user?.stripeSubscriptionId ? "premium" : resolveTraderPlan(user);
 
           return {
             id: user?.id || application?.id,
@@ -260,7 +367,7 @@ function registerAdminRoutes(app, {
             platformCompedReason: user?.platformCompedReason || null,
             accountStatus: user ? user.status : "NO_ACCOUNT",
             applicationStatus: application ? application.status : "NONE",
-            plan: user?.stripeSubscriptionId ? "premium" : "payg",
+            plan: resolvedPlan,
             joinedAt: (user?.createdAt || application?.submittedAt || new Date()).toISOString(),
             country: application?.country || null,
             platform: application?.platform || latestBrokerAccount?.platform || null,
@@ -269,25 +376,29 @@ function registerAdminRoutes(app, {
             activeBrokerAccountsCount: brokerAccounts.filter((account) => account.isActive).length,
             apiKeysCount: user?._count?.apiKeys || 0,
             analysisRunCount: user?._count?.analysisRuns || 0,
-            tradeEventCount: user?._count?.storedTrades || 0,
+            tradeEventCount: storedTradeCount,
             historyExportCount,
-            lastEaSyncAt: lastEaSyncAt ? lastEaSyncAt.toISOString() : null,
+            lastEaSyncAt: (lastEaSyncAt || latestStoredTradeAt) ? (lastEaSyncAt || latestStoredTradeAt).toISOString() : null,
             hasAccount: Boolean(user),
             hasApplication: Boolean(application),
             analysisStatus: getTraderAnalysisStatus({
               latestSnapshot,
-              tradeEventCount,
+              tradeEventCount: storedTradeCount,
               historyExportCount,
             }),
-            latestAnalysisAt: latestSnapshot ? latestSnapshot.updatedAt.toISOString() : null,
+            latestAnalysisAt: latestSnapshot?.updatedAt
+              ? latestSnapshot.updatedAt.toISOString()
+              : latestStoredTradeAt
+                ? latestStoredTradeAt.toISOString()
+                : null,
             latestAnalysisReport: latestSnapshot ? latestSnapshot.report : null,
             metrics: {
-              tradesAnalysed: latestSnapshot?.tradesAnalysed ?? null,
-              avgRMultiple: latestSnapshot?.avgRMultiple ?? null,
-              winRate: latestSnapshot?.winRate ?? null,
-              sharpeRatio: latestSnapshot?.sharpeRatio ?? null,
-              maxDrawdownR: latestSnapshot?.maxDrawdownR ?? null,
-              totalR: latestSnapshot?.totalR ?? null,
+              tradesAnalysed: latestSnapshot?.tradesAnalysed ?? fallbackMetrics.tradesAnalysed,
+              avgRMultiple: latestSnapshot?.avgRMultiple ?? fallbackMetrics.avgRMultiple,
+              winRate: normalizeSnapshotWinRate(latestSnapshot?.winRate) ?? fallbackMetrics.winRate,
+              sharpeRatio: latestSnapshot?.sharpeRatio ?? fallbackMetrics.sharpeRatio,
+              maxDrawdownR: latestSnapshot?.maxDrawdownR ?? fallbackMetrics.maxDrawdownR,
+              totalR: latestSnapshot?.totalR ?? fallbackMetrics.totalR,
             },
           };
         })
@@ -1345,7 +1456,12 @@ function registerAdminRoutes(app, {
       const premiumAccounts = traders.filter(
         (user) => user.stripeSubscriptionId && liveActiveSubscriptionIds.has(user.stripeSubscriptionId),
       ).length;
-      const paygAccounts = Math.max(traderAccounts - premiumAccounts, 0);
+      const freeAccounts = traders.filter(
+        (user) => !(user.stripeSubscriptionId && liveActiveSubscriptionIds.has(user.stripeSubscriptionId)) && resolveTraderPlan(user) === "free",
+      ).length;
+      const paygAccounts = traders.filter(
+        (user) => !(user.stripeSubscriptionId && liveActiveSubscriptionIds.has(user.stripeSubscriptionId)) && resolveTraderPlan(user) === "payg",
+      ).length;
       const stripeCustomers = liveStripeCustomerIds.size;
       const activeSubscriptions = liveActiveSubscriptionIds.size;
 
@@ -1404,6 +1520,7 @@ function registerAdminRoutes(app, {
       });
 
       const planMix = [
+        { name: "Free", value: freeAccounts },
         { name: "PAYG", value: paygAccounts },
         { name: "Premium", value: premiumAccounts },
       ];
@@ -1431,7 +1548,7 @@ function registerAdminRoutes(app, {
             plan:
               user.stripeSubscriptionId && liveActiveSubscriptionIds.has(user.stripeSubscriptionId)
                 ? "premium"
-                : "payg",
+                : resolveTraderPlan(user),
             stripeCustomerLinked: Boolean(user.stripeCustomerId && liveStripeCustomerIds.has(user.stripeCustomerId)),
             stripeSubscriptionLinked: Boolean(
               user.stripeSubscriptionId && liveActiveSubscriptionIds.has(user.stripeSubscriptionId),
@@ -1452,6 +1569,7 @@ function registerAdminRoutes(app, {
         finance: {
           summary: {
             traderAccounts,
+            freeAccounts,
             paygAccounts,
             premiumAccounts,
             stripeCustomers,
