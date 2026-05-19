@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Plus, Edit2, Trash2, Search, Calendar, TrendingUp, TrendingDown, BookOpen, Save, X } from "lucide-react";
-import { Activity } from "lucide-react";
 import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, AreaChart, Area } from "recharts";
 import { updateTradeJournalEntry } from "../../api/trades";
@@ -356,17 +355,6 @@ export function TraderJournal({ entries: liveEntries = [], pnlMeta, apiBase = ""
                   ? "Journal rows are generated from your latest processed trade analysis."
                   : "No imported trades yet. Run the analytics model or add your own journal notes to start building your record."}
               </p>
-            </div>
-            <div className="bg-teal-50 border border-teal-200 rounded-lg px-4 py-3">
-              <div className="flex items-center gap-2">
-                <Activity className="w-5 h-5 text-teal-600" />
-                <div>
-                  <div className="text-xs text-teal-700">{hasLiveEntries ? "Analysis Sync Active" : "Waiting For Trade Data"}</div>
-                  <div className="text-xs text-slate-600">
-                    {hasLiveEntries ? "Showing trades from the latest Python analysis run" : "This journal will populate after a completed analysis import"}
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 

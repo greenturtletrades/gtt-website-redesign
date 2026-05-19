@@ -887,13 +887,15 @@ export function TurtleAnalytics({
         return "EA import";
       case "journal_csv_import":
         return "CSV import";
+      case "journal_trading212_import":
+        return "Trading 212 import";
       default:
         return "By trades";
     }
   };
 
   const isImportLedgerEntry = (mode: string) =>
-    mode === "journal_fetch" || mode === "journal_csv_import";
+    mode === "journal_fetch" || mode === "journal_csv_import" || mode === "journal_trading212_import";
   
   // Scroll to top whenever tab changes
   useEffect(() => {
@@ -1520,7 +1522,7 @@ export function TurtleAnalytics({
                 )}
                 {!mlModelAccessEnabled && (
                   <div className="max-w-sm rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-center text-xs text-sky-800">
-                    Your account, journal, and settings are unlocked. Use Fetch Data to pull trades in from MetaTrader, then upgrade when you want to run the ML model.
+                    Your account, journal, and settings are unlocked. Import trades from MetaTrader, Trading 212, or CSV, then upgrade when you want to run the ML model.
                   </div>
                 )}
               </div>
@@ -1837,7 +1839,9 @@ export function TurtleAnalytics({
                             </div>
                             {run.deletedData && (
                               <div className="mt-2 text-xs text-slate-500">
-                                Saved report data was removed for this run. The billed ML run record remains in your history.
+                                {isImportLedgerEntry(run.mode)
+                                  ? "Imported journal data from this ledger entry was removed. The ledger note remains in your history."
+                                  : "Saved report data was removed for this run. The billed ML run record remains in your history."}
                               </div>
                             )}
                           </div>
@@ -1848,7 +1852,24 @@ export function TurtleAnalytics({
                             <div className="text-slate-500 text-xs">
                               {run.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                             </div>
-                            {!isImportLedgerEntry(run.mode) && (
+                            {isImportLedgerEntry(run.mode) ? (
+                              <button
+                                onClick={() => {
+                                  if (window.confirm(`Delete only the imported journal data linked to "${run.periodDescription}"?`)) {
+                                    void handleDeleteRunData(run.id, true);
+                                  }
+                                }}
+                                disabled={run.status === "running" || run.deletedData || deletingRunId === run.id || run.tradesAnalysed <= 0}
+                                className={`mt-3 inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs transition-colors ${
+                                  run.status === "running" || run.deletedData || deletingRunId === run.id || run.tradesAnalysed <= 0
+                                    ? "cursor-not-allowed bg-slate-200 text-slate-500"
+                                    : "bg-rose-50 text-rose-700 hover:bg-rose-100"
+                                }`}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                {deletingRunId === run.id ? "Deleting..." : run.deletedData ? "Data Deleted" : run.tradesAnalysed <= 0 ? "No Data" : "Delete Data"}
+                              </button>
+                            ) : (
                               <button
                                 onClick={() =>
                                   setDeleteRunPrompt({

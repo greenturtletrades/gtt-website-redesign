@@ -11,6 +11,7 @@ const { createAuthHelpers } = require("./middleware/auth");
 const { sendEmail } = require("./services/email");
 const { createAccountStateHelpers } = require("./services/account-state");
 const { createBillingReferralHelpers } = require("./services/billing-referrals");
+const { buildTrading212TradesFromHistory } = require("./services/trading212");
 const { registerAccountRoutes } = require("./routes/account-routes");
 const { registerAdminRoutes } = require("./routes/admin-routes");
 const { registerAnalyticsRoutes } = require("./routes/analytics-routes");
@@ -1431,124 +1432,6 @@ async function fetchTrading212HistoricalOrders({ apiKey, apiSecret, environment 
   }
 
   return items;
-}
-
-function buildTrading212TradesFromHistory(historicalOrders) {
-  if (!Array.isArray(historicalOrders) || historicalOrders.length === 0) {
-    return [];
-  }
-
-  const fills = historicalOrders
-    .map((item, index) => {
-      const order = item?.order && typeof item.order === "object" ? item.order : {};
-      const fill = item?.fill && typeof item.fill === "object" ? item.fill : {};
-      const side = typeof order.side === "string" ? order.side.toUpperCase() : "";
-      const ticker =
-        typeof order.ticker === "string" && order.ticker.trim()
-          ? order.ticker.trim()
-          : typeof order.instrument?.ticker === "string" && order.instrument.ticker.trim()
-            ? order.instrument.ticker.trim()
-            : "";
-      const quantity = Math.abs(Number(fill.quantity ?? order.filledQuantity ?? order.quantity ?? 0));
-      const price = Number(fill.price);
-      const filledAt = typeof fill.filledAt === "string" ? fill.filledAt : order.createdAt;
-
-      if (!side || !ticker || !(quantity > 0) || !Number.isFinite(price) || !filledAt) {
-        return null;
-      }
-
-      const taxTotal = Array.isArray(fill.walletImpact?.taxes)
-        ? fill.walletImpact.taxes.reduce((sum, tax) => sum + (Number(tax?.quantity) || 0), 0)
-        : 0;
-
-      return {
-        orderId: String(order.id ?? index),
-        fillId: String(fill.id ?? index),
-        side,
-        ticker,
-        quantity,
-        price,
-        filledAt,
-        realisedProfitLoss:
-          typeof fill.walletImpact?.realisedProfitLoss === "number"
-            ? fill.walletImpact.realisedProfitLoss
-            : null,
-        taxTotal,
-      };
-    })
-    .filter(Boolean)
-    .sort((left, right) => (Date.parse(left.filledAt) || 0) - (Date.parse(right.filledAt) || 0));
-
-  const inventoryByTicker = new Map();
-  const closedTrades = [];
-
-  for (const fill of fills) {
-    const inventory = inventoryByTicker.get(fill.ticker) || [];
-
-    if (fill.side === "BUY") {
-      inventory.push({
-        fillId: fill.fillId,
-        filledAt: fill.filledAt,
-        price: fill.price,
-        remainingQuantity: fill.quantity,
-      });
-      inventoryByTicker.set(fill.ticker, inventory);
-      continue;
-    }
-
-    if (fill.side !== "SELL") {
-      continue;
-    }
-
-    let remainingToMatch = fill.quantity;
-    let matchIndex = 0;
-
-    while (remainingToMatch > 1e-9 && inventory.length > 0) {
-      const entryLot = inventory[0];
-      const matchedQuantity = Math.min(entryLot.remainingQuantity, remainingToMatch);
-      const quantityShare = matchedQuantity / fill.quantity;
-      const fallbackProfit = (fill.price - entryLot.price) * matchedQuantity;
-      const allocatedProfit =
-        typeof fill.realisedProfitLoss === "number"
-          ? fill.realisedProfitLoss * quantityShare
-          : fallbackProfit;
-      const allocatedCommission = fill.taxTotal > 0 ? -fill.taxTotal * quantityShare : null;
-
-      closedTrades.push({
-        trade_id: `${fill.orderId}:${entryLot.fillId}:${matchIndex}`,
-        symbol: fill.ticker,
-        side: "LONG",
-        entry_time: entryLot.filledAt,
-        exit_time: fill.filledAt,
-        entry_price: entryLot.price,
-        exit_price: fill.price,
-        stop_loss: entryLot.price,
-        take_profit: fill.price,
-        volume: matchedQuantity,
-        profit: Number(allocatedProfit.toFixed(6)),
-        commission:
-          typeof allocatedCommission === "number"
-            ? Number(allocatedCommission.toFixed(6))
-            : null,
-        swap: 0,
-        mfe: null,
-        mae: null,
-        raw_source: "trading212_api",
-      });
-
-      entryLot.remainingQuantity -= matchedQuantity;
-      remainingToMatch -= matchedQuantity;
-      matchIndex += 1;
-
-      if (entryLot.remainingQuantity <= 1e-9) {
-        inventory.shift();
-      }
-    }
-
-    inventoryByTicker.set(fill.ticker, inventory);
-  }
-
-  return closedTrades;
 }
 
 async function ensureTrading212BrokerAccount(userId, { accountNumber = "TRADING212" } = {}) {

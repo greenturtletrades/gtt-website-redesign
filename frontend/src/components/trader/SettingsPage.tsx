@@ -1291,7 +1291,10 @@ export function SettingsPage({
                               Trading 212 imports are designed to populate the journal like the MetaTrader EA path.
                               Some deeper model fields such as stop loss, take profit, MFE, and MAE may not be
                               available from the API in the same way, so richer analytics can stay simplified until
-                              that data exists.
+                              that data exists. We do not currently provide a fixed allowlisted IP for Trading 212 API
+                              access on this deployment, so if Trading 212 asks for IP restrictions, please choose
+                              unrestricted IP access for this connection. If you prefer not to do that, upload your
+                              Trading 212 CSV instead.
                             </div>
                           </div>
 

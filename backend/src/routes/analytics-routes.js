@@ -73,6 +73,7 @@ function registerAnalyticsRoutes(app, {
         Number.isInteger(source.availableTradeCount) ? source.availableTradeCount : null,
       duplicateTradeCount:
         Number.isInteger(source.duplicateTradeCount) ? source.duplicateTradeCount : 0,
+      importedTradeIdentities: normalizeTradeIdentityList(source.importedTradeIdentities),
       mode: typeof source.mode === "string" && source.mode.trim() ? source.mode : null,
     };
 
@@ -183,6 +184,8 @@ function registerAnalyticsRoutes(app, {
         select: {
           id: true,
           status: true,
+          mode: true,
+          jobContext: true,
           analysisSnapshotId: true,
           cost: true,
           analysisSnapshot: {
@@ -211,11 +214,19 @@ function registerAnalyticsRoutes(app, {
       const snapshotTradeIdentities = Array.isArray(snapshotMetadata?.trade_identities)
         ? snapshotMetadata.trade_identities.filter((value) => typeof value === "string" && value.trim())
         : [];
+      const importTradeIdentities =
+        run.jobContext &&
+        typeof run.jobContext === "object" &&
+        Array.isArray(run.jobContext.importedTradeIdentities)
+          ? run.jobContext.importedTradeIdentities.filter((value) => typeof value === "string" && value.trim())
+          : [];
+      const linkedTradeIdentities =
+        snapshotTradeIdentities.length > 0 ? snapshotTradeIdentities : importTradeIdentities;
 
-      if (deleteJournalData && snapshotTradeIdentities.length === 0) {
+      if (deleteJournalData && linkedTradeIdentities.length === 0) {
         return res.status(400).json({
           ok: false,
-          error: "This run does not contain linked journal trade identities, so only ML data can be deleted.",
+          error: "This ledger entry does not contain linked journal trade identities, so only the run record can be kept.",
         });
       }
 
@@ -247,7 +258,7 @@ function registerAnalyticsRoutes(app, {
           await tx.storedTrade.deleteMany({
             where: {
               userId: req.user.id,
-              tradeIdentity: { in: snapshotTradeIdentities },
+              tradeIdentity: { in: linkedTradeIdentities },
             },
           });
         }
@@ -295,6 +306,15 @@ function registerAnalyticsRoutes(app, {
       const tradeCountBefore = await prisma.storedTrade.count({
         where: { userId: req.user.id },
       });
+      const storedTradesBefore = await prisma.storedTrade.findMany({
+        where: { userId: req.user.id },
+        select: {
+          tradeIdentity: true,
+        },
+      });
+      const existingTradeIdentitiesBefore = new Set(
+        storedTradesBefore.map((trade) => trade.tradeIdentity).filter((value) => typeof value === "string" && value.trim())
+      );
 
       const analysisOptions = await buildAnalysisOptionsPayload(req.user.id, {
         requestFresh: true,
@@ -303,6 +323,28 @@ function registerAnalyticsRoutes(app, {
       const accountState = await buildAccountStatePayload(req.user.id);
       const tradeCountAfter = Array.isArray(accountState.trades) ? accountState.trades.length : tradeCountBefore;
       const importedTradeCount = Math.max(0, tradeCountAfter - tradeCountBefore);
+      const storedTradesAfter = await prisma.storedTrade.findMany({
+        where: { userId: req.user.id },
+        select: {
+          tradeIdentity: true,
+          entryTime: true,
+          exitTime: true,
+        },
+      });
+      const importedTradeRows = storedTradesAfter.filter(
+        (trade) => !existingTradeIdentitiesBefore.has(trade.tradeIdentity)
+      );
+      const importedTradeIdentities = importedTradeRows.map((trade) => trade.tradeIdentity);
+      const importDateRange = {
+        start:
+          importedTradeRows.length > 0
+            ? new Date(Math.min(...importedTradeRows.map((trade) => trade.entryTime.getTime())))
+            : null,
+        end:
+          importedTradeRows.length > 0
+            ? new Date(Math.max(...importedTradeRows.map((trade) => trade.exitTime.getTime())))
+            : null,
+      };
       await prisma.analysisRun.create({
         data: {
           userId: req.user.id,
@@ -315,6 +357,12 @@ function registerAnalyticsRoutes(app, {
             importedTradeCount > 0
               ? `Fetched ${importedTradeCount} trade${importedTradeCount === 1 ? "" : "s"} from MetaTrader`
               : "Refreshed MetaTrader journal data",
+          dateRangeStart: importDateRange.start,
+          dateRangeEnd: importDateRange.end,
+          jobContext: {
+            importedTradeIdentities,
+            mode: "journal_fetch",
+          },
           completedAt: new Date(),
         },
       });
@@ -343,6 +391,13 @@ function registerAnalyticsRoutes(app, {
         req.query.replace === "yes";
       const brokerAccountId = await getPreferredBrokerAccountId(req.user.id);
       const parsedTrades = await parseCsvTradesFromPython(req);
+      const existingStoredTrades = await prisma.storedTrade.findMany({
+        where: { userId: req.user.id },
+        select: { tradeIdentity: true },
+      });
+      const existingTradeIdentities = new Set(
+        existingStoredTrades.map((trade) => trade.tradeIdentity).filter((value) => typeof value === "string" && value.trim())
+      );
 
       if (replaceDataset) {
         await prisma.$transaction(async (tx) => {
@@ -365,6 +420,18 @@ function registerAnalyticsRoutes(app, {
         source: "csv_import",
         seenAt: new Date(),
       });
+      const importedTradeIdentities = Array.from(
+        new Set(
+          parsedTrades
+            .map((trade) => buildTradeIdentity(trade, brokerAccountId || "csv_import"))
+            .filter((value) =>
+              typeof value === "string" &&
+              value.trim() &&
+              (replaceDataset || !existingTradeIdentities.has(value))
+            )
+        )
+      );
+      const csvDateRange = deriveTradeDateRange(parsedTrades);
       const analysisOptions = await buildAnalysisOptionsPayload(req.user.id, {
         requestFresh: false,
         syncStoredTrades: false,
@@ -382,6 +449,12 @@ function registerAnalyticsRoutes(app, {
             persistSummary.stored > 0
               ? `Imported ${persistSummary.stored} trade${persistSummary.stored === 1 ? "" : "s"} from CSV`
               : "Refreshed journal with CSV data",
+          dateRangeStart: csvDateRange.start,
+          dateRangeEnd: csvDateRange.end,
+          jobContext: {
+            importedTradeIdentities,
+            mode: "journal_csv_import",
+          },
           completedAt: new Date(),
         },
       });
@@ -436,11 +509,26 @@ function registerAnalyticsRoutes(app, {
         accountNumber: accountInfo?.id ? String(accountInfo.id) : "TRADING212",
       });
       const parsedTrades = buildTrading212TradesFromHistory(historicalOrders);
+      const existingStoredTrades = await prisma.storedTrade.findMany({
+        where: { userId: req.user.id },
+        select: { tradeIdentity: true },
+      });
+      const existingTradeIdentities = new Set(
+        existingStoredTrades.map((trade) => trade.tradeIdentity).filter((value) => typeof value === "string" && value.trim())
+      );
       const persistSummary = await persistTradesToMemory(req.user.id, parsedTrades, {
         brokerAccountId,
         source: "trading212_api",
         seenAt: new Date(),
       });
+      const importedTradeIdentities = Array.from(
+        new Set(
+          parsedTrades
+            .map((trade) => buildTradeIdentity(trade, brokerAccountId || "trading212_api"))
+            .filter((value) => typeof value === "string" && value.trim() && !existingTradeIdentities.has(value))
+        )
+      );
+      const trading212DateRange = deriveTradeDateRange(parsedTrades);
       const analysisOptions = await buildAnalysisOptionsPayload(req.user.id, {
         requestFresh: false,
         syncStoredTrades: false,
@@ -463,6 +551,12 @@ function registerAnalyticsRoutes(app, {
             importedTradeCount > 0
               ? `Imported ${importedTradeCount} trade${importedTradeCount === 1 ? "" : "s"} from Trading 212`
               : "Refreshed Trading 212 journal data",
+          dateRangeStart: trading212DateRange.start,
+          dateRangeEnd: trading212DateRange.end,
+          jobContext: {
+            importedTradeIdentities,
+            mode: "journal_trading212_import",
+          },
           completedAt: new Date(),
         },
       });

@@ -29,13 +29,17 @@ function calculateAverageRiskPercent(trades) {
     .filter((value) => typeof value === "number" && Number.isFinite(value));
 
   if (!riskPercents.length) {
-    return 0;
+    return null;
   }
 
   return riskPercents.reduce((sum, value) => sum + value, 0) / riskPercents.length;
 }
 
 function resolveRiskLevel(riskPerTradePercent) {
+  if (typeof riskPerTradePercent !== "number" || !Number.isFinite(riskPerTradePercent)) {
+    return "N/A";
+  }
+
   if (riskPerTradePercent <= 1) {
     return "Low";
   }
@@ -93,6 +97,14 @@ function calculateWinRate(trades) {
 
 function calculateTotalR(trades) {
   return trades.reduce((sum, trade) => sum + calculateTradeRMultiple(trade), 0);
+}
+
+function calculateAverageR(totalR, totalTrades) {
+  if (typeof totalR !== "number" || !Number.isFinite(totalR) || !(totalTrades > 0)) {
+    return null;
+  }
+
+  return totalR / totalTrades;
 }
 
 function calculateVerifiedCurrencyPnl(trades) {
@@ -218,7 +230,7 @@ function registerPublicRoutes(app, {
           const totalR = typeof latestSnapshot?.totalR === "number"
             ? latestSnapshot.totalR
             : calculateTotalR(user.storedTrades);
-          const performanceValue = verifiedPnl !== null ? verifiedPnl : totalR;
+          const averageR = calculateAverageR(totalR, tradeCount);
           const winRate = typeof latestSnapshot?.winRate === "number"
             ? normalizeSnapshotWinRate(latestSnapshot.winRate)
             : calculateWinRate(user.storedTrades);
@@ -237,8 +249,8 @@ function registerPublicRoutes(app, {
             averageRiskPercent,
             riskLevel: resolveRiskLevel(averageRiskPercent),
             verifiedPnl,
-            performanceValue,
             totalR,
+            averageR,
             winRate,
             lastUpdatedAt: lastUpdatedAt ? lastUpdatedAt.toISOString() : null,
             source: latestSnapshot ? "analysis" : "journal",
@@ -246,39 +258,53 @@ function registerPublicRoutes(app, {
         })
         .filter(Boolean);
 
-      const performancePercentiles = calculatePercentileRanks(
-        eligibleRows.map((row) => ({ id: row.id, value: row.performanceValue })),
-        { descending: true },
-      );
       const riskScores = calculatePercentileRanks(
-        eligibleRows.map((row) => ({ id: row.id, value: row.averageRiskPercent })),
+        eligibleRows.map((row) => ({ id: row.id, value: typeof row.averageRiskPercent === "number" ? row.averageRiskPercent : 999999 })),
         { descending: false },
       );
       const tradeScores = calculatePercentileRanks(
         eligibleRows.map((row) => ({ id: row.id, value: row.totalTrades })),
         { descending: true },
       );
-      const stabilityScores = calculatePercentileRanks(
+      const winRateScores = calculatePercentileRanks(
         eligibleRows.map((row) => ({ id: row.id, value: row.winRate })),
         { descending: true },
       );
+      const avgRScores = calculatePercentileRanks(
+        eligibleRows.map((row) => ({ id: row.id, value: typeof row.averageR === "number" ? row.averageR : -999999 })),
+        { descending: true },
+      );
+      const performancePercentiles = calculatePercentileRanks(
+        eligibleRows
+          .filter((row) => typeof row.verifiedPnl === "number")
+          .map((row) => ({ id: row.id, value: row.verifiedPnl })),
+        { descending: true },
+      );
+      const percentilePnlMap = new Map(
+        eligibleRows
+          .filter((row) => typeof row.verifiedPnl === "number")
+          .map((row, index) => [row.id, Math.round(performancePercentiles[index])])
+      );
 
       const leaderboard = eligibleRows
-        .map((row, index) => ({
+        .map((row, index) => {
+          const percentilePnl = percentilePnlMap.get(row.id) ?? null;
+          return {
           ...row,
-          percentilePnl: Math.round(performancePercentiles[index]),
+          percentilePnl,
           score:
-            performancePercentiles[index] * 0.35 +
+            winRateScores[index] * 0.35 +
             riskScores[index] * 0.30 +
             tradeScores[index] * 0.20 +
-            stabilityScores[index] * 0.15,
-        }))
+            avgRScores[index] * 0.15,
+        };
+        })
         .sort((left, right) => {
           if (right.score !== left.score) {
             return right.score - left.score;
           }
 
-          return right.percentilePnl - left.percentilePnl;
+          return (right.winRate ?? 0) - (left.winRate ?? 0);
         })
         .map((row, index) => ({
           rank: index + 1,
@@ -288,8 +314,10 @@ function registerPublicRoutes(app, {
           percentilePnl: row.percentilePnl,
           verifiedPnl: row.verifiedPnl !== null ? Number(row.verifiedPnl.toFixed(2)) : null,
           winRate: typeof row.winRate === "number" ? Number(row.winRate.toFixed(1)) : null,
-          riskPerTradePercent: Number(row.averageRiskPercent.toFixed(2)),
+          riskPerTradePercent:
+            typeof row.averageRiskPercent === "number" ? Number(row.averageRiskPercent.toFixed(2)) : null,
           totalTrades: row.totalTrades,
+          avgRMultiple: typeof row.averageR === "number" ? Number(row.averageR.toFixed(2)) : null,
           riskLevel: row.riskLevel,
           lastUpdatedAt: row.lastUpdatedAt,
           source: row.source,

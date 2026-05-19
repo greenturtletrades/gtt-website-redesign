@@ -5,12 +5,13 @@ export interface PublicLeaderboardRow {
   id: string;
   name: string;
   market: string;
-  percentilePnl: number;
+  percentilePnl: number | null;
   verifiedPnl: number | null;
   winRate: number | null;
-  riskPerTradePercent: number;
+  riskPerTradePercent: number | null;
   totalTrades: number;
-  riskLevel: "Low" | "Medium" | "High";
+  avgRMultiple: number | null;
+  riskLevel: "Low" | "Medium" | "High" | "N/A";
   lastUpdatedAt: string | null;
   source: "analysis" | "journal";
 }

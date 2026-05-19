@@ -34,6 +34,7 @@ from pydantic import BaseModel
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from turtle_analytics import io as tio
+from turtle_analytics.csv_parsing import map_csv_columns
 from turtle_analytics.features import add_basic_features, add_extended_features
 from turtle_analytics.reporting import build_report
 
@@ -411,116 +412,7 @@ def _infer_trade_side(
 
 
 def _map_csv_columns(df: pd.DataFrame) -> list[dict]:
-    """Map flexible CSV column names to TradeRecord schema."""
-    col_lower = {c.lower().replace(" ", "_").replace("-", "_"): c for c in df.columns}
-
-    def find(*candidates):
-        for c in candidates:
-            if c in col_lower:
-                return df[col_lower[c]]
-        return None
-
-    entry_time = find("entry_time", "entrytime", "entry_date", "entrydate", "open_time", "opentime", "open_date", "opendate")
-    exit_time  = find("exit_time",  "exittime",  "exit_date",  "exitdate",  "close_time", "closetime", "close_date", "closedate")
-    entry_price = find("entry_price", "entryprice", "open_price", "openprice", "buyprice", "buy_price")
-    exit_price  = find("exit_price",  "exitprice",  "close_price", "closeprice", "sellprice", "sell_price")
-    symbol_col  = find("symbol", "ticker", "instrument", "pair", "asset")
-    trade_id_col = find("trade_id", "ticket", "id", "order_id")
-    side_col    = find("side", "direction", "type", "trade_type")
-    sl_col      = find("stop_loss", "stoploss", "sl")
-    tp_col      = find("take_profit", "takeprofit", "tp")
-    volume_col = find("volume", "lot_size", "lots", "position_size", "size")
-    profit_col = find("profit", "pnl", "net_pnl", "realized_pnl", "realised_pnl")
-    commission_col = find("commission", "fees", "fee")
-    swap_col = find("swap", "financing", "rollover")
-    mfe_col = find("mfe", "max_favorable_excursion", "maximum_favorable_excursion")
-    mae_col = find("mae", "max_adverse_excursion", "maximum_adverse_excursion")
-    entry_time_local_col = find("entry_time_local", "local_entry_time")
-    exit_time_local_col = find("exit_time_local", "local_exit_time")
-
-    missing = []
-    if entry_time is None:  missing.append("entry_time/entry_date")
-    if exit_time is None:   missing.append("exit_time/exit_date")
-    if entry_price is None: missing.append("entry_price")
-    if exit_price is None:  missing.append("exit_price")
-    if missing:
-        raise ValueError(f"CSV missing required columns: {missing}")
-
-    ep = pd.to_numeric(entry_price, errors="coerce")
-    xp = pd.to_numeric(exit_price,  errors="coerce")
-    sl_numeric = pd.to_numeric(sl_col, errors="coerce") if sl_col is not None else None
-    tp_numeric = pd.to_numeric(tp_col, errors="coerce") if tp_col is not None else None
-
-    def fmt(val: str) -> str:
-        v = str(val).strip()
-        return v + " 09:00:00" if len(v) <= 10 and "T" not in v and " " not in v else v
-
-    trades = []
-    ambiguous_side_rows: list[int] = []
-    for i in range(len(df)):
-        try:
-            entry_price_value = float(ep.iloc[i])
-            exit_price_value = float(xp.iloc[i])
-            stop_loss_value = (
-                float(sl_numeric.iloc[i]) if sl_numeric is not None and pd.notna(sl_numeric.iloc[i]) else None
-            )
-            take_profit_value = (
-                float(tp_numeric.iloc[i]) if tp_numeric is not None and pd.notna(tp_numeric.iloc[i]) else None
-            )
-
-            side_value = (
-                _normalize_trade_side(side_col.iloc[i])
-                if side_col is not None
-                else None
-            )
-            if side_value is None:
-                side_value = _infer_trade_side(
-                    entry_price=entry_price_value,
-                    stop_loss=stop_loss_value,
-                    take_profit=take_profit_value,
-                )
-
-            if side_value is None:
-                ambiguous_side_rows.append(i + 2)  # account for header row in CSV editors
-                continue
-
-            if stop_loss_value is None:
-                stop_loss_value = entry_price_value * (0.98 if side_value == "LONG" else 1.02)
-            if take_profit_value is None:
-                take_profit_value = entry_price_value * (1.04 if side_value == "LONG" else 0.96)
-
-            trades.append({
-                "entry_time":  fmt(str(entry_time.iloc[i])),
-                "exit_time":   fmt(str(exit_time.iloc[i])),
-                "entry_time_local": fmt(str(entry_time_local_col.iloc[i])) if entry_time_local_col is not None and pd.notna(entry_time_local_col.iloc[i]) else None,
-                "exit_time_local": fmt(str(exit_time_local_col.iloc[i])) if exit_time_local_col is not None and pd.notna(exit_time_local_col.iloc[i]) else None,
-                "side":        side_value,
-                "entry_price": entry_price_value,
-                "exit_price":  exit_price_value,
-                "stop_loss":   stop_loss_value,
-                "take_profit": take_profit_value,
-                "trade_id":    str(trade_id_col.iloc[i]) if trade_id_col is not None else None,
-                "symbol":      str(symbol_col.iloc[i]) if symbol_col is not None else None,
-                "volume":      float(pd.to_numeric(volume_col.iloc[i], errors="coerce")) if volume_col is not None and pd.notna(pd.to_numeric(volume_col.iloc[i], errors="coerce")) else None,
-                "profit":      float(pd.to_numeric(profit_col.iloc[i], errors="coerce")) if profit_col is not None and pd.notna(pd.to_numeric(profit_col.iloc[i], errors="coerce")) else None,
-                "commission":  float(pd.to_numeric(commission_col.iloc[i], errors="coerce")) if commission_col is not None and pd.notna(pd.to_numeric(commission_col.iloc[i], errors="coerce")) else None,
-                "swap":        float(pd.to_numeric(swap_col.iloc[i], errors="coerce")) if swap_col is not None and pd.notna(pd.to_numeric(swap_col.iloc[i], errors="coerce")) else None,
-                "mfe":         float(pd.to_numeric(mfe_col.iloc[i], errors="coerce")) if mfe_col is not None and pd.notna(pd.to_numeric(mfe_col.iloc[i], errors="coerce")) else None,
-                "mae":         float(pd.to_numeric(mae_col.iloc[i], errors="coerce")) if mae_col is not None and pd.notna(pd.to_numeric(mae_col.iloc[i], errors="coerce")) else None,
-            })
-        except Exception:
-            continue  # skip malformed rows
-
-    if ambiguous_side_rows:
-        preview = ", ".join(str(row) for row in ambiguous_side_rows[:5])
-        more = "" if len(ambiguous_side_rows) <= 5 else f" and {len(ambiguous_side_rows) - 5} more"
-        raise ValueError(
-            "CSV is missing a usable trade direction for some rows. "
-            f"Add a side/direction column or consistent stop-loss/take-profit levels. "
-            f"Ambiguous rows: {preview}{more}."
-        )
-
-    return trades
+    return map_csv_columns(df)
 
 
 # ---------------------------------------------------------------------------
@@ -586,8 +478,8 @@ async def parse_csv(file: UploadFile = File(...)):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    if len(raw_trades) < 10:
-        raise HTTPException(status_code=400, detail="At least 10 valid trades are required")
+    if len(raw_trades) < 1:
+        raise HTTPException(status_code=400, detail="No valid closed trades could be extracted from this CSV")
 
     try:
         trade_objects = [TradeRecord(**t) for t in raw_trades]

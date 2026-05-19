@@ -9,9 +9,9 @@ interface TurtleTradersPageProps {
 
 const scoringModel = [
   {
-    name: "Percentile PNL",
+    name: "Win Rate",
     weight: "35%",
-    detail: "This measures how strongly a trader is performing relative to the rest of the verified leaderboard. Higher percentile performance matters because it shows whether strong returns are actually competitive when compared against other tracked traders.",
+    detail: "Win rate shows how often a trader closes positions profitably across verified journal history. It matters because consistency is easier to trust than one or two standout trades.",
   },
   {
     name: "Risk Per Trade",
@@ -24,9 +24,9 @@ const scoringModel = [
     detail: "A larger verified trade sample gives more confidence in the result. This helps prevent a trader from ranking highly based on only a small number of successful trades.",
   },
   {
-    name: "Risk Score",
+    name: "Avg R",
     weight: "15%",
-    detail: "This reflects how disciplined and stable a trader's overall risk behaviour is. Lower and more consistent risk ranks above unstable exposure, even if short-term returns look similar.",
+    detail: "Average R summarises how much each trade returns relative to its risk. It is useful because it compares traders on trade quality rather than raw account size.",
   },
 ];
 
@@ -39,11 +39,35 @@ function riskPillClass(riskLevel: string) {
     return "bg-amber-100 text-amber-700";
   }
 
+  if (riskLevel === "N/A") {
+    return "bg-slate-100 text-slate-600";
+  }
+
   return "bg-rose-100 text-rose-700";
 }
 
-function formatRiskPercent(value: number) {
+function formatRiskPercent(value: number | null) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "N/A";
+  }
+
   return `${value.toFixed(2)}%`;
+}
+
+function formatWinRate(value: number | null) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "N/A";
+  }
+
+  return `${value.toFixed(1)}%`;
+}
+
+function formatAvgR(value: number | null) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "N/A";
+  }
+
+  return `${value.toFixed(2)}R`;
 }
 
 function formatRelativeTimestamp(value: string | null) {
@@ -169,15 +193,16 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
               ) : null}
             </div>
             <div className="overflow-x-auto p-2 sm:p-3">
-              <table className="w-full min-w-[920px]">
+              <table className="w-full min-w-[1040px]">
                 <thead className="bg-slate-50">
                   <tr>
                     <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Rank</th>
                     <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Trader</th>
                     <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Market</th>
-                    <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Percentile PNL</th>
+                    <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Win Rate</th>
                     <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Risk Per Trade</th>
                     <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Total Trades</th>
+                    <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Avg R</th>
                     <th className="px-5 py-4 text-center text-[11px] uppercase tracking-[0.2em] text-slate-600">Risk Level</th>
                     <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Last Updated</th>
                   </tr>
@@ -185,21 +210,21 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={8} className="px-5 py-8 text-center text-sm text-slate-600">
+                      <td colSpan={9} className="px-5 py-8 text-center text-sm text-slate-600">
                         Loading public leaderboard...
                       </td>
                     </tr>
                   ) : null}
                   {!loading && loadError ? (
                     <tr>
-                      <td colSpan={8} className="px-5 py-8 text-center text-sm text-red-600">
+                      <td colSpan={9} className="px-5 py-8 text-center text-sm text-red-600">
                         {loadError}
                       </td>
                     </tr>
                   ) : null}
                   {!loading && !loadError && visibleTraders.length === 0 && !normalizedSearch ? (
                     <tr>
-                      <td colSpan={8} className="px-5 py-8 text-center text-sm text-slate-600">
+                      <td colSpan={9} className="px-5 py-8 text-center text-sm text-slate-600">
                         No public trader performance has been published yet.
                       </td>
                     </tr>
@@ -223,9 +248,15 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                           {trader.market}
                         </span>
                       </td>
-                      <td className="px-5 py-4 text-right text-sm font-semibold tabular-nums text-slate-950">{trader.percentilePnl}%</td>
+                      <td className="px-5 py-4 text-right">
+                        <div className="text-sm font-semibold tabular-nums text-slate-950">{formatWinRate(trader.winRate)}</div>
+                        {typeof trader.percentilePnl === "number" ? (
+                          <div className="text-[11px] text-slate-500">P&amp;L percentile {trader.percentilePnl}%</div>
+                        ) : null}
+                      </td>
                       <td className="px-5 py-4 text-right text-sm font-medium tabular-nums text-slate-950">{formatRiskPercent(trader.riskPerTradePercent)}</td>
                       <td className="px-5 py-4 text-right text-sm font-medium tabular-nums text-slate-950">{trader.totalTrades}</td>
+                      <td className="px-5 py-4 text-right text-sm font-medium tabular-nums text-slate-950">{formatAvgR(trader.avgRMultiple)}</td>
                       <td className="px-5 py-4 text-center">
                         <span className={`rounded-full px-3 py-1 text-xs font-medium ${riskPillClass(trader.riskLevel)}`}>
                           {trader.riskLevel}
@@ -253,7 +284,7 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                 </div>
                 <h3 className="text-2xl text-slate-900">How we decide who is best</h3>
                 <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
-                  The leaderboard is not built around one lucky month or one impressive screenshot. It is designed to reward traders who show strong verified performance over time, while managing risk in a way that investors can understand and trust.
+                  The leaderboard is not built around one lucky month or one impressive screenshot. It is designed to reward traders who show strong verified performance over time, manage risk with discipline, and do it across a meaningful sample of real trades.
                 </p>
               </div>
             </div>
@@ -269,7 +300,7 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
             </div>
 
             <div className="mt-6 rounded-2xl border border-teal-200 bg-teal-50 px-5 py-4 text-sm leading-relaxed text-slate-700">
-              In practice, this means the strongest traders are not simply the ones showing the highest headline returns. The better rank goes to the trader combining verified performance, repeatability, meaningful sample size, and disciplined risk management.
+              In practice, this means the strongest traders are not simply the ones showing the biggest headline gain. The better rank goes to the trader combining win rate, trade quality, meaningful sample size, and controlled risk. When verified currency P&amp;L data exists, we can also show it quietly as extra context, but the board does not depend on it.
             </div>
           </div>
         </div>
