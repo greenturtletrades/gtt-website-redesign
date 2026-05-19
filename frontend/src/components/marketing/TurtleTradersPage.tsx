@@ -208,13 +208,14 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
               ) : null}
             </div>
             <div className="overflow-x-auto p-2 sm:p-3">
-              <table className="w-full min-w-[1040px]">
+              <table className="w-full min-w-[1160px]">
                 <thead className="bg-slate-50">
                   <tr>
                     <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Rank</th>
                     <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Trader</th>
                     <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Market</th>
                     <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Win Rate</th>
+                    <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Profit Factor</th>
                     <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Risk Per Trade</th>
                     <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Total Trades</th>
                     <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Expectancy</th>
@@ -225,21 +226,21 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={9} className="px-5 py-8 text-center text-sm text-slate-600">
+                      <td colSpan={10} className="px-5 py-8 text-center text-sm text-slate-600">
                         Loading public leaderboard...
                       </td>
                     </tr>
                   ) : null}
                   {!loading && loadError ? (
                     <tr>
-                      <td colSpan={9} className="px-5 py-8 text-center text-sm text-red-600">
+                      <td colSpan={10} className="px-5 py-8 text-center text-sm text-red-600">
                         {loadError}
                       </td>
                     </tr>
                   ) : null}
                   {!loading && !loadError && visibleTraders.length === 0 && !normalizedSearch ? (
                     <tr>
-                      <td colSpan={9} className="px-5 py-8 text-center text-sm text-slate-600">
+                      <td colSpan={10} className="px-5 py-8 text-center text-sm text-slate-600">
                         No public trader performance has been published yet.
                       </td>
                     </tr>
@@ -272,10 +273,8 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                       </td>
                       <td className="px-5 py-4 text-right">
                         <div className="text-base font-semibold tabular-nums text-slate-950">{formatWinRate(trader.winRate)}</div>
-                        <div className="mt-1 text-[11px] uppercase tracking-[0.12em] text-slate-500">
-                          Profit factor {formatProfitFactor(trader.profitFactor)}
-                        </div>
                       </td>
+                      <td className="px-5 py-4 text-right text-base font-medium tabular-nums text-slate-950">{formatProfitFactor(trader.profitFactor)}</td>
                       <td className="px-5 py-4 text-right text-base font-medium tabular-nums text-slate-950">{formatRiskPercent(trader.riskPerTradePercent)}</td>
                       <td className="px-5 py-4 text-right text-base font-medium tabular-nums text-slate-950">{trader.totalTrades}</td>
                       <td className="px-5 py-4 text-right text-base font-medium tabular-nums text-slate-950">{formatExpectancy(trader.expectancyR)}</td>
