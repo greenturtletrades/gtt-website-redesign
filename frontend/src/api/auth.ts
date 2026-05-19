@@ -34,6 +34,7 @@ export function register(input: {
   metaTraderUsername?: string;
   brokerName?: string;
   referralCode?: string;
+  plan?: "free" | "payg";
 }) {
   return apiPost<AuthResponse>("/api/auth/register", input);
 }

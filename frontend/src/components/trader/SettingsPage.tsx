@@ -48,7 +48,7 @@ import { ApiError, clearStoredToken } from "../../api/client";
 interface SettingsPageProps {
   userName: string;
   userEmail: string;
-  currentPlan: "payg";
+  currentPlan: "free" | "payg" | "premium";
   subscriptionStatus?: "active" | "paused" | "cancelling" | "not_started" | "trialing";
   onPauseSubscription?: () => void;
   onResumeSubscription?: () => void;

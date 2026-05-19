@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { AdminLoginModal } from "./components/admin/AdminLoginModal";
 import { AuthModal } from "./components/auth/AuthModal";
+import { PlanSelectionModal, type SignupPlanChoice } from "./components/auth/PlanSelectionModal";
 import { ResetPasswordModal } from "./components/auth/ResetPasswordModal";
 import { SubscriptionModal } from "./components/auth/SubscriptionModal";
 import { WelcomeScreen } from "./components/auth/WelcomeScreen";
@@ -45,13 +46,15 @@ export default function App() {
   const [currentView, setCurrentView] = useState<ViewType>("landing");
   const [userType, setUserType] = useState<UserType>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showPlanSelectionModal, setShowPlanSelectionModal] = useState(false);
   const [showAdminLoginModal, setShowAdminLoginModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [authMode, setAuthMode] = useState<"signup" | "login">("signup");
   const [turtleAnalyticsAuthed, setTurtleAnalyticsAuthed] = useState(false);
   const [pendingUserName, setPendingUserName] = useState<string>("");
   const [pendingReferralCode, setPendingReferralCode] = useState<string>("");
-  const [selectedSubscriptionPlan, setSelectedSubscriptionPlan] = useState<"payg" | null>(null);
+  const [selectedSubscriptionPlan, setSelectedSubscriptionPlan] = useState<"free" | "payg" | "premium" | null>(null);
+  const [selectedSignupPlan, setSelectedSignupPlan] = useState<SignupPlanChoice>("free");
   const [subscriptionStatus, setSubscriptionStatus] = useState<"active" | "paused" | "cancelling" | "not_started">("not_started");
   const [onboardingStage, setOnboardingStage] = useState<"none" | "welcome" | "ea-setup" | "complete">("none");
   const [applicationLookupToken, setApplicationLookupToken] = useState(() => {
@@ -155,7 +158,7 @@ export default function App() {
           const fullName = `${firstName} ${lastName}`.trim();
           setCurrentUserName(fullName || pendingUserName || accountState.account.email.split("@")[0]);
           setCurrentUserEmail(accountState.account.email);
-          setSelectedSubscriptionPlan(accountState.account.plan || "payg");
+          setSelectedSubscriptionPlan(accountState.account.plan || "free");
           const nextStatus = accountState.account.billing?.subscriptionStatus?.toLowerCase();
           if (nextStatus === "paused") {
             setSubscriptionStatus("paused");
@@ -247,6 +250,13 @@ export default function App() {
   };
 
   const handleTraderSignUp = () => {
+    setShowPlanSelectionModal(true);
+  };
+
+  const handleSignupPlanSelected = (plan: SignupPlanChoice) => {
+    setSelectedSignupPlan(plan);
+    setSelectedSubscriptionPlan(plan);
+    setShowPlanSelectionModal(false);
     setAuthMode("signup");
     setShowAuthModal(true);
   };
@@ -262,32 +272,52 @@ export default function App() {
       setPendingReferralCode(details?.referralCode?.trim().toUpperCase() || "");
       setCurrentUserName(details?.name?.trim() || "Trader");
       setCurrentUserEmail(details?.email?.trim() || "");
-      setSelectedSubscriptionPlan("payg");
+      setSelectedSubscriptionPlan(selectedSignupPlan);
       setSubscriptionStatus("not_started");
       setUserType("trader");
       setTurtleAnalyticsAuthed(false);
       setCurrentView("turtle-analytics");
+      if (selectedSignupPlan === "payg") {
+        setShowSubscriptionModal(true);
+      }
     } else {
       // Login flow — load real billing state so ML access is gated correctly.
-      setSelectedSubscriptionPlan("payg");
       setCurrentUserName(details?.name?.trim() || currentUserName);
       setCurrentUserEmail(details?.email?.trim() || currentUserEmail);
       setUserType("trader");
       try {
         const accountState = await fetchAccountState();
         if (accountState.ok) {
+          setSelectedSubscriptionPlan(accountState.account.plan || "free");
           const status = accountState.account.billing?.subscriptionStatus?.toLowerCase();
           const exempt = Boolean(accountState.account.billingExempt);
           setTurtleAnalyticsAuthed(hasMlModelAccess(status, exempt));
+          if (status === "paused") {
+            setSubscriptionStatus("paused");
+          } else if (status === "cancelling") {
+            setSubscriptionStatus("cancelling");
+          } else if (status === "trialing" || status === "active") {
+            setSubscriptionStatus("active");
+          } else {
+            setSubscriptionStatus("not_started");
+          }
         } else {
+          setSelectedSubscriptionPlan("free");
           setTurtleAnalyticsAuthed(false);
         }
       } catch {
+        setSelectedSubscriptionPlan("free");
         setTurtleAnalyticsAuthed(false);
       }
       setCurrentView("turtle-analytics");
     }
   };
+
+  const shouldShowPaidSignupWall =
+    userType === "trader" &&
+    selectedSubscriptionPlan === "payg" &&
+    subscriptionStatus === "not_started" &&
+    !turtleAnalyticsAuthed;
 
   const handleSubscriptionComplete = (plan: "payg", referralCode?: string) => {
     setSelectedSubscriptionPlan(plan);
@@ -464,17 +494,26 @@ export default function App() {
             </div>
           </div>
         ) : userType === "trader" ? (
-          <TurtleAnalytics
-            userType={userType} 
-            subscriptionTier={selectedSubscriptionPlan || "payg"}
-            subscriptionStatus={subscriptionStatus}
-            mlModelAccessEnabled={turtleAnalyticsAuthed}
-            onSignUp={handleTraderClick} 
-            onLogout={handleLogout}
-            onSettings={handleOpenSettings}
-            onPauseSubscription={handlePauseSubscription}
-            onResumeSubscription={handleResumeSubscription}
-          />
+          shouldShowPaidSignupWall ? (
+            <TurtleAnalyticsWelcome
+              onSignUp={handleTraderSignUp}
+              onSignIn={handleTraderClick}
+              isLoggedIn={true}
+              onSubscribe={() => setShowSubscriptionModal(true)}
+            />
+          ) : (
+            <TurtleAnalytics
+              userType={userType} 
+              subscriptionTier={selectedSubscriptionPlan || "free"}
+              subscriptionStatus={subscriptionStatus}
+              mlModelAccessEnabled={turtleAnalyticsAuthed}
+              onSignUp={handleTraderClick} 
+              onLogout={handleLogout}
+              onSettings={handleOpenSettings}
+              onPauseSubscription={handlePauseSubscription}
+              onResumeSubscription={handleResumeSubscription}
+            />
+          )
         ) : (
           <TurtleAnalyticsWelcome
             onSignUp={handleTraderSignUp}
@@ -576,11 +615,18 @@ export default function App() {
       )}
 
       {/* Onboarding Welcome Screen */}
-      {!isAdminRoute && onboardingStage === "welcome" && selectedSubscriptionPlan && (
+      {!isAdminRoute && onboardingStage === "welcome" && selectedSubscriptionPlan === "payg" && (
         <WelcomeScreen
           userName={pendingUserName}
-          selectedPlan={selectedSubscriptionPlan}
+          selectedPlan="payg"
           onContinue={handleWelcomeComplete}
+        />
+      )}
+
+      {showPlanSelectionModal && (
+        <PlanSelectionModal
+          onClose={() => setShowPlanSelectionModal(false)}
+          onSelectPlan={handleSignupPlanSelected}
         />
       )}
 
@@ -588,6 +634,7 @@ export default function App() {
         <AuthModal 
           type="trader"
           initialMode={authMode}
+          signupPlan={selectedSignupPlan}
           onClose={() => setShowAuthModal(false)}
           onComplete={handleAuthComplete}
         />

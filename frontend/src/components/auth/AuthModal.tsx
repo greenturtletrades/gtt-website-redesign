@@ -8,9 +8,10 @@ interface AuthModalProps {
   onClose: () => void;
   onComplete: (type: "trader" | "admin", details?: { name?: string; email?: string; referralCode?: string }) => void;
   initialMode?: "signup" | "login";
+  signupPlan?: "free" | "payg";
 }
 
-export function AuthModal({ type, onClose, onComplete, initialMode = "signup" }: AuthModalProps) {
+export function AuthModal({ type, onClose, onComplete, initialMode = "signup", signupPlan = "free" }: AuthModalProps) {
   const [isSignUp, setIsSignUp] = useState(initialMode === "signup" && type !== "admin");
   const [formData, setFormData] = useState({
     name: "",
@@ -62,6 +63,7 @@ export function AuthModal({ type, onClose, onComplete, initialMode = "signup" }:
             name: formData.name,
             brokerName: formData.tradingPlatform,
             referralCode: formData.referralCode,
+            plan: signupPlan,
           })
         : await login(formData.email, formData.password);
 

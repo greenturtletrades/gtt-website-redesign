@@ -99,8 +99,7 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
             >
               <div className="max-w-2xl px-4 text-center">
                 <p className="text-xs leading-relaxed text-teal-100/80 sm:text-sm">
-                  Connect your MetaTrader account directly or upload CSV trade history for analysis.
-                  <span className="text-teal-100/80"> Additional broker and platform integrations will follow.</span>
+                  Connect your MetaTrader account, import Trading 212 history, or upload CSV trade history for analysis.
                 </p>
               </div>
             </motion.div>
@@ -185,7 +184,7 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                   </li>
                   <li className="flex items-start gap-2 text-sm">
                     <Check className="w-4 h-4 text-cyan-300 flex-shrink-0 mt-0.5" />
-                    <span className="text-slate-200">Trade Journal</span>
+                    <span className="text-slate-200">Trade journal and account ledger</span>
                   </li>
                   <li className="flex items-start gap-2 text-sm">
                     <Check className="w-4 h-4 text-cyan-300 flex-shrink-0 mt-0.5" />
@@ -193,7 +192,11 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                   </li>
                   <li className="flex items-start gap-2 text-sm">
                     <Check className="w-4 h-4 text-cyan-300 flex-shrink-0 mt-0.5" />
-                    <span className="text-slate-200">MetaTrader setup preparation</span>
+                    <span className="text-slate-200">Import trades from MetaTrader, Trading 212, or CSV</span>
+                  </li>
+                  <li className="flex items-start gap-2 text-sm">
+                    <Check className="w-4 h-4 text-cyan-300 flex-shrink-0 mt-0.5" />
+                    <span className="text-slate-200">Journal stats cards and public leaderboard profile controls</span>
                   </li>
                   <li className="flex items-start gap-2 text-sm">
                     <Check className="w-4 h-4 text-cyan-300 flex-shrink-0 mt-0.5" />
@@ -233,11 +236,11 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                   </li>
                   <li className="flex items-start gap-2 text-sm">
                     <Check className="w-4 h-4 text-teal-400 flex-shrink-0 mt-0.5" />
-                    <span className="text-slate-200">Access to Turtle Analytics</span>
+                    <span className="text-slate-200">Full Turtle Analytics access</span>
                   </li>
                   <li className="flex items-start gap-2 text-sm">
                     <Check className="w-4 h-4 text-teal-400 flex-shrink-0 mt-0.5" />
-                    <span className="text-slate-200">Trade Journal</span>
+                    <span className="text-slate-200">Trade journal, account ledger, and stats cards</span>
                   </li>
                   <li className="flex items-start gap-2 text-sm">
                     <Check className="w-4 h-4 text-teal-400 flex-shrink-0 mt-0.5" />
@@ -245,15 +248,19 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                   </li>
                   <li className="flex items-start gap-2 text-sm">
                     <Check className="w-4 h-4 text-teal-400 flex-shrink-0 mt-0.5" />
-                    <span className="text-slate-200">MFE/MAE analysis</span>
+                    <span className="text-slate-200">Survival analysis and hold-time optimisation</span>
                   </li>
                   <li className="flex items-start gap-2 text-sm">
                     <Check className="w-4 h-4 text-teal-400 flex-shrink-0 mt-0.5" />
-                    <span className="text-slate-200">Market regime clustering</span>
+                    <span className="text-slate-200">MFE/MAE and exit-quality analysis</span>
                   </li>
                   <li className="flex items-start gap-2 text-sm">
                     <Check className="w-4 h-4 text-teal-400 flex-shrink-0 mt-0.5" />
-                    <span className="text-slate-200">Trailing stop optimisation</span>
+                    <span className="text-slate-200">Market regime clustering and expectancy diagnostics</span>
+                  </li>
+                  <li className="flex items-start gap-2 text-sm">
+                    <Check className="w-4 h-4 text-teal-400 flex-shrink-0 mt-0.5" />
+                    <span className="text-slate-200">Trailing stop and risk optimisation</span>
                   </li>
                   <li className="flex items-start gap-2 text-sm">
                     <Check className="w-4 h-4 text-teal-400 flex-shrink-0 mt-0.5" />
@@ -281,7 +288,7 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                   <h4 className="text-white">Counterfactual Simulations</h4>
                 </div>
                 <p className="text-white text-sm">
-                  Test 12+ stop-loss/take-profit combinations on your historical trades to find optimal risk parameters
+                  Test multiple stop-loss, take-profit, and management combinations on your historical trades to find stronger risk parameters
                 </p>
               </div>
 
@@ -305,7 +312,7 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                   <h4 className="text-white">Market Regime Clustering</h4>
                 </div>
                 <p className="text-white text-sm">
-                  ML discovers 5 market conditions where you excel or struggle, without manual tagging
+                  ML segments your trading into market conditions so you can see where you perform best and where your edge weakens
                 </p>
               </div>
 
@@ -317,7 +324,7 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                   <h4 className="text-white">Survival Analysis</h4>
                 </div>
                 <p className="text-white text-sm">
-                  Analyses how long trades survive before hitting SL/TP to optimise your hold duration
+                  Analyses how long trades survive before hitting SL or TP to improve hold duration and exit timing
                 </p>
               </div>
 
@@ -329,7 +336,7 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                   <h4 className="text-white">MFE/MAE Analysis</h4>
                 </div>
                 <p className="text-white text-sm">
-                  See peak profit potential vs. worst drawdown per trade to refine your exit strategy
+                  See peak profit potential versus worst drawdown per trade to refine exits and understand missed opportunity
                 </p>
               </div>
 
@@ -338,10 +345,10 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                   <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-lg flex items-center justify-center">
                     <Clock className="w-5 h-5 text-white" />
                   </div>
-                  <h4 className="text-white">Hourly Performance</h4>
+                  <h4 className="text-white">Journal And Ledger</h4>
                 </div>
                 <p className="text-white text-sm">
-                  Discover your best trading hours with detailed performance breakdowns by time
+                  Keep imported trade history, review account activity, and switch between journal rows and dedicated stats cards
                 </p>
               </div>
 
@@ -353,7 +360,7 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                   <h4 className="text-white">Risk Optimisation</h4>
                 </div>
                 <p className="text-white text-sm">
-                  Find your optimal position sizing and risk fraction for maximum Sharpe ratio
+                  Find stronger risk fractions, cleaner exit structures, and more repeatable trading behaviour
                 </p>
               </div>
 
@@ -365,7 +372,7 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                   <h4 className="text-white">Trailing Stop Testing</h4>
                 </div>
                 <p className="text-white text-sm">
-                  Test 8+ trailing stop strategies on your actual trades to optimise exit timing
+                  Test trailing stop approaches on your actual trades to improve exit timing without guessing
                 </p>
               </div>
 
@@ -374,10 +381,10 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                   <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-lg flex items-center justify-center">
                     <CheckCircle className="w-5 h-5 text-white" />
                   </div>
-                  <h4 className="text-white">R-Multiple Distribution</h4>
+                  <h4 className="text-white">Expectancy Metrics</h4>
                 </div>
                 <p className="text-white text-sm">
-                  Understand how your wins and losses cluster with statistical confidence intervals
+                  Understand expectancy, profit factor, win rate, and trade quality through verified account data
                 </p>
               </div>
 
@@ -386,10 +393,10 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                   <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-cyan-500 rounded-lg flex items-center justify-center">
                     <BookOpen className="w-5 h-5 text-white" />
                   </div>
-                  <h4 className="text-white">Trade Journal</h4>
+                  <h4 className="text-white">Multi-Source Imports</h4>
                 </div>
                 <p className="text-white text-sm">
-                  Comprehensive logging and review of all your trades with detailed notes and performance tracking
+                  Pull trade history from MetaTrader, Trading 212, or CSV uploads into one consistent trading record
                 </p>
               </div>
             </div>

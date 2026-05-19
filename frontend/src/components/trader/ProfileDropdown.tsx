@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 interface ProfileDropdownProps {
   userName: string;
   userEmail: string;
-  subscriptionTier: "payg" | "premium";
+  subscriptionTier: "free" | "payg" | "premium";
   onLogout: () => void;
   onManageSubscription?: () => void;
   onSettings?: () => void;
@@ -33,6 +33,7 @@ export function ProfileDropdown({
   }, []);
 
   const tierInfo = {
+    free: { name: "Free", color: "text-cyan-700", bg: "bg-cyan-100" },
     payg: { name: "Pay-as-you-go", color: "text-slate-700", bg: "bg-slate-100" },
     premium: { name: "Premium", color: "text-amber-700", bg: "bg-amber-100" }
   };

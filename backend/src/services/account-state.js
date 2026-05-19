@@ -26,6 +26,11 @@ function createAccountStateHelpers({
 
     const billingPayload = await buildUserBillingSummary(userId);
     const accountRole = sessionRole || user.role;
+    const plan = typeof user.plan === "string" && user.plan.trim()
+      ? user.plan.trim()
+      : user.stripeSubscriptionId
+        ? "payg"
+        : "free";
     const ownReferralCode =
       accountRole === "TRADER" ? formatReferralCode(await ensureTraderOwnedReferralCode(user)) : null;
 
@@ -37,7 +42,7 @@ function createAccountStateHelpers({
         role: accountRole,
         isSuperAdmin: Boolean(user.isSuperAdmin),
         status: user.status,
-        plan: "payg",
+        plan,
         profile: user.profile,
         billing: billingPayload?.billing || null,
         ownReferralCode,

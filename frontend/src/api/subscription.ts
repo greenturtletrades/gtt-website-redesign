@@ -1,6 +1,6 @@
 import { apiPost } from "./client";
 
-export function submitChurnFeedback(reason: string, feedback: string, plan: "payg" | null) {
+export function submitChurnFeedback(reason: string, feedback: string, plan: "free" | "payg" | null) {
   return apiPost<{ ok: boolean; id: string }>("/api/subscription/churn-feedback", {
     reason,
     feedback,
@@ -23,7 +23,7 @@ export function resumeSubscription() {
   return apiPost<{ ok: boolean; subscriptionStatus: string }>("/api/subscription/resume", {});
 }
 
-export function cancelSubscription(reason: string, feedback: string, plan: "payg" | null) {
+export function cancelSubscription(reason: string, feedback: string, plan: "free" | "payg" | null) {
   return apiPost<{ ok: boolean; subscriptionStatus: string; currentPeriodEnd: string | null }>(
     "/api/subscription/cancel",
     {

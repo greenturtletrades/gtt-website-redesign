@@ -660,7 +660,12 @@ function createBillingReferralHelpers({
     return {
       ok: true,
       billing: {
-        plan: "payg",
+        plan:
+          typeof user.plan === "string" && user.plan.trim()
+            ? user.plan.trim()
+            : user.stripeSubscriptionId
+              ? "payg"
+              : "free",
         subscriptionStatus: isBillingExemptUser(user) ? "internal" : subscriptionStatus,
         stripeConfigured,
         stripeCustomerLinked: Boolean(user.stripeCustomerId),

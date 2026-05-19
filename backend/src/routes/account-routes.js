@@ -131,7 +131,7 @@ function registerAccountRoutes(app, {
     message: "Too many registration attempts. Please try again later.",
   }), async (req, res) => {
     try {
-      const { email, password, name, metaTraderUsername, brokerName, referralCode } = req.body || {};
+      const { email, password, name, metaTraderUsername, brokerName, referralCode, plan } = req.body || {};
 
       if (!email || typeof email !== "string") {
         return res.status(400).json({ ok: false, error: "Email is required" });
@@ -156,6 +156,7 @@ function registerAccountRoutes(app, {
       const { trimmedName, firstName, lastName } = splitFullName(name);
       const normalizedMetaTraderUsername = normalizeOptionalTrimmedString(metaTraderUsername);
       const normalizedBrokerName = normalizeOptionalTrimmedString(brokerName);
+      const normalizedPlan = plan === "free" ? "free" : "payg";
       const normalizedReferralCode =
         typeof referralCode === "string" && referralCode.trim()
           ? referralCode.trim().toUpperCase()
@@ -179,6 +180,7 @@ function registerAccountRoutes(app, {
         data: {
           email: normalizedEmail,
           passwordHash,
+          plan: normalizedPlan,
           billingExempt,
           billingExemptReason: billingExempt ? "Internal Green Turtle Trades company account" : null,
           appliedReferralCodeId: appliedReferralCode?.id || null,
@@ -966,6 +968,8 @@ function registerAccountRoutes(app, {
             email: deletedEmail,
             passwordHash: replacementPasswordHash,
             status: "DISABLED",
+            leaderboardOptIn: false,
+            leaderboardPublishedAt: null,
             stripeCustomerId: null,
             stripeSubscriptionId: null,
             platformComped: false,

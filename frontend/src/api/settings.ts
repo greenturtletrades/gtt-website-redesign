@@ -113,7 +113,7 @@ export interface MlRunChargeRecord {
 export interface BillingSummaryResponse {
   ok: boolean;
   billing: {
-    plan: "payg";
+    plan: "free" | "payg";
     subscriptionStatus: string;
     billingExempt?: boolean;
     billingExemptReason?: string | null;
@@ -145,7 +145,7 @@ export interface AccountStateResponse {
     role: "TRADER" | "ADMIN";
     isSuperAdmin?: boolean;
     status: "ACTIVE" | "PENDING" | "DISABLED";
-    plan: "payg" | null;
+    plan: "free" | "payg" | null;
     billingExempt?: boolean;
     profile?: AuthUser["profile"] | null;
     billing: BillingSummaryResponse["billing"] | null;
