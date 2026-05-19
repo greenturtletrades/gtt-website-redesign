@@ -78,6 +78,13 @@ function formatProfitFactor(value: number | null) {
   return value.toFixed(2);
 }
 
+function splitMarketSummary(value: string) {
+  return String(value)
+    .split("+")
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
 function formatRelativeTimestamp(value: string | null) {
   if (!value) {
     return "Just updated";
@@ -252,23 +259,32 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                         </div>
                       </td>
                       <td className="px-5 py-4">
-                        <span className="rounded-full border border-teal-100 bg-teal-50 px-3 py-1 text-xs font-medium text-teal-700">
-                          {trader.market}
-                        </span>
+                        <div className="flex max-w-[220px] flex-wrap gap-2">
+                          {splitMarketSummary(trader.market).map((market) => (
+                            <span
+                              key={`${trader.id}-${market}`}
+                              className="rounded-full border border-teal-100 bg-teal-50 px-3 py-1 text-xs font-medium text-teal-700"
+                            >
+                              {market}
+                            </span>
+                          ))}
+                        </div>
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <div className="text-sm font-semibold tabular-nums text-slate-950">{formatWinRate(trader.winRate)}</div>
-                        <div className="text-[11px] text-slate-500">Profit factor {formatProfitFactor(trader.profitFactor)}</div>
+                        <div className="text-base font-semibold tabular-nums text-slate-950">{formatWinRate(trader.winRate)}</div>
+                        <div className="mt-1 text-[11px] uppercase tracking-[0.12em] text-slate-500">
+                          Profit factor {formatProfitFactor(trader.profitFactor)}
+                        </div>
                       </td>
-                      <td className="px-5 py-4 text-right text-sm font-medium tabular-nums text-slate-950">{formatRiskPercent(trader.riskPerTradePercent)}</td>
-                      <td className="px-5 py-4 text-right text-sm font-medium tabular-nums text-slate-950">{trader.totalTrades}</td>
-                      <td className="px-5 py-4 text-right text-sm font-medium tabular-nums text-slate-950">{formatExpectancy(trader.expectancyR)}</td>
+                      <td className="px-5 py-4 text-right text-base font-medium tabular-nums text-slate-950">{formatRiskPercent(trader.riskPerTradePercent)}</td>
+                      <td className="px-5 py-4 text-right text-base font-medium tabular-nums text-slate-950">{trader.totalTrades}</td>
+                      <td className="px-5 py-4 text-right text-base font-medium tabular-nums text-slate-950">{formatExpectancy(trader.expectancyR)}</td>
                       <td className="px-5 py-4 text-center">
                         <span className={`rounded-full px-3 py-1 text-xs font-medium ${riskPillClass(trader.riskLevel)}`}>
                           {trader.riskLevel}
                         </span>
                       </td>
-                      <td className="px-5 py-4 text-right text-sm tabular-nums text-slate-700">{formatRelativeTimestamp(trader.lastUpdatedAt)}</td>
+                      <td className="px-5 py-4 text-right text-sm tabular-nums text-slate-700 whitespace-nowrap">{formatRelativeTimestamp(trader.lastUpdatedAt)}</td>
                     </tr>
                     );
                   })}
