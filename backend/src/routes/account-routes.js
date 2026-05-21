@@ -131,7 +131,7 @@ function registerAccountRoutes(app, {
     message: "Too many registration attempts. Please try again later.",
   }), async (req, res) => {
     try {
-      const { email, password, name, metaTraderUsername, brokerName, referralCode, plan } = req.body || {};
+      const { email, password, name, metaTraderUsername, brokerName, referralCode } = req.body || {};
 
       if (!email || typeof email !== "string") {
         return res.status(400).json({ ok: false, error: "Email is required" });
@@ -156,7 +156,7 @@ function registerAccountRoutes(app, {
       const { trimmedName, firstName, lastName } = splitFullName(name);
       const normalizedMetaTraderUsername = normalizeOptionalTrimmedString(metaTraderUsername);
       const normalizedBrokerName = normalizeOptionalTrimmedString(brokerName);
-      const normalizedPlan = plan === "free" ? "free" : "payg";
+      const normalizedPlan = "free";
       const normalizedReferralCode =
         typeof referralCode === "string" && referralCode.trim()
           ? referralCode.trim().toUpperCase()

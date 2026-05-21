@@ -109,16 +109,7 @@ function registerAdminRoutes(app, {
       return user.plan.trim().toLowerCase() === "free" ? "free" : "payg";
     }
 
-    const hasBillingOrMlEvidence =
-      Boolean(
-        (typeof user?.stripeCustomerId === "string" && user.stripeCustomerId.trim()) ||
-        (typeof user?.stripeSubscriptionId === "string" && user.stripeSubscriptionId.trim())
-      ) ||
-      (Array.isArray(user?.analysisRuns) && user.analysisRuns.length > 0) ||
-      (typeof user?._count?.analysisRuns === "number" && user._count.analysisRuns > 0) ||
-      (Array.isArray(user?.billingEvents) && user.billingEvents.length > 0);
-
-    if (hasBillingOrMlEvidence) {
+    if (typeof user?.stripeSubscriptionId === "string" && user.stripeSubscriptionId.trim()) {
       return "payg";
     }
 
@@ -1354,7 +1345,7 @@ function registerAdminRoutes(app, {
 
   app.get("/api/admin/finance", authRequired, adminRequired, async (req, res, next) => {
     try {
-      const traders = await prisma.user.findMany({
+      const allTraders = await prisma.user.findMany({
         where: {
           role: "TRADER",
           status: { in: ["ACTIVE", "PENDING", "DISABLED"] },
@@ -1389,6 +1380,7 @@ function registerAdminRoutes(app, {
           },
         },
       });
+      const traders = allTraders.filter((user) => !isInternalTestTraderUser(user));
 
       const traderAccounts = traders.length;
       const stripeSecretKey = env.STRIPE_SECRET_KEY;

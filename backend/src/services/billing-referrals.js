@@ -462,12 +462,18 @@ function createBillingReferralHelpers({
         event.type === "customer.subscription.deleted"
           ? null
           : eventData.stripeSubscriptionId || linkedUser.stripeSubscriptionId || null;
+      const shouldPromotePlanToPayg =
+        event.type === "checkout.session.completed" ||
+        event.type === "customer.subscription.created" ||
+        event.type === "customer.subscription.updated" ||
+        event.type === "invoice.paid";
 
       await prisma.user.update({
         where: { id: linkedUser.id },
         data: {
           stripeCustomerId: nextStripeCustomerId,
           stripeSubscriptionId: nextStripeSubscriptionId,
+          ...(shouldPromotePlanToPayg ? { plan: "payg" } : {}),
         },
       });
     }
