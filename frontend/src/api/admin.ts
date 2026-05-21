@@ -29,7 +29,7 @@ export interface AdminTrader {
   platformCompedReason: string | null;
   accountStatus: "ACTIVE" | "PENDING" | "DISABLED" | "NO_ACCOUNT";
   applicationStatus: "PENDING" | "APPROVED" | "REJECTED" | "NONE";
-  analysisStatus: "ANALYSIS_READY" | "NEEDS_ANALYSIS" | "NO_TRADE_DATA";
+  analysisStatus: "ANALYSIS_READY" | "NEEDS_ANALYSIS" | "NO_TRADE_DATA" | "NO_ACCESS";
   plan: "free" | "payg";
   joinedAt: string;
   country: string | null;

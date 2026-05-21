@@ -385,11 +385,14 @@ function registerAdminRoutes(app, {
             lastEaSyncAt: (lastEaSyncAt || latestStoredTradeAt) ? (lastEaSyncAt || latestStoredTradeAt).toISOString() : null,
             hasAccount: Boolean(user),
             hasApplication: Boolean(application),
-            analysisStatus: getTraderAnalysisStatus({
-              latestSnapshot,
-              tradeEventCount: storedTradeCount,
-              historyExportCount,
-            }),
+            analysisStatus:
+              resolvedPlan === "free"
+                ? "NO_ACCESS"
+                : getTraderAnalysisStatus({
+                    latestSnapshot,
+                    tradeEventCount: storedTradeCount,
+                    historyExportCount,
+                  }),
             latestAnalysisAt: latestSnapshot?.updatedAt
               ? latestSnapshot.updatedAt.toISOString()
               : latestStoredTradeAt

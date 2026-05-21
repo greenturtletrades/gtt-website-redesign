@@ -298,6 +298,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
         NEEDS_ANALYSIS: 0,
         NO_TRADE_DATA: 1,
         ANALYSIS_READY: 2,
+        NO_ACCESS: 3,
       } as const;
 
       if (priority[a.analysisStatus] === priority[b.analysisStatus]) {
@@ -384,6 +385,9 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
     }
     if (status === "NEEDS_ANALYSIS") {
       return <span className="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-700">Needs Analysis</span>;
+    }
+    if (status === "NO_ACCESS") {
+      return <span className="px-2 py-1 text-xs rounded-full bg-slate-200 text-slate-700">No Access</span>;
     }
     return <span className="px-2 py-1 text-xs rounded-full bg-slate-100 text-slate-600">No Trade Data</span>;
   };
