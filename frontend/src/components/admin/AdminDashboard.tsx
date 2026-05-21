@@ -1387,7 +1387,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
                 <div className="text-slate-600 text-sm mb-1">Active Stripe Subscriptions</div>
                 <div className="text-3xl text-slate-900">{financeSummary.activeSubscriptions}</div>
-                <div className="text-xs text-slate-500 mt-1">Operational billing count, separate from plan type</div>
+                <div className="text-xs text-slate-500 mt-1">Only subscriptions that are active or trialing and not paused</div>
               </div>
             </div>
 
@@ -1429,16 +1429,16 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                   Accounts and Billing Linkage
                 </h3>
                 <p className="mt-1 text-sm text-slate-600">
-                  Both platform access and ML billing columns now reflect Stripe-linked billing records and paid Stripe invoice revenue.
+                  Plan state follows your platform access logic. Stripe customer records only show whether a billing profile exists, while subscription links and revenue reflect real paid Stripe activity.
                 </p>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-slate-50">
                     <tr>
-                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Trader</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Account User</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Subscription State</th>
-                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Stripe Customer</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Stripe Customer Record</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Subscription Link</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Stripe Paid Invoices</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Stripe Paid Revenue</th>
@@ -1461,7 +1461,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                         <td className="py-4 px-4">
                           {getPlanBadge(account.plan)}
                         </td>
-                        <td className="py-4 px-4 text-slate-900 text-sm">{account.stripeCustomerLinked ? "Linked" : "Not linked"}</td>
+                        <td className="py-4 px-4 text-slate-900 text-sm">{account.stripeCustomerLinked ? "Present" : "None"}</td>
                         <td className="py-4 px-4 text-slate-900 text-sm">{account.stripeSubscriptionLinked ? "Active link" : "No link"}</td>
                         <td className="py-4 px-4 text-slate-900 text-sm">{account.paidSubscriptionInvoices}</td>
                         <td className="py-4 px-4 text-slate-900 text-sm">{formatCurrency(account.subscriptionRevenue)}</td>
@@ -1476,7 +1476,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                 </table>
               </div>
               {financeAccounts.length === 0 && (
-                <div className="p-6 text-sm text-slate-600">{financeError || "No finance-linked trader accounts found yet."}</div>
+                <div className="p-6 text-sm text-slate-600">{financeError || "No account users with billing data found yet."}</div>
               )}
             </div>
 

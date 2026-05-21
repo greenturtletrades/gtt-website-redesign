@@ -20,6 +20,7 @@ function registerAdminRoutes(app, {
   isBillingExemptUser,
   buildStripeAccountDiscountConfig,
   getBillingEventRevenueBreakdown,
+  getSubscriptionAccessDecisionFromStripe,
   getStripeInvoiceRevenueBreakdown,
   getInternalCompanyEmailGroup,
 }) {
@@ -1424,7 +1425,8 @@ function registerAdminRoutes(app, {
             linkedSubscriptionIds.map(async (subscriptionId) => {
               try {
                 const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-                if (subscription && subscription.status !== "canceled") return subscriptionId;
+                const decision = getSubscriptionAccessDecisionFromStripe(subscription);
+                if (decision?.allowed) return subscriptionId;
               } catch (error) {
                 console.error("Unable to load Stripe subscription for admin finance", subscriptionId, error);
               }

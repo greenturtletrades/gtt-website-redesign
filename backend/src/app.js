@@ -2418,6 +2418,7 @@ registerAdminRoutes(app, {
   isBillingExemptUser,
   buildStripeAccountDiscountConfig,
   getBillingEventRevenueBreakdown,
+  getSubscriptionAccessDecisionFromStripe,
   getStripeInvoiceRevenueBreakdown,
   getInternalCompanyEmailGroup,
 });
