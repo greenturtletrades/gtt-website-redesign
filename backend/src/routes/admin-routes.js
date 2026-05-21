@@ -109,7 +109,20 @@ function registerAdminRoutes(app, {
       return user.plan.trim().toLowerCase() === "free" ? "free" : "payg";
     }
 
-    return "payg";
+    const hasBillingOrMlEvidence =
+      Boolean(
+        (typeof user?.stripeCustomerId === "string" && user.stripeCustomerId.trim()) ||
+        (typeof user?.stripeSubscriptionId === "string" && user.stripeSubscriptionId.trim())
+      ) ||
+      (Array.isArray(user?.analysisRuns) && user.analysisRuns.length > 0) ||
+      (typeof user?._count?.analysisRuns === "number" && user._count.analysisRuns > 0) ||
+      (Array.isArray(user?.billingEvents) && user.billingEvents.length > 0);
+
+    if (hasBillingOrMlEvidence) {
+      return "payg";
+    }
+
+    return "free";
   }
 
   function calculateTradeRMultiple(trade) {
@@ -355,7 +368,7 @@ function registerAdminRoutes(app, {
           const latestBrokerAccount = brokerAccounts.find((account) => account.isActive) || brokerAccounts[0] || null;
           const derivedName = profileName || applicationName || email.split("@")[0];
           const latestStoredTradeAt = storedTrades[0]?.updatedAt || null;
-          const resolvedPlan = user?.stripeSubscriptionId ? "premium" : resolveTraderPlan(user);
+          const resolvedPlan = resolveTraderPlan(user);
 
           return {
             id: user?.id || application?.id,
@@ -1453,14 +1466,11 @@ function registerAdminRoutes(app, {
         liveInvoiceRows = invoiceLists.flat();
       }
 
-      const premiumAccounts = traders.filter(
-        (user) => user.stripeSubscriptionId && liveActiveSubscriptionIds.has(user.stripeSubscriptionId),
-      ).length;
       const freeAccounts = traders.filter(
-        (user) => !(user.stripeSubscriptionId && liveActiveSubscriptionIds.has(user.stripeSubscriptionId)) && resolveTraderPlan(user) === "free",
+        (user) => resolveTraderPlan(user) === "free",
       ).length;
       const paygAccounts = traders.filter(
-        (user) => !(user.stripeSubscriptionId && liveActiveSubscriptionIds.has(user.stripeSubscriptionId)) && resolveTraderPlan(user) === "payg",
+        (user) => resolveTraderPlan(user) === "payg",
       ).length;
       const stripeCustomers = liveStripeCustomerIds.size;
       const activeSubscriptions = liveActiveSubscriptionIds.size;
@@ -1522,7 +1532,6 @@ function registerAdminRoutes(app, {
       const planMix = [
         { name: "Free", value: freeAccounts },
         { name: "PAYG", value: paygAccounts },
-        { name: "Premium", value: premiumAccounts },
       ];
 
       const accounts = traders
@@ -1545,10 +1554,7 @@ function registerAdminRoutes(app, {
             userId: user.id,
             email: user.email,
             name: profileName || user.email.split("@")[0],
-            plan:
-              user.stripeSubscriptionId && liveActiveSubscriptionIds.has(user.stripeSubscriptionId)
-                ? "premium"
-                : resolveTraderPlan(user),
+            plan: resolveTraderPlan(user),
             stripeCustomerLinked: Boolean(user.stripeCustomerId && liveStripeCustomerIds.has(user.stripeCustomerId)),
             stripeSubscriptionLinked: Boolean(
               user.stripeSubscriptionId && liveActiveSubscriptionIds.has(user.stripeSubscriptionId),
@@ -1571,7 +1577,6 @@ function registerAdminRoutes(app, {
             traderAccounts,
             freeAccounts,
             paygAccounts,
-            premiumAccounts,
             stripeCustomers,
             activeSubscriptions,
             paidSubscriptionInvoices,

@@ -31,7 +31,7 @@ function formatWinRate(value: number | null) {
 
 export function TraderDetailsModal({ trader, onClose }: TraderDetailsModalProps) {
   const [showTradingStats, setShowTradingStats] = useState(false);
-  const planLabel = trader.plan === "premium" ? "Premium" : trader.plan === "free" ? "Free" : "PAYG";
+  const planLabel = trader.plan === "free" ? "Free" : "PAYG";
   const accountStatusTone =
     trader.accountStatus === "ACTIVE"
       ? "bg-green-100 text-green-700"
@@ -209,10 +209,10 @@ export function TraderDetailsModal({ trader, onClose }: TraderDetailsModalProps)
                     Billing
                   </div>
                   <div className="text-sm text-slate-900">
-                    {trader.plan === "premium"
-                      ? "Stripe subscription active"
-                      : trader.plan === "free"
-                        ? "Free account"
+                    {trader.plan === "free"
+                      ? "Free account"
+                      : trader.stripeSubscriptionLinked
+                        ? "PAYG account with Stripe subscription linked"
                         : "Pay-as-you-go account"}
                   </div>
                 </div>

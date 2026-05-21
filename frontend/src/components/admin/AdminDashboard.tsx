@@ -191,7 +191,6 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
   const totalAnalysisRuns = accountTraders.reduce((sum, trader) => sum + trader.analysisRunCount, 0);
   const totalTraders = accountTraders.length;
   const activeTraders = accountTraders.filter((trader) => trader.accountStatus === "ACTIVE").length;
-  const premiumCount = accountTraders.filter((trader) => trader.plan === "premium").length;
   const freeCount = accountTraders.filter((trader) => trader.plan === "free").length;
   const paygCount = accountTraders.filter((trader) => trader.plan === "payg").length;
   const tradersWithDataPulls = accountTraders.filter((trader) => trader.lastEaSyncAt !== null).length;
@@ -262,7 +261,6 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
     traderAccounts: 0,
     freeAccounts: 0,
     paygAccounts: 0,
-    premiumAccounts: 0,
     stripeCustomers: 0,
     activeSubscriptions: 0,
     paidSubscriptionInvoices: 0,
@@ -324,9 +322,6 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
   };
 
   const getPlanBadge = (plan: string) => {
-    if (plan === "premium") {
-      return <span className="px-2 py-1 text-xs rounded-full bg-teal-100 text-teal-700">Premium</span>;
-    }
     if (plan === "free") {
       return <span className="px-2 py-1 text-xs rounded-full bg-cyan-100 text-cyan-700">Free</span>;
     }
@@ -1000,9 +995,9 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
               <div className="p-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
                   <div className="bg-gradient-to-br from-teal-50 to-cyan-50 border border-teal-200 rounded-lg p-4">
-                    <div className="text-slate-600 text-sm mb-1">Current Traders</div>
+                    <div className="text-slate-600 text-sm mb-1">Current Account Users</div>
                     <div className="text-3xl text-slate-900 mb-1">{displayTotalUsers}</div>
-                    <div className="text-xs text-teal-600">Non-deleted trader accounts</div>
+                    <div className="text-xs text-teal-600">Non-deleted account users</div>
                   </div>
                   <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
                     <div className="text-slate-600 text-sm mb-1">New This Month</div>
@@ -1046,11 +1041,11 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                               ? "Accounts created"
                               : name === "deletedAccounts"
                                 ? "Accounts deleted"
-                                : "Current traders",
+                                : "Current account users",
                           ]}
                         />
                         <Legend />
-                        <Line type="monotone" dataKey="currentAccounts" name="Current Traders" stroke="#0d9488" strokeWidth={2} dot={{ fill: '#0d9488', r: 4 }} />
+                        <Line type="monotone" dataKey="currentAccounts" name="Current Account Users" stroke="#0d9488" strokeWidth={2} dot={{ fill: '#0d9488', r: 4 }} />
                         <Line type="monotone" dataKey="deletedAccounts" name="Deleted Accounts" stroke="#dc2626" strokeWidth={2} dot={{ fill: '#dc2626', r: 4 }} />
                       </LineChart>
                     </ResponsiveContainer>
@@ -1059,19 +1054,19 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                     <h3 className="text-sm text-slate-700 mb-3">Account Engagement</h3>
                     <div className="space-y-4">
                       <div className="bg-slate-50 rounded-lg p-3">
-                        <div className="text-xs text-slate-600 mb-1">Avg. Stored Trades per Trader</div>
+                        <div className="text-xs text-slate-600 mb-1">Avg. Stored Trades per Account User</div>
                         <div className="text-xl text-slate-900">{totalTraders > 0 ? (accountTraders.reduce((sum, trader) => sum + trader.tradeEventCount, 0) / totalTraders).toFixed(0) : "0"}</div>
                       </div>
                       <div className="bg-slate-50 rounded-lg p-3">
-                        <div className="text-xs text-slate-600 mb-1">Avg. Analysis Runs per Trader</div>
+                        <div className="text-xs text-slate-600 mb-1">Avg. Analysis Runs per Account User</div>
                         <div className="text-xl text-slate-900">{totalTraders > 0 ? (totalAnalysisRuns / totalTraders).toFixed(0) : "0"}</div>
                       </div>
                       <div className="bg-slate-50 rounded-lg p-3">
-                        <div className="text-xs text-slate-600 mb-1">Premium Traders</div>
-                        <div className="text-xl text-teal-600">{totalTraders > 0 ? ((premiumCount / totalTraders) * 100).toFixed(0) : "0"}%</div>
+                        <div className="text-xs text-slate-600 mb-1">PAYG Share</div>
+                        <div className="text-xl text-teal-600">{totalTraders > 0 ? ((paygCount / totalTraders) * 100).toFixed(0) : "0"}%</div>
                       </div>
                       <div className="bg-slate-50 rounded-lg p-3">
-                        <div className="text-xs text-slate-600 mb-1">Current Active Traders</div>
+                        <div className="text-xs text-slate-600 mb-1">Current Active Account Users</div>
                         <div className="text-xl text-green-600">{activeTraders}</div>
                       </div>
                     </div>
@@ -1132,20 +1127,20 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
               </div>
             </div>
 
-            {/* Subsection 2: Trader Accounts with Filter */}
+            {/* Subsection 2: Account Users with Filter */}
             <div className="bg-white rounded-lg shadow-sm border border-slate-200">
               <div className="border-b border-slate-200 bg-slate-50 p-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <h2 className="text-lg text-slate-900 flex items-center gap-2">
                     <Users className="w-5 h-5 text-teal-600" />
-                    Trader Accounts
+                    Account Users
                   </h2>
                   <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     <div className="relative flex-1 sm:flex-initial">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
                         type="text"
-                        placeholder="Search traders..."
+                        placeholder="Search account users..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full sm:w-48 pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
@@ -1158,7 +1153,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                         onChange={(e) => setTraderFilter(e.target.value as any)}
                         className="w-full sm:w-48 pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm appearance-none bg-white"
                       >
-                        <option value="all">All Traders</option>
+                        <option value="all">All Account Users</option>
                         <option value="most-exports">Most Exports</option>
                         <option value="most-trades">Most Stored Trades</option>
                         <option value="needs-analysis">Needs Analysis</option>
@@ -1170,22 +1165,18 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
 
               {/* Stats Row */}
               <div className="border-b border-slate-200 p-4">
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   <div>
-                    <div className="text-slate-600 text-xs mb-1">Total Traders</div>
+                    <div className="text-slate-600 text-xs mb-1">Total Account Users</div>
                     <div className="text-2xl text-slate-900">{displayTotalUsers}</div>
                   </div>
                   <div>
-                    <div className="text-slate-600 text-xs mb-1">Active Traders</div>
+                    <div className="text-slate-600 text-xs mb-1">Active Account Users</div>
                     <div className="text-2xl text-green-600">{activeTraders}</div>
                   </div>
                   <div>
                     <div className="text-slate-600 text-xs mb-1">Free</div>
                     <div className="text-2xl text-cyan-600">{freeCount}</div>
-                  </div>
-                  <div>
-                    <div className="text-slate-600 text-xs mb-1">Premium</div>
-                    <div className="text-2xl text-teal-600">{premiumCount}</div>
                   </div>
                   <div>
                     <div className="text-slate-600 text-xs mb-1">PAYG</div>
@@ -1194,12 +1185,12 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                 </div>
               </div>
 
-              {/* Trader Table */}
+              {/* Account Users Table */}
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-slate-50">
                     <tr>
-                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Trader</th>
+                      <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Account User</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Account</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Plan</th>
                       <th className="text-left py-3 px-4 text-slate-700 text-xs uppercase tracking-wide">Analysis Status</th>
@@ -1294,7 +1285,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
               {filteredTraders.length === 0 && (
                 <div className="text-center py-12">
                   <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-600">{tradersLoading ? "Loading trader accounts..." : tradersError || "No traders found"}</p>
+                  <p className="text-slate-600">{tradersLoading ? "Loading account users..." : tradersError || "No account users found"}</p>
                 </div>
               )}
             </div>
@@ -1376,7 +1367,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-                <div className="text-slate-600 text-sm mb-1">Trader Accounts</div>
+                <div className="text-slate-600 text-sm mb-1">Account Users</div>
                 <div className="text-3xl text-slate-900">{financeSummary.traderAccounts}</div>
               </div>
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
@@ -1385,14 +1376,14 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                 <div className="text-xs text-slate-500 mt-1">Accounts currently on the free plan</div>
               </div>
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-                <div className="text-slate-600 text-sm mb-1">Subscribed Accounts</div>
-                <div className="text-3xl text-slate-900">{financeSummary.premiumAccounts}</div>
-                <div className="text-xs text-slate-500 mt-1">Accounts with a linked Stripe subscription</div>
-              </div>
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
                 <div className="text-slate-600 text-sm mb-1">PAYG Accounts</div>
                 <div className="text-3xl text-slate-900">{financeSummary.paygAccounts}</div>
-                <div className="text-xs text-slate-500 mt-1">Accounts set to pay-as-you-go without an active subscription link</div>
+                <div className="text-xs text-slate-500 mt-1">All non-free account users, including Stripe-linked paying accounts</div>
+              </div>
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+                <div className="text-slate-600 text-sm mb-1">Active Stripe Subscriptions</div>
+                <div className="text-3xl text-slate-900">{financeSummary.activeSubscriptions}</div>
+                <div className="text-xs text-slate-500 mt-1">Operational billing count, separate from plan type</div>
               </div>
             </div>
 
@@ -2021,9 +2012,9 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                   <div className="text-xs text-amber-700">Valid applicant emails</div>
                 </div>
                 <div className="rounded-lg border border-teal-200 bg-teal-50 p-4">
-                  <div className="text-sm text-slate-600">Trader Accounts</div>
+                  <div className="text-sm text-slate-600">Account Users</div>
                   <div className="mt-1 text-3xl text-slate-900">{signupSummary.traderAccountSignupCount}</div>
-                  <div className="text-xs text-teal-700">Valid trader accounts created</div>
+                  <div className="text-xs text-teal-700">Valid account users created</div>
                 </div>
                 <div className="rounded-lg border border-rose-200 bg-rose-50 p-4">
                   <div className="text-sm text-slate-600">Not Valid Emails</div>
@@ -2322,11 +2313,11 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                         </td>
                         <td className="py-4 px-4">
                           <span className={`px-2 py-1 rounded-full text-xs ${
-                            record.plan === "premium"
-                              ? "bg-teal-100 text-teal-700"
+                            record.plan === "free"
+                              ? "bg-cyan-100 text-cyan-700"
                               : "bg-slate-100 text-slate-700"
                           }`}>
-                            {record.plan === "premium" ? "Premium" : String(record.plan).toUpperCase()}
+                            {record.plan === "free" ? "Free" : "PAYG"}
                           </span>
                         </td>
                         <td className="py-4 px-4 text-slate-900 text-sm">{record.reason.replaceAll("-", " ")}</td>
