@@ -365,6 +365,25 @@ export default function App() {
     setCurrentView("landing");
   };
 
+  const handleAccountDeleted = () => {
+    clearStoredToken();
+    setUserType(null);
+    setCurrentAdminIsSuperAdmin(false);
+    setTurtleAnalyticsAuthed(false);
+    setCurrentUserName("");
+    setCurrentUserEmail("");
+    setPendingUserName("");
+    setPendingReferralCode("");
+    setSelectedSubscriptionPlan(null);
+    setSubscriptionStatus("not_started");
+    setOnboardingStage("none");
+    if (isAdminRoute) {
+      window.history.pushState({}, "", "/");
+      setIsAdminRoute(false);
+    }
+    setCurrentView("landing");
+  };
+
   const handleNavigate = (view: ViewType) => {
     if (view === "turtle-analytics") {
       // Allow anyone to view the analytics page (preview for non-authenticated users)
@@ -577,6 +596,7 @@ export default function App() {
           subscriptionStatus={subscriptionStatus}
           onPauseSubscription={handlePauseSubscription}
           onResumeSubscription={handleResumeSubscription}
+          onAccountDeleted={handleAccountDeleted}
         />
       )}
 

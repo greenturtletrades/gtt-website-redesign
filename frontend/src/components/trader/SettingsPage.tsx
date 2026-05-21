@@ -52,6 +52,7 @@ interface SettingsPageProps {
   subscriptionStatus?: "active" | "paused" | "cancelling" | "not_started" | "trialing";
   onPauseSubscription?: () => void;
   onResumeSubscription?: () => void;
+  onAccountDeleted?: () => void;
 }
 
 function getFullName(firstName?: string | null, lastName?: string | null) {
@@ -65,6 +66,7 @@ export function SettingsPage({
   subscriptionStatus = "active",
   onPauseSubscription,
   onResumeSubscription,
+  onAccountDeleted,
 }: SettingsPageProps) {
   const [activeTab, setActiveTab] = useState<
     "account" | "subscription" | "ea-code" | "referrals"
@@ -571,7 +573,8 @@ export function SettingsPage({
         confirmOutstandingMlCharge,
       });
       clearStoredToken();
-      window.location.replace("/");
+      onAccountDeleted?.();
+      window.history.replaceState({}, "", "/");
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         const payload =
