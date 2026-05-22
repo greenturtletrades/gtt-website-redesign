@@ -26,11 +26,13 @@ function createAccountStateHelpers({
 
     const billingPayload = await buildUserBillingSummary(userId);
     const accountRole = sessionRole || user.role;
-    const plan = typeof user.plan === "string" && user.plan.trim()
-      ? user.plan.trim()
-      : user.stripeSubscriptionId
-        ? "payg"
-        : "free";
+    const plan = user.billingExempt
+      ? "internal"
+      : typeof user.plan === "string" && user.plan.trim()
+        ? user.plan.trim()
+        : user.stripeSubscriptionId
+          ? "payg"
+          : "free";
     const ownReferralCode =
       accountRole === "TRADER" ? formatReferralCode(await ensureTraderOwnedReferralCode(user)) : null;
 

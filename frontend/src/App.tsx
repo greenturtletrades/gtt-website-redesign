@@ -53,7 +53,7 @@ export default function App() {
   const [turtleAnalyticsAuthed, setTurtleAnalyticsAuthed] = useState(false);
   const [pendingUserName, setPendingUserName] = useState<string>("");
   const [pendingReferralCode, setPendingReferralCode] = useState<string>("");
-  const [selectedSubscriptionPlan, setSelectedSubscriptionPlan] = useState<"free" | "payg" | "premium" | null>(null);
+  const [selectedSubscriptionPlan, setSelectedSubscriptionPlan] = useState<"free" | "payg" | "premium" | "internal" | null>(null);
   const [selectedSignupPlan, setSelectedSignupPlan] = useState<SignupPlanChoice>("free");
   const [subscriptionStatus, setSubscriptionStatus] = useState<"active" | "paused" | "cancelling" | "not_started">("not_started");
   const [onboardingStage, setOnboardingStage] = useState<"none" | "welcome" | "ea-setup" | "complete">("none");

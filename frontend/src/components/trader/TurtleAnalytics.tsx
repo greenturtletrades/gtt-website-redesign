@@ -13,7 +13,7 @@ import { createCheckoutSession } from "../../api/subscription";
 
 interface TurtleAnalyticsProps {
   userType: UserType;
-  subscriptionTier?: "free" | "payg" | "premium";
+  subscriptionTier?: "free" | "payg" | "premium" | "internal";
   subscriptionStatus?: "active" | "paused" | "cancelling" | "not_started" | "trialing";
   mlModelAccessEnabled?: boolean;
   onSignUp?: () => void;

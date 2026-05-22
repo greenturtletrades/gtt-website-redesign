@@ -326,6 +326,9 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
     if (plan === "free") {
       return <span className="px-2 py-1 text-xs rounded-full bg-cyan-100 text-cyan-700">Free</span>;
     }
+    if (plan === "internal") {
+      return <span className="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-700">Internal</span>;
+    }
     return <span className="px-2 py-1 text-xs rounded-full bg-slate-100 text-slate-700">PAYG</span>;
   };
 
@@ -2319,9 +2322,11 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                           <span className={`px-2 py-1 rounded-full text-xs ${
                             record.plan === "free"
                               ? "bg-cyan-100 text-cyan-700"
-                              : "bg-slate-100 text-slate-700"
+                              : record.plan === "internal"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-slate-100 text-slate-700"
                           }`}>
-                            {record.plan === "free" ? "Free" : "PAYG"}
+                            {record.plan === "free" ? "Free" : record.plan === "internal" ? "Internal" : "PAYG"}
                           </span>
                         </td>
                         <td className="py-4 px-4 text-slate-900 text-sm">{record.reason.replaceAll("-", " ")}</td>

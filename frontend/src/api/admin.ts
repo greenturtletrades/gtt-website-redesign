@@ -30,7 +30,7 @@ export interface AdminTrader {
   accountStatus: "ACTIVE" | "PENDING" | "DISABLED" | "NO_ACCOUNT";
   applicationStatus: "PENDING" | "APPROVED" | "REJECTED" | "NONE";
   analysisStatus: "ANALYSIS_READY" | "NEEDS_ANALYSIS" | "NO_TRADE_DATA" | "NO_ACCESS";
-  plan: "free" | "payg";
+  plan: "free" | "payg" | "internal";
   joinedAt: string;
   country: string | null;
   platform: "MT4" | "MT5" | "CTRADER" | null;
@@ -167,7 +167,7 @@ export interface AdminFinanceAccountItem {
   userId: string;
   email: string;
   name: string;
-  plan: "free" | "payg";
+  plan: "free" | "payg" | "internal";
   stripeCustomerLinked: boolean;
   stripeSubscriptionLinked: boolean;
   paidSubscriptionInvoices: number;
