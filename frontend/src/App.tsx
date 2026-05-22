@@ -82,6 +82,15 @@ export default function App() {
     return status === "active" || status === "trialing" || status === "cancelling";
   };
 
+  const isAccountBillingExempt = (accountState: {
+    account?: {
+      billingExempt?: boolean;
+      billing?: {
+        billingExempt?: boolean;
+      } | null;
+    };
+  }) => Boolean(accountState.account?.billingExempt || accountState.account?.billing?.billingExempt);
+
   useEffect(() => {
     getConfig()
       .then(cfg => setMlEnabled(cfg.ml_enabled))
@@ -118,7 +127,7 @@ export default function App() {
         try {
           const accountState = await fetchAccountState();
           const status = accountState.account.billing?.subscriptionStatus?.toLowerCase();
-          const exempt = Boolean(accountState.account.billingExempt);
+          const exempt = isAccountBillingExempt(accountState);
           if (accountState.ok && hasMlModelAccess(status, exempt)) {
             setCheckoutPending(false);
             setUserType("trader");
@@ -175,7 +184,7 @@ export default function App() {
             setSubscriptionStatus("not_started");
           }
           setUserType("trader");
-          const isBillingExempt = Boolean(accountState.account.billingExempt);
+          const isBillingExempt = isAccountBillingExempt(accountState);
           setTurtleAnalyticsAuthed(hasMlModelAccess(nextStatus, isBillingExempt));
         } else if (accountState.ok && accountState.account.role === "ADMIN" && accountState.account.status === "ACTIVE") {
           setUserType("admin");
@@ -293,7 +302,7 @@ export default function App() {
         if (accountState.ok) {
           setSelectedSubscriptionPlan(accountState.account.plan || "free");
           const status = accountState.account.billing?.subscriptionStatus?.toLowerCase();
-          const exempt = Boolean(accountState.account.billingExempt);
+          const exempt = isAccountBillingExempt(accountState);
           setTurtleAnalyticsAuthed(hasMlModelAccess(status, exempt));
           if (status === "paused") {
             setSubscriptionStatus("paused");

@@ -45,6 +45,8 @@ function createAccountStateHelpers({
         isSuperAdmin: Boolean(user.isSuperAdmin),
         status: user.status,
         plan,
+        billingExempt: Boolean(user.billingExempt),
+        billingExemptReason: user.billingExemptReason || null,
         profile: user.profile,
         billing: billingPayload?.billing || null,
         ownReferralCode,
