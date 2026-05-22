@@ -1134,7 +1134,6 @@ function registerAdminRoutes(app, {
         const updated = await prisma.user.update({
           where: { id: existing.id },
           data: {
-            plan: "internal",
             status: "ACTIVE",
             billingExempt: true,
             billingExemptReason: "Internal test user enabled on admin account",
@@ -1194,7 +1193,6 @@ function registerAdminRoutes(app, {
           email: normalizedEmail,
           passwordHash: await bcrypt.hash(password.trim(), 10),
           role: "TRADER",
-          plan: "internal",
           status: "ACTIVE",
           billingExempt: true,
           billingExemptReason: "Internal test user created from admin panel",
