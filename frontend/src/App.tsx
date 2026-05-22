@@ -73,6 +73,7 @@ export default function App() {
   const [checkoutPending, setCheckoutPending] = useState(false);
   const [checkoutExhausted, setCheckoutExhausted] = useState(false);
   const [resetToken, setResetToken] = useState<string | null>(null);
+  const [resetRole, setResetRole] = useState<"trader" | "admin">("trader");
 
   const hasMlModelAccess = (status: string | undefined, billingExempt: boolean) => {
     if (billingExempt) {
@@ -92,8 +93,10 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     const reset = params.get("reset");
     if (reset) {
+      const role = params.get("resetRole") === "admin" || window.location.pathname === "/admin" ? "admin" : "trader";
       window.history.replaceState({}, "", window.location.pathname);
       setResetToken(reset);
+      setResetRole(role);
     }
   }, []);
 
@@ -696,8 +699,15 @@ export default function App() {
           onClose={() => setResetToken(null)}
           onSuccess={() => {
             setResetToken(null);
-            setAuthMode("login");
-            setShowAuthModal(true);
+            if (resetRole === "admin") {
+              window.history.replaceState({}, "", "/admin");
+              setIsAdminRoute(true);
+              setShowAdminLoginModal(true);
+              setShowAuthModal(false);
+            } else {
+              setAuthMode("login");
+              setShowAuthModal(true);
+            }
           }}
         />
       )}

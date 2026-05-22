@@ -1,6 +1,6 @@
 import { X, Shield, Lock, Mail } from "lucide-react";
 import { useState } from "react";
-import { adminLogin, changeAdminPassword } from "../../api/admin";
+import { adminForgotPassword, adminLogin, changeAdminPassword } from "../../api/admin";
 import { setStoredToken } from "../../api/client";
 
 interface AdminLoginModalProps {
@@ -13,6 +13,8 @@ export function AdminLoginModal({ onClose, onSuccess }: AdminLoginModalProps) {
     email: "",
     password: "",
   });
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [mustChangePassword, setMustChangePassword] = useState(false);
@@ -41,6 +43,26 @@ export function AdminLoginModal({ onClose, onSuccess }: AdminLoginModalProps) {
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Invalid email or password";
+      setError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleForgotSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await adminForgotPassword(formData.email.trim());
+      setForgotSent(true);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to send reset link";
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -99,13 +121,24 @@ export function AdminLoginModal({ onClose, onSuccess }: AdminLoginModalProps) {
 
         {/* Body */}
         <div className="p-6">
-          <form onSubmit={mustChangePassword ? handlePasswordChangeSubmit : handleCredentialsSubmit} className="space-y-4">
+          <form
+            onSubmit={
+              mustChangePassword
+                ? handlePasswordChangeSubmit
+                : showForgot
+                  ? handleForgotSubmit
+                  : handleCredentialsSubmit
+            }
+            className="space-y-4"
+          >
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
               <Lock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
               <p className="text-amber-800 text-xs">
                 {mustChangePassword
                   ? "Your one-time admin code was accepted. Set a new password before continuing."
-                  : "This area is restricted to authorised administrators only. All access attempts are logged."}
+                  : showForgot
+                    ? "Enter your admin email and we'll send a password reset link if the account is eligible."
+                    : "This area is restricted to authorised administrators only. All access attempts are logged."}
               </p>
             </div>
 
@@ -115,7 +148,7 @@ export function AdminLoginModal({ onClose, onSuccess }: AdminLoginModalProps) {
               </div>
             )}
 
-            {!mustChangePassword && (
+            {!mustChangePassword && !showForgot && (
               <>
                 <div>
                   <label className="block text-slate-700 mb-2 text-sm">Admin Email</label>
@@ -146,6 +179,57 @@ export function AdminLoginModal({ onClose, onSuccess }: AdminLoginModalProps) {
                     />
                   </div>
                 </div>
+
+                <div className="text-right -mt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowForgot(true);
+                      setForgotSent(false);
+                      setError("");
+                    }}
+                    className="text-teal-600 text-xs hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              </>
+            )}
+
+            {!mustChangePassword && showForgot && (
+              <>
+                {forgotSent ? (
+                  <div className="rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800">
+                    If that admin email is registered, a reset link is on its way.
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-slate-700 mb-2 text-sm">Admin Email</label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
+                        placeholder="admin@greenturtletrades.com"
+                        required
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForgot(false);
+                    setForgotSent(false);
+                    setError("");
+                  }}
+                  className="text-teal-600 text-sm hover:underline"
+                >
+                  Back to login
+                </button>
               </>
             )}
 
@@ -188,7 +272,15 @@ export function AdminLoginModal({ onClose, onSuccess }: AdminLoginModalProps) {
               disabled={isSubmitting}
               className="w-full bg-gradient-to-r from-teal-600 to-cyan-600 text-white py-3 rounded-lg hover:from-teal-700 hover:to-cyan-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? "Please wait..." : mustChangePassword ? "Set New Password" : "Sign In"}
+              {isSubmitting
+                ? "Please wait..."
+                : mustChangePassword
+                  ? "Set New Password"
+                  : showForgot
+                    ? forgotSent
+                      ? "Sent"
+                      : "Send Reset Link"
+                    : "Sign In"}
             </button>
           </form>
         </div>

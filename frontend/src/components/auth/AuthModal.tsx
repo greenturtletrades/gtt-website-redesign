@@ -34,8 +34,12 @@ export function AuthModal({ type, onClose, onComplete, initialMode = "signup", s
     try {
       await forgotPassword(forgotEmail.trim());
       setForgotSent(true);
-    } catch {
-      setForgotSent(true); // Always show success to avoid email enumeration
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to send reset link right now. Please try again shortly."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -205,7 +209,11 @@ export function AuthModal({ type, onClose, onComplete, initialMode = "signup", s
             <div className="text-right -mt-1">
               <button
                 type="button"
-                onClick={() => { setShowForgot(true); setErrorMessage(""); }}
+                onClick={() => {
+                  setShowForgot(true);
+                  setForgotSent(false);
+                  setErrorMessage("");
+                }}
                 className="text-teal-600 text-xs hover:underline"
               >
                 Forgot password?
