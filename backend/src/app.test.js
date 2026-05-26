@@ -93,6 +93,10 @@ function createToken(role = "ADMIN") {
   return jwt.sign({ sub: "staff-user", role }, process.env.JWT_SECRET);
 }
 
+function createUserToken(userId, role = "TRADER") {
+  return jwt.sign({ sub: userId, role }, process.env.JWT_SECRET);
+}
+
 async function withServer(run) {
   const server = await new Promise((resolve, reject) => {
     const instance = app.listen(0, "127.0.0.1", () => resolve(instance));
@@ -218,6 +222,108 @@ test("GET /api/admin/staff includes the configured environment admin", async () 
     assert.equal(response.body.ok, true);
     assert.equal(response.body.items[0].email, "owner@greenturtletrades.com");
     assert.equal(response.body.items[0].source, "environment");
+  });
+});
+
+test("PATCH /api/me/leaderboard rejects offensive public display names", async () => {
+  prismaMock.user.findUnique = async () => ({
+    id: "trader-1",
+    email: "trader1@gtt.local",
+    role: "TRADER",
+    status: "ACTIVE",
+    leaderboardOptIn: false,
+    leaderboardPublishedAt: null,
+    profile: { firstName: "Clean", lastName: "Trader" },
+  });
+
+  await withServer(async (server) => {
+    const response = await request(server, "/api/me/leaderboard", {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${createUserToken("trader-1")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        leaderboardOptIn: true,
+        leaderboardDisplayName: "shit trader",
+      }),
+    });
+
+    assert.equal(response.status, 400);
+    assert.equal(response.body.ok, false);
+    assert.match(response.body.error, /not allowed/i);
+  });
+});
+
+test("PATCH /api/me/leaderboard rejects duplicate public display names case-insensitively", async () => {
+  prismaMock.user.findUnique = async () => ({
+    id: "trader-1",
+    email: "trader1@gtt.local",
+    role: "TRADER",
+    status: "ACTIVE",
+    leaderboardOptIn: false,
+    leaderboardPublishedAt: null,
+    profile: { firstName: "First", lastName: "Trader" },
+  });
+  prismaMock.user.findMany = async () => [
+    {
+      id: "trader-2",
+      leaderboardDisplayName: "Alpha Trader",
+    },
+  ];
+
+  await withServer(async (server) => {
+    const response = await request(server, "/api/me/leaderboard", {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${createUserToken("trader-1")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        leaderboardOptIn: true,
+        leaderboardDisplayName: " alpha   trader ",
+      }),
+    });
+
+    assert.equal(response.status, 409);
+    assert.equal(response.body.ok, false);
+    assert.match(response.body.error, /already taken/i);
+  });
+});
+
+test("PATCH /api/me/leaderboard normalizes spacing before saving", async () => {
+  prismaMock.user.findUnique = async () => ({
+    id: "trader-1",
+    email: "trader1@gtt.local",
+    role: "TRADER",
+    status: "ACTIVE",
+    leaderboardOptIn: false,
+    leaderboardPublishedAt: null,
+    profile: { firstName: "First", lastName: "Trader" },
+  });
+  prismaMock.user.findMany = async () => [];
+  prismaMock.user.update = async ({ data }) => ({
+    leaderboardOptIn: data.leaderboardOptIn,
+    leaderboardDisplayName: data.leaderboardDisplayName,
+    leaderboardPublishedAt: data.leaderboardPublishedAt,
+  });
+
+  await withServer(async (server) => {
+    const response = await request(server, "/api/me/leaderboard", {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${createUserToken("trader-1")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        leaderboardOptIn: true,
+        leaderboardDisplayName: "  Alpha    Trader  ",
+      }),
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.ok, true);
+    assert.equal(response.body.leaderboard.displayName, "Alpha Trader");
   });
 });
 

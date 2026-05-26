@@ -51,10 +51,114 @@ function registerAccountRoutes(app, {
     return typeof value === "string" && value.trim() ? value.trim() : null;
   }
 
+  const reservedLeaderboardNameTokens = new Set([
+    "admin",
+    "administrator",
+    "support",
+    "moderator",
+    "mod",
+    "staff",
+    "system",
+    "official",
+    "owner",
+    "team",
+    "greenturtletrades",
+    "greenturtle",
+    "turtletraders",
+  ]);
+
+  const blockedLeaderboardNameFragments = [
+    "fuck",
+    "shit",
+    "bitch",
+    "cunt",
+    "nigger",
+    "nigga",
+    "faggot",
+    "retard",
+    "slut",
+    "whore",
+    "rape",
+    "rapist",
+    "hitler",
+    "nazi",
+    "kkk",
+  ];
+
+  function normalizeLeaderboardDisplayNameSpacing(value) {
+    return typeof value === "string" ? value.trim().replace(/\s+/g, " ") : "";
+  }
+
+  function canonicalizeLeaderboardDisplayName(value) {
+    return normalizeLeaderboardDisplayNameSpacing(value).toLowerCase();
+  }
+
+  function sanitizeLeaderboardNameForModeration(value) {
+    return canonicalizeLeaderboardDisplayName(value).replace(/[^a-z0-9]/g, "");
+  }
+
+  function validateLeaderboardDisplayName(displayName) {
+    const normalizedDisplayName = normalizeLeaderboardDisplayNameSpacing(displayName);
+    if (!normalizedDisplayName) {
+      return { ok: true, normalizedDisplayName };
+    }
+
+    if (normalizedDisplayName.length > 40) {
+      return { ok: false, error: "Leaderboard display name must be 40 characters or fewer" };
+    }
+
+    const reservedToken = sanitizeLeaderboardNameForModeration(normalizedDisplayName);
+    if (reservedLeaderboardNameTokens.has(reservedToken)) {
+      return { ok: false, error: "That public display name is reserved. Choose a different name." };
+    }
+
+    const sanitizedName = sanitizeLeaderboardNameForModeration(normalizedDisplayName);
+    if (blockedLeaderboardNameFragments.some((fragment) => sanitizedName.includes(fragment))) {
+      return { ok: false, error: "That public display name is not allowed. Choose a different name." };
+    }
+
+    return { ok: true, normalizedDisplayName };
+  }
+
+  async function ensureLeaderboardDisplayNameAvailable(userId, displayName) {
+    const normalizedDisplayName = normalizeLeaderboardDisplayNameSpacing(displayName);
+    if (!normalizedDisplayName) {
+      return { ok: true };
+    }
+
+    const existingUsers = await prisma.user.findMany({
+      where: {
+        id: { not: userId },
+        role: "TRADER",
+        status: "ACTIVE",
+        leaderboardOptIn: true,
+        NOT: {
+          leaderboardDisplayName: null,
+        },
+      },
+      select: {
+        id: true,
+        leaderboardDisplayName: true,
+      },
+    });
+
+    const requestedCanonicalName = canonicalizeLeaderboardDisplayName(normalizedDisplayName);
+    const hasConflict = existingUsers.some((existingUser) => (
+      typeof existingUser.leaderboardDisplayName === "string" &&
+      canonicalizeLeaderboardDisplayName(existingUser.leaderboardDisplayName) === requestedCanonicalName
+    ));
+
+    if (hasConflict) {
+      return { ok: false, error: "That public display name is already taken. Choose a different name." };
+    }
+
+    return { ok: true };
+  }
+
   function deriveLeaderboardDisplayName(user, requestedDisplayName = null) {
     const trimmedRequested = normalizeOptionalTrimmedString(requestedDisplayName);
     if (trimmedRequested) {
-      return trimmedRequested.slice(0, 40);
+      return normalizeLeaderboardDisplayNameSpacing(trimmedRequested).slice(0, 40);
     }
 
     const profileName = [user.profile?.firstName, user.profile?.lastName]
@@ -76,6 +180,16 @@ function registerAccountRoutes(app, {
       normalizeOptionalTrimmedString(env.PUBLIC_FRONTEND_URL) ||
       "http://localhost:5173"
     );
+  }
+
+  function isLeaderboardDisplayNameUniqueViolation(error) {
+    if (!error || typeof error !== "object") {
+      return false;
+    }
+
+    const errorCode = typeof error.code === "string" ? error.code : "";
+    const errorMessage = typeof error.message === "string" ? error.message : "";
+    return errorCode === "23505" && errorMessage.includes("User_leaderboard_public_display_name_unique_idx");
   }
 
   async function buildPendingMlChargeSummary(userId, user) {
@@ -707,20 +821,46 @@ function registerAccountRoutes(app, {
       }
 
       if (leaderboardDisplayName !== undefined) {
-        const normalizedDisplayName = leaderboardDisplayName.trim();
-        if (normalizedDisplayName.length > 40) {
-          return res.status(400).json({ ok: false, error: "Leaderboard display name must be 40 characters or fewer" });
+        const validation = validateLeaderboardDisplayName(leaderboardDisplayName);
+        if (!validation.ok) {
+          return res.status(400).json({ ok: false, error: validation.error });
         }
       }
 
       if (leaderboardOptIn !== undefined) {
+        const derivedDisplayName = deriveLeaderboardDisplayName(user, leaderboardDisplayName);
+        const validation = validateLeaderboardDisplayName(derivedDisplayName);
+        if (!validation.ok) {
+          return res.status(400).json({ ok: false, error: validation.error });
+        }
+
+        if (leaderboardOptIn) {
+          const availability = await ensureLeaderboardDisplayNameAvailable(user.id, derivedDisplayName);
+          if (!availability.ok) {
+            return res.status(409).json({ ok: false, error: availability.error });
+          }
+        }
+
         data.leaderboardOptIn = leaderboardOptIn;
-        data.leaderboardDisplayName = deriveLeaderboardDisplayName(user, leaderboardDisplayName);
+        data.leaderboardDisplayName = derivedDisplayName;
         data.leaderboardPublishedAt = leaderboardOptIn
           ? user.leaderboardPublishedAt || new Date()
           : null;
       } else if (leaderboardDisplayName !== undefined) {
-        data.leaderboardDisplayName = deriveLeaderboardDisplayName(user, leaderboardDisplayName);
+        const derivedDisplayName = deriveLeaderboardDisplayName(user, leaderboardDisplayName);
+        const validation = validateLeaderboardDisplayName(derivedDisplayName);
+        if (!validation.ok) {
+          return res.status(400).json({ ok: false, error: validation.error });
+        }
+
+        if (user.leaderboardOptIn) {
+          const availability = await ensureLeaderboardDisplayNameAvailable(user.id, derivedDisplayName);
+          if (!availability.ok) {
+            return res.status(409).json({ ok: false, error: availability.error });
+          }
+        }
+
+        data.leaderboardDisplayName = derivedDisplayName;
       }
 
       const { firstName, lastName } = splitFullName(fullName !== undefined ? fullName : "");
@@ -765,6 +905,9 @@ function registerAccountRoutes(app, {
         },
       });
     } catch (err) {
+      if (isLeaderboardDisplayNameUniqueViolation(err)) {
+        return res.status(409).json({ ok: false, error: "That public display name is already taken. Choose a different name." });
+      }
       return next(err);
     }
   });
@@ -781,9 +924,10 @@ function registerAccountRoutes(app, {
         return res.status(400).json({ ok: false, error: "Leaderboard display name must be a string" });
       }
 
-      const normalizedDisplayName = typeof leaderboardDisplayName === "string" ? leaderboardDisplayName.trim() : "";
-      if (normalizedDisplayName.length > 40) {
-        return res.status(400).json({ ok: false, error: "Leaderboard display name must be 40 characters or fewer" });
+      const normalizedDisplayName = typeof leaderboardDisplayName === "string" ? normalizeLeaderboardDisplayNameSpacing(leaderboardDisplayName) : "";
+      const validation = validateLeaderboardDisplayName(normalizedDisplayName);
+      if (!validation.ok) {
+        return res.status(400).json({ ok: false, error: validation.error });
       }
 
       const user = await prisma.user.findUnique({
@@ -795,11 +939,24 @@ function registerAccountRoutes(app, {
         return res.status(404).json({ ok: false, error: "User not found" });
       }
 
+      const derivedDisplayName = deriveLeaderboardDisplayName(user, normalizedDisplayName);
+      const derivedValidation = validateLeaderboardDisplayName(derivedDisplayName);
+      if (!derivedValidation.ok) {
+        return res.status(400).json({ ok: false, error: derivedValidation.error });
+      }
+
+      if (leaderboardOptIn) {
+        const availability = await ensureLeaderboardDisplayNameAvailable(user.id, derivedDisplayName);
+        if (!availability.ok) {
+          return res.status(409).json({ ok: false, error: availability.error });
+        }
+      }
+
       const updated = await prisma.user.update({
         where: { id: user.id },
         data: {
           leaderboardOptIn,
-          leaderboardDisplayName: deriveLeaderboardDisplayName(user, normalizedDisplayName),
+          leaderboardDisplayName: derivedDisplayName,
           leaderboardPublishedAt: leaderboardOptIn
             ? user.leaderboardPublishedAt || new Date()
             : null,
@@ -815,6 +972,9 @@ function registerAccountRoutes(app, {
         },
       });
     } catch (err) {
+      if (isLeaderboardDisplayNameUniqueViolation(err)) {
+        return res.status(409).json({ ok: false, error: "That public display name is already taken. Choose a different name." });
+      }
       return next(err);
     }
   });

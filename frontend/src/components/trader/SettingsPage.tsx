@@ -455,9 +455,10 @@ export function SettingsPage({
     setSavingLeaderboard(true);
     setPageError(null);
     try {
+      const trimmedDisplayName = leaderboardSettings.displayName.trim().replace(/\s+/g, " ");
       const response = await updateLeaderboardPreferences({
         leaderboardOptIn: leaderboardSettings.optIn,
-        leaderboardDisplayName: leaderboardSettings.displayName,
+        leaderboardDisplayName: trimmedDisplayName,
       });
       setTransientSuccess("Leaderboard settings saved.");
       setLeaderboardSettings((current) => ({
@@ -772,7 +773,7 @@ export function SettingsPage({
                             placeholder={formData.fullName || "Trader alias"}
                           />
                           <p className="mt-2 text-sm text-slate-600">
-                            Only your chosen display name and summary stats are public.
+                            Only your chosen display name and summary stats are public. Public names must be unique and cannot contain offensive language.
                           </p>
                         </div>
 
