@@ -1502,7 +1502,7 @@ export function TurtleAnalytics({
                   ) : (
                     <>
                       {mlModelAccessEnabled ? <Brain className="w-5 h-5" /> : <RefreshCw className="w-5 h-5" />}
-                      {mlModelAccessEnabled ? "Run Model Analysis" : "Fetch Data"}
+                      {mlModelAccessEnabled ? "Run Model Analysis / Fetch Data" : "Fetch Data"}
                     </>
                   )}
                 </button>
@@ -3578,6 +3578,21 @@ export function TurtleAnalytics({
                 >
                   Cancel
                 </button>
+                {!isFreeFetchFlow && !isTrading212ImportMode && (
+                  <button
+                    onClick={handleFetchTradeData}
+                    disabled={analysisMode === "csv" && !csvFile}
+                    className={`px-6 py-3 rounded-lg border transition-colors flex items-center gap-2 ${
+                      analysisMode === "csv" && !csvFile
+                        ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed"
+                        : "border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100"
+                    }`}
+                    title={analysisMode === "csv" && !csvFile ? "Please select a CSV file" : ""}
+                  >
+                    <RefreshCw className="w-5 h-5" />
+                    {analysisMode === "csv" ? "Import to Journal" : "Fetch Data for Journal"}
+                  </button>
+                )}
                 <button
                   onClick={isFreeFetchFlow || isTrading212ImportMode ? handleFetchTradeData : handleRunModel}
                   disabled={
@@ -3611,7 +3626,7 @@ export function TurtleAnalytics({
                   }
                 >
                   {isFreeFetchFlow || isTrading212ImportMode ? <RefreshCw className="w-5 h-5" /> : <Brain className="w-5 h-5" />}
-                  {isFreeFetchFlow || isTrading212ImportMode ? "Import Data" : "Run Analysis"}
+                  {isFreeFetchFlow || isTrading212ImportMode ? "Import Data" : "Run Model Analysis / Fetch Data"}
                 </button>
               </div>
             </div>
