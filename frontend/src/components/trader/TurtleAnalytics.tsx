@@ -890,6 +890,9 @@ export function TurtleAnalytics({
 
   const isImportLedgerEntry = (mode: string) =>
     mode === "journal_fetch" || mode === "journal_csv_import" || mode === "journal_trading212_import";
+
+  const getLedgerPurposeLabel = (mode: string) =>
+    isImportLedgerEntry(mode) ? "Imported to trading journal" : "ML model run";
   
   // Scroll to top whenever tab changes
   useEffect(() => {
@@ -1757,6 +1760,11 @@ export function TurtleAnalytics({
                         Total spent: £{modelRunHistory.reduce((sum, run) => sum + run.cost, 0).toFixed(2)}
                       </div>
                     )}
+                    {subscriptionTier === "payg" && (
+                      <div className="text-slate-500 text-[11px] mt-1">
+                        ML charges only apply to new trades included in each run.
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1889,7 +1897,7 @@ export function TurtleAnalytics({
                         </div>
 
                         {/* Stats Row */}
-                        <div className="grid grid-cols-3 gap-4 mt-3">
+                        <div className={`mt-3 grid gap-4 ${subscriptionTier === "payg" ? "grid-cols-4" : "grid-cols-3"}`}>
                           <div className="flex items-center gap-2">
                             <BarChart3 className={`w-4 h-4 ${index === 0 ? 'text-teal-600' : 'text-slate-500'}`} />
                             <div>
@@ -1912,7 +1920,16 @@ export function TurtleAnalytics({
                               </div>
                             </div>
                           </div>
-                          {subscriptionTier === "payg" && !isImportLedgerEntry(run.mode) && (
+                          <div className="flex items-center gap-2">
+                            <BookOpen className={`w-4 h-4 ${index === 0 ? 'text-teal-600' : 'text-slate-500'}`} />
+                            <div>
+                              <div className="text-xs text-slate-600">Purpose</div>
+                              <div className={`text-sm ${index === 0 ? 'text-teal-900' : 'text-slate-900'}`}>
+                                {getLedgerPurposeLabel(run.mode)}
+                              </div>
+                            </div>
+                          </div>
+                          {subscriptionTier === "payg" && (
                             <div className="flex items-center gap-2">
                               <PoundSterling className={`w-4 h-4 ${index === 0 ? 'text-teal-600' : 'text-slate-500'}`} />
                               <div>
@@ -1920,6 +1937,11 @@ export function TurtleAnalytics({
                                 <div className={`text-sm ${index === 0 ? 'text-teal-900' : 'text-slate-900'}`}>
                                   £{run.cost.toFixed(2)}
                                 </div>
+                                {!isImportLedgerEntry(run.mode) && (
+                                  <div className="text-[11px] text-slate-500">
+                                    New trades only
+                                  </div>
+                                )}
                               </div>
                             </div>
                           )}
@@ -3017,14 +3039,14 @@ export function TurtleAnalytics({
 
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-12 h-12 bg-gradient-to-r from-teal-600 to-cyan-600 rounded-lg flex items-center justify-center">
-                  {isFreeFetchFlow || isTrading212ImportMode ? <RefreshCw className="w-6 h-6 text-white" /> : <Brain className="w-6 h-6 text-white" />}
+                  {isFreeFetchFlow ? <RefreshCw className="w-6 h-6 text-white" /> : <Brain className="w-6 h-6 text-white" />}
                 </div>
                 <h2 className="text-slate-900 text-2xl">
-                  {isFreeFetchFlow || isTrading212ImportMode ? "Fetch Trade Data" : "Configure Analysis"}
+                  {isFreeFetchFlow ? "Fetch Trade Data" : "Configure Analysis"}
                 </h2>
               </div>
               <p className="text-slate-600 text-sm">
-                {isFreeFetchFlow || isTrading212ImportMode
+                {isFreeFetchFlow
                   ? "Choose how you want to import trade data into your journal."
                   : "Choose how much trading history to analyse with the ML model"}
               </p>
@@ -3035,7 +3057,7 @@ export function TurtleAnalytics({
               {/* Analysis Mode Selection */}
               <div className="mb-6">
                 <label className="text-slate-700 mb-3 block">
-                  {isFreeFetchFlow || isTrading212ImportMode ? "Import Method:" : "Analysis Range:"}
+                  {isFreeFetchFlow ? "Import Method:" : "Analysis Range:"}
                 </label>
                 <div className={`grid gap-3 ${isFreeFetchFlow ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-2 sm:grid-cols-4"}`}>
                   <button
@@ -3209,7 +3231,7 @@ export function TurtleAnalytics({
                   Free account mode is active. You can use the journal and account area now, but subscribing is still required before running the ML model.
                 </div>
               )}
-              {mlModelAccessEnabled && eaConnected === false && (
+              {mlModelAccessEnabled && eaConnected === false && (analysisMode === "trades" || analysisMode === "months") && (
                 <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                   <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
                   <div>
@@ -3578,7 +3600,7 @@ export function TurtleAnalytics({
                 >
                   Cancel
                 </button>
-                {!isFreeFetchFlow && !isTrading212ImportMode && (
+                {!isFreeFetchFlow && (
                   <button
                     onClick={handleFetchTradeData}
                     disabled={analysisMode === "csv" && !csvFile}
@@ -3625,8 +3647,8 @@ export function TurtleAnalytics({
                         : ''
                   }
                 >
-                  {isFreeFetchFlow || isTrading212ImportMode ? <RefreshCw className="w-5 h-5" /> : <Brain className="w-5 h-5" />}
-                  {isFreeFetchFlow || isTrading212ImportMode ? "Import Data" : "Run Model Analysis / Fetch Data"}
+                  {isFreeFetchFlow ? <RefreshCw className="w-5 h-5" /> : <Brain className="w-5 h-5" />}
+                  {isFreeFetchFlow ? "Import Data" : "Run Model Analysis / Fetch Data"}
                 </button>
               </div>
             </div>
