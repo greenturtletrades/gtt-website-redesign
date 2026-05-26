@@ -575,7 +575,8 @@ export function SettingsPage({
       });
       clearStoredToken();
       onAccountDeleted?.();
-      window.history.replaceState({}, "", "/");
+      window.location.assign("/");
+      return;
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         const payload =
