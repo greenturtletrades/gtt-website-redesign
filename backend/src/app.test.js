@@ -392,9 +392,38 @@ test("GET /api/admin/signups returns combined signup sources", async () => {
       response.body.items[0].sourceTypes,
       ["trader_account", "trader_application", "landing_waitlist"]
     );
+    assert.deepEqual(response.body.items[0].details, ["Free", "United Kingdom · MT5", "landing"]);
     assert.equal(response.body.items[0].reviewStatus, "ACTIVE");
     assert.equal(response.body.summary.totalUniqueEmails, 1);
     assert.equal(response.body.summary.validUniqueEmails, 1);
+  });
+});
+
+test("GET /api/admin/signups labels PAYG trader accounts from live billing data", async () => {
+  prismaMock.waitlistEntry.findMany = async () => [];
+  prismaMock.traderApplication.findMany = async () => [];
+  prismaMock.user.findMany = async () => [
+    {
+      id: "user-2",
+      email: "payg@gtt.local",
+      status: "ACTIVE",
+      createdAt: new Date("2026-03-21T12:00:00.000Z"),
+      stripeSubscriptionId: "sub_123",
+      profile: { firstName: "Payg", lastName: "Trader" },
+    },
+  ];
+
+  await withServer(async (server) => {
+    const response = await request(server, "/api/admin/signups", {
+      headers: {
+        Authorization: `Bearer ${createToken("ADMIN")}`,
+      },
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.ok, true);
+    assert.equal(response.body.items.length, 1);
+    assert.deepEqual(response.body.items[0].details, ["PAYG"]);
   });
 });
 

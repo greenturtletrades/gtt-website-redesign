@@ -39,12 +39,27 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function startOfWeek(date: Date) {
+  const day = date.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  return startOfDay(new Date(date.getFullYear(), date.getMonth(), date.getDate() + diff));
+}
+
+function startOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
 export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDashboardProps) {
   const [activeSection, setActiveSection] = useState<"overview" | "signups" | "finance" | "staff" | "churn" | "audits" | "guide">("overview");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTrader, setSelectedTrader] = useState<AdminTrader | null>(null);
   const [traderFilter, setTraderFilter] = useState<"all" | "most-exports" | "most-trades" | "needs-analysis">("all");
   const [timePeriod, setTimePeriod] = useState<"7d" | "30d" | "3m" | "6m" | "1y" | "all">("30d");
+  const [activityTrendPeriod, setActivityTrendPeriod] = useState<"14d" | "12w" | "12m" | "all">("12w");
   const [traders, setTraders] = useState<AdminTrader[]>([]);
   const [tradersLoading, setTradersLoading] = useState(true);
   const [tradersError, setTradersError] = useState<string | null>(null);
@@ -228,16 +243,91 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
     return { month: label, createdAccounts, deletedAccounts, currentAccounts };
   });
 
-  const activityChartData = Array.from({ length: 5 }, (_, index) => {
-    const monthDate = new Date(currentYear, currentMonth - (4 - index), 1);
-    const nextMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 1);
-    const label = monthDate.toLocaleDateString(undefined, { month: "short" });
-    const newAccounts = accountTraders.filter((trader) => {
-      const joinedAt = new Date(trader.joinedAt);
-      return joinedAt >= monthDate && joinedAt < nextMonth;
-    }).length;
-    return { month: label, accounts: newAccounts };
-  });
+  const activityChartData = useMemo(() => {
+    const now = new Date();
+
+    if (activityTrendPeriod === "14d") {
+      const today = startOfDay(now);
+      return Array.from({ length: 14 }, (_, index) => {
+        const bucketStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (13 - index));
+        const bucketEnd = new Date(bucketStart.getFullYear(), bucketStart.getMonth(), bucketStart.getDate() + 1);
+        const accounts = accountTraders.filter((trader) => {
+          const joinedAt = new Date(trader.joinedAt);
+          return joinedAt >= bucketStart && joinedAt < bucketEnd;
+        }).length;
+        return {
+          label: bucketStart.toLocaleDateString(undefined, { day: "numeric", month: "short" }),
+          accounts,
+        };
+      });
+    }
+
+    if (activityTrendPeriod === "12w") {
+      const currentWeek = startOfWeek(now);
+      return Array.from({ length: 12 }, (_, index) => {
+        const bucketStart = new Date(currentWeek.getFullYear(), currentWeek.getMonth(), currentWeek.getDate() - ((11 - index) * 7));
+        const bucketEnd = new Date(bucketStart.getFullYear(), bucketStart.getMonth(), bucketStart.getDate() + 7);
+        const accounts = accountTraders.filter((trader) => {
+          const joinedAt = new Date(trader.joinedAt);
+          return joinedAt >= bucketStart && joinedAt < bucketEnd;
+        }).length;
+        return {
+          label: bucketStart.toLocaleDateString(undefined, { day: "numeric", month: "short" }),
+          accounts,
+        };
+      });
+    }
+
+    if (activityTrendPeriod === "12m") {
+      const currentMonthStart = startOfMonth(now);
+      return Array.from({ length: 12 }, (_, index) => {
+        const bucketStart = new Date(currentMonthStart.getFullYear(), currentMonthStart.getMonth() - (11 - index), 1);
+        const bucketEnd = new Date(bucketStart.getFullYear(), bucketStart.getMonth() + 1, 1);
+        const accounts = accountTraders.filter((trader) => {
+          const joinedAt = new Date(trader.joinedAt);
+          return joinedAt >= bucketStart && joinedAt < bucketEnd;
+        }).length;
+        return {
+          label: bucketStart.toLocaleDateString(undefined, { month: "short" }),
+          accounts,
+        };
+      });
+    }
+
+    const sortedJoinDates = accountTraders
+      .map((trader) => new Date(trader.joinedAt))
+      .filter((joinedAt) => !Number.isNaN(joinedAt.getTime()))
+      .sort((left, right) => left.getTime() - right.getTime());
+
+    const firstJoinDate = sortedJoinDates[0];
+    if (!firstJoinDate) {
+      return [];
+    }
+
+    const firstMonth = startOfMonth(firstJoinDate);
+    const currentMonthStart = startOfMonth(now);
+    const buckets = [];
+
+    for (
+      let cursor = new Date(firstMonth);
+      cursor <= currentMonthStart;
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1)
+    ) {
+      const bucketStart = new Date(cursor);
+      const bucketEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+      const accounts = accountTraders.filter((trader) => {
+        const joinedAt = new Date(trader.joinedAt);
+        return joinedAt >= bucketStart && joinedAt < bucketEnd;
+      }).length;
+
+      buckets.push({
+        label: bucketStart.toLocaleDateString(undefined, { month: "short", year: "2-digit" }),
+        accounts,
+      });
+    }
+
+    return buckets;
+  }, [accountTraders, activityTrendPeriod]);
 
   const churnTrendData = Array.from({ length: 5 }, (_, index) => {
     const monthDate = new Date(currentYear, currentMonth - (4 - index), 1);
@@ -258,6 +348,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
   const financeSummary = financeData?.summary ?? {
     traderAccounts: 0,
     freeAccounts: 0,
+    internalAccounts: 0,
     paygAccounts: 0,
     stripeCustomers: 0,
     activeSubscriptions: 0,
@@ -1132,15 +1223,27 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
 
                 {/* ML Usage Chart */}
                 <div>
-                  <h3 className="text-sm text-slate-700 mb-3">Trader Account Creation Trend</h3>
+                  <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <h3 className="text-sm text-slate-700">Trader Account Creation Trend</h3>
+                    <select
+                      value={activityTrendPeriod}
+                      onChange={(event) => setActivityTrendPeriod(event.target.value as "14d" | "12w" | "12m" | "all")}
+                      className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                    >
+                      <option value="14d">Last 14 Days</option>
+                      <option value="12w">Last 12 Weeks</option>
+                      <option value="12m">Last 12 Months</option>
+                      <option value="all">All Time by Month</option>
+                    </select>
+                  </div>
                   <ResponsiveContainer width="100%" height={250}>
                     <BarChart data={activityChartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis dataKey="month" stroke="#64748b" style={{ fontSize: '12px' }} />
+                      <XAxis dataKey="label" stroke="#64748b" style={{ fontSize: '12px' }} />
                       <YAxis stroke="#64748b" style={{ fontSize: '12px' }} />
                       <Tooltip 
                         contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
-                        formatter={(value: number) => [`${value}`, 'Records']}
+                        formatter={(value: number) => [`${value}`, "Trader accounts created"]}
                       />
                       <Legend />
                       <Bar dataKey="accounts" fill="#a855f7" radius={[8, 8, 0, 0]} />
@@ -1388,7 +1491,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
                 <div className="text-slate-600 text-sm mb-1">Account Users</div>
                 <div className="text-3xl text-slate-900">{financeSummary.traderAccounts}</div>
@@ -1399,9 +1502,14 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                 <div className="text-xs text-slate-500 mt-1">Accounts currently on the free plan</div>
               </div>
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+                <div className="text-slate-600 text-sm mb-1">Internal Accounts</div>
+                <div className="text-3xl text-emerald-600">{financeSummary.internalAccounts}</div>
+                <div className="text-xs text-slate-500 mt-1">Billing-exempt internal company accounts</div>
+              </div>
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
                 <div className="text-slate-600 text-sm mb-1">PAYG Accounts</div>
                 <div className="text-3xl text-slate-900">{financeSummary.paygAccounts}</div>
-                <div className="text-xs text-slate-500 mt-1">All non-free account users, including Stripe-linked paying accounts</div>
+                <div className="text-xs text-slate-500 mt-1">Self-serve paying accounts, including Stripe-linked subscriptions</div>
               </div>
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
                 <div className="text-slate-600 text-sm mb-1">Active Stripe Subscriptions</div>
@@ -1418,7 +1526,7 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                   Teal bars are Stripe-paid subscription revenue. Dark bars are Stripe-paid ML revenue.
                 </p>
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={financeMonthlyRevenue}>
+                  <LineChart data={financeMonthlyRevenue}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis dataKey="month" stroke="#64748b" style={{ fontSize: "12px" }} />
                     <YAxis stroke="#64748b" style={{ fontSize: "12px" }} />
@@ -1433,9 +1541,9 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
                       }}
                     />
                     <Legend />
-                    <Bar dataKey="subscriptionRevenue" stackId="revenue" fill="#0d9488" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="analysisRevenue" stackId="revenue" fill="#0f172a" radius={[8, 8, 0, 0]} />
-                  </BarChart>
+                    <Line type="monotone" dataKey="subscriptionRevenue" stroke="#0d9488" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} name="subscriptionRevenue" />
+                    <Line type="monotone" dataKey="analysisRevenue" stroke="#0f172a" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} name="analysisRevenue" />
+                  </LineChart>
                 </ResponsiveContainer>
                 </div>
               </div>

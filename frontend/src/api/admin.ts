@@ -138,6 +138,7 @@ export interface AdminSignupSummary {
 export interface AdminFinanceSummary {
   traderAccounts: number;
   freeAccounts: number;
+  internalAccounts: number;
   paygAccounts: number;
   stripeCustomers: number;
   activeSubscriptions: number;

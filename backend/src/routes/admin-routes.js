@@ -134,6 +134,17 @@ function registerAdminRoutes(app, {
     return "free";
   }
 
+  function formatTraderPlanLabel(user) {
+    const plan = resolveTraderPlan(user);
+    if (plan === "internal") {
+      return "Internal";
+    }
+    if (plan === "free") {
+      return "Free";
+    }
+    return "PAYG";
+  }
+
   function calculateTradeRMultiple(trade) {
     const riskPerTrade =
       typeof trade.entryPrice === "number" && typeof trade.stopLoss === "number"
@@ -1279,7 +1290,7 @@ function registerAdminRoutes(app, {
             status: user.status,
             submittedAt: user.createdAt.toISOString(),
             name: profileName || null,
-            detail: user.stripeSubscriptionId ? "Premium" : "PAYG",
+            detail: formatTraderPlanLabel(user),
           };
         }),
       ].sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
@@ -1483,6 +1494,9 @@ function registerAdminRoutes(app, {
       const freeAccounts = traders.filter(
         (user) => resolveTraderPlan(user) === "free",
       ).length;
+      const internalAccounts = traders.filter(
+        (user) => resolveTraderPlan(user) === "internal",
+      ).length;
       const paygAccounts = traders.filter(
         (user) => resolveTraderPlan(user) === "payg",
       ).length;
@@ -1546,6 +1560,7 @@ function registerAdminRoutes(app, {
       const planMix = [
         { name: "Free", value: freeAccounts },
         { name: "PAYG", value: paygAccounts },
+        { name: "Internal", value: internalAccounts },
       ];
 
       const accounts = traders
@@ -1590,6 +1605,7 @@ function registerAdminRoutes(app, {
           summary: {
             traderAccounts,
             freeAccounts,
+            internalAccounts,
             paygAccounts,
             stripeCustomers,
             activeSubscriptions,
