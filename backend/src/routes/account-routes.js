@@ -1154,11 +1154,6 @@ function registerAccountRoutes(app, {
 
       const deletedEmail = `deleted+${user.id}.${Date.now()}@deleted.local`;
       const replacementPasswordHash = await bcrypt.hash(crypto.randomUUID(), 10);
-      const deletionChurnWrite =
-        reason && typeof reason === "string" && reason.trim()
-          ? createAccountDeletionChurnFeedback(req.user.id, user, { reason, feedback, plan })
-          : null;
-
       await prisma.$transaction([
         prisma.apiKey.updateMany({
           where: { userId: req.user.id, revokedAt: null },
@@ -1168,25 +1163,6 @@ function registerAccountRoutes(app, {
           where: { userId: req.user.id, isActive: true },
           data: { isActive: false },
         }),
-        prisma.accountDeletionAudit.create({
-          data: {
-            userId: req.user.id,
-            previousEmail: user.email,
-            deletedEmail,
-            stripeCustomerId: user.stripeCustomerId,
-            stripeSubscriptionId: user.stripeSubscriptionId,
-            hadBillingHistory: user.billingEvents.length > 0,
-            hadBrokerAccounts: user.brokerAccounts.length > 0,
-            hadApiKeys: user.apiKeys.length > 0,
-            metadata: {
-              deletedAt: new Date().toISOString(),
-              deletionMode: "self-service-soft-delete",
-              deletionReason: reason && typeof reason === "string" ? reason.trim() : null,
-              deletionFeedback: typeof feedback === "string" && feedback.trim() ? feedback.trim() : null,
-            },
-          },
-        }),
-        ...(deletionChurnWrite ? [deletionChurnWrite] : []),
         prisma.user.update({
           where: { id: req.user.id },
           data: {
@@ -1206,6 +1182,37 @@ function registerAccountRoutes(app, {
           },
         }),
       ]);
+
+      try {
+        await prisma.accountDeletionAudit.create({
+          data: {
+            userId: req.user.id,
+            previousEmail: user.email,
+            deletedEmail,
+            stripeCustomerId: user.stripeCustomerId,
+            stripeSubscriptionId: user.stripeSubscriptionId,
+            hadBillingHistory: user.billingEvents.length > 0,
+            hadBrokerAccounts: user.brokerAccounts.length > 0,
+            hadApiKeys: user.apiKeys.length > 0,
+            metadata: {
+              deletedAt: new Date().toISOString(),
+              deletionMode: "self-service-soft-delete",
+              deletionReason: reason && typeof reason === "string" ? reason.trim() : null,
+              deletionFeedback: typeof feedback === "string" && feedback.trim() ? feedback.trim() : null,
+            },
+          },
+        });
+      } catch (auditError) {
+        console.error("Account deletion audit write failed", auditError);
+      }
+
+      if (reason && typeof reason === "string" && reason.trim()) {
+        try {
+          await createAccountDeletionChurnFeedback(req.user.id, user, { reason, feedback, plan });
+        } catch (churnError) {
+          console.error("Account deletion churn feedback write failed", churnError);
+        }
+      }
 
       clearSessionCookie(res);
 
