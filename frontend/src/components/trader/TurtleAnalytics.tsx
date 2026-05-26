@@ -3691,7 +3691,7 @@ export function TurtleAnalytics({
               <button
                 onClick={() => handleDeleteRunData(deleteRunPrompt.id, false)}
                 disabled={deletingRunId === deleteRunPrompt.id}
-                className="rounded-lg border border-rose-700 bg-rose-700 px-4 py-2 font-medium text-white shadow-sm hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-70"
+                className="rounded-lg border border-rose-300 bg-rose-100 px-4 py-2 font-medium text-rose-900 shadow-sm hover:bg-rose-200 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {deletingRunId === deleteRunPrompt.id ? "Deleting..." : "Delete ML Data Only"}
               </button>
