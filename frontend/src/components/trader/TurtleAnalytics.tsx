@@ -990,6 +990,7 @@ export function TurtleAnalytics({
   const isSubscriptionPaused = subscriptionStatus === "paused";
   const canRunMlModel = mlModelAccessEnabled && !isSubscriptionPaused;
   const isFreeFetchFlow = !mlModelAccessEnabled;
+  const isPaidLikePlan = subscriptionTier === "payg" || subscriptionTier === "internal";
 
   const referralDiscountFactor = Math.max(0, 1 - (analysisOptions.mlRunDiscountPercent || 0) / 100);
   const estimatedModalCost =
@@ -1755,12 +1756,12 @@ export function TurtleAnalytics({
                     <div className="text-slate-900 text-sm">
                       Total Coverage: <span className="font-semibold text-teal-600">{modelRunHistory.reduce((sum, run) => sum + run.tradesAnalysed, 0)} trades</span>
                     </div>
-                    {subscriptionTier === "payg" && (
+                    {isPaidLikePlan && (
                       <div className="text-slate-600 text-xs mt-1">
                         Total spent: £{modelRunHistory.reduce((sum, run) => sum + run.cost, 0).toFixed(2)}
                       </div>
                     )}
-                    {subscriptionTier === "payg" && (
+                    {isPaidLikePlan && (
                       <div className="text-slate-500 text-[11px] mt-1">
                         ML charges only apply to new trades included in each run.
                       </div>
@@ -1897,7 +1898,7 @@ export function TurtleAnalytics({
                         </div>
 
                         {/* Stats Row */}
-                        <div className={`mt-3 grid gap-4 ${subscriptionTier === "payg" ? "grid-cols-4" : "grid-cols-3"}`}>
+                        <div className={`mt-3 grid gap-4 ${isPaidLikePlan ? "grid-cols-4" : "grid-cols-3"}`}>
                           <div className="flex items-center gap-2">
                             <BarChart3 className={`w-4 h-4 ${index === 0 ? 'text-teal-600' : 'text-slate-500'}`} />
                             <div>
@@ -1929,7 +1930,7 @@ export function TurtleAnalytics({
                               </div>
                             </div>
                           </div>
-                          {subscriptionTier === "payg" && (
+                          {isPaidLikePlan && (
                             <div className="flex items-center gap-2">
                               <PoundSterling className={`w-4 h-4 ${index === 0 ? 'text-teal-600' : 'text-slate-500'}`} />
                               <div>
@@ -3563,8 +3564,8 @@ export function TurtleAnalytics({
                 </div>
               </div>
 
-              {/* Cost Summary - Only for PAYG */}
-              {!isFreeFetchFlow && !isTrading212ImportMode && subscriptionTier === "payg" && (
+              {/* Cost Summary - Only for paid-like plans */}
+              {!isFreeFetchFlow && !isTrading212ImportMode && isPaidLikePlan && (
                 <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
                   <div className="flex items-start gap-2">
                     <PoundSterling className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -3578,7 +3579,9 @@ export function TurtleAnalytics({
                             : "£0.20 per trade analysed from the uploaded CSV"}
                       </p>
                       <div className="text-amber-600 text-xs">
-                        Final cost is calculated from your account pricing and any active ML-run referral discount.
+                        {subscriptionTier === "internal"
+                          ? "Internal accounts follow the PAYG flow, but model testing remains billing-exempt."
+                          : "Final cost is calculated from your account pricing and any active ML-run referral discount."}
                       </div>
                       {analysisOptions.referralCode && analysisOptions.mlRunDiscountPercent > 0 && (
                         <div className="mt-2 text-amber-700 text-xs">

@@ -845,7 +845,7 @@ export function SettingsPage({
                             </div>
                             <p className="mt-2 text-sm text-slate-600">
                               {billingSummary?.billingExempt
-                                ? "Internal company account with billing exemption"
+                                ? "£10/month + £0.20 per trade analysed"
                                 : billingSummary?.platformComped
                                   ? "Complimentary platform access is active on this account"
                                 : isFreePlan
@@ -859,15 +859,12 @@ export function SettingsPage({
                               : liveSubscriptionStatus === "active" || liveSubscriptionStatus === "trialing"
                                 ? "Active"
                                 : liveSubscriptionStatus === "internal"
-                                  ? "Internal"
+                                  ? "Active"
                                 : liveSubscriptionStatus === "not_started"
                                   ? "Free Account"
                                   : liveSubscriptionStatus}
                           </span>
                         </div>
-                        {billingSummary?.billingExempt && billingSummary?.billingExemptReason && (
-                          <p className="mt-4 text-sm text-slate-700">{billingSummary.billingExemptReason}</p>
-                        )}
                         {!billingSummary?.billingExempt && billingSummary?.platformComped && billingSummary?.platformCompedReason && (
                           <p className="mt-4 text-sm text-slate-700">{billingSummary.platformCompedReason}</p>
                         )}

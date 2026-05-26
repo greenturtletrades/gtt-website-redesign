@@ -36,7 +36,7 @@ export function ProfileDropdown({
     free: { name: "Free", color: "text-cyan-700", bg: "bg-cyan-100" },
     payg: { name: "Pay-as-you-go", color: "text-slate-700", bg: "bg-slate-100" },
     premium: { name: "Premium", color: "text-amber-700", bg: "bg-amber-100" },
-    internal: { name: "Internal", color: "text-emerald-700", bg: "bg-emerald-100" },
+    internal: { name: "Pay-as-you-go", color: "text-slate-700", bg: "bg-slate-100" },
   };
 
   const currentTier = tierInfo[subscriptionTier];
