@@ -1832,7 +1832,7 @@ export function TurtleAnalytics({
                               )}
                               {run.deletedData && (
                                 <span className="px-2 py-0.5 bg-slate-200 text-slate-700 text-xs rounded-full">
-                                  Data deleted
+                                  {isImportLedgerEntry(run.mode) ? "Journal history deleted" : "Data deleted"}
                                 </span>
                               )}
                             </div>
@@ -1844,7 +1844,7 @@ export function TurtleAnalytics({
                             {run.deletedData && (
                               <div className="mt-2 text-xs text-slate-500">
                                 {isImportLedgerEntry(run.mode)
-                                  ? "Imported journal data from this ledger entry was removed. The ledger note remains in your history."
+                                  ? "Only the imported journal history linked to this ledger entry was removed. The ledger note remains in your history."
                                   : "Saved report data was removed for this run. The billed ML run record remains in your history."}
                               </div>
                             )}
@@ -1859,7 +1859,7 @@ export function TurtleAnalytics({
                             {isImportLedgerEntry(run.mode) ? (
                               <button
                                 onClick={() => {
-                                  if (window.confirm(`Delete only the imported journal data linked to "${run.periodDescription}"?`)) {
+                                  if (window.confirm(`Delete only the imported journal history linked to "${run.periodDescription}"? Trades from other journal entries will not be removed.`)) {
                                     void handleDeleteRunData(run.id, true);
                                   }
                                 }}
@@ -1871,7 +1871,7 @@ export function TurtleAnalytics({
                                 }`}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
-                                {deletingRunId === run.id ? "Deleting..." : run.deletedData ? "Data Deleted" : run.tradesAnalysed <= 0 ? "No Data" : "Delete Data"}
+                                {deletingRunId === run.id ? "Deleting..." : run.deletedData ? "Journal History Deleted" : run.tradesAnalysed <= 0 ? "No Data" : "Delete Journal History"}
                               </button>
                             ) : (
                               <button
@@ -3667,8 +3667,8 @@ export function TurtleAnalytics({
               Choose what to remove for <span className="font-medium text-slate-900">{deleteRunPrompt.periodDescription}</span>. The billed run record and cost will stay in history either way.
             </p>
             <div className="mt-4 space-y-3">
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                <div className="font-medium text-slate-900">Delete ML Data Only</div>
+              <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 shadow-sm">
+                <div className="font-medium text-rose-900">Delete ML Data Only</div>
                 <div className="mt-1">
                   Removes the saved analysis report for this run, but keeps your saved journal trades.
                 </div>
@@ -3691,7 +3691,7 @@ export function TurtleAnalytics({
               <button
                 onClick={() => handleDeleteRunData(deleteRunPrompt.id, false)}
                 disabled={deletingRunId === deleteRunPrompt.id}
-                className="rounded-lg bg-rose-600 px-4 py-2 text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-70"
+                className="rounded-lg border border-rose-700 bg-rose-700 px-4 py-2 font-medium text-white shadow-sm hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {deletingRunId === deleteRunPrompt.id ? "Deleting..." : "Delete ML Data Only"}
               </button>
