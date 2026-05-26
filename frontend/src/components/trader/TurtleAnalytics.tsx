@@ -7,8 +7,8 @@ import { motion } from "motion/react";
 import { ProfileDropdown } from "./ProfileDropdown";
 import { SettingsPage } from "./SettingsPage";
 import { ApiError, API_BASE, clearStoredToken } from "../../api/client";
-import { deleteAnalysisRun, fetchAnalysisOptions, fetchTradeData, importCsvTradeData, pollAnalysisJob, startAnalysis, startCsvAnalysis, startMt5Analysis } from "../../api/analysis";
-import { fetchAccountState, fetchPersistedAnalysisState, fetchTrading212Trades, type PersistedAnalysisStateResponse } from "../../api/settings";
+import { deleteAnalysisRun, fetchAnalysisOptions, fetchTradeData, importCsvTradeData, pollAnalysisJob, startAnalysis, startCsvAnalysis } from "../../api/analysis";
+import { fetchAccountState, fetchEaStatus, fetchPersistedAnalysisState, fetchTrading212Trades, type PersistedAnalysisStateResponse } from "../../api/settings";
 import { createCheckoutSession } from "../../api/subscription";
 
 interface TurtleAnalyticsProps {
@@ -44,14 +44,10 @@ export function TurtleAnalytics({
   const [startingUpgradeCheckout, setStartingUpgradeCheckout] = useState(false);
   const [selectedTradeCount, setSelectedTradeCount] = useState(565);
   const [selectedMonths, setSelectedMonths] = useState(12);
-  const [analysisMode, setAnalysisMode] = useState<"trades" | "months" | "csv" | "mt5" | "trading212">("trades");
+  const [analysisMode, setAnalysisMode] = useState<"trades" | "months" | "csv" | "trading212">("trades");
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [replaceCsvDataset, setReplaceCsvDataset] = useState(false);
-  const [mt5Login, setMt5Login] = useState("");
-  const [mt5Password, setMt5Password] = useState("");
-  const [mt5Server, setMt5Server] = useState("");
-  const [mt5Days, setMt5Days] = useState(90);
-  const [mt5Symbol, setMt5Symbol] = useState("");
+  const [eaConnected, setEaConnected] = useState<boolean | null>(null);
   const [statsData, setStatsData] = useState({ tradesAnalysed: 0, simulationsRun: 0, regimesFound: 0, avgRMultiple: 0 });
   const [reportData, setReportData] = useState<any>(null);
   const [modelRunError, setModelRunError] = useState<string | null>(null);
@@ -881,8 +877,6 @@ export function TurtleAnalytics({
         return "By time";
       case "csv":
         return "CSV analysis";
-      case "mt5":
-        return "MT5 analysis";
       case "journal_fetch":
         return "EA import";
       case "journal_csv_import":
@@ -907,19 +901,24 @@ export function TurtleAnalytics({
 
     const loadSessionUser = async () => {
       try {
-        const accountState = await fetchAccountState();
+        const [accountState, eaStatus] = await Promise.all([
+          fetchAccountState(),
+          fetchEaStatus().catch(() => null),
+        ]);
         if (!cancelled && accountState.ok) {
           const firstName = accountState.account.profile?.firstName?.trim() || "";
           const lastName = accountState.account.profile?.lastName?.trim() || "";
           const fullName = `${firstName} ${lastName}`.trim();
           setCurrentUserName(fullName || accountState.account.email.split("@")[0]);
           setCurrentUserEmail(accountState.account.email);
+          setEaConnected(eaStatus ? Boolean(eaStatus.eaConnected) : null);
         }
       } catch (error) {
         if (!cancelled) {
           if (error instanceof ApiError && error.status === 401) {
             setCurrentUserName("Trader");
             setCurrentUserEmail("");
+            setEaConnected(null);
           }
         }
       }
@@ -953,7 +952,10 @@ export function TurtleAnalytics({
 
     const refreshAnalysisOptions = async () => {
       try {
-        const payload = await fetchAnalysisOptions();
+        const [payload, currentEaStatus] = await Promise.all([
+          fetchAnalysisOptions(),
+          fetchEaStatus().catch(() => null),
+        ]);
         if (!cancelled && payload.ok) {
           setAnalysisOptions({
             availableTradeCount: payload.availableTradeCount ?? 0,
@@ -964,6 +966,7 @@ export function TurtleAnalytics({
             referralCode: payload.referralCode ?? null,
             latestAnalysis: payload.latestAnalysis ?? null,
           });
+          setEaConnected(currentEaStatus ? Boolean(currentEaStatus.eaConnected) : null);
         }
       } catch {
         // Keep the last known options if this refresh fails.
@@ -1033,14 +1036,6 @@ export function TurtleAnalytics({
       let startPayload;
       if (analysisMode === "csv" && csvFile) {
         startPayload = await startCsvAnalysis(csvFile, replaceCsvDataset);
-      } else if (analysisMode === "mt5") {
-        startPayload = await startMt5Analysis({
-          login: mt5Login || null,
-          password: mt5Password || null,
-          server: mt5Server || null,
-          days: mt5Days,
-          symbol: mt5Symbol || null,
-        });
       } else {
         startPayload = await startAnalysis({
           mode: analysisMode,
@@ -3042,7 +3037,7 @@ export function TurtleAnalytics({
                 <label className="text-slate-700 mb-3 block">
                   {isFreeFetchFlow || isTrading212ImportMode ? "Import Method:" : "Analysis Range:"}
                 </label>
-                <div className={`grid gap-3 ${isFreeFetchFlow ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-2 sm:grid-cols-5"}`}>
+                <div className={`grid gap-3 ${isFreeFetchFlow ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-2 sm:grid-cols-4"}`}>
                   <button
                     onClick={() => setAnalysisMode("trades")}
                     className={`p-4 rounded-lg border-2 transition-all ${
@@ -3117,22 +3112,6 @@ export function TurtleAnalytics({
                       }`} />
                       <div className="text-sm text-slate-900">Trading 212</div>
                       <div className="text-xs text-slate-500">Import into journal</div>
-                    </button>
-                  )}
-                  {!isFreeFetchFlow && (
-                    <button
-                      onClick={() => setAnalysisMode("mt5")}
-                      className={`p-4 rounded-lg border-2 transition-all ${
-                        analysisMode === "mt5"
-                          ? "border-teal-600 bg-teal-50"
-                          : "border-slate-200 hover:border-slate-300"
-                      }`}
-                    >
-                      <Monitor className={`w-6 h-6 mx-auto mb-2 ${
-                        analysisMode === "mt5" ? "text-teal-600" : "text-slate-400"
-                      }`} />
-                      <div className="text-sm text-slate-900">MetaTrader</div>
-                      <div className="text-xs text-slate-500">Connect MT5</div>
                     </button>
                   )}
                 </div>
@@ -3230,76 +3209,14 @@ export function TurtleAnalytics({
                   Free account mode is active. You can use the journal and account area now, but subscribing is still required before running the ML model.
                 </div>
               )}
-
-              {/* MetaTrader 5 Credentials */}
-              {analysisMode === "mt5" && (
-                <div className="mb-6 space-y-4">
-                  <p className="text-slate-600 text-sm">
-                    Connect directly to your MetaTrader 5 terminal. Leave credentials blank to use the currently logged-in account.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-slate-700 text-sm mb-1 block">Account Number</label>
-                      <input
-                        type="number"
-                        placeholder="e.g. 12345678"
-                        value={mt5Login}
-                        onChange={(e) => setMt5Login(e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-slate-700 text-sm mb-1 block">Password</label>
-                      <input
-                        type="password"
-                        placeholder="Investor or full password"
-                        value={mt5Password}
-                        onChange={(e) => setMt5Password(e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-slate-700 text-sm mb-1 block">Broker Server</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Broker-Demo"
-                        value={mt5Server}
-                        onChange={(e) => setMt5Server(e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-slate-700 text-sm mb-1 block">Symbol Filter <span className="text-slate-400">(optional)</span></label>
-                      <input
-                        type="text"
-                        placeholder="e.g. EURUSD (leave blank for all)"
-                        value={mt5Symbol}
-                        onChange={(e) => setMt5Symbol(e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                      />
-                    </div>
-                  </div>
+              {mlModelAccessEnabled && eaConnected === false && (
+                <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
                   <div>
-                    <label className="text-slate-700 text-sm mb-1 block">History Lookback: <span className="text-teal-600 font-semibold">{mt5Days} days</span></label>
-                    <input
-                      type="range"
-                      min={7}
-                      max={365}
-                      step={7}
-                      value={mt5Days}
-                      onChange={(e) => setMt5Days(parseInt(e.target.value))}
-                      className="w-full accent-teal-600"
-                    />
-                    <div className="flex justify-between text-xs text-slate-400 mt-1">
-                      <span>7 days</span>
-                      <span>1 year</span>
+                    <div className="font-medium">EA not connected</div>
+                    <div className="mt-1 text-xs text-amber-700">
+                      Analysis by trades or by time uses your connected MetaTrader EA history. Reconnect the EA in Settings before running the model.
                     </div>
-                  </div>
-                  <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-amber-800 text-xs">
-                      MT5 must be installed and running on the same machine as the analytics server. The investor (read-only) password is sufficient.
-                    </p>
                   </div>
                 </div>
               )}
