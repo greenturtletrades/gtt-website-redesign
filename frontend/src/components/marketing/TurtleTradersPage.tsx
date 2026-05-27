@@ -162,15 +162,6 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
 
   const visibleTraders = showAllRows || normalizedSearch ? filteredTraders : filteredTraders.slice(0, 5);
   const hasHiddenRows = !normalizedSearch && filteredTraders.length > 5;
-  const hasVisibleRows = visibleTraders.length > 0;
-  const leaderboardStatusMessage = loading
-    ? "Loading public leaderboard..."
-    : loadError
-      ? loadError
-      : normalizedSearch
-        ? "No verified traders match that search yet."
-        : "No public trader performance has been published yet.";
-  const leaderboardStatusClass = loadError ? "text-red-600" : "text-slate-600";
 
   return (
     <div className="min-h-screen bg-white pt-20">
@@ -216,73 +207,7 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                 </button>
               ) : null}
             </div>
-            {!hasVisibleRows ? (
-              <div className={`m-2 rounded-2xl border border-slate-200 bg-white px-5 py-8 text-center text-sm sm:m-3 ${leaderboardStatusClass}`}>
-                {leaderboardStatusMessage}
-              </div>
-            ) : null}
-            <div className="space-y-3 p-2 sm:p-3 md:hidden">
-              {!loading && !loadError && visibleTraders.map((trader) => (
-                <article
-                  key={trader.id}
-                  className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                        Rank #{trader.rank}
-                      </div>
-                      <div className="mt-1 text-base font-semibold text-slate-950">{trader.name}</div>
-                      <div className="mt-1 text-[11px] uppercase tracking-[0.16em] text-slate-500">
-                        {trader.source === "analysis" ? "Verified Analysis" : "Verified Journal"}
-                      </div>
-                    </div>
-                    <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${riskPillClass(trader.riskLevel)}`}>
-                      {trader.riskLevel}
-                    </span>
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {splitMarketSummary(trader.market).map((market) => (
-                      <span
-                        key={`${trader.id}-${market}`}
-                        className="rounded-full border border-teal-100 bg-teal-50 px-3 py-1 text-xs font-medium text-teal-700"
-                      >
-                        {market}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-slate-50 p-3">
-                    <div>
-                      <div className="text-[11px] uppercase tracking-[0.14em] text-slate-500">Win Rate</div>
-                      <div className="mt-1 text-sm font-semibold tabular-nums text-slate-950">{formatWinRate(trader.winRate)}</div>
-                    </div>
-                    <div>
-                      <div className="text-[11px] uppercase tracking-[0.14em] text-slate-500">Profit Factor</div>
-                      <div className="mt-1 text-sm font-semibold tabular-nums text-slate-950">{formatProfitFactor(trader.profitFactor)}</div>
-                    </div>
-                    <div>
-                      <div className="text-[11px] uppercase tracking-[0.14em] text-slate-500">Risk Per Trade</div>
-                      <div className="mt-1 text-sm font-semibold tabular-nums text-slate-950">{formatRiskPercent(trader.riskPerTradePercent)}</div>
-                    </div>
-                    <div>
-                      <div className="text-[11px] uppercase tracking-[0.14em] text-slate-500">Total Trades</div>
-                      <div className="mt-1 text-sm font-semibold tabular-nums text-slate-950">{trader.totalTrades}</div>
-                    </div>
-                    <div>
-                      <div className="text-[11px] uppercase tracking-[0.14em] text-slate-500">Expectancy</div>
-                      <div className="mt-1 text-sm font-semibold tabular-nums text-slate-950">{formatExpectancy(trader.expectancyR)}</div>
-                    </div>
-                    <div>
-                      <div className="text-[11px] uppercase tracking-[0.14em] text-slate-500">Last Updated</div>
-                      <div className="mt-1 text-sm font-semibold tabular-nums text-slate-950">{formatRelativeTimestamp(trader.lastUpdatedAt)}</div>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-            <div className="hidden overflow-x-auto p-2 sm:p-3 md:block">
+            <div className="overflow-x-auto p-2 sm:p-3">
               <table className="w-full min-w-[1160px]">
                 <thead className="bg-slate-50">
                   <tr>
@@ -299,7 +224,28 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {hasVisibleRows && visibleTraders.map((trader) => {
+                  {loading ? (
+                    <tr>
+                      <td colSpan={10} className="px-5 py-8 text-center text-sm text-slate-600">
+                        Loading public leaderboard...
+                      </td>
+                    </tr>
+                  ) : null}
+                  {!loading && loadError ? (
+                    <tr>
+                      <td colSpan={10} className="px-5 py-8 text-center text-sm text-red-600">
+                        {loadError}
+                      </td>
+                    </tr>
+                  ) : null}
+                  {!loading && !loadError && visibleTraders.length === 0 && !normalizedSearch ? (
+                    <tr>
+                      <td colSpan={10} className="px-5 py-8 text-center text-sm text-slate-600">
+                        No public trader performance has been published yet.
+                      </td>
+                    </tr>
+                  ) : null}
+                  {visibleTraders.map((trader) => {
                     return (
                     <tr key={trader.id} className="border-t border-slate-100 transition-colors odd:bg-white even:bg-slate-50/40 hover:bg-teal-50/60">
                       <td className="px-5 py-4 text-sm font-semibold tabular-nums text-slate-900">
@@ -344,6 +290,11 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                 </tbody>
               </table>
             </div>
+            {normalizedSearch && visibleTraders.length === 0 ? (
+              <div className="border-t border-slate-200 px-6 py-5 text-sm text-slate-600">
+                No verified traders match that search yet.
+              </div>
+            ) : null}
           </div>
 
           <div className="mt-8 rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-6 text-slate-950 shadow-lg">
