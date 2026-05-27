@@ -162,6 +162,15 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
 
   const visibleTraders = showAllRows || normalizedSearch ? filteredTraders : filteredTraders.slice(0, 5);
   const hasHiddenRows = !normalizedSearch && filteredTraders.length > 5;
+  const hasVisibleRows = visibleTraders.length > 0;
+  const leaderboardStatusMessage = loading
+    ? "Loading public leaderboard..."
+    : loadError
+      ? loadError
+      : normalizedSearch
+        ? "No verified traders match that search yet."
+        : "No public trader performance has been published yet.";
+  const leaderboardStatusClass = loadError ? "text-red-600" : "text-slate-600";
 
   return (
     <div className="min-h-screen bg-white pt-20">
@@ -207,22 +216,12 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                 </button>
               ) : null}
             </div>
+            {!hasVisibleRows ? (
+              <div className={`m-2 rounded-2xl border border-slate-200 bg-white px-5 py-8 text-center text-sm sm:m-3 ${leaderboardStatusClass}`}>
+                {leaderboardStatusMessage}
+              </div>
+            ) : null}
             <div className="space-y-3 p-2 sm:p-3 md:hidden">
-              {loading ? (
-                <div className="rounded-2xl border border-slate-200 bg-white px-5 py-8 text-center text-sm text-slate-600">
-                  Loading public leaderboard...
-                </div>
-              ) : null}
-              {!loading && loadError ? (
-                <div className="rounded-2xl border border-slate-200 bg-white px-5 py-8 text-center text-sm text-red-600">
-                  {loadError}
-                </div>
-              ) : null}
-              {!loading && !loadError && visibleTraders.length === 0 && !normalizedSearch ? (
-                <div className="rounded-2xl border border-slate-200 bg-white px-5 py-8 text-center text-sm text-slate-600">
-                  No public trader performance has been published yet.
-                </div>
-              ) : null}
               {!loading && !loadError && visibleTraders.map((trader) => (
                 <article
                   key={trader.id}
@@ -300,28 +299,7 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {loading ? (
-                    <tr>
-                      <td colSpan={10} className="px-5 py-8 text-center text-sm text-slate-600">
-                        Loading public leaderboard...
-                      </td>
-                    </tr>
-                  ) : null}
-                  {!loading && loadError ? (
-                    <tr>
-                      <td colSpan={10} className="px-5 py-8 text-center text-sm text-red-600">
-                        {loadError}
-                      </td>
-                    </tr>
-                  ) : null}
-                  {!loading && !loadError && visibleTraders.length === 0 && !normalizedSearch ? (
-                    <tr>
-                      <td colSpan={10} className="px-5 py-8 text-center text-sm text-slate-600">
-                        No public trader performance has been published yet.
-                      </td>
-                    </tr>
-                  ) : null}
-                  {visibleTraders.map((trader) => {
+                  {hasVisibleRows && visibleTraders.map((trader) => {
                     return (
                     <tr key={trader.id} className="border-t border-slate-100 transition-colors odd:bg-white even:bg-slate-50/40 hover:bg-teal-50/60">
                       <td className="px-5 py-4 text-sm font-semibold tabular-nums text-slate-900">
@@ -366,11 +344,6 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                 </tbody>
               </table>
             </div>
-            {normalizedSearch && visibleTraders.length === 0 ? (
-              <div className="border-t border-slate-200 px-6 py-5 text-sm text-slate-600">
-                No verified traders match that search yet.
-              </div>
-            ) : null}
           </div>
 
           <div className="mt-8 rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-6 text-slate-950 shadow-lg">
