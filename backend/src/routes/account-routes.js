@@ -67,7 +67,7 @@ function registerAccountRoutes(app, {
     "turtletraders",
   ]);
 
-  const blockedLeaderboardNameFragments = [
+  const blockedLeaderboardNameTokens = new Set([
     "anus",
     "arse",
     "asshole",
@@ -106,7 +106,6 @@ function registerAccountRoutes(app, {
     "deepthroat",
     "dildo",
     "buttplug",
-    "anal",
     "orgasm",
     "nigger",
     "nigga",
@@ -148,6 +147,24 @@ function registerAccountRoutes(app, {
     "whitepower",
     "whitesuprem",
     "heilhitler",
+  ]);
+
+  const blockedLeaderboardCollapsedFragments = [
+    "motherfucker",
+    "masturbat",
+    "deepthroat",
+    "whitepower",
+    "whitesuprem",
+    "heilhitler",
+    "nigger",
+    "nigga",
+    "faggot",
+    "retard",
+    "rapist",
+    "molester",
+    "pedophile",
+    "paedophile",
+    "bestiality",
   ];
 
   function normalizeLeaderboardDisplayNameSpacing(value) {
@@ -160,6 +177,13 @@ function registerAccountRoutes(app, {
 
   function sanitizeLeaderboardNameForModeration(value) {
     return canonicalizeLeaderboardDisplayName(value).replace(/[^a-z0-9]/g, "");
+  }
+
+  function tokenizeLeaderboardNameForModeration(value) {
+    return canonicalizeLeaderboardDisplayName(value)
+      .split(/[^a-z0-9]+/g)
+      .map((token) => token.trim())
+      .filter(Boolean);
   }
 
   function validateLeaderboardDisplayName(displayName) {
@@ -178,7 +202,11 @@ function registerAccountRoutes(app, {
     }
 
     const sanitizedName = sanitizeLeaderboardNameForModeration(normalizedDisplayName);
-    if (blockedLeaderboardNameFragments.some((fragment) => sanitizedName.includes(fragment))) {
+    const tokenizedName = tokenizeLeaderboardNameForModeration(normalizedDisplayName);
+    if (
+      tokenizedName.some((token) => blockedLeaderboardNameTokens.has(token)) ||
+      blockedLeaderboardCollapsedFragments.some((fragment) => sanitizedName.includes(fragment))
+    ) {
       return { ok: false, error: "That public display name is not allowed. Choose a different name." };
     }
 

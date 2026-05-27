@@ -255,6 +255,42 @@ test("PATCH /api/me/leaderboard rejects offensive public display names", async (
   });
 });
 
+test("PATCH /api/me/leaderboard allows safe names that contain harmless substrings", async () => {
+  prismaMock.user.findUnique = async () => ({
+    id: "trader-1",
+    email: "trader1@gtt.local",
+    role: "TRADER",
+    status: "ACTIVE",
+    leaderboardOptIn: false,
+    leaderboardPublishedAt: null,
+    profile: { firstName: "Clean", lastName: "Trader" },
+  });
+  prismaMock.user.findMany = async () => [];
+  prismaMock.user.update = async ({ data }) => ({
+    leaderboardOptIn: data.leaderboardOptIn,
+    leaderboardDisplayName: data.leaderboardDisplayName,
+    leaderboardPublishedAt: data.leaderboardPublishedAt,
+  });
+
+  await withServer(async (server) => {
+    const response = await request(server, "/api/me/leaderboard", {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${createUserToken("trader-1")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        leaderboardOptIn: true,
+        leaderboardDisplayName: "Analysis Trader",
+      }),
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.ok, true);
+    assert.equal(response.body.leaderboard.displayName, "Analysis Trader");
+  });
+});
+
 test("PATCH /api/me/leaderboard rejects duplicate public display names case-insensitively", async () => {
   prismaMock.user.findUnique = async () => ({
     id: "trader-1",
