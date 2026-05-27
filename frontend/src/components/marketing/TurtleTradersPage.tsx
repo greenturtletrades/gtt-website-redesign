@@ -14,9 +14,9 @@ const scoringModel = [
     detail: "Win rate shows how often a trader closes positions profitably across verified journal history. It matters because consistency is easier to trust than one or two standout trades.",
   },
   {
-    name: "Risk Per Trade",
+    name: "Expectancy",
     weight: "30%",
-    detail: "We place significant weight on how much capital is being risked on each trade. Traders who keep risk controlled rank better than traders who try to manufacture performance through oversized exposure.",
+    detail: "Expectancy is the average R-multiple per trade. It shows the average edge a trader produces each time they take risk, which makes it a strong measure of trade quality over time.",
   },
   {
     name: "Total Trades",
@@ -24,9 +24,9 @@ const scoringModel = [
     detail: "A larger verified trade sample gives more confidence in the result. This helps prevent a trader from ranking highly based on only a small number of successful trades.",
   },
   {
-    name: "Expectancy",
+    name: "Risk Per Trade",
     weight: "15%",
-    detail: "Expectancy is the average R-multiple per trade. It shows the average edge a trader produces each time they take risk, which makes it a strong measure of trade quality over time.",
+    detail: "We still score risk discipline, but it should support proven edge rather than outweigh it. Traders who keep risk controlled rank better than traders who try to manufacture performance through oversized exposure.",
   },
 ];
 
@@ -208,19 +208,19 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
               ) : null}
             </div>
             <div className="overflow-x-auto p-2 sm:p-3">
-              <table className="w-full min-w-[1160px]">
+              <table className="w-full min-w-[1160px] table-fixed">
                 <thead className="bg-slate-50">
                   <tr>
-                    <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Rank</th>
-                    <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Trader</th>
-                    <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Market</th>
-                    <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Win Rate</th>
-                    <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Profit Factor</th>
-                    <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Risk Per Trade</th>
-                    <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Total Trades</th>
-                    <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Expectancy</th>
-                    <th className="px-5 py-4 text-center text-[11px] uppercase tracking-[0.2em] text-slate-600">Risk Level</th>
-                    <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Last Updated</th>
+                    <th className="w-16 px-4 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Rank</th>
+                    <th className="w-40 px-4 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Trader</th>
+                    <th className="w-44 px-4 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Market</th>
+                    <th className="w-24 px-4 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Win Rate</th>
+                    <th className="w-28 px-4 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Profit Factor</th>
+                    <th className="w-28 px-4 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Risk Per Trade</th>
+                    <th className="w-24 px-4 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Total Trades</th>
+                    <th className="w-24 px-4 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Expectancy</th>
+                    <th className="w-24 px-4 py-4 text-center text-[11px] uppercase tracking-[0.2em] text-slate-600">Risk Level</th>
+                    <th className="w-24 px-4 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Last Updated</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -248,42 +248,42 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                   {visibleTraders.map((trader) => {
                     return (
                     <tr key={trader.id} className="border-t border-slate-100 transition-colors odd:bg-white even:bg-slate-50/40 hover:bg-teal-50/60">
-                      <td className="px-5 py-4 text-sm font-semibold tabular-nums text-slate-900">
+                      <td className="px-4 py-4 align-top text-sm font-semibold tabular-nums text-slate-900">
                         {trader.rank}
                       </td>
-                      <td className="px-5 py-4">
+                      <td className="px-4 py-4 align-top">
                         <div>
-                          <div className="text-sm font-semibold text-slate-950">{trader.name}</div>
-                          <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                          <div className="text-sm font-semibold leading-5 text-slate-950">{trader.name}</div>
+                          <div className="mt-1 text-xs uppercase tracking-[0.16em] leading-4 text-slate-500">
                             {trader.source === "analysis" ? "Verified Analysis" : "Verified Journal"}
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-4">
-                        <div className="flex max-w-[220px] flex-wrap gap-2">
+                      <td className="px-4 py-4 align-top">
+                        <div className="flex max-w-[220px] flex-wrap gap-1.5">
                           {splitMarketSummary(trader.market).map((market) => (
                             <span
                               key={`${trader.id}-${market}`}
-                              className="rounded-full border border-teal-100 bg-teal-50 px-3 py-1 text-xs font-medium text-teal-700"
+                              className="rounded-full border border-teal-100 bg-teal-50 px-2.5 py-1 text-xs font-medium leading-4 text-teal-700"
                             >
                               {market}
                             </span>
                           ))}
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-right">
+                      <td className="px-4 py-4 align-top text-right">
                         <div className="text-base font-semibold tabular-nums text-slate-950">{formatWinRate(trader.winRate)}</div>
                       </td>
-                      <td className="px-5 py-4 text-right text-base font-medium tabular-nums text-slate-950">{formatProfitFactor(trader.profitFactor)}</td>
-                      <td className="px-5 py-4 text-right text-base font-medium tabular-nums text-slate-950">{formatRiskPercent(trader.riskPerTradePercent)}</td>
-                      <td className="px-5 py-4 text-right text-base font-medium tabular-nums text-slate-950">{trader.totalTrades}</td>
-                      <td className="px-5 py-4 text-right text-base font-medium tabular-nums text-slate-950">{formatExpectancy(trader.expectancyR)}</td>
-                      <td className="px-5 py-4 text-center">
+                      <td className="px-4 py-4 align-top text-right text-base font-medium tabular-nums text-slate-950">{formatProfitFactor(trader.profitFactor)}</td>
+                      <td className="px-4 py-4 align-top text-right text-base font-medium tabular-nums text-slate-950">{formatRiskPercent(trader.riskPerTradePercent)}</td>
+                      <td className="px-4 py-4 align-top text-right text-base font-medium tabular-nums text-slate-950">{trader.totalTrades}</td>
+                      <td className="px-4 py-4 align-top text-right text-base font-medium tabular-nums text-slate-950">{formatExpectancy(trader.expectancyR)}</td>
+                      <td className="px-4 py-4 align-top text-center">
                         <span className={`rounded-full px-3 py-1 text-xs font-medium ${riskPillClass(trader.riskLevel)}`}>
                           {trader.riskLevel}
                         </span>
                       </td>
-                      <td className="px-5 py-4 text-right text-sm tabular-nums text-slate-700 whitespace-nowrap">{formatRelativeTimestamp(trader.lastUpdatedAt)}</td>
+                      <td className="px-4 py-4 align-top text-right text-sm tabular-nums text-slate-700 whitespace-nowrap">{formatRelativeTimestamp(trader.lastUpdatedAt)}</td>
                     </tr>
                     );
                   })}

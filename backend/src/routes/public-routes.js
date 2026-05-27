@@ -328,9 +328,9 @@ function registerPublicRoutes(app, {
           percentilePnl,
           score:
             winRateScores[index] * 0.35 +
-            riskScores[index] * 0.30 +
+            avgRScores[index] * 0.30 +
             tradeScores[index] * 0.20 +
-            avgRScores[index] * 0.15,
+            riskScores[index] * 0.15,
         };
         })
         .sort((left, right) => {
