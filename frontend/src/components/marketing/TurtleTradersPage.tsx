@@ -208,19 +208,19 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
               ) : null}
             </div>
             <div className="overflow-x-auto p-2 sm:p-3">
-              <table className="w-full min-w-[1160px]">
+              <table className="w-full md:min-w-[1160px]">
                 <thead className="bg-slate-50">
                   <tr>
-                    <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Rank</th>
-                    <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Trader</th>
-                    <th className="px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Market</th>
-                    <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Win Rate</th>
-                    <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Profit Factor</th>
-                    <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Risk Per Trade</th>
-                    <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Total Trades</th>
-                    <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Expectancy</th>
-                    <th className="px-5 py-4 text-center text-[11px] uppercase tracking-[0.2em] text-slate-600">Risk Level</th>
-                    <th className="px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Last Updated</th>
+                    <th className="px-2 py-4 text-left text-[10px] uppercase tracking-[0.16em] text-slate-600 sm:px-3 md:px-5 md:text-[11px] md:tracking-[0.2em]">Rank</th>
+                    <th className="px-2 py-4 text-left text-[10px] uppercase tracking-[0.16em] text-slate-600 sm:px-3 md:px-5 md:text-[11px] md:tracking-[0.2em]">Trader</th>
+                    <th className="hidden px-5 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600 md:table-cell">Market</th>
+                    <th className="px-2 py-4 text-right text-[10px] uppercase tracking-[0.16em] text-slate-600 sm:px-3 md:px-5 md:text-[11px] md:tracking-[0.2em]">Win Rate</th>
+                    <th className="hidden px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600 md:table-cell">Profit Factor</th>
+                    <th className="px-2 py-4 text-right text-[10px] uppercase tracking-[0.16em] text-slate-600 sm:px-3 md:px-5 md:text-[11px] md:tracking-[0.2em]">Risk Per Trade</th>
+                    <th className="px-2 py-4 text-right text-[10px] uppercase tracking-[0.16em] text-slate-600 sm:px-3 md:px-5 md:text-[11px] md:tracking-[0.2em]">Total Trades</th>
+                    <th className="hidden px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600 md:table-cell">Expectancy</th>
+                    <th className="px-2 py-4 text-center text-[10px] uppercase tracking-[0.16em] text-slate-600 sm:px-3 md:px-5 md:text-[11px] md:tracking-[0.2em]">Risk Level</th>
+                    <th className="hidden px-5 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600 md:table-cell">Last Updated</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -248,18 +248,18 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                   {visibleTraders.map((trader) => {
                     return (
                     <tr key={trader.id} className="border-t border-slate-100 transition-colors odd:bg-white even:bg-slate-50/40 hover:bg-teal-50/60">
-                      <td className="px-5 py-4 text-sm font-semibold tabular-nums text-slate-900">
+                      <td className="px-2 py-4 text-xs font-semibold tabular-nums text-slate-900 sm:px-3 sm:text-sm md:px-5">
                         {trader.rank}
                       </td>
-                      <td className="px-5 py-4">
+                      <td className="px-2 py-4 sm:px-3 md:px-5">
                         <div>
-                          <div className="text-sm font-semibold text-slate-950">{trader.name}</div>
-                          <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                          <div className="text-xs font-semibold text-slate-950 sm:text-sm">{trader.name}</div>
+                          <div className="hidden text-xs uppercase tracking-[0.16em] text-slate-500 sm:block">
                             {trader.source === "analysis" ? "Verified Analysis" : "Verified Journal"}
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-4">
+                      <td className="hidden px-5 py-4 md:table-cell">
                         <div className="flex max-w-[220px] flex-wrap gap-2">
                           {splitMarketSummary(trader.market).map((market) => (
                             <span
@@ -271,19 +271,19 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
                           ))}
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-right">
-                        <div className="text-base font-semibold tabular-nums text-slate-950">{formatWinRate(trader.winRate)}</div>
+                      <td className="px-2 py-4 text-right sm:px-3 md:px-5">
+                        <div className="text-xs font-semibold tabular-nums text-slate-950 sm:text-sm md:text-base">{formatWinRate(trader.winRate)}</div>
                       </td>
-                      <td className="px-5 py-4 text-right text-base font-medium tabular-nums text-slate-950">{formatProfitFactor(trader.profitFactor)}</td>
-                      <td className="px-5 py-4 text-right text-base font-medium tabular-nums text-slate-950">{formatRiskPercent(trader.riskPerTradePercent)}</td>
-                      <td className="px-5 py-4 text-right text-base font-medium tabular-nums text-slate-950">{trader.totalTrades}</td>
-                      <td className="px-5 py-4 text-right text-base font-medium tabular-nums text-slate-950">{formatExpectancy(trader.expectancyR)}</td>
-                      <td className="px-5 py-4 text-center">
-                        <span className={`rounded-full px-3 py-1 text-xs font-medium ${riskPillClass(trader.riskLevel)}`}>
+                      <td className="hidden px-5 py-4 text-right text-base font-medium tabular-nums text-slate-950 md:table-cell">{formatProfitFactor(trader.profitFactor)}</td>
+                      <td className="px-2 py-4 text-right text-xs font-medium tabular-nums text-slate-950 sm:px-3 sm:text-sm md:px-5 md:text-base">{formatRiskPercent(trader.riskPerTradePercent)}</td>
+                      <td className="px-2 py-4 text-right text-xs font-medium tabular-nums text-slate-950 sm:px-3 sm:text-sm md:px-5 md:text-base">{trader.totalTrades}</td>
+                      <td className="hidden px-5 py-4 text-right text-base font-medium tabular-nums text-slate-950 md:table-cell">{formatExpectancy(trader.expectancyR)}</td>
+                      <td className="px-2 py-4 text-center sm:px-3 md:px-5">
+                        <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-medium sm:px-3 sm:text-xs ${riskPillClass(trader.riskLevel)}`}>
                           {trader.riskLevel}
                         </span>
                       </td>
-                      <td className="px-5 py-4 text-right text-sm tabular-nums text-slate-700 whitespace-nowrap">{formatRelativeTimestamp(trader.lastUpdatedAt)}</td>
+                      <td className="hidden whitespace-nowrap px-5 py-4 text-right text-sm tabular-nums text-slate-700 md:table-cell">{formatRelativeTimestamp(trader.lastUpdatedAt)}</td>
                     </tr>
                     );
                   })}
