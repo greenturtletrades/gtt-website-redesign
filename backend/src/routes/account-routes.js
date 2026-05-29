@@ -372,7 +372,6 @@ function registerAccountRoutes(app, {
       const { trimmedName, firstName, lastName } = splitFullName(name);
       const normalizedMetaTraderUsername = normalizeOptionalTrimmedString(metaTraderUsername);
       const normalizedBrokerName = normalizeOptionalTrimmedString(brokerName);
-      const normalizedPlan = "free";
       const normalizedReferralCode =
         typeof referralCode === "string" && referralCode.trim()
           ? referralCode.trim().toUpperCase()
@@ -396,7 +395,6 @@ function registerAccountRoutes(app, {
         data: {
           email: normalizedEmail,
           passwordHash,
-          plan: normalizedPlan,
           billingExempt,
           billingExemptReason: billingExempt ? "Internal Green Turtle Trades company account" : null,
           appliedReferralCodeId: appliedReferralCode?.id || null,
