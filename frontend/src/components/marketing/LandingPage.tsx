@@ -40,6 +40,9 @@ export function LandingPage({
       <PlatformPreview />
       <TurtleAnalyticsFeature mlEnabled={mlEnabled} />
       <ValuePropositions />
+      <div ref={waitingListRef}>
+        <WaitingListSignup />
+      </div>
       <section className="w-full bg-white px-4 py-14 sm:px-6">
         <div className="mx-auto max-w-7xl">
           <div className="mb-6">
@@ -75,9 +78,6 @@ export function LandingPage({
           </div>
         </div>
       </section>
-      <div ref={waitingListRef}>
-        <WaitingListSignup />
-      </div>
       <Footer onNavigate={onNavigate} />
     </>
   );
