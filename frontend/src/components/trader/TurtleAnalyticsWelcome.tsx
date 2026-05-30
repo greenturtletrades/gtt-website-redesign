@@ -54,11 +54,11 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
               <span className="text-sm">Machine Learning-Powered Personal Coach</span>
             </motion.div>
             <h1 className="text-white mb-4 text-3xl sm:text-4xl md:text-6xl">
-              Your Personal Trading Analyst
+              Trading Analytics and Trading Journal
             </h1>
             <p className="text-teal-100 max-w-3xl mx-auto text-lg mb-8">
-              Turtle Analytics is unlike any trading tool you've used before. It's a self-optimising feedback engine that analyses 
-              <span className="text-cyan-300"> your unique trading DNA</span> to reveal hidden patterns, optimal parameters, and personalised improvement opportunities.
+              Turtle Analytics combines a trading journal, performance analytics, and a self-optimising feedback engine that analyses
+              <span className="text-cyan-300"> your unique trading history</span> to reveal hidden patterns, risk behaviour, and personalised improvement opportunities.
             </p>
 
             {/* CTA Buttons */}
@@ -170,7 +170,7 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                 </div>
 
                 <div className="flex items-center justify-between gap-3 mb-2">
-                  <h3 className="text-white">Free Account</h3>
+                  <h3 className="text-white">Free Trading Journal</h3>
                 </div>
                 <div className="mb-3">
                   <span className="text-2xl font-semibold text-white">£0</span>

@@ -76,7 +76,7 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
                     : "text-slate-600 hover:text-teal-600"
                 }`}
               >
-                Turtle Analytics
+                Trading Analytics
               </button>
               <button
                 onClick={() => onNavigate("turtle-traders")}
@@ -118,7 +118,7 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
                 }`}
               >
                 <BarChart3 className="w-4 h-4" />
-                Analytics
+                Trading Analytics
               </button>
               <button
                 onClick={() => onNavigate("turtle-traders")}
@@ -177,7 +177,7 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
                   }`}
                 >
                   <Brain className="w-5 h-5" />
-                  Turtle Analytics
+                  Trading Analytics
                 </button>
                 <button
                   onClick={() => handleNavigation(() => onNavigate("turtle-traders"))}
@@ -219,7 +219,7 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
                   }`}
                 >
                   <BarChart3 className="w-4 h-4" />
-                  Analytics
+                  Trading Analytics
                 </button>
                 <button
                   onClick={() => handleNavigation(() => onNavigate("turtle-traders"))}

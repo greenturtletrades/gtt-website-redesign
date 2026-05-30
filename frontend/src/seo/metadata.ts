@@ -24,10 +24,11 @@ const pageMetadata: Partial<Record<ViewType, SeoMetadata>> = {
       "traders leaderboard, public traders leaderboard, verified trading leaderboard, trading performance leaderboard, turtle traders leaderboard",
   },
   "turtle-analytics": {
-    title: "Turtle Analytics | Green Turtle Trades",
+    title: "Trading Analytics and Trading Journal | Turtle Analytics",
     description:
-      "Analyze trading performance with Turtle Analytics, including journal history, risk control, expectancy, and performance insights.",
-    keywords: "turtle analytics, trading analytics, trade journal, trading performance analysis",
+      "Use Turtle Analytics as a trading analytics platform and trading journal to review performance, risk control, expectancy, trade history, and improvement opportunities.",
+    keywords:
+      "trading analytics, trading journal, trade journal, turtle analytics, trading performance analysis, trading analytics platform",
   },
   contact: {
     title: "Contact Green Turtle Trades",

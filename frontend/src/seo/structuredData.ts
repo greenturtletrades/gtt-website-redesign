@@ -21,6 +21,37 @@ export function buildStructuredData(view: ViewType) {
     };
   }
 
+  if (view === "turtle-analytics") {
+    return {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: "Turtle Analytics",
+      applicationCategory: "FinanceApplication",
+      operatingSystem: "Web",
+      url: getCanonicalUrl(view),
+      description:
+        "A trading analytics and trading journal platform from Green Turtle Trades for reviewing trade history, expectancy, risk control, and performance insights.",
+      isPartOf: {
+        "@type": "WebSite",
+        name: "Green Turtle Trades",
+        url: SITE_URL,
+      },
+      featureList: [
+        "Trading analytics",
+        "Trading journal",
+        "Trade history analysis",
+        "Risk control insights",
+        "Expectancy analysis",
+        "Performance reporting",
+      ],
+      offers: {
+        "@type": "Offer",
+        priceCurrency: "GBP",
+        availability: "https://schema.org/InStock",
+      },
+    };
+  }
+
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",

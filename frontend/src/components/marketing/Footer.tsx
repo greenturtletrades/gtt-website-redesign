@@ -53,6 +53,12 @@ export function Footer({ onNavigate }: FooterProps) {
             <h3 className="text-lg mb-4">Quick Links</h3>
             <div className="space-y-2 text-sm">
               <button
+                onClick={() => onNavigate && onNavigate("turtle-analytics")}
+                className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
+              >
+                Trading Analytics
+              </button>
+              <button
                 onClick={() => onNavigate && onNavigate("turtle-traders")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >
