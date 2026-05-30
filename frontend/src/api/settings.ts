@@ -154,6 +154,8 @@ export interface AccountStateResponse {
       displayName: string | null;
       publishedAt: string | null;
       eligibleTradeCount: number;
+      csvImportedTradeCount?: number;
+      totalImportedTradeCount?: number;
       minimumTradeCount: number;
     } | null;
     trading212?: {

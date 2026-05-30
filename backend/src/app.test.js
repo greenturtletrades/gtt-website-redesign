@@ -40,6 +40,10 @@ const prismaMock = {
   churnFeedback: {
     findMany: async () => [],
   },
+  storedTrade: {
+    count: async () => 0,
+    findMany: async () => [],
+  },
 };
 
 const prismaPath = require.resolve("./db/prisma");
@@ -87,6 +91,8 @@ function resetPrisma() {
     throw new Error("Unexpected prisma.signupReview.upsert call");
   };
   prismaMock.churnFeedback.findMany = async () => [];
+  prismaMock.storedTrade.count = async () => 0;
+  prismaMock.storedTrade.findMany = async () => [];
 }
 
 function createToken(role = "ADMIN") {
@@ -156,14 +162,14 @@ test("GET /api/admin/traders returns analysis status for each trader", async () 
           ],
         },
       ],
-      _count: { apiKeys: 1 },
+      _count: { apiKeys: 1, analysisRuns: 1, storedTrades: 1 },
     },
     {
       id: "trader-needs",
       email: "needs@gtt.local",
       status: "ACTIVE",
       createdAt: new Date("2026-03-19T10:00:00.000Z"),
-      stripeSubscriptionId: null,
+      stripeSubscriptionId: "sub_needs",
       profile: null,
       analysisSnapshots: [],
       brokerAccounts: [
@@ -173,18 +179,18 @@ test("GET /api/admin/traders returns analysis status for each trader", async () 
           eaEvents: [{ type: "TRADE_EVENT", receivedAt: new Date("2026-03-22T09:00:00.000Z") }],
         },
       ],
-      _count: { apiKeys: 0 },
+      _count: { apiKeys: 0, analysisRuns: 0, storedTrades: 1 },
     },
     {
       id: "trader-empty",
       email: "empty@gtt.local",
       status: "PENDING",
       createdAt: new Date("2026-03-18T10:00:00.000Z"),
-      stripeSubscriptionId: null,
+      stripeSubscriptionId: "sub_empty",
       profile: null,
       analysisSnapshots: [],
       brokerAccounts: [],
-      _count: { apiKeys: 0 },
+      _count: { apiKeys: 0, analysisRuns: 0, storedTrades: 0 },
     },
   ];
 
@@ -360,6 +366,72 @@ test("PATCH /api/me/leaderboard normalizes spacing before saving", async () => {
     assert.equal(response.status, 200);
     assert.equal(response.body.ok, true);
     assert.equal(response.body.leaderboard.displayName, "Alpha Trader");
+  });
+});
+
+test("GET /api/public/leaderboard excludes CSV-imported trades from public ranking", async () => {
+  const verifiedTrades = Array.from({ length: 1 }, (_, index) => ({
+    symbol: "EURUSD",
+    side: "LONG",
+    entryPrice: 100,
+    exitPrice: index % 2 === 0 ? 102 : 99,
+    stopLoss: 98,
+    profit: index % 2 === 0 ? 20 : -10,
+    commission: -1,
+    swap: 0,
+    updatedAt: new Date(`2026-05-${String(index + 1).padStart(2, "0")}T10:00:00.000Z`),
+  }));
+
+  prismaMock.user.findMany = async ({ select }) => {
+    assert.deepEqual(select.storedTrades.where, {
+      source: {
+        not: "csv_import",
+      },
+    });
+
+    return [
+      {
+        id: "csv-only",
+        leaderboardDisplayName: "CSV Only",
+        leaderboardPublishedAt: new Date("2026-05-01T10:00:00.000Z"),
+        profile: { firstName: "Csv", lastName: "Only" },
+        analysisSnapshots: [
+          {
+            updatedAt: new Date("2026-05-20T10:00:00.000Z"),
+            totalR: 100,
+            winRate: 100,
+          },
+        ],
+        storedTrades: [],
+      },
+      {
+        id: "mixed-account",
+        leaderboardDisplayName: "Mixed Account",
+        leaderboardPublishedAt: new Date("2026-05-02T10:00:00.000Z"),
+        profile: { firstName: "Mixed", lastName: "Account" },
+        analysisSnapshots: [
+          {
+            updatedAt: new Date("2026-05-21T10:00:00.000Z"),
+            totalR: 100,
+            winRate: 100,
+          },
+        ],
+        storedTrades: verifiedTrades,
+      },
+    ];
+  };
+
+  await withServer(async (server) => {
+    const response = await request(server, "/api/public/leaderboard");
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.ok, true);
+    assert.equal(response.body.leaderboard.length, 1);
+    assert.equal(response.body.leaderboard[0].id, "mixed-account");
+    assert.equal(response.body.minimumTradeCount, 1);
+    assert.equal(response.body.leaderboard[0].totalTrades, 1);
+    assert.equal(response.body.leaderboard[0].winRate, 100);
+    assert.equal(response.body.leaderboard[0].expectancyR, 1);
   });
 });
 

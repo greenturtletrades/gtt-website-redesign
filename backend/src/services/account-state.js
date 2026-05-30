@@ -10,13 +10,24 @@ function createAccountStateHelpers({
   storedTradeToJournalEntry,
 }) {
   async function buildUserAccountState(userId, sessionRole = null) {
-    const [user, storedTradeCount] = await Promise.all([
+    const [user, verifiedStoredTradeCount, csvStoredTradeCount] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
         include: { profile: true },
       }),
       prisma.storedTrade.count({
-        where: { userId },
+        where: {
+          userId,
+          source: {
+            not: "csv_import",
+          },
+        },
+      }),
+      prisma.storedTrade.count({
+        where: {
+          userId,
+          source: "csv_import",
+        },
       }),
     ]);
 
@@ -54,8 +65,10 @@ function createAccountStateHelpers({
           optIn: Boolean(user.leaderboardOptIn),
           displayName: user.leaderboardDisplayName || null,
           publishedAt: user.leaderboardPublishedAt ? user.leaderboardPublishedAt.toISOString() : null,
-          eligibleTradeCount: storedTradeCount,
-          minimumTradeCount: 10,
+          eligibleTradeCount: verifiedStoredTradeCount,
+          csvImportedTradeCount: csvStoredTradeCount,
+          totalImportedTradeCount: verifiedStoredTradeCount + csvStoredTradeCount,
+          minimumTradeCount: 1,
         },
         trading212: {
           configured: Boolean(user.trading212ApiKeyEncrypted && user.trading212ApiSecretEncrypted),

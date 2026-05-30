@@ -1,6 +1,6 @@
 const crypto = require("crypto");
 
-const LEADERBOARD_MINIMUM_TRADES = 10;
+const LEADERBOARD_MINIMUM_VERIFIED_TRADES = 1;
 
 function calculateTradeRMultiple(trade) {
   const riskPerTrade =
@@ -161,18 +161,6 @@ function calculateVerifiedCurrencyPnl(trades) {
   return hasCurrencyPnl ? total : null;
 }
 
-function normalizeSnapshotWinRate(value) {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return null;
-  }
-
-  if (value <= 1) {
-    return value * 100;
-  }
-
-  return value;
-}
-
 function calculatePercentileRanks(values, { descending = true } = {}) {
   if (!values.length) {
     return [];
@@ -219,18 +207,12 @@ function registerPublicRoutes(app, {
               lastName: true,
             },
           },
-          analysisSnapshots: {
-            orderBy: {
-              updatedAt: "desc",
-            },
-            take: 1,
-            select: {
-              updatedAt: true,
-              totalR: true,
-              winRate: true,
-            },
-          },
           storedTrades: {
+            where: {
+              source: {
+                not: "csv_import",
+              },
+            },
             orderBy: {
               exitTime: "desc",
             },
@@ -251,24 +233,19 @@ function registerPublicRoutes(app, {
 
       const eligibleRows = users
         .map((user) => {
-          if (user.storedTrades.length < LEADERBOARD_MINIMUM_TRADES) {
+          if (user.storedTrades.length < LEADERBOARD_MINIMUM_VERIFIED_TRADES) {
             return null;
           }
 
-          const latestSnapshot = user.analysisSnapshots[0] || null;
           const tradeCount = user.storedTrades.length;
           const averageRiskPercent = calculateAverageRiskPercent(user.storedTrades);
           const verifiedPnl = calculateVerifiedCurrencyPnl(user.storedTrades);
-          const totalR = typeof latestSnapshot?.totalR === "number"
-            ? latestSnapshot.totalR
-            : calculateTotalR(user.storedTrades);
+          const totalR = calculateTotalR(user.storedTrades);
           const averageR = calculateAverageR(totalR, tradeCount);
           const profitFactor = calculateProfitFactor(user.storedTrades);
-          const winRate = typeof latestSnapshot?.winRate === "number"
-            ? normalizeSnapshotWinRate(latestSnapshot.winRate)
-            : calculateWinRate(user.storedTrades);
+          const winRate = calculateWinRate(user.storedTrades);
           const latestTradeUpdatedAt = user.storedTrades[0]?.updatedAt || null;
-          const lastUpdatedAt = latestSnapshot?.updatedAt || latestTradeUpdatedAt || user.leaderboardPublishedAt || null;
+          const lastUpdatedAt = latestTradeUpdatedAt || user.leaderboardPublishedAt || null;
           const fallbackName = [user.profile?.firstName, user.profile?.lastName]
             .filter((value) => typeof value === "string" && value.trim())
             .join(" ")
@@ -287,7 +264,7 @@ function registerPublicRoutes(app, {
             profitFactor,
             winRate,
             lastUpdatedAt: lastUpdatedAt ? lastUpdatedAt.toISOString() : null,
-            source: latestSnapshot ? "analysis" : "journal",
+            source: "journal",
           };
         })
         .filter(Boolean);
@@ -365,7 +342,7 @@ function registerPublicRoutes(app, {
 
       return res.json({
         ok: true,
-        minimumTradeCount: LEADERBOARD_MINIMUM_TRADES,
+        minimumTradeCount: LEADERBOARD_MINIMUM_VERIFIED_TRADES,
         leaderboard,
       });
     } catch (err) {

@@ -115,7 +115,6 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [showAllRows, setShowAllRows] = useState(false);
   const [traders, setTraders] = useState<PublicLeaderboardRow[]>([]);
-  const [minimumTradeCount, setMinimumTradeCount] = useState(10);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -130,7 +129,6 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
         }
 
         setTraders(response.leaderboard);
-        setMinimumTradeCount(response.minimumTradeCount);
         setLoadError(null);
       } catch (error) {
         if (cancelled) {

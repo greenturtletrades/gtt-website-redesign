@@ -123,7 +123,9 @@ export function SettingsPage({
     optIn: false,
     displayName: "",
     eligibleTradeCount: 0,
-    minimumTradeCount: 10,
+    csvImportedTradeCount: 0,
+    totalImportedTradeCount: 0,
+    minimumTradeCount: 1,
     publishedAt: null as string | null,
   });
   const [savingLeaderboard, setSavingLeaderboard] = useState(false);
@@ -190,7 +192,9 @@ export function SettingsPage({
           optIn: accountState.account.leaderboard?.optIn || false,
           displayName: accountState.account.leaderboard?.displayName || "",
           eligibleTradeCount: accountState.account.leaderboard?.eligibleTradeCount || 0,
-          minimumTradeCount: accountState.account.leaderboard?.minimumTradeCount || 10,
+          csvImportedTradeCount: accountState.account.leaderboard?.csvImportedTradeCount || 0,
+          totalImportedTradeCount: accountState.account.leaderboard?.totalImportedTradeCount || accountState.account.leaderboard?.eligibleTradeCount || 0,
+          minimumTradeCount: accountState.account.leaderboard?.minimumTradeCount || 1,
           publishedAt: accountState.account.leaderboard?.publishedAt || null,
         });
         setOwnReferralCode(accountState.account.ownReferralCode?.code || null);
@@ -405,7 +409,7 @@ export function SettingsPage({
     !billingSummary?.billingExempt &&
     !billingSummary?.platformComped &&
     liveSubscriptionStatus === "not_started";
-  const isLeaderboardEligible = leaderboardSettings.eligibleTradeCount >= leaderboardSettings.minimumTradeCount;
+  const isLeaderboardEligible = leaderboardSettings.eligibleTradeCount > 0;
   const tabs = [
     { id: "account", label: "Account", icon: User },
     { id: "subscription", label: "Subscription & Billing", icon: CreditCard },
@@ -518,6 +522,8 @@ export function SettingsPage({
       setLeaderboardSettings((current) => ({
         ...current,
         eligibleTradeCount: accountState.account.leaderboard?.eligibleTradeCount || current.eligibleTradeCount,
+        csvImportedTradeCount: accountState.account.leaderboard?.csvImportedTradeCount || current.csvImportedTradeCount,
+        totalImportedTradeCount: accountState.account.leaderboard?.totalImportedTradeCount || current.totalImportedTradeCount,
         minimumTradeCount: accountState.account.leaderboard?.minimumTradeCount || current.minimumTradeCount,
       }));
       setTransientSuccess(response.message);
@@ -753,13 +759,27 @@ export function SettingsPage({
                           <div className="rounded-lg border border-white/70 bg-white/80 p-4">
                             <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Eligibility</div>
                             <div className="mt-2 text-sm text-slate-900">
-                              {leaderboardSettings.eligibleTradeCount} imported trades on account
+                              {leaderboardSettings.eligibleTradeCount} verified imported trades on account
                             </div>
                             <div className="mt-1 text-xs text-slate-600">
-                              Minimum required for public ranking: {leaderboardSettings.minimumTradeCount} trades
+                              No minimum trade count is required beyond having verified pulled account data.
                             </div>
+                            {leaderboardSettings.csvImportedTradeCount > 0 ? (
+                              <div className="mt-2 text-xs text-slate-600">
+                                {leaderboardSettings.csvImportedTradeCount} CSV-imported trades are private-only and excluded from public ranking.
+                              </div>
+                            ) : null}
                           </div>
                         </div>
+
+                        {leaderboardSettings.csvImportedTradeCount > 0 ? (
+                          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                            <div className="text-sm text-slate-900">CSV trades stay private on the leaderboard.</div>
+                            <p className="mt-1 text-sm text-slate-700">
+                              CSV files are easier to edit outside the platform, so public leaderboard stats only use pulled account data from connected integrations. Your CSV trades still work normally in your private journal and analytics.
+                            </p>
+                          </div>
+                        ) : null}
 
                         <div className="mt-4">
                           <label className="mb-2 block text-slate-700">Public Display Name</label>
@@ -782,12 +802,12 @@ export function SettingsPage({
                           <div className="text-sm text-slate-900">
                             {isLeaderboardEligible
                               ? "This account is eligible for the public leaderboard."
-                              : "Import more trades before this account can rank publicly."}
+                              : "Connect a verified data source before this account can rank publicly."}
                           </div>
                           <p className="mt-1 text-sm text-slate-700">
                             {isLeaderboardEligible
                               ? "Once enabled, your verified journal performance can appear on the Turtle Traders leaderboard."
-                              : `This account currently has ${leaderboardSettings.eligibleTradeCount} imported trades. Bring it up to ${leaderboardSettings.minimumTradeCount} to appear publicly.`}
+                              : "CSV-only accounts stay private on the leaderboard. Pull at least one trade from a connected integration to appear publicly."}
                           </p>
                         </div>
 
