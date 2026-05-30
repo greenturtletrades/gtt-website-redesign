@@ -7,18 +7,19 @@ import { Footer } from "./Footer";
 import { TurtleAnalyticsFeature } from "./TurtleAnalyticsFeature";
 import { ScrollProgress } from "./ScrollProgress";
 import { WaitingListSignup } from "./WaitingListSignup";
+import type { ViewType } from "../../seo/routes";
 
 interface LandingPageProps {
   onTraderClick: () => void;
   onApplyClick: () => void;
-  onNavigateLegal?: (page: "terms" | "privacy" | "risk-disclosure" | "contact") => void;
+  onNavigate?: (page: ViewType) => void;
   mlEnabled?: boolean;
 }
 
 export function LandingPage({
   onTraderClick,
   onApplyClick,
-  onNavigateLegal,
+  onNavigate,
   mlEnabled = false,
 }: LandingPageProps) {
   const waitingListRef = useRef<HTMLDivElement>(null);
@@ -42,7 +43,7 @@ export function LandingPage({
       <div ref={waitingListRef}>
         <WaitingListSignup />
       </div>
-      <Footer onNavigateLegal={onNavigateLegal} />
+      <Footer onNavigate={onNavigate} />
     </>
   );
 }

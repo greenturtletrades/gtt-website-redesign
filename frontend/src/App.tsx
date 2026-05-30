@@ -25,25 +25,15 @@ import { fetchAccountState } from "./api/settings";
 import { createCheckoutSession, pauseSubscription, resumeSubscription } from "./api/subscription";
 import { getConfig } from "./api/config";
 import { type TraderApplicationStatus as ApplicationStatus } from "./api/traderApplication";
+import { applySeoMetadata } from "./seo/metadata";
+import { getPathForView, getViewFromPath, type ViewType } from "./seo/routes";
 
 export type UserType = "trader" | "admin" | null;
-export type ViewType =
-  | "landing"
-  | "turtle-analytics"
-  | "turtle-traders"
-  | "ea-code"
-  | "settings"
-  | "terms"
-  | "privacy"
-  | "risk-disclosure"
-  | "contact"
-  | "admin-dashboard"
-  | "trader-application"
-  | "trader-application-status";
+export type { ViewType } from "./seo/routes";
 
 export default function App() {
   const [isAdminRoute, setIsAdminRoute] = useState(() => window.location.pathname === "/admin");
-  const [currentView, setCurrentView] = useState<ViewType>("landing");
+  const [currentView, setCurrentView] = useState<ViewType>(() => getViewFromPath(window.location.pathname));
   const [userType, setUserType] = useState<UserType>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showPlanSelectionModal, setShowPlanSelectionModal] = useState(false);
@@ -90,6 +80,22 @@ export default function App() {
       } | null;
     };
   }) => Boolean(accountState.account?.billingExempt || accountState.account?.billing?.billingExempt);
+
+  const navigateToView = (view: ViewType, options: { replace?: boolean } = {}) => {
+    const path = getPathForView(view);
+    if (window.location.pathname !== path) {
+      if (options.replace) {
+        window.history.replaceState({}, "", path);
+      } else {
+        window.history.pushState({}, "", path);
+      }
+    }
+    setCurrentView(view);
+  };
+
+  useEffect(() => {
+    applySeoMetadata(currentView);
+  }, [currentView]);
 
   useEffect(() => {
     getConfig()
@@ -148,7 +154,7 @@ export default function App() {
       setTimeout(poll, 2000);
     } else if (checkout === "cancelled") {
       // User cancelled Stripe checkout — return them to the analytics page so the Subscribe button is visible
-      setCurrentView("turtle-analytics");
+      navigateToView("turtle-analytics", { replace: true });
     }
   }, []);
 
@@ -221,15 +227,13 @@ export default function App() {
       setIsAdminRoute(adminRoute);
       if (!adminRoute) {
         setShowAdminLoginModal(false);
-        if (currentView === "admin-dashboard") {
-          setCurrentView("landing");
-        }
+        setCurrentView(getViewFromPath(window.location.pathname));
       }
     };
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [currentView]);
+  }, []);
 
   useEffect(() => {
     if (!isAdminRoute) return;
@@ -245,7 +249,7 @@ export default function App() {
   // Listen for navigation events from Turtle Analytics feature section
   useEffect(() => {
     const handleNavigateToTurtleAnalytics = () => {
-      setCurrentView("turtle-analytics");
+      navigateToView("turtle-analytics");
     };
 
     window.addEventListener('navigateToTurtleAnalytics', handleNavigateToTurtleAnalytics);
@@ -254,7 +258,7 @@ export default function App() {
 
   const handleTraderClick = () => {
     if (!isAdminRoute) {
-      setCurrentView("turtle-analytics");
+      navigateToView("turtle-analytics");
       setTimeout(() => window.scrollTo(0, 0), 0);
     }
     setAuthMode("login");
@@ -288,7 +292,7 @@ export default function App() {
       setSubscriptionStatus("not_started");
       setUserType("trader");
       setTurtleAnalyticsAuthed(false);
-      setCurrentView("turtle-analytics");
+      navigateToView("turtle-analytics");
       if (selectedSignupPlan === "payg") {
         setShowSubscriptionModal(true);
       }
@@ -321,7 +325,7 @@ export default function App() {
         setSelectedSubscriptionPlan("free");
         setTurtleAnalyticsAuthed(false);
       }
-      setCurrentView("turtle-analytics");
+      navigateToView("turtle-analytics");
     }
   };
 
@@ -340,7 +344,7 @@ export default function App() {
         if (response.bypass) {
           setUserType("trader");
           setTurtleAnalyticsAuthed(true);
-          setCurrentView("turtle-analytics");
+          navigateToView("turtle-analytics");
           setPendingReferralCode("");
           return;
         }
@@ -374,7 +378,7 @@ export default function App() {
       window.history.pushState({}, "", "/");
       setIsAdminRoute(false);
     }
-    setCurrentView("landing");
+    navigateToView("landing");
   };
 
   const handleAccountDeleted = () => {
@@ -393,24 +397,24 @@ export default function App() {
       window.history.pushState({}, "", "/");
       setIsAdminRoute(false);
     }
-    setCurrentView("landing");
+    navigateToView("landing");
   };
 
   const handleNavigate = (view: ViewType) => {
     if (view === "turtle-analytics") {
       // Allow anyone to view the analytics page (preview for non-authenticated users)
-      setCurrentView("turtle-analytics");
+      navigateToView("turtle-analytics");
       // Scroll to top immediately when navigating
       setTimeout(() => window.scrollTo(0, 0), 0);
     } else {
-      setCurrentView(view);
+      navigateToView(view);
       // Scroll to top immediately when navigating
       setTimeout(() => window.scrollTo(0, 0), 0);
     }
   };
 
   const handleOpenApplication = () => {
-    setCurrentView("trader-application");
+    navigateToView("trader-application");
   };
 
   const handleApplicationSubmitted = (
@@ -425,7 +429,7 @@ export default function App() {
     }
     setApplicationStatus(status);
     setApplicationRejectionReason(null);
-    setCurrentView("trader-application-status");
+    navigateToView("trader-application-status");
   };
 
   const handleWelcomeComplete = () => {
@@ -437,13 +441,13 @@ export default function App() {
   const handleEASetupComplete = () => {
     // Complete onboarding and go to dashboard
     setOnboardingStage("complete");
-    setCurrentView("turtle-analytics");
+    navigateToView("turtle-analytics");
   };
 
   const handleEASetupSkip = () => {
     // Skip EA setup and go directly to dashboard
     setOnboardingStage("complete");
-    setCurrentView("turtle-analytics");
+    navigateToView("turtle-analytics");
   };
 
   const handleOpenSettings = () => {
@@ -470,10 +474,6 @@ export default function App() {
       const message = error instanceof Error ? error.message : "Unable to resume subscription.";
       alert(`Unable to resume subscription right now.\n\n${message}`);
     }
-  };
-
-  const handleNavigateLegal = (page: "terms" | "privacy" | "risk-disclosure") => {
-    setCurrentView(page);
   };
 
   const handleAdminClick = () => {
@@ -509,7 +509,7 @@ export default function App() {
         <LandingPage
           onTraderClick={handleTraderClick}
           onApplyClick={handleOpenApplication}
-          onNavigateLegal={handleNavigateLegal}
+          onNavigate={navigateToView}
           mlEnabled={mlEnabled}
         />
       )}
@@ -556,7 +556,7 @@ export default function App() {
       )}
 
       {!isAdminRoute && currentView === "turtle-traders" && (
-        <TurtleTradersPage onNavigateLegal={(page) => setCurrentView(page)} />
+        <TurtleTradersPage onNavigate={navigateToView} />
       )}
 
       {checkoutPending && (
@@ -614,24 +614,24 @@ export default function App() {
 
       {/* Legal Pages */}
       {!isAdminRoute && currentView === "terms" && (
-        <TermsOfService onBack={() => setCurrentView("landing")} />
+        <TermsOfService onBack={() => navigateToView("landing")} />
       )}
 
       {!isAdminRoute && currentView === "privacy" && (
-        <PrivacyPolicy onBack={() => setCurrentView("landing")} />
+        <PrivacyPolicy onBack={() => navigateToView("landing")} />
       )}
 
       {!isAdminRoute && currentView === "risk-disclosure" && (
-        <RiskDisclosure onBack={() => setCurrentView("landing")} />
+        <RiskDisclosure onBack={() => navigateToView("landing")} />
       )}
 
       {!isAdminRoute && currentView === "contact" && (
-        <ContactPage onBack={() => setCurrentView("landing")} />
+        <ContactPage onBack={() => navigateToView("landing")} />
       )}
 
       {!isAdminRoute && currentView === "trader-application" && (
         <TraderApplicationForm
-          onBack={() => setCurrentView("landing")}
+          onBack={() => navigateToView("landing")}
           onSubmitted={handleApplicationSubmitted}
         />
       )}
@@ -641,8 +641,8 @@ export default function App() {
           initialToken={applicationLookupToken}
           initialStatus={applicationStatus}
           initialRejectionReason={applicationRejectionReason}
-          onBack={() => setCurrentView("landing")}
-          onStartNew={() => setCurrentView("trader-application")}
+          onBack={() => navigateToView("landing")}
+          onStartNew={() => navigateToView("trader-application")}
         />
       )}
 
@@ -679,7 +679,7 @@ export default function App() {
             if (isAdminRoute) {
               window.history.pushState({}, "", "/");
               setIsAdminRoute(false);
-              setCurrentView("landing");
+              navigateToView("landing");
             }
           }}
           onSuccess={handleAdminLoginSuccess}

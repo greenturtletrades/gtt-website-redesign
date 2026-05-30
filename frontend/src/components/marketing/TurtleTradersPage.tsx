@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { Footer } from "./Footer";
 import { fetchPublicLeaderboard } from "../../api/public";
 import type { PublicLeaderboardRow } from "../../api/public";
+import type { ViewType } from "../../seo/routes";
 
 interface TurtleTradersPageProps {
-  onNavigateLegal?: (page: "terms" | "privacy" | "risk-disclosure" | "contact") => void;
+  onNavigate?: (page: ViewType) => void;
 }
 
 const scoringModel = [
@@ -111,7 +112,7 @@ function formatRelativeTimestamp(value: string | null) {
   return `${diffDays}d ago`;
 }
 
-export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
+export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [showAllRows, setShowAllRows] = useState(false);
   const [traders, setTraders] = useState<PublicLeaderboardRow[]>([]);
@@ -174,7 +175,7 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
           <div className="mb-12 text-center">
             <h1 className="text-4xl leading-tight text-slate-900 sm:text-5xl md:text-6xl tracking-tight">Turtle Traders Leaderboard</h1>
             <p className="mx-auto mt-5 max-w-3xl text-base font-semibold leading-relaxed text-slate-900 sm:text-lg">
-              Verified data matters. Traders choose whether to publish summary performance from their own imported account data. Raw trades stay private.
+              Verified data matters. The public traders leaderboard ranks trading performance from connected account data, including win rate, expectancy, risk control, and verified trade history. Raw trades stay private.
             </p>
           </div>
 
@@ -325,7 +326,7 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
         </div>
       </section>
 
-      <Footer onNavigateLegal={onNavigateLegal} />
+      <Footer onNavigate={onNavigate} />
     </div>
   );
 }

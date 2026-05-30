@@ -1,11 +1,12 @@
 import { MapPin, Mail } from "lucide-react";
 import logo from "figma:asset/6f4515e0be3e9f42f43c7a32bab7fda8514f9833.png";
+import type { ViewType } from "../../seo/routes";
 
 interface FooterProps {
-  onNavigateLegal?: (page: "terms" | "privacy" | "risk-disclosure" | "contact") => void;
+  onNavigate?: (page: ViewType) => void;
 }
 
-export function Footer({ onNavigateLegal }: FooterProps) {
+export function Footer({ onNavigate }: FooterProps) {
   return (
     <footer className="w-full bg-slate-900 text-white py-12 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto">
@@ -52,25 +53,31 @@ export function Footer({ onNavigateLegal }: FooterProps) {
             <h3 className="text-lg mb-4">Quick Links</h3>
             <div className="space-y-2 text-sm">
               <button
-                onClick={() => onNavigateLegal && onNavigateLegal("contact")}
+                onClick={() => onNavigate && onNavigate("turtle-traders")}
+                className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
+              >
+                Traders Leaderboard
+              </button>
+              <button
+                onClick={() => onNavigate && onNavigate("contact")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >
                 Contact Us
               </button>
               <button
-                onClick={() => onNavigateLegal && onNavigateLegal("privacy")}
+                onClick={() => onNavigate && onNavigate("privacy")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >
                 Privacy Policy
               </button>
               <button
-                onClick={() => onNavigateLegal && onNavigateLegal("terms")}
+                onClick={() => onNavigate && onNavigate("terms")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >
                 Terms of Service
               </button>
               <button
-                onClick={() => onNavigateLegal && onNavigateLegal("risk-disclosure")}
+                onClick={() => onNavigate && onNavigate("risk-disclosure")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >
                 Risk Disclosure
