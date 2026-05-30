@@ -71,6 +71,18 @@ export function Footer({ onNavigate }: FooterProps) {
                 Verified Traders
               </button>
               <button
+                onClick={() => onNavigate && onNavigate("seo-trader-funding")}
+                className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
+              >
+                Trader Funding
+              </button>
+              <button
+                onClick={() => onNavigate && onNavigate("seo-copy-trading-platform")}
+                className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
+              >
+                Copy Trading Platform
+              </button>
+              <button
                 onClick={() => onNavigate && onNavigate("turtle-traders")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >

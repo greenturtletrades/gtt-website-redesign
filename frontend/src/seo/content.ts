@@ -243,6 +243,276 @@ export const seoContentPages: SeoContentPage[] = [
       },
     ],
   },
+  {
+    view: "seo-copy-trading-platform",
+    title: "Copy Trading Platform",
+    eyebrow: "Copy Trading",
+    description:
+      "A copy trading platform concept focused on verified trader performance, transparent risk metrics, and investor decision-making.",
+    keywords:
+      "copy trading platform, copy trading, copy trader, verified copy trading, transparent copy trading platform",
+    intro:
+      "Copy trading should be built around trust, risk visibility, and real performance data. Green Turtle Trades is designed to help investors evaluate traders with transparent metrics before capital follows skill.",
+    sections: [
+      {
+        title: "Verified performance before allocation",
+        body:
+          "A stronger copy trading workflow starts with verified trader performance, not screenshots or unsupported claims. Public summary metrics and private analytics help explain whether a trader has consistency, expectancy, and controlled risk.",
+      },
+      {
+        title: "Risk matters as much as return",
+        body:
+          "The goal is not simply to find traders with the biggest headline gain. Risk per trade, drawdown behaviour, sample size, and win rate all help investors understand whether performance is sustainable.",
+      },
+      {
+        title: "Transparency without exposing raw trades",
+        body:
+          "Green Turtle Trades can show public summary performance while keeping raw trade details private. CSV-imported trades are excluded from public leaderboard ranking because they are easier to edit outside the platform.",
+      },
+    ],
+    faqs: [
+      {
+        question: "What is a copy trading platform?",
+        answer:
+          "A copy trading platform lets investors follow or allocate capital to traders, usually based on trader performance, risk metrics, and strategy behaviour.",
+      },
+      {
+        question: "What makes copy trading safer to evaluate?",
+        answer:
+          "Investors should review verified trade history, risk control, sample size, expectancy, and consistency instead of relying only on headline returns.",
+      },
+      {
+        question: "Does Green Turtle Trades show raw trades publicly?",
+        answer:
+          "No. Raw trades stay private. Public pages show optional summary performance and ranking metrics only.",
+      },
+    ],
+  },
+  {
+    view: "seo-trader-funding",
+    title: "Trader Funding",
+    eyebrow: "Trader Funding",
+    description:
+      "Trader funding information for skilled traders looking to build transparent performance records and access investor capital.",
+    keywords:
+      "trader funding, funded trader, trading capital, funded trading account, capital for traders, trader funding platform",
+    intro:
+      "Trader funding should reward real skill, disciplined risk, and transparent performance. Green Turtle Trades helps traders build the kind of performance record investors can understand.",
+    sections: [
+      {
+        title: "Capital should follow evidence",
+        body:
+          "Strong trader funding decisions need more than a short challenge result. Verified performance data, journal history, risk metrics, and repeatable behaviour create a clearer picture of trader quality.",
+      },
+      {
+        title: "Build a record investors can review",
+        body:
+          "Trading analytics and journal tools help traders understand their own performance and present summary evidence without exposing raw trades publicly.",
+      },
+      {
+        title: "Designed around alignment",
+        body:
+          "Green Turtle Trades is built around the idea that trader incentives and investor outcomes should be aligned through transparent performance and responsible risk management.",
+      },
+    ],
+    faqs: [
+      {
+        question: "What is trader funding?",
+        answer:
+          "Trader funding is when a trader receives access to external capital or allocation opportunities based on skill, risk control, and performance evidence.",
+      },
+      {
+        question: "How can traders improve funding eligibility?",
+        answer:
+          "Traders can improve by keeping a structured journal, reviewing analytics, managing risk, and building a transparent record of verified performance.",
+      },
+      {
+        question: "Does Green Turtle Trades use trading challenges?",
+        answer:
+          "Green Turtle Trades is focused on transparent trader evaluation, verified performance, and investor-capital alignment rather than unrealistic challenge marketing.",
+      },
+    ],
+  },
+  {
+    view: "seo-prop-firm-alternative",
+    title: "Prop Firm Alternative",
+    eyebrow: "Prop Firm Alternative",
+    description:
+      "A transparent alternative to prop firm challenges, focused on verified trader performance, trading analytics, and aligned investor capital.",
+    keywords:
+      "prop firm alternative, prop trading alternative, funded trader alternative, trader capital alternative, trading challenge alternative",
+    intro:
+      "Many traders want capital without unrealistic challenges or unclear incentives. Green Turtle Trades is building a more transparent alternative focused on verified data and responsible risk.",
+    sections: [
+      {
+        title: "Beyond one-off trading challenges",
+        body:
+          "A short challenge can miss the deeper question: can a trader manage risk and perform consistently over time? Green Turtle Trades focuses on richer performance evidence.",
+      },
+      {
+        title: "Transparent metrics for serious traders",
+        body:
+          "Trading analytics, journal records, win rate, expectancy, risk control, and verified trade sample size create a better foundation for evaluating traders.",
+      },
+      {
+        title: "Investor capital with clearer alignment",
+        body:
+          "The platform is built around connecting capital and skill through transparency, not through opaque pass-fail rules that may not reflect long-term trading quality.",
+      },
+    ],
+    faqs: [
+      {
+        question: "What is a prop firm alternative?",
+        answer:
+          "A prop firm alternative is another route for traders to access trading capital without relying only on traditional challenge-based funding models.",
+      },
+      {
+        question: "Why look beyond prop firm challenges?",
+        answer:
+          "Some challenges can reward short-term behaviour. Verified performance records and risk analytics can provide a broader view of trader quality.",
+      },
+      {
+        question: "Can new traders use Green Turtle Trades?",
+        answer:
+          "Yes. New traders can start with journal and analytics workflows, then build a performance record over time.",
+      },
+    ],
+  },
+  {
+    view: "seo-trading-performance-tracker",
+    title: "Trading Performance Tracker",
+    eyebrow: "Performance Tracking",
+    description:
+      "Track trading performance with metrics such as win rate, expectancy, R-multiple, risk per trade, drawdown, and trade history.",
+    keywords:
+      "trading performance tracker, trading performance, trade tracker, trading metrics, track trading performance",
+    intro:
+      "A trading performance tracker helps traders understand whether their results are consistent, risk-aware, and repeatable. Green Turtle Trades combines performance tracking with journal and analytics workflows.",
+    sections: [
+      {
+        title: "Track the metrics that explain performance",
+        body:
+          "Win rate, expectancy, R-multiple, profit factor, risk per trade, and sample size all help explain whether trading results come from a repeatable edge.",
+      },
+      {
+        title: "Connect results to behaviour",
+        body:
+          "Performance tracking is most useful when it links results to trader behaviour, notes, timing, market conditions, and risk decisions.",
+      },
+      {
+        title: "Turn tracking into improvement",
+        body:
+          "Turtle Analytics helps traders move from simple tracking to deeper analysis by showing patterns across trade history and risk behaviour.",
+      },
+    ],
+    faqs: [
+      {
+        question: "What is a trading performance tracker?",
+        answer:
+          "A trading performance tracker records and summarizes trading results so traders can review metrics such as win rate, expectancy, risk, and trade history.",
+      },
+      {
+        question: "Which trading metrics matter most?",
+        answer:
+          "Useful metrics include expectancy, win rate, R-multiple, profit factor, risk per trade, drawdown, sample size, and consistency.",
+      },
+      {
+        question: "Can performance tracking help risk management?",
+        answer:
+          "Yes. Tracking risk per trade and drawdown behaviour helps traders identify when risk is too high or inconsistent.",
+      },
+    ],
+  },
+  {
+    view: "seo-trading-risk-management",
+    title: "Trading Risk Management",
+    eyebrow: "Risk Management",
+    description:
+      "Trading risk management tools and analytics for reviewing risk per trade, drawdown, expectancy, and trader consistency.",
+    keywords:
+      "trading risk management, risk management trading, trading risk analytics, risk per trade, trading drawdown",
+    intro:
+      "Risk management is central to serious trading. Green Turtle Trades helps traders review risk per trade, drawdown behaviour, expectancy, and performance consistency.",
+    sections: [
+      {
+        title: "Risk is part of every trade",
+        body:
+          "Every trade has risk. The question is whether that risk is measured, controlled, and consistent with the trader's edge and account objectives.",
+      },
+      {
+        title: "Use analytics to spot weak risk habits",
+        body:
+          "Trading analytics can highlight oversized risk, weak setups, poor reward-to-risk behaviour, and conditions where a trader tends to underperform.",
+      },
+      {
+        title: "Public rankings reward controlled risk",
+        body:
+          "The public traders leaderboard includes risk per trade as part of its ranking model because responsible risk control should support performance.",
+      },
+    ],
+    faqs: [
+      {
+        question: "What is trading risk management?",
+        answer:
+          "Trading risk management is the process of controlling position risk, drawdown, loss exposure, and decision quality across trades.",
+      },
+      {
+        question: "Why is risk per trade important?",
+        answer:
+          "Risk per trade shows how much a trader is exposing on each position. Consistent risk helps make performance easier to evaluate.",
+      },
+      {
+        question: "Can analytics improve trading risk management?",
+        answer:
+          "Analytics can reveal patterns in losses, drawdowns, trade duration, stop placement, and conditions where risk tends to increase.",
+      },
+    ],
+  },
+  {
+    view: "seo-mt4-mt5-trading-journal",
+    title: "MT4 and MT5 Trading Journal",
+    eyebrow: "MetaTrader Journal",
+    description:
+      "A trading journal and analytics workflow for MetaTrader 4 and MetaTrader 5 traders who want clearer performance records.",
+    keywords:
+      "MT4 trading journal, MT5 trading journal, MetaTrader trading journal, MetaTrader analytics, MT4 analytics, MT5 analytics",
+    intro:
+      "MetaTrader traders need a clear way to turn account history into performance feedback. Green Turtle Trades supports MetaTrader-connected workflows for journal records and analytics.",
+    sections: [
+      {
+        title: "Bring MetaTrader history into a journal workflow",
+        body:
+          "A MetaTrader trading journal helps traders review entries, exits, risk, holding time, and notes in a more structured way than account history alone.",
+      },
+      {
+        title: "Analyze MT4 and MT5 performance",
+        body:
+          "Turtle Analytics can use connected trade history to review performance metrics, risk behaviour, expectancy, and patterns across a trader's own historical trades.",
+      },
+      {
+        title: "Keep raw trades private",
+        body:
+          "MetaTrader-connected data can support private analytics and optional public summary performance, while raw trade details remain private.",
+      },
+    ],
+    faqs: [
+      {
+        question: "What is an MT4 trading journal?",
+        answer:
+          "An MT4 trading journal is a structured record of MetaTrader 4 trade history, notes, risk, and performance metrics.",
+      },
+      {
+        question: "Can MT5 traders use a trading journal?",
+        answer:
+          "Yes. MT5 traders can use journal and analytics workflows to review performance, risk, expectancy, and trade history.",
+      },
+      {
+        question: "Is MetaTrader data better than CSV for public ranking?",
+        answer:
+          "Connected account data is more trustworthy for public ranking than CSV files because CSV files can be edited outside the platform.",
+      },
+    ],
+  },
 ];
 
 export function getSeoContentPage(view: ViewType) {

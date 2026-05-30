@@ -13,6 +13,12 @@ export type ViewType =
   | "seo-verified-traders"
   | "seo-investor-capital"
   | "seo-trader-marketplace"
+  | "seo-copy-trading-platform"
+  | "seo-trader-funding"
+  | "seo-prop-firm-alternative"
+  | "seo-trading-performance-tracker"
+  | "seo-trading-risk-management"
+  | "seo-mt4-mt5-trading-journal"
   | "admin-dashboard"
   | "trader-application"
   | "trader-application-status";
@@ -32,6 +38,12 @@ export const viewPaths: Partial<Record<ViewType, string>> = {
   "seo-verified-traders": "/verified-traders",
   "seo-investor-capital": "/investor-capital-for-traders",
   "seo-trader-marketplace": "/trader-marketplace",
+  "seo-copy-trading-platform": "/copy-trading-platform",
+  "seo-trader-funding": "/trader-funding",
+  "seo-prop-firm-alternative": "/prop-firm-alternative",
+  "seo-trading-performance-tracker": "/trading-performance-tracker",
+  "seo-trading-risk-management": "/trading-risk-management",
+  "seo-mt4-mt5-trading-journal": "/mt4-mt5-trading-journal",
   "trader-application": "/trader-application",
   "trader-application-status": "/trader-application-status",
 };

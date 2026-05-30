@@ -41,6 +41,36 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://greenturtletraders.co.uk/copy-trading-platform</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://greenturtletraders.co.uk/trader-funding</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://greenturtletraders.co.uk/prop-firm-alternative</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://greenturtletraders.co.uk/trading-performance-tracker</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://greenturtletraders.co.uk/trading-risk-management</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://greenturtletraders.co.uk/mt4-mt5-trading-journal</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.75</priority>
+  </url>
+  <url>
     <loc>https://greenturtletraders.co.uk/contact</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>

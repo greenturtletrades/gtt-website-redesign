@@ -55,6 +55,12 @@ export function LandingPage({
               ["Verified Traders", "seo-verified-traders"],
               ["Investor Capital for Traders", "seo-investor-capital"],
               ["Trader Marketplace", "seo-trader-marketplace"],
+              ["Copy Trading Platform", "seo-copy-trading-platform"],
+              ["Trader Funding", "seo-trader-funding"],
+              ["Prop Firm Alternative", "seo-prop-firm-alternative"],
+              ["Trading Performance Tracker", "seo-trading-performance-tracker"],
+              ["Trading Risk Management", "seo-trading-risk-management"],
+              ["MT4 and MT5 Trading Journal", "seo-mt4-mt5-trading-journal"],
               ["Traders Leaderboard", "turtle-traders"],
             ].map(([label, view]) => (
               <button
