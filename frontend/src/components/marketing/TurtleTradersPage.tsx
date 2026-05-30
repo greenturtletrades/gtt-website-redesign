@@ -319,7 +319,7 @@ export function TurtleTradersPage({ onNavigateLegal }: TurtleTradersPageProps) {
             </div>
 
             <div className="mt-6 rounded-2xl border border-teal-200 bg-teal-50 px-5 py-4 text-sm leading-relaxed text-slate-700">
-              In practice, this means the strongest traders are not simply the ones showing the biggest headline gain. The better rank goes to the trader combining win rate, expectancy, meaningful sample size, and controlled risk. Profit factor is shown as extra context because it helps explain how efficiently a trader converts wins versus losses.
+              In practice, this means the strongest traders are not simply the ones showing the biggest headline gain. The better rank goes to the trader combining win rate, expectancy, meaningful sample size, and controlled risk. Profit factor is shown as extra context because it helps explain how efficiently a trader converts wins versus losses. CSV-imported trades are excluded from leaderboard calculations because CSV files can be edited outside the platform.
             </div>
           </div>
         </div>
