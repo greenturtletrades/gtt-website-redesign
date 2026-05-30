@@ -8,14 +8,21 @@ type SeoMetadata = {
 };
 
 const defaultMetadata: SeoMetadata = {
-  title: "Green Turtle Trades | Trading Analytics and Trader Leaderboard",
+  title: "Green Turtle Trades | Verified Traders, Trading Analytics and Investor Capital",
   description:
-    "Green Turtle Trades helps traders analyze performance, manage risk, and publish verified summary performance on the public Turtle Traders leaderboard.",
+    "Green Turtle Trades connects verified traders with investor capital and gives traders access to trading analytics, a trading journal, and a public traders leaderboard.",
   keywords:
-    "green turtle trades, trading analytics, trader leaderboard, traders leaderboard, trading performance",
+    "green turtle trades, verified traders, trading analytics, trading journal, investor capital, traders leaderboard, trading performance",
 };
 
 const pageMetadata: Partial<Record<ViewType, SeoMetadata>> = {
+  landing: {
+    title: "Green Turtle Trades | Verified Traders and Trading Analytics Platform",
+    description:
+      "Green Turtle Trades is a trading platform for verified traders, investor capital, trading analytics, trading journal tools, and public trader performance transparency.",
+    keywords:
+      "green turtle trades, verified traders, trading platform, trading analytics, trading journal, investor capital, trader marketplace, traders leaderboard",
+  },
   "turtle-traders": {
     title: "Traders Leaderboard | Green Turtle Trades",
     description:

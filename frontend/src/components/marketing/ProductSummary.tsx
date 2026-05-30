@@ -37,9 +37,9 @@ export function ProductSummary() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16 sm:mb-20"
         >
-          <h2 className="text-slate-900 mb-4 text-3xl sm:text-4xl md:text-5xl tracking-tight">The Future of Trading and Investing</h2>
+          <h2 className="text-slate-900 mb-4 text-3xl sm:text-4xl md:text-5xl tracking-tight">Verified Traders, Investor Capital, and Trading Analytics</h2>
           <p className="text-slate-600 max-w-2xl mx-auto text-base sm:text-lg md:text-xl leading-relaxed">
-            Built with sophisticated infrastructure, connecting capital and skill
+            Built with sophisticated infrastructure for transparent trader performance, trading journal data, and capital allocation.
           </p>
         </motion.div>
         

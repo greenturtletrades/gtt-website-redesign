@@ -48,7 +48,7 @@ export function Hero({ onTraderClick, onApplyClick, onScrollToWaitingList }: Her
           className="inline-flex items-center gap-2 bg-gradient-to-r from-teal-600 to-cyan-600 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-full mb-4 sm:mb-6 border border-teal-400/30 shadow-lg"
         >
           <Sparkles className="w-4 h-4" />
-          <span className="text-sm sm:text-base">Coming Soon</span>
+          <span className="text-sm sm:text-base">Verified Trader Platform</span>
         </motion.div>
         
         <motion.h1
@@ -76,7 +76,7 @@ export function Hero({ onTraderClick, onApplyClick, onScrollToWaitingList }: Her
           transition={{ delay: 0.2 }}
           className="text-slate-600 max-w-3xl mx-auto mb-8 sm:mb-12 text-base sm:text-lg md:text-xl leading-relaxed px-4"
         >
-          Join us and get access to the future of finance.
+          Green Turtle Trades connects verified traders with investor capital, trading analytics, trading journal tools, and transparent performance data.
         </motion.p>
         
         <motion.div

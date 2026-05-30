@@ -58,7 +58,7 @@ export function TurtleAnalyticsFeature({ mlEnabled = false }: { mlEnabled?: bool
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-white mb-4 text-3xl sm:text-4xl md:text-5xl"
           >
-            Turtle Analytics: Your Personal Trading Analyst
+            Turtle Analytics: Trading Analytics and Trading Journal
           </motion.h2>
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
@@ -77,7 +77,7 @@ export function TurtleAnalyticsFeature({ mlEnabled = false }: { mlEnabled?: bool
           >
             Unlike traditional analytics that just show you <span className="text-red-300">what happened</span>, 
             Turtle Analytics reveals <span className="text-teal-300">what could have happened</span> if you had adjusted your strategy. 
-            It's a self-optimising feedback engine that learns from your trading DNA. No predictions, no comparisons, just statistical evidence from your own trades.
+            It works as a trading analytics engine and trading journal layer that learns from your trading DNA. No predictions, no comparisons, just statistical evidence from your own trades.
           </motion.p>
         </motion.div>
 

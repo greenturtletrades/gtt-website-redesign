@@ -17,9 +17,9 @@ export function PlatformPreview() {
           transition={{ duration: 0.6 }}
           className="text-center mb-12 sm:mb-16"
         >
-          <h2 className="text-slate-900 mb-3 sm:mb-4 text-2xl sm:text-3xl md:text-4xl">Experience the Platform</h2>
+          <h2 className="text-slate-900 mb-3 sm:mb-4 text-2xl sm:text-3xl md:text-4xl">Experience the Trading Platform</h2>
           <p className="text-slate-600 max-w-2xl mx-auto text-sm sm:text-base md:text-lg">
-            A seamless interface designed for both traders and investors
+            A seamless interface for verified traders, investors, trading analytics, and performance transparency.
           </p>
         </motion.div>
 

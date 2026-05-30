@@ -1,6 +1,59 @@
 import { SITE_URL, getCanonicalUrl, type ViewType } from "./routes";
 
 export function buildStructuredData(view: ViewType) {
+  if (view === "landing") {
+    return {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          name: "Green Turtle Trades",
+          url: SITE_URL,
+          email: "contact@greenturtletraders.co.uk",
+          address: {
+            "@type": "PostalAddress",
+            streetAddress: "5 South Charlotte Street",
+            addressLocality: "Edinburgh",
+            postalCode: "EH2 4AN",
+            addressCountry: "GB",
+          },
+        },
+        {
+          "@type": "WebSite",
+          name: "Green Turtle Trades",
+          url: SITE_URL,
+          description:
+            "A verified trader platform with trading analytics, a trading journal, investor capital access, and a public traders leaderboard.",
+        },
+        {
+          "@type": "WebPage",
+          name: "Green Turtle Trades",
+          url: getCanonicalUrl(view),
+          description:
+            "Green Turtle Trades connects verified traders with investor capital and provides trading analytics, trade journal tools, and transparent trader performance data.",
+          about: [
+            {
+              "@type": "Thing",
+              name: "Verified traders",
+            },
+            {
+              "@type": "Thing",
+              name: "Trading analytics",
+            },
+            {
+              "@type": "Thing",
+              name: "Trading journal",
+            },
+            {
+              "@type": "Thing",
+              name: "Investor capital",
+            },
+          ],
+        },
+      ],
+    };
+  }
+
   if (view === "turtle-traders") {
     return {
       "@context": "https://schema.org",
