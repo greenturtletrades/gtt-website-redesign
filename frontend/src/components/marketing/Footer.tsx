@@ -1,4 +1,4 @@
-import { MapPin, Mail } from "lucide-react";
+import { Instagram, MapPin, Mail } from "lucide-react";
 import logo from "figma:asset/6f4515e0be3e9f42f43c7a32bab7fda8514f9833.png";
 import type { ViewType } from "../../seo/routes";
 
@@ -17,6 +17,15 @@ export function Footer({ onNavigate }: FooterProps) {
             <p className="text-slate-400 text-sm">
               Where equity meets talent
             </p>
+            <a
+              href="https://www.instagram.com/greenturtletrades/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Green Turtle Trades on Instagram"
+              className="mt-4 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-700 text-slate-400 transition-colors hover:border-teal-400 hover:text-teal-400"
+            >
+              <Instagram className="h-5 w-5" />
+            </a>
           </div>
 
           {/* Contact */}
