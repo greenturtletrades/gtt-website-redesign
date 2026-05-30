@@ -22,7 +22,7 @@ export function Footer({ onNavigate }: FooterProps) {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Green Turtle Trades on Instagram"
-              className="mt-4 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-700 text-slate-400 transition-colors hover:border-teal-400 hover:text-teal-400"
+              className="mt-4 inline-flex text-slate-400 transition-colors hover:text-teal-400"
             >
               <Instagram className="h-5 w-5" />
             </a>
