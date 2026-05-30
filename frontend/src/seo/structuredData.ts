@@ -1,6 +1,42 @@
+import { getSeoContentPage } from "./content";
 import { SITE_URL, getCanonicalUrl, type ViewType } from "./routes";
 
 export function buildStructuredData(view: ViewType) {
+  const contentPage = getSeoContentPage(view);
+  if (contentPage) {
+    return {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          name: contentPage.title,
+          url: getCanonicalUrl(view),
+          description: contentPage.description,
+          isPartOf: {
+            "@type": "WebSite",
+            name: "Green Turtle Trades",
+            url: SITE_URL,
+          },
+          about: contentPage.sections.map((section) => ({
+            "@type": "Thing",
+            name: section.title,
+          })),
+        },
+        {
+          "@type": "FAQPage",
+          mainEntity: contentPage.faqs.map((faq) => ({
+            "@type": "Question",
+            name: faq.question,
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: faq.answer,
+            },
+          })),
+        },
+      ],
+    };
+  }
+
   if (view === "landing") {
     return {
       "@context": "https://schema.org",

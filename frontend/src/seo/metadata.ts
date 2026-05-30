@@ -1,4 +1,5 @@
 import { buildStructuredData } from "./structuredData";
+import { getSeoContentPage } from "./content";
 import { getCanonicalUrl, type ViewType } from "./routes";
 
 type SeoMetadata = {
@@ -104,7 +105,14 @@ function setStructuredData(view: ViewType) {
 }
 
 export function applySeoMetadata(view: ViewType) {
-  const metadata = pageMetadata[view] || defaultMetadata;
+  const contentPage = getSeoContentPage(view);
+  const metadata = contentPage
+    ? {
+        title: `${contentPage.title} | Green Turtle Trades`,
+        description: contentPage.description,
+        keywords: contentPage.keywords,
+      }
+    : pageMetadata[view] || defaultMetadata;
   const canonicalUrl = getCanonicalUrl(view);
 
   document.title = metadata.title;

@@ -8,6 +8,11 @@ export type ViewType =
   | "privacy"
   | "risk-disclosure"
   | "contact"
+  | "seo-trading-analytics"
+  | "seo-trading-journal"
+  | "seo-verified-traders"
+  | "seo-investor-capital"
+  | "seo-trader-marketplace"
   | "admin-dashboard"
   | "trader-application"
   | "trader-application-status";
@@ -22,6 +27,11 @@ export const viewPaths: Partial<Record<ViewType, string>> = {
   privacy: "/privacy",
   "risk-disclosure": "/risk-disclosure",
   contact: "/contact",
+  "seo-trading-analytics": "/trading-analytics",
+  "seo-trading-journal": "/trading-journal",
+  "seo-verified-traders": "/verified-traders",
+  "seo-investor-capital": "/investor-capital-for-traders",
+  "seo-trader-marketplace": "/trader-marketplace",
   "trader-application": "/trader-application",
   "trader-application-status": "/trader-application-status",
 };

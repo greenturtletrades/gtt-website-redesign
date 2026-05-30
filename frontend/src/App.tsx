@@ -11,6 +11,7 @@ import { TraderApplicationStatus } from "./components/onboarding/TraderApplicati
 import { ContactPage } from "./components/marketing/ContactPage";
 import { Header } from "./components/marketing/Header";
 import { LandingPage } from "./components/marketing/LandingPage";
+import { SeoContentPage } from "./components/marketing/SeoContentPage";
 import { TurtleTradersPage } from "./components/marketing/TurtleTradersPage";
 import { PrivacyPolicy } from "./components/legal/PrivacyPolicy";
 import { RiskDisclosure } from "./components/legal/RiskDisclosure";
@@ -557,6 +558,10 @@ export default function App() {
 
       {!isAdminRoute && currentView === "turtle-traders" && (
         <TurtleTradersPage onNavigate={navigateToView} />
+      )}
+
+      {!isAdminRoute && currentView.startsWith("seo-") && (
+        <SeoContentPage view={currentView} onNavigate={navigateToView} />
       )}
 
       {checkoutPending && (
