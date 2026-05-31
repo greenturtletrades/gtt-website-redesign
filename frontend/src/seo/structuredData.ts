@@ -21,6 +21,7 @@ const organizationStructuredData = {
   },
   sameAs: [
     "https://www.instagram.com/greenturtletrades/",
+    "https://www.youtube.com/@GreenTurtleTrades",
     "https://find-and-update.company-information.service.gov.uk/company/SC878660",
   ],
   knowsAbout: [

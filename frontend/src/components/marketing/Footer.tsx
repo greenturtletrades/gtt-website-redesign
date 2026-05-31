@@ -38,6 +38,12 @@ export function Footer({ onNavigate }: FooterProps) {
                   contact@greenturtletraders.co.uk
                 </a>
               </div>
+              <button
+                onClick={() => onNavigate && onNavigate("contact")}
+                className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
+              >
+                Contact Us
+              </button>
             </div>
           </div>
 
@@ -54,6 +60,24 @@ export function Footer({ onNavigate }: FooterProps) {
                 </div>
               </div>
               <p>Company No: SC878660</p>
+              <button
+                onClick={() => onNavigate && onNavigate("privacy")}
+                className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
+              >
+                Privacy Policy
+              </button>
+              <button
+                onClick={() => onNavigate && onNavigate("terms")}
+                className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
+              >
+                Terms of Service
+              </button>
+              <button
+                onClick={() => onNavigate && onNavigate("risk-disclosure")}
+                className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
+              >
+                Risk Disclosure
+              </button>
             </div>
           </div>
 
@@ -102,30 +126,6 @@ export function Footer({ onNavigate }: FooterProps) {
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >
                 Traders Leaderboard
-              </button>
-              <button
-                onClick={() => onNavigate && onNavigate("contact")}
-                className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
-              >
-                Contact Us
-              </button>
-              <button
-                onClick={() => onNavigate && onNavigate("privacy")}
-                className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
-              >
-                Privacy Policy
-              </button>
-              <button
-                onClick={() => onNavigate && onNavigate("terms")}
-                className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
-              >
-                Terms of Service
-              </button>
-              <button
-                onClick={() => onNavigate && onNavigate("risk-disclosure")}
-                className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
-              >
-                Risk Disclosure
               </button>
             </div>
           </div>
