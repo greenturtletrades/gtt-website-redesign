@@ -27,12 +27,22 @@ export const seoContentPages: SeoContentPage[] = [
     keywords:
       "green turtle trades, Green Turtle Trades Limited, SC878660, UK trading analytics platform, verified trader platform, Turtle Analytics",
     intro:
-      "Green Turtle Trades is a UK trading analytics and verified trader platform. It helps traders review real trade history, keep a structured trading journal, and build transparent performance records for trader evaluation.",
+      "Green Turtle Trades is a UK trading analytics and verified trader platform operated by Green Turtle Trades Limited, company number SC878660. It helps traders review real trade history, keep a structured trading journal, use Turtle Analytics, and build transparent performance records for trader evaluation.",
     sections: [
       {
         title: "What Green Turtle Trades does",
         body:
           "Green Turtle Trades provides trading analytics, trader journal workflows, verified trader tools, and public performance summaries for traders who choose to publish leaderboard data. The platform focuses on risk, expectancy, consistency, trade history, and transparent trader evaluation.",
+      },
+      {
+        title: "Turtle Analytics and trader records",
+        body:
+          "Turtle Analytics is the analytics product from Green Turtle Trades. It reviews historical trade data, R-multiple, win rate, drawdown, trade timing, risk behaviour, expectancy, and performance patterns so traders can understand their own trading record more clearly.",
+      },
+      {
+        title: "Verified trader platform",
+        body:
+          "Green Turtle Trades is designed around transparent trader evaluation. Traders can keep raw trade and journal data private while choosing whether to publish summary performance on the public traders leaderboard.",
       },
       {
         title: "Company identity",
@@ -70,6 +80,16 @@ export const seoContentPages: SeoContentPage[] = [
         question: "What is Turtle Analytics?",
         answer:
           "Turtle Analytics is the trading analytics product from Green Turtle Trades. It reviews trade history, risk, expectancy, performance patterns, journal records, and trader behaviour.",
+      },
+      {
+        question: "What does Green Turtle Trades help traders do?",
+        answer:
+          "Green Turtle Trades helps traders review historical performance, keep a trading journal, analyze risk and expectancy, and build clearer performance records for trader evaluation.",
+      },
+      {
+        question: "What is the official Green Turtle Trades website?",
+        answer:
+          "The official Green Turtle Trades website is https://greenturtletraders.co.uk.",
       },
     ],
   },
