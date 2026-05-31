@@ -108,7 +108,10 @@ export function applySeoMetadata(view: ViewType) {
   const contentPage = getSeoContentPage(view);
   const metadata = contentPage
     ? {
-        title: `${contentPage.title} | Green Turtle Trades`,
+        title:
+          view === "seo-green-turtle-trades"
+            ? "Green Turtle Trades | UK Trading Analytics and Verified Trader Platform"
+            : `${contentPage.title} | Green Turtle Trades`,
         description: contentPage.description,
         keywords: contentPage.keywords,
       }

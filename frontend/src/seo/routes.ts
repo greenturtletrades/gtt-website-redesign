@@ -19,6 +19,7 @@ export type ViewType =
   | "seo-trading-performance-tracker"
   | "seo-trading-risk-management"
   | "seo-mt4-mt5-trading-journal"
+  | "seo-green-turtle-trades"
   | "admin-dashboard"
   | "trader-application"
   | "trader-application-status";
@@ -44,6 +45,7 @@ export const viewPaths: Partial<Record<ViewType, string>> = {
   "seo-trading-performance-tracker": "/trading-performance-tracker",
   "seo-trading-risk-management": "/trading-risk-management",
   "seo-mt4-mt5-trading-journal": "/mt4-mt5-trading-journal",
+  "seo-green-turtle-trades": "/green-turtle-trades",
   "trader-application": "/trader-application",
   "trader-application-status": "/trader-application-status",
 };
@@ -53,6 +55,10 @@ export function getViewFromPath(pathname: string): ViewType {
 
   if (normalizedPath === "/admin") {
     return "admin-dashboard";
+  }
+
+  if (normalizedPath === "/what-is-green-turtle-trades") {
+    return "seo-green-turtle-trades";
   }
 
   const match = Object.entries(viewPaths).find(([, path]) => path === normalizedPath);

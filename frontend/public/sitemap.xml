@@ -16,6 +16,11 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://greenturtletraders.co.uk/green-turtle-trades</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
     <loc>https://greenturtletraders.co.uk/trading-analytics</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>

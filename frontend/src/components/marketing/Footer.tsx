@@ -53,7 +53,7 @@ export function Footer({ onNavigate }: FooterProps) {
                   <p>Edinburgh EH2 4AN</p>
                 </div>
               </div>
-              <p>Company No: 878660</p>
+              <p>Company No: SC878660</p>
             </div>
           </div>
 
@@ -61,6 +61,12 @@ export function Footer({ onNavigate }: FooterProps) {
           <div>
             <h3 className="text-lg mb-4">Quick Links</h3>
             <div className="space-y-2 text-sm">
+              <button
+                onClick={() => onNavigate && onNavigate("seo-green-turtle-trades")}
+                className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
+              >
+                What is Green Turtle Trades?
+              </button>
               <button
                 onClick={() => onNavigate && onNavigate("turtle-analytics")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
