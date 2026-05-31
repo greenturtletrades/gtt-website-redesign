@@ -5,9 +5,11 @@ const organizationStructuredData = {
   "@type": "Organization",
   "@id": `${SITE_URL}/#organization`,
   name: "Green Turtle Trades",
+  alternateName: ["Green Turtle Traders", "Green Turtle Trades Limited", "Turtle Analytics"],
   legalName: "Green Turtle Trades Limited",
   identifier: "SC878660",
   url: SITE_URL,
+  mainEntityOfPage: `${SITE_URL}/green-turtle-trades`,
   logo: `${SITE_URL}/favicon-v2.png`,
   email: "contact@greenturtletraders.co.uk",
   description:
@@ -38,12 +40,24 @@ const websiteStructuredData = {
   "@type": "WebSite",
   "@id": `${SITE_URL}/#website`,
   name: "Green Turtle Trades",
+  alternateName: "Green Turtle Traders",
   url: SITE_URL,
   publisher: {
     "@id": `${SITE_URL}/#organization`,
   },
   description:
     "A verified trader platform with trading analytics, a trading journal, investor capital access, and a public traders leaderboard.",
+  about: {
+    "@id": `${SITE_URL}/#organization`,
+  },
+  hasPart: [
+    `${SITE_URL}/green-turtle-trades`,
+    `${SITE_URL}/trading-analytics`,
+    `${SITE_URL}/trading-journal`,
+    `${SITE_URL}/verified-traders`,
+    `${SITE_URL}/turtle-analytics`,
+    `${SITE_URL}/traders-leaderboard`,
+  ],
 };
 
 export function buildStructuredData(view: ViewType) {
@@ -59,6 +73,12 @@ export function buildStructuredData(view: ViewType) {
           name: contentPage.title,
           url: getCanonicalUrl(view),
           description: contentPage.description,
+          mainEntity:
+            view === "seo-green-turtle-trades"
+              ? {
+                  "@id": `${SITE_URL}/#organization`,
+                }
+              : undefined,
           isPartOf: {
             "@id": `${SITE_URL}/#website`,
           },

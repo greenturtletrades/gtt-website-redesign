@@ -57,7 +57,11 @@ export function getViewFromPath(pathname: string): ViewType {
     return "admin-dashboard";
   }
 
-  if (normalizedPath === "/what-is-green-turtle-trades") {
+  if (
+    normalizedPath === "/what-is-green-turtle-trades" ||
+    normalizedPath === "/green-turtle-traders" ||
+    normalizedPath === "/what-is-green-turtle-traders"
+  ) {
     return "seo-green-turtle-trades";
   }
 

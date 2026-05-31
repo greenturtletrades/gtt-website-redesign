@@ -25,9 +25,9 @@ export const seoContentPages: SeoContentPage[] = [
     description:
       "Green Turtle Trades is a UK trading analytics and verified trader platform, operated by Green Turtle Trades Limited, company number SC878660.",
     keywords:
-      "green turtle trades, Green Turtle Trades Limited, SC878660, UK trading analytics platform, verified trader platform, Turtle Analytics",
+      "green turtle trades, green turtle traders, Green Turtle Trades Limited, SC878660, UK trading analytics platform, verified trader platform, Turtle Analytics",
     intro:
-      "Green Turtle Trades is a UK trading analytics and verified trader platform operated by Green Turtle Trades Limited, company number SC878660. It helps traders review real trade history, keep a structured trading journal, use Turtle Analytics, and build transparent performance records for trader evaluation.",
+      "Green Turtle Trades is a UK trading analytics and verified trader platform operated by Green Turtle Trades Limited, company number SC878660. The official website is greenturtletraders.co.uk. It helps traders review real trade history, keep a structured trading journal, use Turtle Analytics, and build transparent performance records for trader evaluation.",
     sections: [
       {
         title: "What Green Turtle Trades does",
@@ -47,7 +47,12 @@ export const seoContentPages: SeoContentPage[] = [
       {
         title: "Company identity",
         body:
-          "Green Turtle Trades is operated by Green Turtle Trades Limited, a UK company registered in Scotland under company number SC878660. The company address listed on the site is 5 South Charlotte Street, Edinburgh EH2 4AN.",
+          "Green Turtle Trades is operated by Green Turtle Trades Limited, a UK company registered in Scotland under company number SC878660. The company address listed on the site is 5 South Charlotte Street, Edinburgh EH2 4AN. People may also search for Green Turtle Traders because the official domain is greenturtletraders.co.uk.",
+      },
+      {
+        title: "Official website and source",
+        body:
+          "The official Green Turtle Trades website is https://greenturtletraders.co.uk. The main company overview page is https://greenturtletraders.co.uk/green-turtle-trades, with supporting pages for trading analytics, trading journal workflows, verified traders, Turtle Analytics, and the public traders leaderboard.",
       },
       {
         title: "Not the Turtle Trading experiment",
@@ -90,6 +95,11 @@ export const seoContentPages: SeoContentPage[] = [
         question: "What is the official Green Turtle Trades website?",
         answer:
           "The official Green Turtle Trades website is https://greenturtletraders.co.uk.",
+      },
+      {
+        question: "Is Green Turtle Traders the same as Green Turtle Trades?",
+        answer:
+          "Green Turtle Traders is a common search wording connected to the official domain greenturtletraders.co.uk. The brand and legal company name are Green Turtle Trades and Green Turtle Trades Limited.",
       },
     ],
   },
