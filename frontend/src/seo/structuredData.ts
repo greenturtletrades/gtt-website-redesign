@@ -51,6 +51,7 @@ const websiteStructuredData = {
     "@id": `${SITE_URL}/#organization`,
   },
   hasPart: [
+    `${SITE_URL}/about`,
     `${SITE_URL}/green-turtle-trades`,
     `${SITE_URL}/trading-analytics`,
     `${SITE_URL}/trading-journal`,
@@ -100,6 +101,63 @@ export function buildStructuredData(view: ViewType) {
               text: faq.answer,
             },
           })),
+        },
+      ],
+    };
+  }
+
+  if (view === "about") {
+    return {
+      "@context": "https://schema.org",
+      "@graph": [
+        organizationStructuredData,
+        websiteStructuredData,
+        {
+          "@type": "AboutPage",
+          name: "About Green Turtle Trades",
+          headline: "Building the UK's most transparent platform for trader-backed investing",
+          url: getCanonicalUrl(view),
+          description:
+            "About Green Turtle Trades, a UK trading analytics and trader-backed investing platform founded by four Edinburgh university students to make trader performance, risk, and investing decisions more transparent.",
+          mainEntity: {
+            "@id": `${SITE_URL}/#organization`,
+          },
+          primaryImageOfPage: {
+            "@type": "ImageObject",
+            url: `${SITE_URL}/favicon-v2.png`,
+          },
+          isPartOf: {
+            "@id": `${SITE_URL}/#website`,
+          },
+          publisher: {
+            "@id": `${SITE_URL}/#organization`,
+          },
+          about: [
+            {
+              "@type": "Thing",
+              name: "Trading analytics",
+            },
+            {
+              "@type": "Thing",
+              name: "Trader performance transparency",
+            },
+            {
+              "@type": "Thing",
+              name: "Trading journal workflows",
+            },
+            {
+              "@type": "Thing",
+              name: "Trading scam prevention",
+            },
+            {
+              "@type": "Thing",
+              name: "Trader-backed investing",
+            },
+            {
+              "@type": "Thing",
+              name: "Edinburgh startup",
+            },
+          ],
         },
       ],
     };

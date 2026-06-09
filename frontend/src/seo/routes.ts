@@ -1,5 +1,6 @@
 export type ViewType =
   | "landing"
+  | "about"
   | "turtle-analytics"
   | "turtle-traders"
   | "ea-code"
@@ -28,6 +29,7 @@ export const SITE_URL = "https://greenturtletraders.co.uk";
 
 export const viewPaths: Partial<Record<ViewType, string>> = {
   landing: "/",
+  about: "/about",
   "turtle-analytics": "/turtle-analytics",
   "turtle-traders": "/traders-leaderboard",
   terms: "/terms",
@@ -58,11 +60,12 @@ export function getViewFromPath(pathname: string): ViewType {
   }
 
   if (
+    normalizedPath === "/about-us" ||
     normalizedPath === "/what-is-green-turtle-trades" ||
     normalizedPath === "/green-turtle-traders" ||
     normalizedPath === "/what-is-green-turtle-traders"
   ) {
-    return "seo-green-turtle-trades";
+    return normalizedPath === "/about-us" ? "about" : "seo-green-turtle-trades";
   }
 
   const match = Object.entries(viewPaths).find(([, path]) => path === normalizedPath);

@@ -8,6 +8,7 @@ import { SubscriptionModal } from "./components/auth/SubscriptionModal";
 import { WelcomeScreen } from "./components/auth/WelcomeScreen";
 import { TraderApplicationForm } from "./components/onboarding/TraderApplicationForm";
 import { TraderApplicationStatus } from "./components/onboarding/TraderApplicationStatus";
+import { AboutPage } from "./components/marketing/AboutPage";
 import { ContactPage } from "./components/marketing/ContactPage";
 import { Header } from "./components/marketing/Header";
 import { LandingPage } from "./components/marketing/LandingPage";
@@ -513,6 +514,10 @@ export default function App() {
           onNavigate={navigateToView}
           mlEnabled={mlEnabled}
         />
+      )}
+
+      {!isAdminRoute && currentView === "about" && (
+        <AboutPage onNavigate={navigateToView} />
       )}
       
       {!isAdminRoute && currentView === "turtle-analytics" && (

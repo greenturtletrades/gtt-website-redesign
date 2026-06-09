@@ -16,6 +16,7 @@ export function SeoContentPage({ view, onNavigate }: SeoContentPageProps) {
   }
 
   const relatedPages: Array<[string, ViewType]> = [
+    ["About Us", "about"],
     ["Green Turtle Trades", "seo-green-turtle-trades"],
     ["Trading Analytics", "seo-trading-analytics"],
     ["Trading Journal", "seo-trading-journal"],
