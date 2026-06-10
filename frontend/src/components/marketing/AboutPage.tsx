@@ -313,25 +313,25 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
           </div>
         </section>
 
-        <section ref={modelRef} className="w-full bg-white px-4 py-16 sm:px-6 sm:py-24">
+        <section ref={modelRef} className="w-full bg-white px-4 py-12 sm:px-6 sm:py-24">
           <div className="mx-auto max-w-7xl">
             <motion.div
               initial={{ opacity: 0, y: 24 }}
               animate={modelInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
               transition={{ duration: 0.6 }}
-              className="mx-auto mb-12 max-w-3xl text-center"
+              className="mx-auto mb-8 max-w-3xl text-left sm:mb-12 sm:text-center"
             >
-              <div className="text-sm uppercase tracking-widest text-teal-700">The bigger ambition</div>
-              <h2 className="mt-3 text-3xl tracking-tight text-slate-950 sm:text-4xl">
+              <div className="text-xs uppercase tracking-widest text-teal-700 sm:text-sm">The bigger ambition</div>
+              <h2 className="mt-3 text-2xl leading-tight tracking-tight text-slate-950 sm:text-4xl">
                 Building the UK's most transparent platform for trader-backed investing.
               </h2>
-              <p className="mt-4 text-lg leading-relaxed text-slate-600">
+              <p className="mt-4 text-base leading-relaxed text-slate-600 sm:text-lg">
                 We believe people should have more control over their investments and more clarity
                 over who is managing risk on their behalf.
               </p>
             </motion.div>
 
-            <div className="overflow-hidden rounded-3xl border border-teal-200 bg-gradient-to-br from-teal-50 to-white shadow-xl shadow-teal-900/5">
+            <div className="overflow-hidden rounded-2xl border border-teal-200 bg-white shadow-sm sm:rounded-3xl sm:bg-gradient-to-br sm:from-teal-50 sm:to-white sm:shadow-xl sm:shadow-teal-900/5">
               <div className="grid lg:grid-cols-3">
               {modelPoints.map((point, index) => {
                 const Icon = point.icon;
@@ -341,18 +341,20 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
                     initial={{ opacity: 0, y: 28 }}
                     animate={modelInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 28 }}
                     transition={{ duration: 0.6, delay: index * 0.1 }}
-                    className={`group p-7 transition-all hover:bg-white/70 sm:p-8 ${
+                    className={`group grid grid-cols-[auto_1fr] gap-4 p-4 transition-all hover:bg-white/70 sm:block sm:p-8 ${
                       index > 0 ? "border-t border-teal-200 lg:border-l lg:border-t-0" : ""
                     }`}
                   >
-                    <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-teal-600 to-cyan-600 text-white shadow-lg transition-transform group-hover:scale-105">
-                      <Icon className="h-6 w-6" />
+                    <div className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-teal-100 text-teal-700 sm:mb-6 sm:h-12 sm:w-12 sm:rounded-xl sm:bg-gradient-to-br sm:from-teal-600 sm:to-cyan-600 sm:text-white sm:shadow-lg sm:transition-transform sm:group-hover:scale-105">
+                      <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
                     </div>
-                    <div className="mb-3 text-xs uppercase tracking-widest text-teal-700">
-                      {index === 0 ? "Trader side" : index === 1 ? "Investor side" : "Market side"}
+                    <div>
+                      <div className="mb-1 text-[11px] uppercase tracking-widest text-teal-700 sm:mb-3 sm:text-xs">
+                        {index === 0 ? "Trader side" : index === 1 ? "Investor side" : "Market side"}
+                      </div>
+                      <h3 className="text-lg leading-snug text-slate-950 sm:text-2xl">{point.title}</h3>
+                      <p className="mt-2 text-sm leading-relaxed text-slate-700 sm:mt-3 sm:text-base">{point.body}</p>
                     </div>
-                    <h3 className="text-2xl text-slate-950">{point.title}</h3>
-                    <p className="mt-3 text-base leading-relaxed text-slate-700">{point.body}</p>
                   </motion.article>
                 );
               })}
