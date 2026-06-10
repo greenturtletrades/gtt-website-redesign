@@ -81,21 +81,27 @@ const modelPoints = [
 
 const categoryPoints = [
   {
-    title: "Fintech investment platforms",
+    title: "Fintech investment platform",
     body:
-      "We are building for people who want more transparency over where capital goes and who is managing risk.",
+      "For people who want clearer visibility over where capital goes, who is managing risk, and how performance is measured.",
     icon: Building2,
   },
   {
-    title: "Copy trading platforms",
+    title: "Copy trading platform",
     body:
-      "Copy trading should be judged on trader records, risk, consistency, and evidence instead of marketing alone.",
+      "For comparing traders through records, risk, consistency, and public summaries before capital follows skill.",
     icon: MessageSquare,
   },
   {
-    title: "Prop firms",
+    title: "Trader marketplace",
     body:
-      "Prop-firm models often focus on challenges. Green Turtle Trades focuses on longer-term performance evidence.",
+      "For connecting trader skill with investor attention through structured evidence rather than hype.",
+    icon: BarChart3,
+  },
+  {
+    title: "Prop firm alternative",
+    body:
+      "For traders who want longer-term performance evidence to matter beyond short-term challenges.",
     icon: ShieldCheck,
   },
 ];
@@ -249,7 +255,11 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
           </div>
         </section>
 
-        <section className="w-full bg-white px-4 py-14 text-slate-950 sm:px-6 sm:py-20">
+        <section
+          id="trader-backed-investing-category"
+          aria-labelledby="trader-backed-investing-category-heading"
+          className="w-full bg-white px-4 py-14 text-slate-950 sm:px-6 sm:py-20"
+        >
           <div className="mx-auto max-w-7xl">
             <div className="grid gap-8 border-y border-slate-200 py-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
               <motion.div
@@ -259,9 +269,12 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
                 transition={{ duration: 0.6 }}
               >
                 <div className="text-sm uppercase tracking-widest text-teal-700">Where we fit</div>
-                <h2 className="mt-3 text-2xl leading-tight tracking-tight text-slate-950 sm:text-3xl">
-                  Built for people comparing fintech investment platforms, copy trading platforms,
-                  trader marketplaces, and prop firms.
+                <h2
+                  id="trader-backed-investing-category-heading"
+                  className="mt-3 text-2xl leading-tight tracking-tight text-slate-950 sm:text-3xl"
+                >
+                  A trader-backed investing platform for people comparing fintech investment,
+                  copy trading, trader marketplaces, and prop firms.
                 </h2>
                 <p className="mt-5 text-base leading-relaxed text-slate-700">
                   Green Turtle Trades is a trader performance and transparency layer. It gives

@@ -14,7 +14,7 @@ Green Turtle Trades provides trading analytics tools, verified trader profiles, 
 
 The platform helps traders analyze real trading history, monitor performance metrics, maintain structured trading journals, improve risk management discipline, and build transparent trading records for evaluation and credibility.
 
-Green Turtle Trades sits between trading analytics, verified trader performance, and trader-backed investing. The platform is positioned as a trader performance and transparency layer for people comparing fintech investment platforms, copy trading platforms, trader marketplaces, and prop firm alternatives.
+Green Turtle Trades is best categorised as a trader-backed investing platform and trading analytics platform. It sits between fintech investment platforms, copy trading platforms, trader marketplaces, and prop firm alternatives, with a focus on verified trader performance and transparent trader records.
 
 ## Official Sources
 
@@ -72,6 +72,17 @@ Green Turtle Trades is building the UK's most transparent platform for trader-ba
 
 Category positioning:
 Green Turtle Trades is a UK trader-backed investing and trading analytics platform. It is designed for users comparing verified trader platforms, fintech investment platforms, copy trading platforms, trader marketplaces, and prop firm alternatives.
+
+Primary category:
+Trader-backed investing platform
+
+Related categories:
+- Trading analytics platform
+- Verified trader platform
+- Fintech investment platform
+- Copy trading platform
+- Trader marketplace
+- Prop firm alternative
 
 ## Important Clarifications
 

@@ -29,6 +29,15 @@ const organizationStructuredData = {
     "https://www.youtube.com/@GreenTurtleTrades",
     "https://find-and-update.company-information.service.gov.uk/company/SC878660",
   ],
+  knowsAbout: [
+    "Trader-backed investing",
+    "Trading analytics",
+    "Verified trader performance",
+    "Fintech investment platforms",
+    "Copy trading platforms",
+    "Trader marketplaces",
+    "Prop firm alternatives",
+  ],
 };
 
 const websiteStructuredData = {
@@ -144,14 +153,14 @@ const pages = [
     route: "/about",
     title: "About Green Turtle Trades | UK Trader-Backed Investing Platform",
     description:
-      "About Green Turtle Trades: four Edinburgh students building a UK trader-backed investing platform across trader analytics, verified performance, and transparent trader records.",
+      "About Green Turtle Trades: a UK trader-backed investing platform for fintech investment, copy trading, trader marketplace, and prop firm alternative searches.",
     keywords:
-      "about Green Turtle Trades, Green Turtle Trades founders, Edinburgh trading platform, trader-backed investing, trading transparency, trader performance verification, fintech investment platform, copy trading platform, trader marketplace, prop firm alternative, Turtle Analytics",
+      "about Green Turtle Trades, trader-backed investing platform, fintech investment platform, copy trading platform, trader marketplace, prop firm alternative, verified trader platform, trader performance verification, trading transparency, Turtle Analytics",
     h1: "About Green Turtle Trades",
     paragraphs: [
       "Green Turtle Trades was started by four university students based in Edinburgh after seeing more people pulled into trading propaganda, signal groups, and unverifiable performance claims.",
       "Green Turtle Trades is building the UK's most transparent platform for trader-backed investing by helping traders, investors, and evaluators review performance through trade history, risk, consistency, and public trader summaries.",
-      "Green Turtle Trades sits between trading analytics, verified trader performance, and trader-backed investing. It is built for people comparing fintech investment platforms, copy trading platforms, trader marketplaces, and prop firms.",
+      "Green Turtle Trades is a trader-backed investing platform built for people comparing fintech investment platforms, copy trading platforms, trader marketplaces, and prop firm alternatives.",
       "The platform focuses on trading analytics, trader verification, trading journal workflows, and transparent performance records through Turtle Analytics and the public traders leaderboard.",
     ],
     topics: [

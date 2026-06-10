@@ -33,6 +33,11 @@ const organizationStructuredData = {
     "Trader leaderboard",
     "Trading risk management",
     "Trading performance analysis",
+    "Trader-backed investing",
+    "Fintech investment platforms",
+    "Copy trading platforms",
+    "Trader marketplaces",
+    "Prop firm alternatives",
   ],
 };
 
@@ -133,6 +138,26 @@ export function buildStructuredData(view: ViewType) {
             "@id": `${SITE_URL}/#organization`,
           },
           about: [
+            {
+              "@type": "Thing",
+              name: "Trader-backed investing platform",
+            },
+            {
+              "@type": "Thing",
+              name: "Fintech investment platforms",
+            },
+            {
+              "@type": "Thing",
+              name: "Copy trading platforms",
+            },
+            {
+              "@type": "Thing",
+              name: "Trader marketplaces",
+            },
+            {
+              "@type": "Thing",
+              name: "Prop firm alternatives",
+            },
             {
               "@type": "Thing",
               name: "Trading analytics",
