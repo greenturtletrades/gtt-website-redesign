@@ -290,31 +290,35 @@ const pages = [
   }),
   page({
     route: "/trader-marketplace",
-    title: "Trader Marketplace | Green Turtle Trades",
+    title: "Trader Marketplace Built Around Verified Performance | Green Turtle Trades",
     description:
-      "A trader marketplace concept built around verified performance, transparent metrics, trading analytics, and investor decision-making.",
+      "A trader marketplace built around verified trader performance, transparent metrics, trading analytics, and clearer investor decision-making.",
     keywords:
-      "trader marketplace, trading marketplace, copy trading platform, verified trader marketplace, trader performance marketplace",
-    h1: "Trader Marketplace",
+      "trader marketplace, trading marketplace, verified trader marketplace, trader performance marketplace, copy trading platform, trader-backed investing",
+    h1: "Trader Marketplace Built Around Verified Performance",
     paragraphs: [
-      "A trader marketplace should help investors compare traders with clear, verified performance data instead of relying on claims or screenshots.",
-      "Green Turtle Trades focuses on meaningful metrics such as win rate, expectancy, risk per trade, sample size, and consistency.",
+      "A trader marketplace should make trader comparison clearer. Green Turtle Trades is building a transparent way to review trader records, risk, consistency, and public performance summaries before capital follows skill.",
+      "Green Turtle Trades focuses on meaningful metrics such as win rate, expectancy, risk per trade, sample size, drawdown, and consistency.",
+      "The public traders leaderboard gives visitors a transparent summary of opted-in trader performance while keeping raw trades private.",
+      "The long-term aim is a trader-backed investing platform where capital allocation can be informed by verified records, risk behaviour, and long-term performance data.",
     ],
-    topics: ["Trader marketplace", "Trader comparison", "Verified trader metrics"],
+    topics: ["Trader marketplace", "Trader comparison", "Verified trader metrics", "Trader-backed investing"],
   }),
   page({
     route: "/copy-trading-platform",
-    title: "Copy Trading Platform | Green Turtle Trades",
+    title: "Copy Trading Platform With Verified Trader Data | Green Turtle Trades",
     description:
-      "A copy trading platform concept focused on verified trader performance, transparent risk metrics, and investor decision-making.",
+      "A copy trading platform approach focused on verified trader performance, transparent risk metrics, public summaries, and clearer investor decision-making.",
     keywords:
-      "copy trading platform, copy trading, copy trader, verified copy trading, transparent copy trading platform",
-    h1: "Copy Trading Platform",
+      "copy trading platform, copy trading, copy trader, verified copy trading, transparent copy trading platform, copy trading alternative, trader-backed investing",
+    h1: "Copy Trading Platform With Verified Trader Data",
     paragraphs: [
-      "Copy trading should be built around trust, risk visibility, and real performance data.",
-      "Green Turtle Trades helps investors evaluate traders with transparent metrics before capital follows skill.",
+      "Copy trading should be easier to evaluate before anyone follows a trader. Green Turtle Trades is designed around verified performance, risk visibility, and public trader summaries.",
+      "A stronger copy trading workflow starts with verified trader performance, not screenshots or unsupported claims.",
+      "Risk per trade, drawdown behaviour, sample size, expectancy, and win rate all help investors understand whether performance is sustainable.",
+      "Green Turtle Trades is being built as a more evidence-led approach to trader-backed investing.",
     ],
-    topics: ["Copy trading", "Verified copy trading", "Trading risk metrics"],
+    topics: ["Copy trading", "Verified copy trading", "Trading risk metrics", "Copy trading alternative"],
   }),
   page({
     route: "/trader-funding",
@@ -332,17 +336,19 @@ const pages = [
   }),
   page({
     route: "/prop-firm-alternative",
-    title: "Prop Firm Alternative | Green Turtle Trades",
+    title: "Prop Firm Alternative for Trader-Backed Investing | Green Turtle Trades",
     description:
-      "A transparent alternative to prop firm challenges, focused on verified trader performance, trading analytics, and aligned investor capital.",
+      "A transparent prop firm alternative focused on verified trader performance, trading analytics, risk records, and aligned investor capital.",
     keywords:
-      "prop firm alternative, prop trading alternative, funded trader alternative, trader capital alternative, trading challenge alternative",
-    h1: "Prop Firm Alternative",
+      "prop firm alternative, prop trading alternative, funded trader alternative, trader capital alternative, trading challenge alternative, trader-backed investing",
+    h1: "Prop Firm Alternative for Trader-Backed Investing",
     paragraphs: [
-      "Many traders want capital without unrealistic challenges or unclear incentives.",
-      "Green Turtle Trades is building a more transparent alternative focused on verified performance data and responsible risk.",
+      "Many traders want capital without relying only on short-term challenges or unclear incentives.",
+      "Green Turtle Trades is building a more transparent prop firm alternative focused on verified data, responsible risk, and longer-term trader evidence.",
+      "Trading analytics, journal records, win rate, expectancy, risk control, and verified trade sample size create a better foundation for evaluating traders than pass-fail challenge outcomes alone.",
+      "The aim is to make trader funding and investor-capital decisions more evidence-led.",
     ],
-    topics: ["Prop firm alternative", "Funded trader alternative", "Verified trader performance"],
+    topics: ["Prop firm alternative", "Funded trader alternative", "Verified trader performance", "Trader-backed investing"],
   }),
   page({
     route: "/trading-performance-tracker",

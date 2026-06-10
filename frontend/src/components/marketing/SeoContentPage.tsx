@@ -1,4 +1,4 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, BarChart3, CheckCircle2, LineChart, ShieldCheck } from "lucide-react";
 import { Footer } from "./Footer";
 import { getSeoContentPage } from "../../seo/content";
 import type { ViewType } from "../../seo/routes";
@@ -21,14 +21,20 @@ export function SeoContentPage({ view, onNavigate }: SeoContentPageProps) {
     ["Trading Analytics", "seo-trading-analytics"],
     ["Trading Journal", "seo-trading-journal"],
     ["Verified Traders", "seo-verified-traders"],
+    ["Trader Marketplace", "seo-trader-marketplace"],
+    ["Copy Trading Platform", "seo-copy-trading-platform"],
     ["Trader Funding", "seo-trader-funding"],
+    ["Prop Firm Alternative", "seo-prop-firm-alternative"],
     ["Traders Leaderboard", "turtle-traders"],
   ];
 
+  const featureIcons = [ShieldCheck, BarChart3, LineChart, CheckCircle2];
+
   return (
     <div className="min-h-screen bg-white pt-20 text-slate-950">
-      <section className="w-full border-b border-slate-200 bg-white px-4 py-16 sm:px-6 sm:py-20">
-        <div className="mx-auto max-w-4xl">
+      <section className="w-full border-b border-slate-200 bg-gradient-to-br from-teal-50 via-white to-cyan-50 px-4 py-16 sm:px-6 sm:py-20">
+        <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+          <div>
           <div className="mb-4 text-xs font-medium uppercase tracking-[0.18em] text-teal-700">
             {page.eyebrow}
           </div>
@@ -55,17 +61,48 @@ export function SeoContentPage({ view, onNavigate }: SeoContentPageProps) {
               View Leaderboard
             </button>
           </div>
+          </div>
+
+          <div className="rounded-2xl border border-teal-200 bg-white/80 p-5 shadow-xl shadow-teal-900/10">
+            <div className="text-xs font-medium uppercase tracking-[0.18em] text-teal-700">
+              Built around
+            </div>
+            <div className="mt-5 grid gap-3">
+              {page.sections.slice(0, 4).map((section, index) => {
+                const Icon = featureIcons[index % featureIcons.length];
+                return (
+                  <div key={section.title} className="grid grid-cols-[auto_1fr] gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-50 text-teal-700">
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-slate-950">{section.title}</div>
+                      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-600">
+                        {section.body}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </section>
 
       <section className="px-4 py-14 sm:px-6">
-        <div className="mx-auto max-w-4xl divide-y divide-slate-200">
-          {page.sections.map((section) => (
-            <article key={section.title} className="py-8 first:pt-0 last:pb-0">
+        <div className="mx-auto grid max-w-6xl gap-4 md:grid-cols-2">
+          {page.sections.map((section, index) => {
+            const Icon = featureIcons[index % featureIcons.length];
+            return (
+            <article key={section.title} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-teal-50 text-teal-700">
+                <Icon className="h-5 w-5" />
+              </div>
               <h2 className="text-2xl text-slate-950">{section.title}</h2>
               <p className="mt-3 text-base leading-relaxed text-slate-700">{section.body}</p>
             </article>
-          ))}
+            );
+          })}
         </div>
       </section>
 

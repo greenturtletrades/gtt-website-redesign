@@ -285,29 +285,34 @@ export const seoContentPages: SeoContentPage[] = [
   },
   {
     view: "seo-trader-marketplace",
-    title: "Trader Marketplace",
+    title: "Trader Marketplace Built Around Verified Performance",
     eyebrow: "Trader Marketplace",
     description:
-      "A trader marketplace concept built around verified performance, transparent metrics, trading analytics, and investor decision-making.",
+      "A trader marketplace built around verified trader performance, transparent metrics, trading analytics, and clearer investor decision-making.",
     keywords:
-      "trader marketplace, trading marketplace, copy trading platform, verified trader marketplace, trader performance marketplace",
+      "trader marketplace, trading marketplace, verified trader marketplace, trader performance marketplace, copy trading platform, trader-backed investing",
     intro:
-      "A trader marketplace should help investors compare traders with clear, verified performance data instead of relying on claims or screenshots.",
+      "A trader marketplace should make trader comparison clearer. Green Turtle Trades is building a transparent way to review trader records, risk, consistency, and public performance summaries before capital follows skill.",
     sections: [
       {
-        title: "Compare traders with meaningful metrics",
+        title: "Compare traders with performance evidence",
         body:
-          "Useful trader comparison needs more than headline gain. Win rate, expectancy, risk per trade, sample size, profit factor, and consistency all matter when judging trading performance.",
+          "Useful trader comparison needs more than headline gain. Win rate, expectancy, risk per trade, sample size, profit factor, drawdown, and consistency all matter when judging whether trader performance is repeatable.",
       },
       {
-        title: "Public leaderboard as a trust layer",
+        title: "Public leaderboard summaries as a trust layer",
         body:
-          "The public traders leaderboard gives visitors a transparent summary of opted-in trader performance while keeping raw trades private.",
+          "The public traders leaderboard gives visitors a transparent summary of opted-in trader performance while keeping raw trades private. This helps people compare traders without relying on screenshots, signal groups, or unsupported claims.",
       },
       {
-        title: "Trading analytics behind the marketplace",
+        title: "Trading analytics behind trader evaluation",
         body:
-          "Turtle Analytics and journal data help traders understand their own performance before that performance becomes part of a broader marketplace or investor evaluation workflow.",
+          "Turtle Analytics and journal data help traders understand their own performance before that performance becomes part of a broader marketplace or investor evaluation workflow. The aim is to connect trader skill with investor attention through structured evidence.",
+      },
+      {
+        title: "A clearer bridge between traders and capital",
+        body:
+          "Green Turtle Trades is not built around hype or one-off marketing. The long-term aim is a trader-backed investing platform where capital allocation can be informed by verified records, risk behaviour, and long-term performance data.",
       },
     ],
     faqs: [
@@ -322,6 +327,11 @@ export const seoContentPages: SeoContentPage[] = [
           "Traders should be ranked with balanced metrics such as win rate, expectancy, risk control, sample size, and consistency rather than headline returns alone.",
       },
       {
+        question: "Is a trader marketplace the same as copy trading?",
+        answer:
+          "Not necessarily. Copy trading usually focuses on following or allocating to traders. A trader marketplace should also help people evaluate trader quality with transparent performance records and risk metrics.",
+      },
+      {
         question: "Does Green Turtle Trades publish raw trades?",
         answer:
           "No. Raw trades stay private. Public pages show optional summary performance only.",
@@ -330,29 +340,34 @@ export const seoContentPages: SeoContentPage[] = [
   },
   {
     view: "seo-copy-trading-platform",
-    title: "Copy Trading Platform",
+    title: "Copy Trading Platform With Verified Trader Data",
     eyebrow: "Copy Trading",
     description:
-      "A copy trading platform concept focused on verified trader performance, transparent risk metrics, and investor decision-making.",
+      "A copy trading platform approach focused on verified trader performance, transparent risk metrics, public summaries, and clearer investor decision-making.",
     keywords:
-      "copy trading platform, copy trading, copy trader, verified copy trading, transparent copy trading platform",
+      "copy trading platform, copy trading, copy trader, verified copy trading, transparent copy trading platform, copy trading alternative, trader-backed investing",
     intro:
-      "Copy trading should be built around trust, risk visibility, and real performance data. Green Turtle Trades is designed to help investors evaluate traders with transparent metrics before capital follows skill.",
+      "Copy trading should be easier to evaluate before anyone follows a trader. Green Turtle Trades is designed around verified performance, risk visibility, and public trader summaries so people can judge records before capital follows skill.",
     sections: [
       {
         title: "Verified performance before allocation",
         body:
-          "A stronger copy trading workflow starts with verified trader performance, not screenshots or unsupported claims. Public summary metrics and private analytics help explain whether a trader has consistency, expectancy, and controlled risk.",
+          "A stronger copy trading workflow starts with verified trader performance, not screenshots or unsupported claims. Public summary metrics and private analytics help explain whether a trader has consistency, expectancy, controlled risk, and enough trade history to be judged properly.",
       },
       {
         title: "Risk matters as much as return",
         body:
-          "The goal is not simply to find traders with the biggest headline gain. Risk per trade, drawdown behaviour, sample size, and win rate all help investors understand whether performance is sustainable.",
+          "The goal is not simply to find traders with the biggest headline gain. Risk per trade, drawdown behaviour, sample size, expectancy, and win rate all help investors understand whether performance is sustainable.",
       },
       {
         title: "Transparency without exposing raw trades",
         body:
           "Green Turtle Trades can show public summary performance while keeping raw trade details private. CSV-imported trades are excluded from public leaderboard ranking because they are easier to edit outside the platform.",
+      },
+      {
+        title: "A copy trading alternative focused on evidence",
+        body:
+          "Many copy trading platforms make trader performance visible, but not all performance summaries explain the risk behind the return. Green Turtle Trades is being built as a more evidence-led approach to trader-backed investing.",
       },
     ],
     faqs: [
@@ -365,6 +380,11 @@ export const seoContentPages: SeoContentPage[] = [
         question: "What makes copy trading safer to evaluate?",
         answer:
           "Investors should review verified trade history, risk control, sample size, expectancy, and consistency instead of relying only on headline returns.",
+      },
+      {
+        question: "Is Green Turtle Trades a copy trading platform?",
+        answer:
+          "Green Turtle Trades is building a trader-backed investing and analytics platform. It focuses on trader evaluation, public summaries, and verified records that can support better capital allocation decisions.",
       },
       {
         question: "Does Green Turtle Trades show raw trades publicly?",
@@ -420,29 +440,34 @@ export const seoContentPages: SeoContentPage[] = [
   },
   {
     view: "seo-prop-firm-alternative",
-    title: "Prop Firm Alternative",
+    title: "Prop Firm Alternative for Trader-Backed Investing",
     eyebrow: "Prop Firm Alternative",
     description:
-      "A transparent alternative to prop firm challenges, focused on verified trader performance, trading analytics, and aligned investor capital.",
+      "A transparent prop firm alternative focused on verified trader performance, trading analytics, risk records, and aligned investor capital.",
     keywords:
-      "prop firm alternative, prop trading alternative, funded trader alternative, trader capital alternative, trading challenge alternative",
+      "prop firm alternative, prop trading alternative, funded trader alternative, trader capital alternative, trading challenge alternative, trader-backed investing",
     intro:
-      "Many traders want capital without unrealistic challenges or unclear incentives. Green Turtle Trades is building a more transparent alternative focused on verified data and responsible risk.",
+      "Many traders want capital without relying only on short-term challenges or unclear incentives. Green Turtle Trades is building a more transparent prop firm alternative focused on verified data, responsible risk, and longer-term trader evidence.",
     sections: [
       {
         title: "Beyond one-off trading challenges",
         body:
-          "A short challenge can miss the deeper question: can a trader manage risk and perform consistently over time? Green Turtle Trades focuses on richer performance evidence.",
+          "A short challenge can miss the deeper question: can a trader manage risk and perform consistently over time? Green Turtle Trades focuses on richer performance evidence, including trade history, drawdown behaviour, expectancy, and consistency.",
       },
       {
         title: "Transparent metrics for serious traders",
         body:
-          "Trading analytics, journal records, win rate, expectancy, risk control, and verified trade sample size create a better foundation for evaluating traders.",
+          "Trading analytics, journal records, win rate, expectancy, risk control, and verified trade sample size create a better foundation for evaluating traders than pass-fail challenge outcomes alone.",
       },
       {
         title: "Investor capital with clearer alignment",
         body:
           "The platform is built around connecting capital and skill through transparency, not through opaque pass-fail rules that may not reflect long-term trading quality.",
+      },
+      {
+        title: "A route for traders to build proof",
+        body:
+          "Green Turtle Trades helps traders build a structured record that can be reviewed over time. The aim is to make trader funding and investor-capital decisions more evidence-led.",
       },
     ],
     faqs: [
@@ -455,6 +480,11 @@ export const seoContentPages: SeoContentPage[] = [
         question: "Why look beyond prop firm challenges?",
         answer:
           "Some challenges can reward short-term behaviour. Verified performance records and risk analytics can provide a broader view of trader quality.",
+      },
+      {
+        question: "Is Green Turtle Trades a prop firm?",
+        answer:
+          "Green Turtle Trades is not positioned as a traditional challenge-based prop firm. It is building a trader-backed investing platform focused on verified performance, analytics, and clearer alignment between traders and capital.",
       },
       {
         question: "Can new traders use Green Turtle Trades?",
