@@ -27,9 +27,9 @@ const pageMetadata: Partial<Record<ViewType, SeoMetadata>> = {
   about: {
     title: "About Green Turtle Trades | UK Trader-Backed Investing Platform",
     description:
-      "About Green Turtle Trades: four Edinburgh university students building the UK's most transparent platform for trader-backed investing, trader analytics, and performance verification.",
+      "About Green Turtle Trades: four Edinburgh students building a UK trader-backed investing platform across trader analytics, verified performance, and transparent trader records.",
     keywords:
-      "about Green Turtle Trades, Green Turtle Trades founders, Edinburgh trading platform, trader-backed investing, trading transparency, trader performance verification, Turtle Analytics",
+      "about Green Turtle Trades, Green Turtle Trades founders, Edinburgh trading platform, trader-backed investing, trading transparency, trader performance verification, broker app alternative, copy trading alternative, trader marketplace, prop firm alternative, Turtle Analytics",
   },
   "turtle-traders": {
     title: "Traders Leaderboard | Green Turtle Trades",

@@ -144,19 +144,24 @@ const pages = [
     route: "/about",
     title: "About Green Turtle Trades | UK Trader-Backed Investing Platform",
     description:
-      "About Green Turtle Trades: four Edinburgh university students building the UK's most transparent platform for trader-backed investing, trader analytics, and performance verification.",
+      "About Green Turtle Trades: four Edinburgh students building a UK trader-backed investing platform across trader analytics, verified performance, and transparent trader records.",
     keywords:
-      "about Green Turtle Trades, Green Turtle Trades founders, Edinburgh trading platform, trader-backed investing, trading transparency, trader performance verification, Turtle Analytics",
+      "about Green Turtle Trades, Green Turtle Trades founders, Edinburgh trading platform, trader-backed investing, trading transparency, trader performance verification, broker app alternative, copy trading alternative, trader marketplace, prop firm alternative, Turtle Analytics",
     h1: "About Green Turtle Trades",
     paragraphs: [
       "Green Turtle Trades was started by four university students based in Edinburgh after seeing more people pulled into trading propaganda, signal groups, and unverifiable performance claims.",
       "Green Turtle Trades is building the UK's most transparent platform for trader-backed investing by helping traders, investors, and evaluators review performance through trade history, risk, consistency, and public trader summaries.",
+      "Green Turtle Trades sits between trading analytics, verified trader performance, and trader-backed investing. It is different from a traditional broker app, signal group, or prop-firm challenge because it focuses on records and public performance summaries.",
       "The platform focuses on trading analytics, trader verification, trading journal workflows, and transparent performance records through Turtle Analytics and the public traders leaderboard.",
     ],
     topics: [
       "Trader-backed investing",
       "Trader performance transparency",
       "Trading analytics",
+      "Broker app alternative",
+      "Copy trading alternative",
+      "Trader marketplace",
+      "Prop firm alternative",
       "Edinburgh startup",
     ],
     schemaType: "AboutPage",

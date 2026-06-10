@@ -79,6 +79,27 @@ const modelPoints = [
   },
 ];
 
+const categoryPoints = [
+  {
+    title: "Not a broker app",
+    body:
+      "Broker apps help people place trades and invest directly. Green Turtle Trades focuses on trader records, analytics, and public performance summaries.",
+    icon: Building2,
+  },
+  {
+    title: "Not a signal group",
+    body:
+      "Signal groups often ask people to trust calls without enough context. We are building around trade records, risk, and repeatable evidence.",
+    icon: MessageSquare,
+  },
+  {
+    title: "Not a prop challenge",
+    body:
+      "Prop-firm models often focus on pass-or-fail challenges. Our focus is longer-term trader evidence and clearer capital decisions.",
+    icon: ShieldCheck,
+  },
+];
+
 export function AboutPage({ onNavigate }: AboutPageProps) {
   const storyRef = useRef(null);
   const storyInView = useInView(storyRef, { once: true, margin: "-100px" });
@@ -225,6 +246,56 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
                 })}
               </div>
             </motion.div>
+          </div>
+        </section>
+
+        <section className="w-full bg-slate-950 px-4 py-14 text-white sm:px-6 sm:py-20">
+          <div className="mx-auto max-w-7xl">
+            <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+              <motion.div
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.6 }}
+              >
+                <div className="text-sm uppercase tracking-widest text-teal-300">Where we fit</div>
+                <h2 className="mt-3 text-3xl leading-tight tracking-tight sm:text-4xl">
+                  Built for people comparing brokers, copy trading platforms, trader marketplaces,
+                  and prop firm alternatives.
+                </h2>
+                <p className="mt-6 text-base leading-relaxed text-slate-300 sm:text-lg">
+                  Green Turtle Trades sits closer to a trader performance and transparency layer:
+                  a place to review trading records, analytics, and public summaries before capital
+                  follows skill.
+                </p>
+              </motion.div>
+
+              <div className="grid gap-3">
+                {categoryPoints.map((point, index) => {
+                  const Icon = point.icon;
+                  return (
+                    <motion.article
+                      key={point.title}
+                      initial={{ opacity: 0, x: 24 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true, margin: "-100px" }}
+                      transition={{ duration: 0.5, delay: index * 0.1 }}
+                      className="grid grid-cols-[auto_1fr] gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4 transition-all hover:border-teal-300/50 hover:bg-white/[0.07] sm:p-5"
+                    >
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-400/10 text-teal-300">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg text-white">{point.title}</h3>
+                        <p className="mt-2 text-sm leading-relaxed text-slate-300 sm:text-base">
+                          {point.body}
+                        </p>
+                      </div>
+                    </motion.article>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </section>
 
