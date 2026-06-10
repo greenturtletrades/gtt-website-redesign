@@ -9,7 +9,13 @@ const organizationStructuredData = {
   "@type": "Organization",
   "@id": `${siteUrl}/#organization`,
   name: "Green Turtle Trades",
-  alternateName: ["Green Turtle Traders", "Green Turtle Trades Limited", "Turtle Analytics"],
+  alternateName: [
+    "Green Turtle Traders",
+    "Green Turtle Trades Limited",
+    "Green Turtle Traders UK",
+    "Green Turtle Trading Platform",
+    "Turtle Analytics",
+  ],
   legalName: "Green Turtle Trades Limited",
   identifier: "SC878660",
   url: siteUrl,
@@ -44,7 +50,7 @@ const websiteStructuredData = {
   "@type": "WebSite",
   "@id": `${siteUrl}/#website`,
   name: "Green Turtle Trades",
-  alternateName: "Green Turtle Traders",
+  alternateName: ["Green Turtle Traders", "Green Turtle Trading Platform"],
   url: siteUrl,
   publisher: {
     "@id": `${siteUrl}/#organization`,
@@ -219,18 +225,27 @@ const pages = [
   }),
   page({
     route: "/green-turtle-trades",
-    title: "Green Turtle Trades | UK Trading Analytics and Verified Trader Platform",
+    title: "Green Turtle Trades and Green Turtle Traders | UK Trading Analytics Platform",
     description:
-      "Green Turtle Trades is a UK trading analytics and verified trader platform, operated by Green Turtle Trades Limited, company number SC878660.",
+      "Green Turtle Trades, also searched as Green Turtle Traders, is a UK trading analytics and verified trader platform operated by Green Turtle Trades Limited, company number SC878660.",
     keywords:
-      "green turtle trades, green turtle traders, Green Turtle Trades Limited, SC878660, UK trading analytics platform, verified trader platform, Turtle Analytics",
-    h1: "Green Turtle Trades",
+      "green turtle trades, green turtle traders, Green Turtle Trades Limited, Green Turtle Traders UK, green turtle trading platform, SC878660, UK trading analytics platform, verified trader platform, Turtle Analytics",
+    h1: "Green Turtle Trades and Green Turtle Traders",
     paragraphs: [
       "Green Turtle Trades is a UK trading analytics and verified trader platform operated by Green Turtle Trades Limited, company number SC878660.",
+      "Green Turtle Traders is a common search variation connected to the official domain greenturtletraders.co.uk. Both names refer to the same platform and company.",
       "The official website is greenturtletraders.co.uk. The platform helps traders review trade history, use Turtle Analytics, keep a trading journal, and build transparent performance records.",
-      "Green Turtle Trades is not the historical Turtle Trading experiment and is not related to wildlife trade or green sea turtle products.",
+      "Green Turtle Trades is not the Turtle Trading strategy, the historical Turtle Trading experiment, or a trend-following rules system. The turtle wording is only a brand play on the name.",
+      "Green Turtle Trades is not related to wildlife trade or green sea turtle products.",
     ],
-    topics: ["Green Turtle Trades Limited", "Trading analytics", "Verified trader platform"],
+    topics: [
+      "Green Turtle Trades",
+      "Green Turtle Traders",
+      "Green Turtle Trades Limited",
+      "Trading analytics",
+      "Verified trader platform",
+      "Not Turtle Trading strategy",
+    ],
   }),
   page({
     route: "/trading-analytics",

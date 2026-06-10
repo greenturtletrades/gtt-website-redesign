@@ -9,20 +9,20 @@ type SeoMetadata = {
 };
 
 const defaultMetadata: SeoMetadata = {
-  title: "Green Turtle Trades | Verified Traders, Trading Analytics and Investor Capital",
+  title: "Green Turtle Trades | Green Turtle Traders, Trading Analytics and Investor Capital",
   description:
-    "Green Turtle Trades connects verified traders with investor capital and gives traders access to trading analytics, a trading journal, and a public traders leaderboard.",
+    "Green Turtle Trades, also searched as Green Turtle Traders, connects verified traders with investor capital, trading analytics, a trading journal, and a public traders leaderboard.",
   keywords:
-    "green turtle trades, verified traders, trading analytics, trading journal, investor capital, traders leaderboard, trading performance",
+    "green turtle trades, green turtle traders, verified traders, trading analytics, trading journal, investor capital, traders leaderboard, trading performance",
 };
 
 const pageMetadata: Partial<Record<ViewType, SeoMetadata>> = {
   landing: {
-    title: "Green Turtle Trades | Verified Traders and Trading Analytics Platform",
+    title: "Green Turtle Trades | Green Turtle Traders and Trading Analytics Platform",
     description:
-      "Green Turtle Trades is a trading platform for verified traders, investor capital, trading analytics, trading journal tools, and public trader performance transparency.",
+      "Green Turtle Trades, also searched as Green Turtle Traders, is a trading platform for verified traders, investor capital, analytics, journals, and public trader performance transparency.",
     keywords:
-      "green turtle trades, verified traders, trading platform, trading analytics, trading journal, investor capital, trader marketplace, traders leaderboard",
+      "green turtle trades, green turtle traders, verified traders, trading platform, trading analytics, trading journal, investor capital, trader marketplace, traders leaderboard",
   },
   about: {
     title: "About Green Turtle Trades | UK Trader-Backed Investing Platform",
@@ -117,7 +117,7 @@ export function applySeoMetadata(view: ViewType) {
     ? {
         title:
           view === "seo-green-turtle-trades"
-            ? "Green Turtle Trades | UK Trading Analytics and Verified Trader Platform"
+            ? "Green Turtle Trades and Green Turtle Traders | UK Trading Analytics Platform"
             : `${contentPage.title} | Green Turtle Trades`,
         description: contentPage.description,
         keywords: contentPage.keywords,

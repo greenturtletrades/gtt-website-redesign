@@ -20,14 +20,14 @@ export type SeoContentPage = {
 export const seoContentPages: SeoContentPage[] = [
   {
     view: "seo-green-turtle-trades",
-    title: "Green Turtle Trades",
+    title: "Green Turtle Trades and Green Turtle Traders",
     eyebrow: "Company",
     description:
-      "Green Turtle Trades is a UK trading analytics and verified trader platform, operated by Green Turtle Trades Limited, company number SC878660.",
+      "Green Turtle Trades, also searched as Green Turtle Traders, is a UK trading analytics and verified trader platform operated by Green Turtle Trades Limited, company number SC878660.",
     keywords:
-      "green turtle trades, green turtle traders, Green Turtle Trades Limited, SC878660, UK trading analytics platform, verified trader platform, Turtle Analytics",
+      "green turtle trades, green turtle traders, Green Turtle Trades Limited, Green Turtle Traders UK, green turtle trading platform, SC878660, UK trading analytics platform, verified trader platform, Turtle Analytics",
     intro:
-      "Green Turtle Trades is a UK trading analytics and verified trader platform operated by Green Turtle Trades Limited, company number SC878660. The official website is greenturtletraders.co.uk. It helps traders review real trade history, keep a structured trading journal, use Turtle Analytics, and build transparent performance records for trader evaluation.",
+      "Green Turtle Trades is a UK trading analytics and verified trader platform operated by Green Turtle Trades Limited, company number SC878660. People may also search for Green Turtle Traders because the official website is greenturtletraders.co.uk. It helps traders review real trade history, keep a structured trading journal, use Turtle Analytics, and build transparent performance records for trader evaluation.",
     sections: [
       {
         title: "What Green Turtle Trades does",
@@ -45,9 +45,9 @@ export const seoContentPages: SeoContentPage[] = [
           "Green Turtle Trades is designed around transparent trader evaluation. Traders can keep raw trade and journal data private while choosing whether to publish summary performance on the public traders leaderboard.",
       },
       {
-        title: "Company identity",
+        title: "Green Turtle Trades and Green Turtle Traders",
         body:
-          "Green Turtle Trades is operated by Green Turtle Trades Limited, a UK company registered in Scotland under company number SC878660. The company address listed on the site is 5 South Charlotte Street, Edinburgh EH2 4AN. People may also search for Green Turtle Traders because the official domain is greenturtletraders.co.uk.",
+          "Green Turtle Trades is the brand and legal company name. Green Turtle Traders is a common search variation connected to the official domain, greenturtletraders.co.uk. Both names refer to the same UK trading analytics and trader-backed investing platform operated by Green Turtle Trades Limited.",
       },
       {
         title: "Official website and source",
@@ -55,9 +55,9 @@ export const seoContentPages: SeoContentPage[] = [
           "The official Green Turtle Trades website is https://greenturtletraders.co.uk. The main company overview page is https://greenturtletraders.co.uk/green-turtle-trades, with supporting pages for trading analytics, trading journal workflows, verified traders, Turtle Analytics, and the public traders leaderboard.",
       },
       {
-        title: "Not the Turtle Trading experiment",
+        title: "Not the Turtle Trading strategy",
         body:
-          "Green Turtle Trades is not the 1980s Turtle Trading experiment created by Richard Dennis and William Eckhardt. The platform is a modern trading analytics and verified trader product, not a historical trend-following trading system.",
+          "Green Turtle Trades is not the Turtle Trading strategy, the 1980s Turtle Trading experiment, or a historical trend-following rules system. The turtle reference is a brand play on the name. The platform itself is a modern trading analytics, trader verification, and trader-backed investing product.",
       },
       {
         title: "Not related to wildlife trade",
@@ -74,7 +74,7 @@ export const seoContentPages: SeoContentPage[] = [
       {
         question: "Is Green Turtle Trades related to the Turtle Trading strategy?",
         answer:
-          "No. Green Turtle Trades is not the Turtle Trading experiment or a historical Turtle Trading rules site. It is a trading analytics, journal, and verified trader platform.",
+          "No. Green Turtle Trades is not the Turtle Trading strategy, the Turtle Trading experiment, or a historical Turtle Trading rules site. The turtle wording is only part of the brand name.",
       },
       {
         question: "Is Green Turtle Trades related to green sea turtle trade?",
@@ -99,7 +99,7 @@ export const seoContentPages: SeoContentPage[] = [
       {
         question: "Is Green Turtle Traders the same as Green Turtle Trades?",
         answer:
-          "Green Turtle Traders is a common search wording connected to the official domain greenturtletraders.co.uk. The brand and legal company name are Green Turtle Trades and Green Turtle Trades Limited.",
+          "Yes. Green Turtle Traders is a common search wording connected to the official domain greenturtletraders.co.uk. The brand name is Green Turtle Trades and the legal company name is Green Turtle Trades Limited.",
       },
     ],
   },

@@ -5,7 +5,13 @@ const organizationStructuredData = {
   "@type": "Organization",
   "@id": `${SITE_URL}/#organization`,
   name: "Green Turtle Trades",
-  alternateName: ["Green Turtle Traders", "Green Turtle Trades Limited", "Turtle Analytics"],
+  alternateName: [
+    "Green Turtle Traders",
+    "Green Turtle Trades Limited",
+    "Green Turtle Traders UK",
+    "Green Turtle Trading Platform",
+    "Turtle Analytics",
+  ],
   legalName: "Green Turtle Trades Limited",
   identifier: "SC878660",
   url: SITE_URL,
@@ -45,7 +51,7 @@ const websiteStructuredData = {
   "@type": "WebSite",
   "@id": `${SITE_URL}/#website`,
   name: "Green Turtle Trades",
-  alternateName: "Green Turtle Traders",
+  alternateName: ["Green Turtle Traders", "Green Turtle Trading Platform"],
   url: SITE_URL,
   publisher: {
     "@id": `${SITE_URL}/#organization`,
