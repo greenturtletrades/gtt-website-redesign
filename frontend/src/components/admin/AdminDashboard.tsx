@@ -121,6 +121,9 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
   const [adminActionError, setAdminActionError] = useState<string | null>(null);
   const [adminActionPendingId, setAdminActionPendingId] = useState<string | null>(null);
 
+  const getLoadErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback;
+
   useEffect(() => {
     if (!currentAdminIsSuperAdmin && inviteAccessLevel === "super_admin") {
       setInviteAccessLevel("admin");
@@ -128,40 +131,66 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
   }, [currentAdminIsSuperAdmin, inviteAccessLevel]);
 
   const loadAdminData = async (isMounted = true) => {
-    try {
-      const [traderResponse, staffResponse, churnResponse, deletionAuditResponse, signupResponse, financeResponse, referralResponse] = await Promise.all([
-        fetchAdminTraders(),
-        fetchAdminStaff(),
-        fetchAdminChurnFeedback(),
-        fetchAdminAccountDeletionAudits(),
-        fetchAdminSignups(),
-        fetchAdminFinance(),
-        fetchAdminReferralCodes(),
-      ]);
-      if (!isMounted) return;
+    const [
+      traderResult,
+      staffResult,
+      churnResult,
+      deletionAuditResult,
+      signupResult,
+      financeResult,
+      referralResult,
+    ] = await Promise.allSettled([
+      fetchAdminTraders(),
+      fetchAdminStaff(),
+      fetchAdminChurnFeedback(),
+      fetchAdminAccountDeletionAudits(),
+      fetchAdminSignups(),
+      fetchAdminFinance(),
+      fetchAdminReferralCodes(),
+    ]);
+
+    if (!isMounted) return;
+
+    if (traderResult.status === "fulfilled") {
+      const traderResponse = traderResult.value;
       setTraders(traderResponse.items);
-      setStaffMembers(staffResponse.items);
-      setChurnItems(churnResponse.items);
-      setChurnSummary(churnResponse.summary);
-      setDeletionAudits(deletionAuditResponse.items);
-      setSignupItems(signupResponse.items);
-      setSignupSummary(signupResponse.summary);
-      setFinanceData(financeResponse.finance);
-      setReferralCodes(referralResponse.items);
       setTradersError(null);
-      setStaffError(null);
-      setChurnError(null);
-      setDeletionAuditError(null);
-      setSignupError(null);
-      setFinanceError(null);
-      setReferralError(null);
-    } catch (error) {
-      if (!isMounted) return;
+    } else {
       setTraders([]);
+      setTradersError(getLoadErrorMessage(traderResult.reason, "Unable to load trader accounts."));
+    }
+
+    if (staffResult.status === "fulfilled") {
+      setStaffMembers(staffResult.value.items);
+      setStaffError(null);
+    } else {
       setStaffMembers([]);
+      setStaffError(getLoadErrorMessage(staffResult.reason, "Unable to load staff members."));
+    }
+
+    if (churnResult.status === "fulfilled") {
+      setChurnItems(churnResult.value.items);
+      setChurnSummary(churnResult.value.summary);
+      setChurnError(null);
+    } else {
       setChurnItems([]);
       setChurnSummary([]);
+      setChurnError(getLoadErrorMessage(churnResult.reason, "Unable to load churn feedback."));
+    }
+
+    if (deletionAuditResult.status === "fulfilled") {
+      setDeletionAudits(deletionAuditResult.value.items);
+      setDeletionAuditError(null);
+    } else {
       setDeletionAudits([]);
+      setDeletionAuditError(getLoadErrorMessage(deletionAuditResult.reason, "Unable to load account deletion audits."));
+    }
+
+    if (signupResult.status === "fulfilled") {
+      setSignupItems(signupResult.value.items);
+      setSignupSummary(signupResult.value.summary);
+      setSignupError(null);
+    } else {
       setSignupItems([]);
       setSignupSummary({
         totalUniqueEmails: 0,
@@ -174,20 +203,26 @@ export function AdminDashboard({ currentAdminIsSuperAdmin, onLogout }: AdminDash
         traderApplicationSignupCount: 0,
         traderAccountSignupCount: 0,
       });
-      setFinanceData(null);
-      setReferralCodes([]);
-      setTradersError(error instanceof Error ? error.message : "Unable to load trader accounts.");
-      setStaffError(error instanceof Error ? error.message : "Unable to load staff members.");
-      setChurnError(error instanceof Error ? error.message : "Unable to load churn feedback.");
-      setDeletionAuditError(error instanceof Error ? error.message : "Unable to load account deletion audits.");
-      setSignupError(error instanceof Error ? error.message : "Unable to load signups.");
-      setFinanceError(error instanceof Error ? error.message : "Unable to load finance data.");
-      setReferralError(error instanceof Error ? error.message : "Unable to load referral codes.");
-    } finally {
-      if (isMounted) {
-        setTradersLoading(false);
-      }
+      setSignupError(getLoadErrorMessage(signupResult.reason, "Unable to load signups."));
     }
+
+    if (financeResult.status === "fulfilled") {
+      setFinanceData(financeResult.value.finance);
+      setFinanceError(null);
+    } else {
+      setFinanceData(null);
+      setFinanceError(getLoadErrorMessage(financeResult.reason, "Unable to load finance data."));
+    }
+
+    if (referralResult.status === "fulfilled") {
+      setReferralCodes(referralResult.value.items);
+      setReferralError(null);
+    } else {
+      setReferralCodes([]);
+      setReferralError(getLoadErrorMessage(referralResult.reason, "Unable to load referral codes."));
+    }
+
+    setTradersLoading(false);
   };
 
   useEffect(() => {
