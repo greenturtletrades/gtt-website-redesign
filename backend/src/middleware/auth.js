@@ -132,23 +132,28 @@ function createAuthHelpers({
       authHeader && authHeader.startsWith("Bearer ")
         ? authHeader.slice("Bearer ".length).trim()
         : null;
-    const token = bearerToken || cookieToken;
+    const tokens = [bearerToken, cookieToken].filter(Boolean);
 
-    if (!token) {
+    if (tokens.length === 0) {
       return res.status(401).json({ ok: false, error: "Unauthorized" });
     }
 
-    try {
-      const payload = jwt.verify(token, getJwtSecret());
-      req.user = {
-        id: payload.sub,
-        role: payload.role,
-        isSuperAdmin: Boolean(payload.isSuperAdmin),
-      };
-      return next();
-    } catch {
-      return res.status(401).json({ ok: false, error: "Unauthorized" });
+    const secret = getJwtSecret();
+    for (const token of tokens) {
+      try {
+        const payload = jwt.verify(token, secret);
+        req.user = {
+          id: payload.sub,
+          role: payload.role,
+          isSuperAdmin: Boolean(payload.isSuperAdmin),
+        };
+        return next();
+      } catch {
+        // Try the next auth source. Browser storage can keep stale tokens.
+      }
     }
+
+    return res.status(401).json({ ok: false, error: "Unauthorized" });
   }
 
   function adminRequired(req, res, next) {
