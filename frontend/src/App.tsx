@@ -21,6 +21,7 @@ import { EACodePage } from "./components/trader/EACodePage";
 import { SettingsPage } from "./components/trader/SettingsPage";
 import { TurtleAnalytics } from "./components/trader/TurtleAnalytics";
 import { TurtleAnalyticsWelcome } from "./components/trader/TurtleAnalyticsWelcome";
+import type { AdminLoginResponse } from "./api/admin";
 import { logout } from "./api/auth";
 import { ApiError, clearStoredToken } from "./api/client";
 import { fetchAccountState } from "./api/settings";
@@ -484,9 +485,12 @@ export default function App() {
     setShowAdminLoginModal(true);
   };
 
-  const handleAdminLoginSuccess = () => {
+  const handleAdminLoginSuccess = (adminUser?: AdminLoginResponse["user"]) => {
     setShowAdminLoginModal(false);
     setUserType("admin");
+    if (adminUser) {
+      setCurrentAdminIsSuperAdmin(Boolean(adminUser.isSuperAdmin));
+    }
     if (!isAdminRoute) {
       window.history.pushState({}, "", "/admin");
       setIsAdminRoute(true);
@@ -705,7 +709,7 @@ export default function App() {
         />
       )}
 
-      {isAdminRoute && currentView === "admin-dashboard" && (
+      {isAdminRoute && userType === "admin" && currentView === "admin-dashboard" && (
         <AdminDashboard
           currentAdminIsSuperAdmin={currentAdminIsSuperAdmin}
           onLogout={handleLogout}
@@ -731,7 +735,7 @@ export default function App() {
         />
       )}
 
-      {isAdminRoute && currentView !== "admin-dashboard" && (
+      {isAdminRoute && userType !== "admin" && (
         <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center px-4">
           <div className="text-center text-white max-w-lg">
             <p className="text-teal-300 text-sm tracking-[0.25em] uppercase mb-4">Admin Portal</p>

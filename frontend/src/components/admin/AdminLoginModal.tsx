@@ -1,11 +1,11 @@
 import { X, Shield, Lock, Mail } from "lucide-react";
 import { useState } from "react";
-import { adminForgotPassword, adminLogin, changeAdminPassword } from "../../api/admin";
+import { adminForgotPassword, adminLogin, changeAdminPassword, type AdminLoginResponse } from "../../api/admin";
 import { setStoredToken } from "../../api/client";
 
 interface AdminLoginModalProps {
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (user?: AdminLoginResponse["user"]) => void;
 }
 
 export function AdminLoginModal({ onClose, onSuccess }: AdminLoginModalProps) {
@@ -39,7 +39,7 @@ export function AdminLoginModal({ onClose, onSuccess }: AdminLoginModalProps) {
       if (response.mustChangePassword) {
         setMustChangePassword(true);
       } else {
-        onSuccess();
+        onSuccess(response.user);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Invalid email or password";
