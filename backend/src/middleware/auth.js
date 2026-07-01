@@ -132,7 +132,7 @@ function createAuthHelpers({
       authHeader && authHeader.startsWith("Bearer ")
         ? authHeader.slice("Bearer ".length).trim()
         : null;
-    const token = cookieToken || bearerToken;
+    const token = bearerToken || cookieToken;
 
     if (!token) {
       return res.status(401).json({ ok: false, error: "Unauthorized" });
