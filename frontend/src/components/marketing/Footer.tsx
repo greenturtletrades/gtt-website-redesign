@@ -129,7 +129,7 @@ export function Footer({ onNavigate }: FooterProps) {
                 onClick={() => onNavigate && onNavigate("turtle-traders")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >
-                Traders Leaderboard
+                Uni Competition
               </button>
             </div>
           </div>

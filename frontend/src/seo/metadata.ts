@@ -32,11 +32,11 @@ const pageMetadata: Partial<Record<ViewType, SeoMetadata>> = {
       "about Green Turtle Trades, trader-backed investing platform, fintech investment platform, copy trading platform, trader marketplace, prop firm alternative, verified trader platform, trader performance verification, trading transparency, Turtle Analytics",
   },
   "turtle-traders": {
-    title: "Traders Leaderboard | Green Turtle Trades",
+    title: "University Trading Competition | Green Turtle Trades",
     description:
-      "View the Green Turtle Trades public traders leaderboard, ranked by verified account performance, win rate, expectancy, risk control, and trade history.",
+      "Join the Green Turtle Trades university trading competition with demo capital, in-house market execution, university leaderboards, and skill-based rankings.",
     keywords:
-      "traders leaderboard, public traders leaderboard, verified trading leaderboard, trading performance leaderboard, turtle traders leaderboard",
+      "university trading competition, student trading competition, trading leaderboard, Green Turtle Trades competition, demo trading competition, university traders",
   },
   "turtle-analytics": {
     title: "Trading Analytics and Trading Journal | Turtle Analytics",
