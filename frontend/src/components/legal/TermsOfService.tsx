@@ -365,12 +365,9 @@ export function TermsOfService({ onBack }: TermsOfServiceProps) {
                   <strong>Email:</strong> <a href="mailto:legal@greenturtletraders.co.uk" className="text-teal-600 hover:text-teal-700">legal@greenturtletraders.co.uk</a>
                 </div>
                 <div className="text-xs">
-                  <strong>Mail:</strong><br />
+                  <strong>Company:</strong><br />
                   GREEN TURTLE TRADES LIMITED<br />
-                  Legal Department<br />
-                  5 South Charlotte Street<br />
-                  Edinburgh EH2 4AN<br />
-                  United Kingdom
+                  Company No: SC878660
                 </div>
               </div>
             </div>

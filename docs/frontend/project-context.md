@@ -82,7 +82,7 @@ interface PaymentModalProps {
 ### Latest Changes (January 2026)
 1. ✅ Fixed header visibility issues across all legal pages with proper top padding
 2. ✅ Updated all legal documents to UK regulations and jurisdiction (removed US law references)
-3. ✅ Updated company references to GREEN TURTLE TRADES LIMITED with UK address
+3. ✅ Updated company references to GREEN TURTLE TRADES LIMITED
 4. ✅ Removed 7-day free trial from payment flow
 5. ✅ Implemented referral code discount system (20% off for first 2 months)
 6. ✅ Updated PaymentModal component with conditional referral discount logic
@@ -140,9 +140,6 @@ interface PaymentModalProps {
 ## Company Information
 
 **GREEN TURTLE TRADES LIMITED**  
-5 South Charlotte Street  
-Edinburgh EH2 4AN  
-United Kingdom  
 Regulated by: FCA  
 Protected by: FSCS  
 

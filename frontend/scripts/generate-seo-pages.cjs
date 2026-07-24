@@ -23,13 +23,6 @@ const organizationStructuredData = {
   email: "contact@greenturtletraders.co.uk",
   description:
     "Green Turtle Trades is a UK trading analytics and trader-backed investing platform operated by Green Turtle Trades Limited, company number SC878660.",
-  address: {
-    "@type": "PostalAddress",
-    streetAddress: "5 South Charlotte Street",
-    addressLocality: "Edinburgh",
-    postalCode: "EH2 4AN",
-    addressCountry: "GB",
-  },
   sameAs: [
     "https://www.instagram.com/greenturtletrades/",
     "https://www.youtube.com/@GreenTurtleTrades",

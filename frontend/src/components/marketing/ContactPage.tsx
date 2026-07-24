@@ -1,4 +1,4 @@
-import { ArrowLeft, Mail, MessageSquare, Phone, Clock, MapPin, Send } from "lucide-react";
+import { ArrowLeft, Mail, MessageSquare, Phone, Clock, BadgeCheck, Send } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { submitContact } from "../../api/contact";
 
@@ -100,15 +100,13 @@ export function ContactPage({ onBack }: ContactPageProps) {
 
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <MapPin className="w-5 h-5 text-slate-600" />
+                    <BadgeCheck className="w-5 h-5 text-slate-600" />
                   </div>
                   <div>
-                    <div className="text-slate-900 text-sm mb-1">Address</div>
+                    <div className="text-slate-900 text-sm mb-1">Company</div>
                     <div className="text-slate-600 text-xs">
                       GREEN TURTLE TRADES LIMITED<br />
-                      5 South Charlotte Street<br />
-                      Edinburgh EH2 4AN<br />
-                      United Kingdom
+                      Company No: SC878660
                     </div>
                   </div>
                 </div>

@@ -488,12 +488,9 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
                   <strong>General Support:</strong> <a href="mailto:contact@greenturtletraders.co.uk" className="text-teal-600 hover:text-teal-700">contact@greenturtletraders.co.uk</a>
                 </div>
                 <div className="text-xs mt-3">
-                  <strong>Mail:</strong><br />
+                  <strong>Company:</strong><br />
                   GREEN TURTLE TRADES LIMITED<br />
-                  Attn: Privacy Department<br />
-                  5 South Charlotte Street<br />
-                  Edinburgh EH2 4AN<br />
-                  United Kingdom
+                  Company No: SC878660
                 </div>
               </div>
             </div>

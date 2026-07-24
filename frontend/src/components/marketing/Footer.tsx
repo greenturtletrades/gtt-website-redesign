@@ -1,4 +1,4 @@
-import { Instagram, MapPin, Mail } from "lucide-react";
+import { Instagram, BadgeCheck, Mail } from "lucide-react";
 import logo from "figma:asset/6f4515e0be3e9f42f43c7a32bab7fda8514f9833.png";
 import type { ViewType } from "../../seo/routes";
 
@@ -52,11 +52,9 @@ export function Footer({ onNavigate }: FooterProps) {
             <h3 className="text-lg mb-4">Legal</h3>
             <div className="space-y-3 text-sm text-slate-400">
               <div className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <BadgeCheck className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <div>
                   <p>GREEN TURTLE TRADES LIMITED</p>
-                  <p>5 South Charlotte Street</p>
-                  <p>Edinburgh EH2 4AN</p>
                 </div>
               </div>
               <p>Company No: SC878660</p>
