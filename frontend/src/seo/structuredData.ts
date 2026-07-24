@@ -230,10 +230,10 @@ export function buildStructuredData(view: ViewType) {
         websiteStructuredData,
         {
           "@type": "WebPage",
-          name: "University Trading Competition",
+          name: "Traders Leaderboard",
           url: getCanonicalUrl(view),
           description:
-            "A university trading competition from Green Turtle Trades with demo capital, in-house market execution, university leaderboards, and skill-based rankings.",
+            "A public traders leaderboard from Green Turtle Trades showing verified trading performance, win rate, expectancy, risk control, and trade history.",
           isPartOf: {
             "@id": `${SITE_URL}/#website`,
           },

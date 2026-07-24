@@ -138,7 +138,7 @@ function buildFallback({ h1, paragraphs }) {
               <li><a href="/">Green Turtle Trades homepage</a></li>
               <li><a href="/about">About Green Turtle Trades</a></li>
               <li><a href="/turtle-analytics">Turtle Analytics</a></li>
-              <li><a href="/traders-leaderboard">Uni Competition</a></li>
+              <li><a href="/traders-leaderboard">Traders Leaderboard</a></li>
               <li><a href="/trading-analytics">Trading Analytics</a></li>
               <li><a href="/trading-journal">Trading Journal</a></li>
               <li><a href="/verified-traders">Verified Traders</a></li>
@@ -204,17 +204,17 @@ const pages = [
   }),
   page({
     route: "/traders-leaderboard",
-    title: "University Trading Competition | Green Turtle Trades",
+    title: "Traders Leaderboard | Green Turtle Trades",
     description:
-      "Join the Green Turtle Trades university trading competition with demo capital, in-house market execution, university leaderboards, and skill-based rankings.",
+      "View the Green Turtle Trades public traders leaderboard, ranked by verified account performance, win rate, expectancy, risk control, and trade history.",
     keywords:
-      "university trading competition, student trading competition, trading leaderboard, Green Turtle Trades competition, demo trading competition, university traders",
-    h1: "University Trading Competition",
+      "traders leaderboard, public traders leaderboard, verified trading leaderboard, trading performance leaderboard, turtle traders leaderboard",
+    h1: "Traders Leaderboard",
     paragraphs: [
-      "The Green Turtle Trades university trading competition lets verified student accounts compete with demo capital through the in-house market execution engine.",
-      "Competition leaderboards reward win rate, expectancy, completed trade sample, and risk control rather than one-off screenshots or unsupported claims.",
+      "The Green Turtle Trades public traders leaderboard helps visitors review opted-in trader performance summaries with clearer context around account performance, risk, expectancy, win rate, and trade history.",
+      "Raw trades remain private while public summaries help make trader comparison more transparent.",
     ],
-    topics: ["University trading competition", "Student trader leaderboard", "Demo trading competition"],
+    topics: ["Trader leaderboard", "Verified trading performance", "Trader comparison"],
   }),
   page({
     route: "/green-turtle-trades",

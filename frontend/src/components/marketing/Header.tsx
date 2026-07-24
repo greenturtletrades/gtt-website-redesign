@@ -99,7 +99,7 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
                 }`}
               >
                 <Trophy className="w-4 h-4" />
-                Uni Competition
+                Traders Leaderboard
               </button>
               <button
                 onClick={onTraderClick}
@@ -152,7 +152,7 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
                 }`}
               >
                 <Trophy className="w-4 h-4" />
-                Uni Competition
+                Traders Leaderboard
               </button>
               <button
                 onClick={onLogout}
@@ -224,7 +224,7 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
                   }`}
                 >
                   <Trophy className="w-5 h-5" />
-                  Uni Competition
+                  Traders Leaderboard
                 </button>
                 <button
                   onClick={() => handleNavigation(onTraderClick)}
@@ -277,7 +277,7 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
                   }`}
                 >
                   <Trophy className="w-4 h-4" />
-                  Uni Competition
+                  Traders Leaderboard
                 </button>
                 <button
                   onClick={() => handleNavigation(onLogout)}
