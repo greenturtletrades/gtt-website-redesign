@@ -1,5 +1,4 @@
 import { motion } from "motion/react";
-import { Sparkles } from "lucide-react";
 
 interface HeroProps {
   onTraderClick: () => void;
@@ -41,16 +40,6 @@ export function Hero({ onTraderClick, onApplyClick, onScrollToWaitingList }: Her
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#0d948808_1px,transparent_1px),linear-gradient(to_bottom,#0d948808_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]"></div>
 
       <div className="max-w-6xl mx-auto text-center relative z-10">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6 }}
-          className="inline-flex items-center gap-2 bg-gradient-to-r from-teal-600 to-cyan-600 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-full mb-4 sm:mb-6 border border-teal-400/30 shadow-lg"
-        >
-          <Sparkles className="w-4 h-4" />
-          <span className="text-sm sm:text-base">Verified Trader Platform</span>
-        </motion.div>
-        
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
