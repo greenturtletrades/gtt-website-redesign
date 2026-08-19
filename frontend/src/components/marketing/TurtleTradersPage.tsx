@@ -444,14 +444,8 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
 
   const visibleTraders = filteredTraders;
   const topTrader = traders[0] || null;
+  const topUniversity = universities[0] || null;
   const selectedArchive = competition?.selectedArchive || null;
-  const activeUniversities = universities.length || new Set(traders.map((trader) => trader.universityName).filter(Boolean)).size;
-  const totalTrades = universities.length
-    ? universities.reduce((sum, university) => sum + university.trades, 0)
-    : traders.reduce((sum, trader) => sum + trader.totalTrades, 0);
-  const totalBackers = universities.length
-    ? universities.reduce((sum, university) => sum + university.followers, 0)
-    : traders.reduce((sum, trader) => sum + trader.followers, 0);
 
   return (
     <div className="min-h-screen bg-white">
@@ -471,26 +465,20 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
             </p>
           </div>
 
-          <div className="mx-auto mt-10 grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mx-auto mt-10 grid max-w-4xl gap-3 sm:grid-cols-2">
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Top Competitor</div>
+                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Top Individual Performer</div>
                 <div className="mt-3 text-2xl font-semibold text-slate-950">{topTrader?.name || "Loading"}</div>
-                <div className="mt-1 text-sm text-slate-600">{topTrader?.universityName || "University competition"}</div>
+                <div className="mt-1 text-sm text-slate-600">
+                  {topTrader ? `${topTrader.universityName} · Score ${topTrader.score.toFixed(1)}` : "University competition"}
+                </div>
               </div>
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Live Score</div>
-                <div className="mt-3 text-2xl font-semibold text-slate-950">{topTrader ? topTrader.score.toFixed(1) : "0.0"}</div>
-                <div className="mt-1 text-sm text-slate-600">Score from competition engine</div>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Universities</div>
-                <div className="mt-3 text-2xl font-semibold text-slate-950">{activeUniversities}</div>
-                <div className="mt-1 text-sm text-slate-600">Represented on the board</div>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Competition Activity</div>
-                <div className="mt-3 text-2xl font-semibold text-slate-950">{totalTrades}</div>
-                <div className="mt-1 text-sm text-slate-600">{formatInvestorCount(totalBackers)} following traders</div>
+                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Top University</div>
+                <div className="mt-3 text-2xl font-semibold text-slate-950">{topUniversity?.universityName || "Loading"}</div>
+                <div className="mt-1 text-sm text-slate-600">
+                  {topUniversity ? `Score ${topUniversity.score.toFixed(1)} · ${topUniversity.activeTraders} active / ${topUniversity.totalTraders}` : "University leaderboard"}
+                </div>
               </div>
           </div>
 
