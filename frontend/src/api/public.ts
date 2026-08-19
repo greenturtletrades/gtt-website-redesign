@@ -39,9 +39,37 @@ export interface PublicUniversityLeaderboardRow {
   aum: number;
 }
 
+export interface PublicCompetitionArchive {
+  id: string;
+  competitionId: string;
+  competitionName: string;
+  archiveLabel: string;
+  year: number;
+  region: string;
+  status: string;
+  savedAt: string | null;
+  rowCount: number;
+  note: string | null;
+}
+
+export interface PublicCompetitionOverview {
+  id: string;
+  name: string;
+  year: number;
+  region: string;
+  status: string;
+  startsAt: string | null;
+  endsAt: string | null;
+  startingBalance: number;
+  includedUniversities: string[];
+  locked: boolean;
+  archives: PublicCompetitionArchive[];
+}
+
 export interface PublicLeaderboardResponse {
   ok: boolean;
   source: "university_competition";
+  competition?: PublicCompetitionOverview;
   leaderboard: PublicLeaderboardRow[];
   universities: PublicUniversityLeaderboardRow[];
 }

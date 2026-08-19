@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { Footer } from "./Footer";
 import { fetchPublicLeaderboard } from "../../api/public";
-import type { PublicLeaderboardRow, PublicUniversityLeaderboardRow } from "../../api/public";
+import type { PublicCompetitionOverview, PublicLeaderboardRow, PublicUniversityLeaderboardRow } from "../../api/public";
 import type { ViewType } from "../../seo/routes";
 
 interface TurtleTradersPageProps {
@@ -43,6 +43,29 @@ function formatCompactCurrency(value: number) {
 
 function formatInvestorCount(value: number) {
   return `${value} ${value === 1 ? "backer" : "backers"}`;
+}
+
+function formatPublicCompetitionDate(value: string | null) {
+  if (!value) return "TBC";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "TBC";
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "short",
+    timeZone: "Europe/London",
+    year: "numeric",
+  }).format(date);
+}
+
+function competitionPhaseLabel(status: string) {
+  const normalized = status.toLowerCase();
+  if (normalized === "testing") return "Testing competition";
+  if (normalized === "scheduled" || normalized === "draft") return "Scheduled competition";
+  if (normalized === "active") return "Live competition";
+  if (normalized === "finished" || normalized === "archived") return "Archived competition";
+  return "Competition setup";
 }
 
 function rankBadge(rank: number) {
@@ -362,6 +385,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
   const [selectedTrader, setSelectedTrader] = useState<PublicLeaderboardRow | null>(null);
   const [traders, setTraders] = useState<PublicLeaderboardRow[]>([]);
   const [universities, setUniversities] = useState<PublicUniversityLeaderboardRow[]>([]);
+  const [competition, setCompetition] = useState<PublicCompetitionOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -371,6 +395,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
       const response = await fetchPublicLeaderboard();
       setTraders(response.leaderboard);
       setUniversities(response.universities || []);
+      setCompetition(response.competition || null);
       setLoadError(null);
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : "Unable to load the university competition leaderboard.");
@@ -440,6 +465,67 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
               build discipline, and gain market experience before real capital is on the line. The leaderboard below
               is powered by live in-house competition data from the Green Turtle platform.
             </p>
+          </div>
+
+          <div className="mx-auto mt-8 grid max-w-5xl gap-3 lg:grid-cols-[1.4fr_0.8fr]">
+            <div className="rounded-xl border border-[#d9e2e8] bg-white p-5 text-left shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[#107949]">
+                    {competition ? competitionPhaseLabel(competition.status) : "Competition setup"}
+                  </div>
+                  <h2 className="mt-2 text-xl font-semibold text-slate-950">
+                    {competition?.name || "University Investment Challenge"}
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    {competition?.status === "testing"
+                      ? "Testing mode is scheduled for internal checks before the public competition goes live."
+                      : competition?.status === "active"
+                        ? "The live leaderboard is updating from the official competition engine."
+                        : competition?.status === "finished" || competition?.status === "archived"
+                          ? "This competition has finished and the final leaderboard is locked."
+                          : "The next competition schedule and setup are controlled from the admin competition panel."}
+                  </p>
+                </div>
+                <span className="rounded-lg border border-[#b9d0c7] bg-[#e8f2ee] px-3 py-1.5 text-xs font-semibold text-[#12372b]">
+                  {competition?.region || "Scotland"} {competition?.year || new Date().getFullYear()}
+                </span>
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-lg bg-slate-50 p-3">
+                  <p className="text-xs text-slate-500">Starts</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-950">{formatPublicCompetitionDate(competition?.startsAt || null)}</p>
+                </div>
+                <div className="rounded-lg bg-slate-50 p-3">
+                  <p className="text-xs text-slate-500">Ends</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-950">{formatPublicCompetitionDate(competition?.endsAt || null)}</p>
+                </div>
+                <div className="rounded-lg bg-slate-50 p-3">
+                  <p className="text-xs text-slate-500">Included Universities</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-950">{competition?.includedUniversities?.length || universities.length || 0}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-[#d9e2e8] bg-white p-5 text-left shadow-sm">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Past Competitions</div>
+              {competition?.archives?.length ? (
+                <div className="mt-3 space-y-2">
+                  {competition.archives.slice(0, 3).map((archive) => (
+                    <div key={archive.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                      <p className="text-sm font-semibold text-slate-950">{archive.archiveLabel}</p>
+                      <p className="mt-1 text-xs text-slate-600">
+                        {archive.rowCount} ranked competitors{archive.savedAt ? ` · saved ${formatPublicCompetitionDate(archive.savedAt)}` : ""}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 text-sm leading-6 text-slate-600">
+                  Finished competitions will appear here once the admin panel locks a final leaderboard archive.
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="mx-auto mt-10 grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">

@@ -263,6 +263,38 @@ function normalizeCompetitionUniversityRow(university, index) {
   };
 }
 
+function normalizeCompetitionOverview(competition) {
+  const source = competition && typeof competition === "object" ? competition : {};
+  const archives = Array.isArray(source.archives) ? source.archives : [];
+  const includedUniversities = Array.isArray(source.includedUniversities)
+    ? source.includedUniversities.map((university) => String(university || "").trim()).filter(Boolean)
+    : [];
+  return {
+    id: String(source.id || "uni-investment-2026"),
+    name: String(source.name || "University Investment Challenge"),
+    year: Math.max(2000, Math.min(2100, Math.floor(number(source.year, new Date().getUTCFullYear())))),
+    region: String(source.region || "Scotland"),
+    status: String(source.status || "active").toLowerCase(),
+    startsAt: source.startsAt || null,
+    endsAt: source.endsAt || null,
+    startingBalance: number(source.startingBalance, 100000),
+    includedUniversities,
+    locked: Boolean(source.locked),
+    archives: archives.map((archive, index) => ({
+      id: String(archive?.id || `archive-${index + 1}`),
+      competitionId: String(archive?.competitionId || source.id || "uni-investment-2026"),
+      competitionName: String(archive?.competitionName || source.name || "University Investment Challenge"),
+      archiveLabel: String(archive?.archiveLabel || archive?.competitionName || source.name || "University Investment Challenge"),
+      year: Math.max(2000, Math.min(2100, Math.floor(number(archive?.year, source.year || new Date().getUTCFullYear())))),
+      region: String(archive?.region || source.region || "Scotland"),
+      status: String(archive?.status || "finished"),
+      savedAt: archive?.savedAt || null,
+      rowCount: Math.max(0, Math.floor(number(archive?.rowCount, 0))),
+      note: archive?.note || null,
+    })),
+  };
+}
+
 function fetchJson(url, { timeoutMs = 8000 } = {}) {
   return new Promise((resolve, reject) => {
     const parsedUrl = new URL(url);
@@ -308,7 +340,8 @@ function fetchJson(url, { timeoutMs = 8000 } = {}) {
 async function fetchCompetitionData(env) {
   const baseUrl = String(env.COMPETITION_API_BASE_URL || env.COMPETITION_APP_API_BASE_URL || "https://comp.turtletrades.co.uk/api").replace(/\/+$/, "");
   const limit = Math.max(1, Math.min(500, number(env.PUBLIC_COMPETITION_LEADERBOARD_LIMIT, 100)));
-  const [traderResponse, universityResponse] = await Promise.allSettled([
+  const [overviewResponse, traderResponse, universityResponse] = await Promise.allSettled([
+    fetchJson(`${baseUrl}/app/competition/overview`),
     fetchJson(`${baseUrl}/app/competition/traders?limit=${limit}`),
     fetchJson(`${baseUrl}/app/competition/universities?limit=${limit}`),
   ]);
@@ -334,6 +367,9 @@ async function fetchCompetitionData(env) {
     : [];
   const universities = universityRows.map(normalizeCompetitionUniversityRow);
   return {
+    competition: overviewResponse.status === "fulfilled" && overviewResponse.value.ok
+      ? normalizeCompetitionOverview(overviewResponse.value.payload?.competition)
+      : normalizeCompetitionOverview({}),
     leaderboard,
     universities,
   };
@@ -352,6 +388,7 @@ function registerPublicRoutes(app, {
       return res.json({
         ok: true,
         source: "university_competition",
+        competition: competitionData.competition,
         leaderboard: competitionData.leaderboard,
         universities: competitionData.universities,
       });

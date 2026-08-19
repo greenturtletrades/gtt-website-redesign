@@ -375,6 +375,32 @@ test("GET /api/public/leaderboard proxies the university competition leaderboard
   const upstream = await new Promise((resolve, reject) => {
     const instance = http.createServer((req, res) => {
       res.setHeader("Content-Type", "application/json");
+      if (req.url === "/app/competition/overview") {
+        res.end(JSON.stringify({
+          competition: {
+            id: "uni-investment-2026",
+            name: "University Investment Challenge",
+            year: 2026,
+            region: "Scotland",
+            status: "testing",
+            startsAt: "2026-09-28T09:00:00.000Z",
+            endsAt: "2026-11-30T18:00:00.000Z",
+            startingBalance: 100000,
+            includedUniversities: ["Heriot-Watt University"],
+            locked: false,
+            archives: [
+              {
+                id: "snapshot-2025",
+                archiveLabel: "University Investment Challenge 2025",
+                year: 2025,
+                savedAt: "2025-11-30T18:00:00.000Z",
+                rowCount: 12,
+              },
+            ],
+          },
+        }));
+        return;
+      }
       if (req.url === "/app/competition/universities?limit=100") {
         res.end(JSON.stringify({
           universities: [
@@ -438,6 +464,9 @@ test("GET /api/public/leaderboard proxies the university competition leaderboard
       assert.equal(response.status, 200);
       assert.equal(response.body.ok, true);
       assert.equal(response.body.source, "university_competition");
+      assert.equal(response.body.competition.status, "testing");
+      assert.equal(response.body.competition.includedUniversities.length, 1);
+      assert.equal(response.body.competition.archives.length, 1);
       assert.equal(response.body.leaderboard.length, 1);
       assert.equal(response.body.universities.length, 1);
       assert.equal(response.body.universities[0].universityName, "Heriot-Watt University");
