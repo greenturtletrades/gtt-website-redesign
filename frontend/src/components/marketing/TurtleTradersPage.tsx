@@ -455,7 +455,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
       >
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-5xl text-center">
-            <h1 className="mx-auto max-w-4xl text-4xl leading-tight tracking-tight text-slate-950 sm:text-5xl md:text-6xl">
+            <h1 className="mx-auto max-w-4xl text-4xl leading-tight text-slate-950 sm:text-5xl md:text-6xl">
               Scotland&apos;s next generation of investors, ranked live.
             </h1>
             <p className="mx-auto mt-5 max-w-3xl text-base font-medium leading-8 text-slate-700 sm:text-lg">
@@ -465,20 +465,50 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
             </p>
           </div>
 
-          <div className="mx-auto mt-10 grid max-w-4xl gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Top Individual Performer</div>
-                <div className="mt-3 text-2xl font-semibold text-slate-950">{topTrader?.name || "Loading"}</div>
-                <div className="mt-1 text-sm text-slate-600">
-                  {topTrader ? `${topTrader.universityName} · Score ${topTrader.score.toFixed(1)}` : "University competition"}
+          <div className="mx-auto mt-10 grid max-w-6xl gap-4 md:grid-cols-2">
+              <div className="relative overflow-hidden rounded-2xl border border-[#d9e2e8] bg-white p-5 text-left shadow-[0_14px_38px_rgba(15,23,42,0.08)]">
+                <div className="absolute inset-x-0 top-0 h-1 bg-[#107949]" />
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold uppercase text-slate-500">Top Individual Performer</div>
+                    <div className="mt-3 truncate text-2xl font-semibold text-slate-950">{topTrader?.name || "Loading"}</div>
+                    <div className="mt-1 text-sm text-slate-600">{topTrader?.universityName || "University competition"}</div>
+                  </div>
+                  <div className="flex h-11 min-w-16 flex-shrink-0 flex-col items-center justify-center rounded-xl border border-[#d9e2e8] bg-[#f8fbfa] px-3">
+                    <span className="text-[0.6875rem] font-semibold text-slate-500">Score</span>
+                    <span className="text-base font-semibold text-[#107949]">{topTrader ? topTrader.score.toFixed(1) : "0.0"}</span>
+                  </div>
                 </div>
+                {topTrader ? (
+                  <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
+                    <div><p className="text-xs text-slate-500">Win Rate</p><p className="font-semibold text-slate-950">{topTrader.winRate.toFixed(1)}%</p></div>
+                    <div><p className="text-xs text-slate-500">Return</p><p className="font-semibold" style={signedValueTextStyle(topTrader.totalReturnPercent)}>{formatSignedPercent(topTrader.totalReturnPercent, 2)}</p></div>
+                    <div><p className="text-xs text-slate-500">Risk</p><p className={`font-semibold ${riskTextClass(topTrader.riskLabel)}`}>{topTrader.riskLabel}</p></div>
+                  </div>
+                ) : null}
               </div>
-              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Top University</div>
-                <div className="mt-3 text-2xl font-semibold text-slate-950">{topUniversity?.universityName || "Loading"}</div>
-                <div className="mt-1 text-sm text-slate-600">
-                  {topUniversity ? `Score ${topUniversity.score.toFixed(1)} · ${topUniversity.activeTraders} active / ${topUniversity.totalTraders}` : "University leaderboard"}
+              <div className="relative overflow-hidden rounded-2xl border border-[#d9e2e8] bg-white p-5 text-left shadow-[0_14px_38px_rgba(15,23,42,0.08)]">
+                <div className="absolute inset-x-0 top-0 h-1 bg-[#12372b]" />
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold uppercase text-slate-500">Top University</div>
+                    <div className="mt-3 truncate text-2xl font-semibold text-slate-950">{topUniversity?.universityName || "Loading"}</div>
+                    <div className="mt-1 text-sm text-slate-600">
+                      {topUniversity ? `${topUniversity.activeTraders} active / ${topUniversity.totalTraders} competitors` : "University leaderboard"}
+                    </div>
+                  </div>
+                  <div className="flex h-11 min-w-16 flex-shrink-0 flex-col items-center justify-center rounded-xl border border-[#d9e2e8] bg-[#f8fbfa] px-3">
+                    <span className="text-[0.6875rem] font-semibold text-slate-500">Score</span>
+                    <span className="text-base font-semibold text-[#107949]">{topUniversity ? topUniversity.score.toFixed(1) : "0.0"}</span>
+                  </div>
                 </div>
+                {topUniversity ? (
+                  <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
+                    <div><p className="text-xs text-slate-500">Win Rate</p><p className="font-semibold text-slate-950">{topUniversity.winRate.toFixed(1)}%</p></div>
+                    <div><p className="text-xs text-slate-500">Return</p><p className="font-semibold" style={signedValueTextStyle(topUniversity.totalReturnPercent)}>{formatSignedPercent(topUniversity.totalReturnPercent, 2)}</p></div>
+                    <div><p className="text-xs text-slate-500">Backers</p><p className="font-semibold text-slate-950">{topUniversity.followers}</p></div>
+                  </div>
+                ) : null}
               </div>
           </div>
 
@@ -487,22 +517,26 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
               <PublicTraderProfile trader={selectedTrader} onBack={() => setSelectedTrader(null)} />
             ) : (
               <div className="space-y-4">
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
+                <div
+                  className="grid items-center gap-2 rounded-2xl border border-[#d9e2e8] bg-white p-2 shadow-[0_12px_30px_rgba(15,23,42,0.06)]"
+                  style={{ gridTemplateColumns: "minmax(0, 1fr) auto" }}
+                >
+                  <div className="relative min-w-0">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <input
                       type="text"
                       value={searchTerm}
                       onChange={(event) => setSearchTerm(event.target.value)}
                       placeholder="Search by name, strategy, or assets..."
-                      className="w-full rounded-xl border border-[#e5eaef] bg-white py-3 pl-10 pr-4 text-sm text-[#111827] placeholder:text-[#9ca3af] focus:border-[#107949] focus:outline-none focus:ring-2 focus:ring-[#107949]/20"
+                      className="w-full rounded-xl border border-transparent bg-[#f8faf9] py-3 pl-10 pr-4 text-sm text-[#111827] placeholder:text-[#9ca3af] focus:border-[#107949] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#107949]/20"
                     />
                   </div>
+                  <div className="flex flex-shrink-0 justify-end gap-2">
                   <button
                     type="button"
                     onClick={handleRefresh}
                     disabled={refreshing}
-                    className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border border-[#e5eaef] bg-white text-[#4b5563] transition-colors hover:bg-[#fafbfc] disabled:opacity-60"
+                    className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border border-[#d9e2e8] bg-white text-[#4b5563] transition-colors hover:bg-[#fafbfc] disabled:opacity-60"
                     aria-label="Refresh leaderboard"
                   >
                     <RefreshCw className={`h-5 w-5 ${refreshing ? "animate-spin" : ""}`} />
@@ -527,6 +561,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                         className="transition-transform duration-200 ease-out"
                       />
                     </button>
+                  </div>
                   </div>
                 </div>
 
@@ -711,18 +746,18 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
             )}
           </div>
 
-          <div className="mx-auto mt-6 max-w-6xl rounded-lg border border-[#d9e2e8] bg-white/80 px-4 py-3 text-left shadow-sm">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-600">
+          <div className="mx-auto mt-6 max-w-6xl rounded-xl border border-[#d9e2e8] bg-white px-4 py-3 text-left shadow-[0_10px_26px_rgba(15,23,42,0.06)]">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
               <span className="rounded-full border border-[#b9d0c7] bg-[#e8f2ee] px-2.5 py-1 font-semibold text-[#12372b]">
                 {competition ? competitionPhaseLabel(competition.status) : "Competition setup"}
               </span>
-              <span className="font-semibold text-slate-950">{selectedArchive?.archiveLabel || competition?.name || "University Investment Challenge"}</span>
-              <span>{competition?.region || "Scotland"} {competition?.year || new Date().getFullYear()}</span>
-              <span>Starts {formatPublicCompetitionDate(competition?.startsAt || null)}</span>
-              <span>Ends {formatPublicCompetitionDate(competition?.endsAt || null)}</span>
-              <span>{competition?.includedUniversities?.length || universities.length || 0} universities</span>
+              <span className="rounded-full bg-[#f8faf9] px-2.5 py-1 font-semibold text-slate-950">{selectedArchive?.archiveLabel || competition?.name || "University Investment Challenge"}</span>
+              <span className="rounded-full bg-[#f8faf9] px-2.5 py-1">{competition?.region || "Scotland"} {competition?.year || new Date().getFullYear()}</span>
+              <span className="rounded-full bg-[#f8faf9] px-2.5 py-1">Starts {formatPublicCompetitionDate(competition?.startsAt || null)}</span>
+              <span className="rounded-full bg-[#f8faf9] px-2.5 py-1">Ends {formatPublicCompetitionDate(competition?.endsAt || null)}</span>
+              <span className="rounded-full bg-[#f8faf9] px-2.5 py-1">{competition?.includedUniversities?.length || universities.length || 0} universities</span>
               {competition?.archives?.length ? (
-                <span>{competition.archives.length} archived {competition.archives.length === 1 ? "competition" : "competitions"}</span>
+                <span className="rounded-full bg-[#f8faf9] px-2.5 py-1">{competition.archives.length} archived {competition.archives.length === 1 ? "competition" : "competitions"}</span>
               ) : null}
             </div>
             {competition?.archives?.length ? (
