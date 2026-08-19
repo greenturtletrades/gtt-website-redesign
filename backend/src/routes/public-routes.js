@@ -337,9 +337,63 @@ function fetchJson(url, { timeoutMs = 8000 } = {}) {
   });
 }
 
-async function fetchCompetitionData(env) {
+async function fetchCompetitionData(env, { archiveId = "" } = {}) {
   const baseUrl = String(env.COMPETITION_API_BASE_URL || env.COMPETITION_APP_API_BASE_URL || "https://comp.turtletrades.co.uk/api").replace(/\/+$/, "");
   const limit = Math.max(1, Math.min(500, number(env.PUBLIC_COMPETITION_LEADERBOARD_LIMIT, 100)));
+  const normalizedArchiveId = String(archiveId || "").trim();
+
+  if (normalizedArchiveId) {
+    const [overviewResponse, archiveResponse] = await Promise.allSettled([
+      fetchJson(`${baseUrl}/app/competition/overview`),
+      fetchJson(`${baseUrl}/app/competition/archive/${encodeURIComponent(normalizedArchiveId)}`),
+    ]);
+
+    if (archiveResponse.status !== "fulfilled" || !archiveResponse.value.ok) {
+      const status = archiveResponse.status === "fulfilled" ? archiveResponse.value.status : "network_error";
+      const payload = archiveResponse.status === "fulfilled" ? archiveResponse.value.payload : {};
+      const message = payload?.error || payload?.message || `Competition archive API returned ${status}`;
+      throw new Error(message);
+    }
+
+    const archive = archiveResponse.value.payload?.archive || {};
+    const traders = Array.isArray(archiveResponse.value.payload?.traders) ? archiveResponse.value.payload.traders : [];
+    const universityRows = Array.isArray(archiveResponse.value.payload?.universities) ? archiveResponse.value.payload.universities : [];
+    const overview = overviewResponse.status === "fulfilled" && overviewResponse.value.ok
+      ? normalizeCompetitionOverview(overviewResponse.value.payload?.competition)
+      : normalizeCompetitionOverview({});
+    const selectedArchive = normalizeCompetitionOverview({
+      ...overview,
+      id: archive.competitionId || overview.id,
+      name: archive.competitionName || archive.archiveLabel || overview.name,
+      year: archive.year || overview.year,
+      region: archive.region || overview.region,
+      status: "archived",
+      startsAt: archive.startsAt || null,
+      endsAt: archive.endsAt || null,
+      startingBalance: archive.startingBalance || overview.startingBalance,
+      includedUniversities: archive.includedUniversities || overview.includedUniversities,
+      locked: true,
+      archives: overview.archives,
+    });
+    selectedArchive.selectedArchive = {
+      id: String(archive.id || normalizedArchiveId),
+      competitionId: String(archive.competitionId || selectedArchive.id),
+      competitionName: String(archive.competitionName || selectedArchive.name),
+      archiveLabel: String(archive.archiveLabel || archive.competitionName || selectedArchive.name),
+      year: selectedArchive.year,
+      region: selectedArchive.region,
+      status: "archived",
+      savedAt: archive.savedAt || null,
+      rowCount: Math.max(0, Math.floor(number(archive.rowCount, traders.length))),
+      note: archive.note || null,
+    };
+    return {
+      competition: selectedArchive,
+      leaderboard: traders.map(normalizeCompetitionLeaderboardRow),
+      universities: universityRows.map(normalizeCompetitionUniversityRow),
+    };
+  }
+
   const [overviewResponse, traderResponse, universityResponse] = await Promise.allSettled([
     fetchJson(`${baseUrl}/app/competition/overview`),
     fetchJson(`${baseUrl}/app/competition/traders?limit=${limit}`),
@@ -384,7 +438,7 @@ function registerPublicRoutes(app, {
 }) {
   app.get("/api/public/leaderboard", async (req, res, next) => {
     try {
-      const competitionData = await fetchCompetitionData(env);
+      const competitionData = await fetchCompetitionData(env, { archiveId: req.query?.archiveId });
       return res.json({
         ok: true,
         source: "university_competition",

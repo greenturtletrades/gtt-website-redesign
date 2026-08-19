@@ -64,6 +64,7 @@ export interface PublicCompetitionOverview {
   includedUniversities: string[];
   locked: boolean;
   archives: PublicCompetitionArchive[];
+  selectedArchive?: PublicCompetitionArchive;
 }
 
 export interface PublicLeaderboardResponse {
@@ -74,6 +75,7 @@ export interface PublicLeaderboardResponse {
   universities: PublicUniversityLeaderboardRow[];
 }
 
-export function fetchPublicLeaderboard() {
-  return apiGet<PublicLeaderboardResponse>("/api/public/leaderboard");
+export function fetchPublicLeaderboard(archiveId?: string) {
+  const query = archiveId ? `?archiveId=${encodeURIComponent(archiveId)}` : "";
+  return apiGet<PublicLeaderboardResponse>(`/api/public/leaderboard${query}`);
 }

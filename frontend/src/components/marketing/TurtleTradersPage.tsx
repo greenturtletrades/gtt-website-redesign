@@ -386,17 +386,19 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
   const [traders, setTraders] = useState<PublicLeaderboardRow[]>([]);
   const [universities, setUniversities] = useState<PublicUniversityLeaderboardRow[]>([]);
   const [competition, setCompetition] = useState<PublicCompetitionOverview | null>(null);
+  const [selectedArchiveId, setSelectedArchiveId] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadLeaderboard = async () => {
     try {
-      const response = await fetchPublicLeaderboard();
+      const response = await fetchPublicLeaderboard(selectedArchiveId || undefined);
       setTraders(response.leaderboard);
       setUniversities(response.universities || []);
       setCompetition(response.competition || null);
       setLoadError(null);
+      setSelectedTrader(null);
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : "Unable to load the university competition leaderboard.");
     } finally {
@@ -406,8 +408,9 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
   };
 
   useEffect(() => {
+    setLoading(true);
     loadLeaderboard();
-  }, []);
+  }, [selectedArchiveId]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -441,6 +444,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
 
   const visibleTraders = filteredTraders;
   const topTrader = traders[0] || null;
+  const selectedArchive = competition?.selectedArchive || null;
   const activeUniversities = universities.length || new Set(traders.map((trader) => trader.universityName).filter(Boolean)).size;
   const totalTrades = universities.length
     ? universities.reduce((sum, university) => sum + university.trades, 0)
@@ -724,7 +728,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
               <span className="rounded-full border border-[#b9d0c7] bg-[#e8f2ee] px-2.5 py-1 font-semibold text-[#12372b]">
                 {competition ? competitionPhaseLabel(competition.status) : "Competition setup"}
               </span>
-              <span className="font-semibold text-slate-950">{competition?.name || "University Investment Challenge"}</span>
+              <span className="font-semibold text-slate-950">{selectedArchive?.archiveLabel || competition?.name || "University Investment Challenge"}</span>
               <span>{competition?.region || "Scotland"} {competition?.year || new Date().getFullYear()}</span>
               <span>Starts {formatPublicCompetitionDate(competition?.startsAt || null)}</span>
               <span>Ends {formatPublicCompetitionDate(competition?.endsAt || null)}</span>
@@ -733,6 +737,37 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                 <span>{competition.archives.length} archived {competition.archives.length === 1 ? "competition" : "competitions"}</span>
               ) : null}
             </div>
+            {competition?.archives?.length ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedArchiveId("")}
+                  aria-pressed={!selectedArchiveId}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    !selectedArchiveId
+                      ? "border-[#107949] bg-[#107949] text-white"
+                      : "border-[#d9e2e8] bg-white text-slate-700 hover:border-[#107949]/50"
+                  }`}
+                >
+                  Current leaderboard
+                </button>
+                {competition.archives.map((archive) => (
+                  <button
+                    key={archive.id}
+                    type="button"
+                    onClick={() => setSelectedArchiveId(archive.id)}
+                    aria-pressed={selectedArchiveId === archive.id}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      selectedArchiveId === archive.id
+                        ? "border-slate-900 bg-slate-900 text-white"
+                        : "border-[#d9e2e8] bg-white text-slate-700 hover:border-slate-400"
+                    }`}
+                  >
+                    {archive.archiveLabel}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
 
           <div className="mt-8 grid gap-4 md:grid-cols-3">
