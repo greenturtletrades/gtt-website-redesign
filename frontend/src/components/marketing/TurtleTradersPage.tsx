@@ -411,23 +411,6 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
               <PublicTraderProfile trader={selectedTrader} onBack={() => setSelectedTrader(null)} />
             ) : (
               <div className="space-y-4">
-                <div>
-                  <h2 className="mb-1 text-2xl font-semibold text-slate-950">Trader Marketplace</h2>
-                  <p className="text-sm text-slate-600">Browse and invest with verified traders</p>
-                </div>
-
-                <div className="rounded-xl border border-teal-200 bg-teal-50 p-4">
-                  <div className="flex items-start gap-3">
-                    <Trophy className="mt-0.5 h-5 w-5 flex-shrink-0 text-teal-600" />
-                    <div>
-                      <p className="mb-1 text-sm font-medium text-slate-950">Competition Trader Market</p>
-                      <p className="text-xs leading-relaxed text-slate-600">
-                        Back other university participants using the separate $10,000 trader-investing account. Investor accounts only allocate capital to traders.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
