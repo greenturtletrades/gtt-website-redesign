@@ -237,6 +237,14 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
   const performanceMax = performanceValues.length ? Math.max(...performanceValues) : 0;
   const performancePath = buildPerformancePath(performancePoints);
   const performanceAreaPath = performancePath ? `${performancePath} L 100 100 L 0 100 Z` : "";
+  const performanceMidIndex = Math.floor((performancePoints.length - 1) / 2);
+  const performanceXAxisLabels = performancePoints.length
+    ? [
+        formatShortTradeDate(performancePoints[0]?.date || null),
+        formatShortTradeDate(performancePoints[performanceMidIndex]?.date || null),
+        formatShortTradeDate(performancePoints[performancePoints.length - 1]?.date || null),
+      ]
+    : [];
   const recentTrades = Array.isArray(trader.recentTrades) ? trader.recentTrades : [];
 
   return (
@@ -310,6 +318,11 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
                       <div key={line} className="border-t border-slate-200/70" />
                     ))}
                   </div>
+                  <div className="absolute inset-x-0 bottom-0 flex justify-between">
+                    {[0, 1, 2].map((tick) => (
+                      <span key={tick} className="h-1.5 border-l border-slate-300/80" />
+                    ))}
+                  </div>
                   <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="relative h-full w-full overflow-visible">
                     <path
                       d={performanceAreaPath}
@@ -333,10 +346,19 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
               </div>
             )}
             </div>
-          <div className="mt-1 text-right text-[0.6875rem] text-slate-500">
-            {performancePoints.length
-              ? `${formatShortTradeDate(performancePoints[0]?.date || null)} - ${formatShortTradeDate(performancePoints[performancePoints.length - 1]?.date || null)}`
-              : "Performance preview"}
+          <div className="mt-1 flex gap-2 text-[0.6875rem] leading-none text-slate-500">
+            <span className="w-12 flex-shrink-0" />
+            {performanceXAxisLabels.length ? (
+              <div className="flex min-w-0 flex-1 justify-between">
+                {performanceXAxisLabels.map((label, index) => (
+                  <span key={`${label}-${index}`} className={index === 1 ? "text-center" : index === 2 ? "text-right" : ""}>
+                    {label}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <span className="min-w-0 flex-1 text-right">Performance preview</span>
+            )}
           </div>
         </div>
 
