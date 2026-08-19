@@ -23,7 +23,7 @@ interface TurtleTradersPageProps {
 }
 
 type LeaderboardView = "traders" | "universities";
-type SortOption = "default" | "topPerformers" | "winRate" | "returns" | "risk" | "followers";
+type SortOption = "topPerformers" | "winRate" | "returns" | "risk" | "followers";
 
 function formatSignedPercent(value: number, decimals = 2) {
   if (!Number.isFinite(value)) return "0.00%";
@@ -74,6 +74,21 @@ function universityFilterButtonStyle(active: boolean): CSSProperties {
         backgroundColor: "#0f6b45",
         borderColor: "#0f6b45",
         boxShadow: "0 8px 18px rgba(15, 107, 69, 0.2)",
+        color: "#ffffff",
+      }
+    : {
+        backgroundColor: "#e8f2ee",
+        borderColor: "#b9d0c7",
+        color: "#12372b",
+      };
+}
+
+function leaderboardControlButtonStyle(active: boolean): CSSProperties {
+  return active
+    ? {
+        backgroundColor: "#0f6b45",
+        borderColor: "#0f6b45",
+        boxShadow: "0 8px 18px rgba(15, 107, 69, 0.18)",
         color: "#ffffff",
       }
     : {
@@ -499,7 +514,6 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                     <>
                       {[
                         ["topPerformers", "Top Performers"],
-                        ["default", "Default"],
                         ["winRate", "Win Rate"],
                         ["returns", "Returns"],
                         ["risk", "Risk"],
@@ -509,11 +523,9 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                           key={value}
                           type="button"
                           onClick={() => setSortBy(value as SortOption)}
-                          className={`flex flex-shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm transition-colors ${
-                            sortBy === value
-                              ? "bg-[#107949] text-white"
-                              : "bg-white text-[#4b5563] hover:bg-[#fafbfc]"
-                          }`}
+                          aria-pressed={sortBy === value}
+                          style={leaderboardControlButtonStyle(sortBy === value)}
+                          className="flex flex-shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-semibold shadow-sm transition-all hover:-translate-y-px hover:brightness-[0.98] active:translate-y-0"
                         >
                           {value === "topPerformers" ? <Trophy className="h-3.5 w-3.5" /> : null}
                           {label}
