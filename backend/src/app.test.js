@@ -443,6 +443,10 @@ test("GET /api/public/leaderboard proxies the university competition leaderboard
                 aum: 100880.58,
                 mainAssets: ["SLV", "TAK"],
                 liveTrades: [{ id: "live-1" }],
+                performanceData: [
+                  { date: "2026-07-08T12:00:00.000Z", value: 100000 },
+                  { date: "2026-07-17T12:00:00.000Z", value: 100260.89 },
+                ],
               },
             },
           ],
@@ -478,6 +482,8 @@ test("GET /api/public/leaderboard proxies the university competition leaderboard
       assert.equal(response.body.leaderboard[0].score, 39.5);
       assert.equal(response.body.leaderboard[0].totalTrades, 10);
       assert.equal(response.body.leaderboard[0].openTrades, 1);
+      assert.equal(response.body.leaderboard[0].performanceData[0].value, 0);
+      assert.equal(Number(response.body.leaderboard[0].performanceData[1].value.toFixed(5)), 0.26089);
     });
   } finally {
     if (originalBaseUrl === undefined) delete process.env.COMPETITION_API_BASE_URL;

@@ -201,13 +201,37 @@ function formatInitials(name) {
 function normalizePublicPerformancePoint(point) {
   if (!point || typeof point !== "object") return null;
   const rawDate = point.date || point.timestamp || point.time || point.label || null;
-  const rawValue = point.value ?? point.equity ?? point.returnPercent ?? point.pnl ?? null;
+  const rawValue = point.returnPercent ?? point.totalReturnPercent ?? point.value ?? point.equity ?? point.pnl ?? null;
   const value = number(rawValue, NaN);
   if (!Number.isFinite(value)) return null;
   return {
     date: rawDate ? String(rawDate) : null,
     value,
   };
+}
+
+function normalizePublicPerformanceSeries(points) {
+  if (!Array.isArray(points)) return [];
+  const normalized = points.map(normalizePublicPerformancePoint).filter(Boolean).slice(-40);
+  if (normalized.length < 2) return normalized;
+
+  const hasExplicitReturnPercent = points.some((point) => {
+    if (!point || typeof point !== "object") return false;
+    return Number.isFinite(Number(point.returnPercent ?? point.totalReturnPercent));
+  });
+  if (hasExplicitReturnPercent) return normalized;
+
+  const values = normalized.map((point) => point.value);
+  const maxAbs = Math.max(...values.map((value) => Math.abs(value)));
+  if (maxAbs < 100) return normalized;
+
+  const baseValue = values.find((value) => Math.abs(value) > 1e-8) || values[0] || 0;
+  if (Math.abs(baseValue) <= 1e-8) return normalized.map((point) => ({ ...point, value: 0 }));
+
+  return normalized.map((point) => ({
+    ...point,
+    value: ((point.value - baseValue) / Math.abs(baseValue)) * 100,
+  }));
 }
 
 function normalizePublicTrade(trade, index) {
@@ -242,9 +266,7 @@ function normalizeCompetitionLeaderboardRow(trader, index) {
   const mainAssets = Array.isArray(data.mainAssets)
     ? data.mainAssets.map((asset) => String(asset)).filter(Boolean).slice(0, 4)
     : [];
-  const performanceData = Array.isArray(data.performanceData)
-    ? data.performanceData.map(normalizePublicPerformancePoint).filter(Boolean).slice(-40)
-    : [];
+  const performanceData = normalizePublicPerformanceSeries(data.performanceData);
   const recentTrades = Array.isArray(data.recentTrades)
     ? data.recentTrades.map(normalizePublicTrade).filter(Boolean).slice(0, 5)
     : [];
