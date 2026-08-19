@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   ArrowUpDown,
   BarChart3,
-  Filter,
   GraduationCap,
   RefreshCw,
   Search,
@@ -311,8 +310,6 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
   const [sortBy, setSortBy] = useState<SortOption>("topPerformers");
   const [selectedUniversity, setSelectedUniversity] = useState("");
   const [selectedTrader, setSelectedTrader] = useState<PublicLeaderboardRow | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
-  const [riskFilter, setRiskFilter] = useState("");
   const [traders, setTraders] = useState<PublicLeaderboardRow[]>([]);
   const [universities, setUniversities] = useState<PublicUniversityLeaderboardRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -352,10 +349,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
       trader.universityName.toLowerCase().includes(query) ||
       trader.mainAssets.some((asset) => asset.toLowerCase().includes(query))
     ));
-    const riskScoped = riskFilter
-      ? searched.filter((trader) => trader.riskLabel.toLowerCase().includes(riskFilter.toLowerCase()))
-      : searched;
-    const sorted = riskScoped.slice();
+    const sorted = searched.slice();
     if (sortBy === "topPerformers") {
       sorted.sort((a, b) => b.score - a.score || b.totalReturnPercent - a.totalReturnPercent || b.totalTrades - a.totalTrades);
     } else if (sortBy === "winRate") {
@@ -368,7 +362,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
       sorted.sort((a, b) => b.followers - a.followers || b.score - a.score);
     }
     return sortBy === "topPerformers" && !selectedUniversity ? sorted.slice(0, 5) : sorted;
-  }, [riskFilter, searchTerm, selectedUniversity, sortBy, traders]);
+  }, [searchTerm, selectedUniversity, sortBy, traders]);
 
   const visibleTraders = filteredTraders;
   const topTrader = traders[0] || null;
@@ -446,46 +440,30 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                   >
                     <RefreshCw className={`h-5 w-5 ${refreshing ? "animate-spin" : ""}`} />
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowFilters((current) => !current)}
-                    className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border border-[#e5eaef] bg-white text-[#4b5563] transition-colors hover:bg-[#fafbfc]"
-                    aria-label="Filter leaderboard"
-                  >
-                    <Filter className="h-5 w-5" />
-                  </button>
-                </div>
-
-                {showFilters ? (
-                  <div className="rounded-xl border border-[#e5eaef] bg-white p-4 shadow-sm">
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <p className="text-sm font-medium text-slate-950">Filters</p>
-                      <button
-                        type="button"
-                        onClick={() => setRiskFilter("")}
-                        className="text-xs font-medium text-teal-700 hover:underline"
-                      >
-                        Clear filters
-                      </button>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {["", "Low", "Medium", "High", "Unrated"].map((risk) => (
-                        <button
-                          key={risk || "all-risk"}
-                          type="button"
-                          onClick={() => setRiskFilter(risk)}
-                          className={`rounded-lg px-3 py-2 text-sm transition-colors ${
-                            riskFilter === risk
-                              ? "bg-[#107949] text-white"
-                              : "bg-white text-[#4b5563] hover:bg-[#fafbfc]"
-                          }`}
-                        >
-                          {risk || "All Risk"}
-                        </button>
-                      ))}
-                    </div>
+                  <div className="flex h-12 flex-shrink-0 items-center gap-3 rounded-xl border border-[#d9e2e8] bg-white px-3 shadow-sm">
+                    <span className="whitespace-nowrap text-sm font-semibold text-[#334155]">Uni view</span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={leaderboardView === "universities"}
+                      aria-label="Toggle university view"
+                      onClick={() => {
+                        setLeaderboardView(leaderboardView === "traders" ? "universities" : "traders");
+                        setSelectedUniversity("");
+                        if (leaderboardView === "universities") setSortBy("topPerformers");
+                      }}
+                      className={`relative h-8 w-14 flex-shrink-0 rounded-full border shadow-inner transition-all active:scale-95 ${
+                        leaderboardView === "universities" ? "border-[#107949] bg-[#107949]" : "border-[#cbd5e1] bg-[#f8faf9]"
+                      }`}
+                    >
+                      <span
+                        className={`absolute left-1 top-1 h-6 w-6 rounded-full bg-white shadow-md transition-transform ${
+                          leaderboardView === "universities" ? "translate-x-6" : "translate-x-0"
+                        }`}
+                      />
+                    </button>
                   </div>
-                ) : null}
+                </div>
 
                 <div className="flex gap-2 overflow-x-auto pb-2">
                   {leaderboardView === "traders" ? (
@@ -540,29 +518,6 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                       ))}
                     </>
                   )}
-                  <div className="ml-auto flex flex-shrink-0 items-center gap-3 pl-2">
-                    <span className="whitespace-nowrap text-sm font-medium text-[#4b5563]">Uni view</span>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={leaderboardView === "universities"}
-                      aria-label="Toggle university view"
-                      onClick={() => {
-                        setLeaderboardView(leaderboardView === "traders" ? "universities" : "traders");
-                        setSelectedUniversity("");
-                        if (leaderboardView === "universities") setSortBy("topPerformers");
-                      }}
-                      className={`relative h-8 w-14 flex-shrink-0 rounded-full border shadow-inner transition-all active:scale-95 ${
-                        leaderboardView === "universities" ? "border-[#107949] bg-[#107949]" : "border-[#e5eaef] bg-white"
-                      }`}
-                    >
-                      <span
-                        className={`absolute left-1 top-1 h-6 w-6 rounded-full bg-white shadow-md transition-transform ${
-                          leaderboardView === "universities" ? "translate-x-6" : "translate-x-0"
-                        }`}
-                      />
-                    </button>
-                  </div>
                 </div>
 
                 {loading ? (
