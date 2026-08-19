@@ -406,7 +406,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
               </div>
           </div>
 
-          <div className="mt-12 mx-auto max-w-4xl">
+          <div className="mx-auto mt-12 max-w-6xl">
             {selectedTrader ? (
               <PublicTraderProfile trader={selectedTrader} onBack={() => setSelectedTrader(null)} />
             ) : (
@@ -583,7 +583,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                 ) : null}
 
                 {leaderboardView === "universities" && !selectedUniversity && !loading && !loadError ? (
-                  <div className="space-y-3.5">
+                  <div className="space-y-2.5">
                     {universities.map((university, index) => {
                       const isPositive = university.totalReturnPercent >= 0;
                       return (
@@ -591,16 +591,16 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                           key={university.universityName}
                           type="button"
                           onClick={() => setSelectedUniversity(university.universityName)}
-                          className="w-full rounded-xl border border-slate-200 bg-white p-6 text-left shadow-sm transition-colors hover:bg-slate-50"
+                          className="w-full rounded-lg border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors hover:bg-slate-50 sm:p-5"
                         >
-                          <div className="flex items-start gap-4">
-                            <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl ${rankBadgeClass(index)}`}>
-                              {index < 3 ? <span className="text-2xl">{rankBadge(index + 1)}</span> : <span className="font-semibold">#{index + 1}</span>}
+                          <div className="flex items-start gap-3 sm:gap-4">
+                            <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${rankBadgeClass(index)}`}>
+                              {index < 3 ? <span className="text-xl">{rankBadge(index + 1)}</span> : <span className="text-sm font-semibold">#{index + 1}</span>}
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-start justify-between gap-4">
                                 <div className="min-w-0">
-                                  <h4 className="truncate text-lg font-semibold text-slate-950">{university.universityName}</h4>
+                                  <h4 className="truncate text-base font-semibold text-slate-950">{university.universityName}</h4>
                                   <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
                                     <span>{university.activeTraders} active / {university.totalTraders}</span>
                                     <span>Return <span className={isPositive ? "text-emerald-600" : "text-rose-600"}>{formatSignedPercent(university.totalReturnPercent, 2)}</span></span>
@@ -611,11 +611,11 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                                   </div>
                                 </div>
                                 <div className="flex-shrink-0 text-right">
-                                  <p className="text-xs text-slate-500">Score</p>
-                                  <p className="text-lg font-semibold leading-tight text-slate-950">{university.score.toFixed(1)}</p>
+                                  <p className="text-[0.6875rem] text-slate-500">Score</p>
+                                  <p className="text-base font-semibold leading-tight text-slate-950">{university.score.toFixed(1)}</p>
                                 </div>
                               </div>
-                              <div className="mt-4 grid grid-cols-2 gap-x-5 gap-y-3 sm:grid-cols-5">
+                              <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-5">
                                 <div><p className="text-[0.6875rem] text-slate-500">Trader Score</p><p className="text-sm text-slate-950">{university.avgTraderScore.toFixed(1)}</p></div>
                                 <div><p className="text-[0.6875rem] text-slate-500">Win Rate</p><p className="text-sm text-slate-950">{university.winRate.toFixed(1)}%</p></div>
                                 <div><p className="text-[0.6875rem] text-slate-500">Risk</p><p className={`text-sm ${riskTextClass(university.riskLabel)}`}>{university.riskLabel}</p></div>
@@ -631,7 +631,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                 ) : null}
 
                 {(leaderboardView === "traders" || selectedUniversity) && !loading && !loadError ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     {visibleTraders.map((trader, index) => {
                       const isPositive = trader.totalReturnPercent >= 0;
                       const showRankBadge = sortBy === "topPerformers" || leaderboardView === "universities";
@@ -640,22 +640,22 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                           key={trader.id}
                           type="button"
                           onClick={() => setSelectedTrader(trader)}
-                          className={`w-full rounded-xl border border-slate-200 bg-white p-6 text-left shadow-sm transition-colors hover:bg-slate-50 ${showRankBadge && index < 3 ? "bg-slate-50/70" : ""}`}
+                          className={`w-full rounded-lg border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors hover:bg-slate-50 sm:p-5 ${showRankBadge && index < 3 ? "bg-slate-50/70" : ""}`}
                         >
-                          <div className="flex items-start gap-4">
-                            <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl ${showRankBadge ? rankBadgeClass(index) : "bg-teal-50 text-teal-700"}`}>
-                              {showRankBadge && index < 3 ? <span className="text-2xl">{rankBadge(index + 1)}</span> : showRankBadge ? <span className="font-semibold">#{index + 1}</span> : <span className="text-xl font-semibold">{trader.initials}</span>}
+                          <div className="flex items-start gap-3 sm:gap-4">
+                            <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${showRankBadge ? rankBadgeClass(index) : "bg-teal-50 text-teal-700"}`}>
+                              {showRankBadge && index < 3 ? <span className="text-xl">{rankBadge(index + 1)}</span> : showRankBadge ? <span className="text-sm font-semibold">#{index + 1}</span> : <span className="text-base font-semibold">{trader.initials}</span>}
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="mb-1 flex items-start justify-between gap-2">
                                 <div className="flex min-w-0 items-center gap-2">
-                                  {showRankBadge ? <span className="mr-1 flex-shrink-0 text-xl">{trader.initials}</span> : null}
-                                  <h4 className="truncate text-lg font-semibold text-slate-950">{trader.name}</h4>
+                                  {showRankBadge ? <span className="mr-1 flex-shrink-0 text-base">{trader.initials}</span> : null}
+                                  <h4 className="truncate text-base font-semibold text-slate-950">{trader.name}</h4>
                                   <ShieldCheck className="h-4 w-4 flex-shrink-0 text-teal-600" />
                                 </div>
                               </div>
                               <p className="mb-3 text-xs text-slate-500">{trader.universityName}</p>
-                              <div className={`${showRankBadge ? "grid-cols-2 sm:grid-cols-5" : "grid-cols-4"} mb-3 grid gap-2`}>
+                              <div className={`${showRankBadge ? "grid-cols-2 sm:grid-cols-5" : "grid-cols-4"} mb-3 grid gap-x-4 gap-y-2`}>
                                 {showRankBadge ? <div><p className="text-xs text-slate-500">Score</p><p className="text-sm text-slate-950">{trader.score.toFixed(1)}</p></div> : null}
                                 <div><p className="text-xs text-slate-500">Win Rate</p><p className="text-sm text-slate-950">{trader.winRate.toFixed(1)}%</p></div>
                                 <div><p className="text-xs text-slate-500">Avg Return</p><p className={`text-sm ${trader.avgReturn >= 0 ? "text-emerald-600" : "text-rose-600"}`}>{formatSignedPercent(trader.avgReturn, 2)}</p></div>
