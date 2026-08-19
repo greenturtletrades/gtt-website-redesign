@@ -504,8 +504,10 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                       <button
                         type="button"
                         onClick={() => setSelectedUniversity("")}
-                        className={`flex flex-shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm transition-colors ${
-                          !selectedUniversity ? "bg-[#107949] text-white" : "bg-white text-[#4b5563] hover:bg-[#fafbfc]"
+                        className={`flex flex-shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium shadow-sm transition-colors ${
+                          !selectedUniversity
+                            ? "border-[#107949] bg-[#107949] text-white shadow-[#107949]/15"
+                            : "border-[#d9e2e8] bg-[#f8faf9] text-[#334155] hover:border-[#107949]/40 hover:bg-white hover:text-[#0f5132]"
                         }`}
                       >
                         <Trophy className="h-3.5 w-3.5" />
@@ -516,10 +518,10 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                           key={university.universityName}
                           type="button"
                           onClick={() => setSelectedUniversity(university.universityName)}
-                          className={`flex-shrink-0 rounded-lg px-3 py-2 text-sm transition-colors ${
+                          className={`flex-shrink-0 rounded-lg border px-3 py-2 text-sm font-medium shadow-sm transition-colors ${
                             selectedUniversity === university.universityName
-                              ? "bg-[#107949] text-white"
-                              : "bg-white text-[#4b5563] hover:bg-[#fafbfc]"
+                              ? "border-[#107949] bg-[#107949] text-white shadow-[#107949]/15"
+                              : "border-[#d9e2e8] bg-[#f8faf9] text-[#334155] hover:border-[#107949]/40 hover:bg-white hover:text-[#0f5132]"
                           }`}
                         >
                           {university.universityName}
