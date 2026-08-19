@@ -1,5 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const http = require("node:http");
 const jwt = require("jsonwebtoken");
 
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
@@ -370,18 +371,12 @@ test("PATCH /api/me/leaderboard normalizes spacing before saving", async () => {
 });
 
 test("GET /api/public/leaderboard proxies the university competition leaderboard", async () => {
-  const originalFetch = global.fetch;
-  global.fetch = async (url) => {
-    if (String(url).startsWith("http://127.0.0.1:")) {
-      return originalFetch(url);
-    }
-
-    const requestUrl = String(url);
-    if (requestUrl === "https://comp.turtletrades.co.uk/app/competition/universities?limit=100") {
-      return {
-        ok: true,
-        status: 200,
-        json: async () => ({
+  const originalBaseUrl = process.env.COMPETITION_API_BASE_URL;
+  const upstream = await new Promise((resolve, reject) => {
+    const instance = http.createServer((req, res) => {
+      res.setHeader("Content-Type", "application/json");
+      if (req.url === "/app/competition/universities?limit=100") {
+        res.end(JSON.stringify({
           universities: [
             {
               universityName: "Heriot-Watt University",
@@ -398,40 +393,43 @@ test("GET /api/public/leaderboard proxies the university competition leaderboard
               followers: 1,
             },
           ],
-        }),
-      };
-    }
-
-    assert.equal(requestUrl, "https://comp.turtletrades.co.uk/app/competition/traders?limit=100");
-    return {
-      ok: true,
-      status: 200,
-      json: async () => ({
-        traders: [
-          {
-            id: "trader-record-1",
-            userId: "user-1",
-            displayName: "Sean",
-            data: {
-              universityName: "Heriot-Watt University",
-              competitionScore: 39.5,
-              winRate: 70,
-              avgReturn: 0.09,
-              totalReturnPercent: 0.88,
-              realizedReturnPercent: 0.88,
-              unrealizedReturnPercent: 0,
-              riskLabel: "Low",
-              totalTrades: 10,
-              followers: 0,
-              aum: 100880.58,
-              mainAssets: ["SLV", "TAK"],
-              liveTrades: [{ id: "live-1" }],
+        }));
+        return;
+      }
+      if (req.url === "/app/competition/traders?limit=100") {
+        res.end(JSON.stringify({
+          traders: [
+            {
+              id: "trader-record-1",
+              userId: "user-1",
+              displayName: "Sean",
+              data: {
+                universityName: "Heriot-Watt University",
+                competitionScore: 39.5,
+                winRate: 70,
+                avgReturn: 0.09,
+                totalReturnPercent: 0.88,
+                realizedReturnPercent: 0.88,
+                unrealizedReturnPercent: 0,
+                riskLabel: "Low",
+                totalTrades: 10,
+                followers: 0,
+                aum: 100880.58,
+                mainAssets: ["SLV", "TAK"],
+                liveTrades: [{ id: "live-1" }],
+              },
             },
-          },
-        ],
-      }),
-    };
-  };
+          ],
+        }));
+        return;
+      }
+      res.statusCode = 404;
+      res.end(JSON.stringify({ error: "not_found" }));
+    });
+    instance.listen(0, "127.0.0.1", () => resolve(instance));
+    instance.once("error", reject);
+  });
+  process.env.COMPETITION_API_BASE_URL = `http://127.0.0.1:${upstream.address().port}`;
 
   try {
     await withServer(async (server) => {
@@ -453,7 +451,14 @@ test("GET /api/public/leaderboard proxies the university competition leaderboard
       assert.equal(response.body.leaderboard[0].openTrades, 1);
     });
   } finally {
-    global.fetch = originalFetch;
+    if (originalBaseUrl === undefined) delete process.env.COMPETITION_API_BASE_URL;
+    else process.env.COMPETITION_API_BASE_URL = originalBaseUrl;
+    await new Promise((resolve, reject) => {
+      upstream.close((error) => {
+        if (error) reject(error);
+        else resolve();
+      });
+    });
   }
 });
 

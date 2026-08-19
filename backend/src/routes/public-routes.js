@@ -1,4 +1,6 @@
 const crypto = require("crypto");
+const http = require("http");
+const https = require("https");
 
 const LEADERBOARD_MINIMUM_VERIFIED_TRADES = 1;
 
@@ -261,31 +263,127 @@ function normalizeCompetitionUniversityRow(university, index) {
   };
 }
 
+function fetchJson(url, { timeoutMs = 8000 } = {}) {
+  return new Promise((resolve, reject) => {
+    const parsedUrl = new URL(url);
+    const client = parsedUrl.protocol === "http:" ? http : https;
+    const request = client.request(
+      parsedUrl,
+      {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+        },
+      },
+      (response) => {
+        let body = "";
+        response.setEncoding("utf8");
+        response.on("data", (chunk) => {
+          body += chunk;
+        });
+        response.on("end", () => {
+          let payload = {};
+          try {
+            payload = body ? JSON.parse(body) : {};
+          } catch {
+            payload = { message: body.slice(0, 240) };
+          }
+          resolve({
+            ok: response.statusCode >= 200 && response.statusCode < 300,
+            status: response.statusCode,
+            payload,
+          });
+        });
+      },
+    );
+
+    request.setTimeout(timeoutMs, () => {
+      request.destroy(new Error(`Request timed out after ${timeoutMs}ms`));
+    });
+    request.on("error", reject);
+    request.end();
+  });
+}
+
+function deriveUniversitiesFromLeaderboard(leaderboard) {
+  const grouped = new Map();
+  leaderboard.forEach((trader) => {
+    const universityName = trader.universityName || "Verified University";
+    const current = grouped.get(universityName) || {
+      universityName,
+      activeTraders: 0,
+      totalTraders: 0,
+      totalReturnPercent: 0,
+      realizedReturnPercent: 0,
+      unrealizedReturnPercent: 0,
+      score: 0,
+      avgTraderScore: 0,
+      winRate: 0,
+      riskLabel: "Unrated",
+      trades: 0,
+      followers: 0,
+      aum: 0,
+      riskScores: [],
+    };
+    current.totalTraders += 1;
+    if (trader.totalTrades > 0 || trader.openTrades > 0) current.activeTraders += 1;
+    current.totalReturnPercent += trader.totalReturnPercent;
+    current.realizedReturnPercent += trader.realizedReturnPercent;
+    current.unrealizedReturnPercent += trader.unrealizedReturnPercent;
+    current.avgTraderScore += trader.score;
+    current.winRate += trader.winRate;
+    current.trades += trader.totalTrades;
+    current.followers += trader.followers;
+    current.aum += trader.aum;
+    grouped.set(universityName, current);
+  });
+
+  return Array.from(grouped.values())
+    .map((university) => {
+      const divisor = Math.max(1, university.totalTraders);
+      const activeDivisor = Math.max(1, university.activeTraders || university.totalTraders);
+      const avgTraderScore = university.avgTraderScore / divisor;
+      const totalReturnPercent = university.totalReturnPercent / activeDivisor;
+      return {
+        ...university,
+        totalReturnPercent,
+        realizedReturnPercent: university.realizedReturnPercent / activeDivisor,
+        unrealizedReturnPercent: university.unrealizedReturnPercent / activeDivisor,
+        score: avgTraderScore,
+        avgTraderScore,
+        winRate: university.winRate / activeDivisor,
+      };
+    })
+    .sort((left, right) => right.score - left.score || right.totalReturnPercent - left.totalReturnPercent)
+    .map((university, index) => normalizeCompetitionUniversityRow(university, index));
+}
+
 async function fetchCompetitionData(env) {
   const baseUrl = String(env.COMPETITION_API_BASE_URL || env.COMPETITION_APP_API_BASE_URL || "https://comp.turtletrades.co.uk").replace(/\/+$/, "");
   const limit = Math.max(1, Math.min(500, number(env.PUBLIC_COMPETITION_LEADERBOARD_LIMIT, 100)));
-  const headers = { accept: "application/json" };
-  const [traderResponse, universityResponse] = await Promise.all([
-    fetch(`${baseUrl}/app/competition/traders?limit=${limit}`, { headers }),
-    fetch(`${baseUrl}/app/competition/universities?limit=${limit}`, { headers }),
+  const [traderResponse, universityResponse] = await Promise.allSettled([
+    fetchJson(`${baseUrl}/app/competition/traders?limit=${limit}`),
+    fetchJson(`${baseUrl}/app/competition/universities?limit=${limit}`),
   ]);
 
-  const traderPayload = await traderResponse.json().catch(() => ({}));
-  const universityPayload = await universityResponse.json().catch(() => ({}));
-  if (!traderResponse.ok) {
-    const message = traderPayload?.error || traderPayload?.message || `Competition traders API returned ${traderResponse.status}`;
-    throw new Error(message);
-  }
-  if (!universityResponse.ok) {
-    const message = universityPayload?.error || universityPayload?.message || `Competition universities API returned ${universityResponse.status}`;
+  if (traderResponse.status !== "fulfilled" || !traderResponse.value.ok) {
+    const status = traderResponse.status === "fulfilled" ? traderResponse.value.status : "network_error";
+    const payload = traderResponse.status === "fulfilled" ? traderResponse.value.payload : {};
+    const message = payload?.error || payload?.message || `Competition traders API returned ${status}`;
     throw new Error(message);
   }
 
-  const traders = Array.isArray(traderPayload?.traders) ? traderPayload.traders : [];
-  const universities = Array.isArray(universityPayload?.universities) ? universityPayload.universities : [];
+  const traders = Array.isArray(traderResponse.value.payload?.traders) ? traderResponse.value.payload.traders : [];
+  const leaderboard = traders.map(normalizeCompetitionLeaderboardRow);
+  const universityRows = universityResponse.status === "fulfilled" && universityResponse.value.ok
+    ? universityResponse.value.payload?.universities
+    : [];
+  const universities = Array.isArray(universityRows) && universityRows.length
+    ? universityRows.map(normalizeCompetitionUniversityRow)
+    : deriveUniversitiesFromLeaderboard(leaderboard);
   return {
-    leaderboard: traders.map(normalizeCompetitionLeaderboardRow),
-    universities: universities.map(normalizeCompetitionUniversityRow),
+    leaderboard,
+    universities,
   };
 }
 
