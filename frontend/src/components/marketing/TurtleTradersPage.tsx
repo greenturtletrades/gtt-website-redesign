@@ -83,6 +83,28 @@ function universityFilterButtonStyle(active: boolean): CSSProperties {
       };
 }
 
+function universityViewSwitchStyle(active: boolean): CSSProperties {
+  return active
+    ? {
+        backgroundColor: "#107949",
+        borderColor: "#107949",
+        boxShadow: "inset 0 2px 6px rgba(8, 47, 31, 0.22)",
+      }
+    : {
+        backgroundColor: "#dbe7e2",
+        borderColor: "#9fb8ae",
+        boxShadow: "inset 0 2px 6px rgba(15, 23, 42, 0.12)",
+      };
+}
+
+function universityViewKnobStyle(active: boolean): CSSProperties {
+  return {
+    backgroundColor: active ? "#ffffff" : "#334155",
+    boxShadow: active ? "0 2px 7px rgba(0, 0, 0, 0.22)" : "0 2px 7px rgba(15, 23, 42, 0.25)",
+    transform: `translateX(${active ? 24 : 0}px)`,
+  };
+}
+
 function rankBadgeClass(rankIndex: number) {
   if (rankIndex === 0) return "bg-yellow-500 text-yellow-900";
   if (rankIndex === 1) return "bg-slate-400 text-slate-900";
@@ -452,13 +474,12 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                         setSelectedUniversity("");
                         if (leaderboardView === "universities") setSortBy("topPerformers");
                       }}
-                      className={`relative h-8 w-14 flex-shrink-0 overflow-hidden rounded-full border shadow-inner transition-all active:scale-95 ${
-                        leaderboardView === "universities" ? "border-[#107949] bg-[#107949]" : "border-[#cbd5e1] bg-[#f8faf9]"
-                      }`}
+                      style={universityViewSwitchStyle(leaderboardView === "universities")}
+                      className="relative h-8 w-14 flex-shrink-0 overflow-hidden rounded-full border transition-all active:scale-95"
                     >
                       <span
-                        style={{ transform: `translateX(${leaderboardView === "universities" ? 24 : 0}px)` }}
-                        className="absolute left-1 top-1 h-6 w-6 rounded-full bg-white shadow-md transition-transform duration-200 ease-out"
+                        style={universityViewKnobStyle(leaderboardView === "universities")}
+                        className="absolute left-1 top-1 h-6 w-6 rounded-full transition-transform duration-200 ease-out"
                       />
                     </button>
                   </div>
