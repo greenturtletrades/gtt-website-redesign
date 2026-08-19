@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   ArrowUpDown,
   BarChart3,
+  ExternalLink,
   GraduationCap,
   RefreshCw,
   Search,
@@ -24,6 +25,9 @@ interface TurtleTradersPageProps {
 
 type LeaderboardView = "traders" | "universities";
 type SortOption = "topPerformers" | "winRate" | "returns" | "risk" | "followers";
+
+const competitionAppUrl =
+  (import.meta.env.VITE_COMPETITION_APP_URL as string | undefined) || "https://comp.turtletrades.co.uk";
 
 function formatSignedPercent(value: number, decimals = 2) {
   if (!Number.isFinite(value)) return "0.00%";
@@ -362,15 +366,25 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
           <div className="flex items-center justify-between">
             <div>
               <p className="mb-1 text-xs text-slate-500">Public Competition Profile</p>
-              <h3 className="text-lg font-semibold text-slate-950">Investment actions disabled</h3>
+              <h3 className="text-lg font-semibold text-slate-950">Log in or sign up to invest / follow this trader</h3>
             </div>
             <span className={`rounded-lg border px-3 py-1.5 text-xs font-medium ${riskClass(trader.riskLabel)}`}>
               {trader.riskLabel}
             </span>
           </div>
           <p className="text-sm leading-6 text-slate-600">
-            Website visitors can inspect public competition performance. Trader-investing actions remain inside the secure competition app.
+            Website visitors can inspect public competition performance here. Investing, following, and account actions happen inside the secure university competition app.
           </p>
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = competitionAppUrl;
+            }}
+            className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-teal-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-teal-700 sm:w-auto"
+          >
+            Open competition login
+            <ExternalLink className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </div>
