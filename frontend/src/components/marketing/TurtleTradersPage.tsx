@@ -452,14 +452,13 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                         setSelectedUniversity("");
                         if (leaderboardView === "universities") setSortBy("topPerformers");
                       }}
-                      className={`relative h-8 w-14 flex-shrink-0 rounded-full border shadow-inner transition-all active:scale-95 ${
+                      className={`relative h-8 w-14 flex-shrink-0 overflow-hidden rounded-full border shadow-inner transition-all active:scale-95 ${
                         leaderboardView === "universities" ? "border-[#107949] bg-[#107949]" : "border-[#cbd5e1] bg-[#f8faf9]"
                       }`}
                     >
                       <span
-                        className={`absolute left-1 top-1 h-6 w-6 rounded-full bg-white shadow-md transition-transform ${
-                          leaderboardView === "universities" ? "translate-x-6" : "translate-x-0"
-                        }`}
+                        style={{ transform: `translateX(${leaderboardView === "universities" ? 24 : 0}px)` }}
+                        className="absolute left-1 top-1 h-6 w-6 rounded-full bg-white shadow-md transition-transform duration-200 ease-out"
                       />
                     </button>
                   </div>
