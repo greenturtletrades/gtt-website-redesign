@@ -293,15 +293,10 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
           </div>
         </div>
 
-        <div className="mb-3 rounded-xl bg-slate-50 p-3">
-          <div className="h-28">
+        <div className="mb-3 rounded-xl bg-slate-50 px-3 py-2">
+          <div className="h-14">
           {performancePath ? (
             <div className="relative h-full">
-              <div className="absolute inset-0 grid grid-rows-3">
-                {[0, 1, 2].map((line) => (
-                  <div key={line} className="border-t border-slate-200/60" />
-                ))}
-              </div>
               <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="relative h-full w-full overflow-visible">
                 <path
                   d={performanceAreaPath}
@@ -324,9 +319,10 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
             </div>
           )}
           </div>
-          <div className="mt-2 flex justify-between px-0.5 text-[0.6875rem] text-slate-500">
-            <span>{performancePoints.length ? formatShortTradeDate(performancePoints[0]?.date || null) : "Start"}</span>
-            <span>{performancePoints.length ? formatShortTradeDate(performancePoints[performancePoints.length - 1]?.date || null) : "Latest"}</span>
+          <div className="mt-1 text-right text-[0.6875rem] text-slate-500">
+            {performancePoints.length
+              ? `${formatShortTradeDate(performancePoints[0]?.date || null)} - ${formatShortTradeDate(performancePoints[performancePoints.length - 1]?.date || null)}`
+              : "Performance preview"}
           </div>
         </div>
 
