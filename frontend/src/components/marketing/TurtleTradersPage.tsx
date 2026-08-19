@@ -232,6 +232,9 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
   const hasOpenTrades = trader.openTrades > 0;
   const [showAdvancedPrompt, setShowAdvancedPrompt] = useState(false);
   const performancePoints = Array.isArray(trader.performanceData) ? trader.performanceData.filter((point) => Number.isFinite(point.value)) : [];
+  const performanceValues = performancePoints.map((point) => point.value).filter(Number.isFinite);
+  const performanceMin = performanceValues.length ? Math.min(...performanceValues) : 0;
+  const performanceMax = performanceValues.length ? Math.max(...performanceValues) : 0;
   const performancePath = buildPerformancePath(performancePoints);
   const performanceAreaPath = performancePath ? `${performancePath} L 100 100 L 0 100 Z` : "";
   const recentTrades = Array.isArray(trader.recentTrades) ? trader.recentTrades : [];
@@ -294,31 +297,42 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
         </div>
 
         <div className="mb-3 rounded-xl bg-slate-50 px-3 py-2">
-          <div className="h-14">
-          {performancePath ? (
-            <div className="relative h-full">
-              <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="relative h-full w-full overflow-visible">
-                <path
-                  d={performanceAreaPath}
-                  fill={totalReturnPositive ? "rgba(13, 148, 136, 0.12)" : "rgba(225, 29, 72, 0.12)"}
-                />
-                <path
-                  d={performancePath}
-                  fill="none"
-                  stroke={totalReturnPositive ? "#0d9488" : "#e11d48"}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  vectorEffect="non-scaling-stroke"
-                />
-              </svg>
+          <div className="flex h-20 gap-2">
+            {performancePath ? (
+              <>
+                <div className="flex w-12 flex-col justify-between py-0.5 text-[0.625rem] leading-none text-slate-500">
+                  <span>{formatSignedPercent(performanceMax, 2)}</span>
+                  <span>{formatSignedPercent(performanceMin, 2)}</span>
+                </div>
+                <div className="relative min-w-0 flex-1">
+                  <div className="absolute inset-0 grid grid-rows-2">
+                    {[0, 1].map((line) => (
+                      <div key={line} className="border-t border-slate-200/70" />
+                    ))}
+                  </div>
+                  <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="relative h-full w-full overflow-visible">
+                    <path
+                      d={performanceAreaPath}
+                      fill={totalReturnPositive ? "rgba(13, 148, 136, 0.12)" : "rgba(225, 29, 72, 0.12)"}
+                    />
+                    <path
+                      d={performancePath}
+                      fill="none"
+                      stroke={totalReturnPositive ? "#0d9488" : "#e11d48"}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  </svg>
+                </div>
+              </>
+            ) : (
+              <div className="flex h-full flex-1 items-center justify-center text-center text-xs text-slate-500">
+                No public performance chart available yet.
+              </div>
+            )}
             </div>
-          ) : (
-            <div className="flex h-full items-center justify-center text-center text-xs text-slate-500">
-              No public performance chart available yet.
-            </div>
-          )}
-          </div>
           <div className="mt-1 text-right text-[0.6875rem] text-slate-500">
             {performancePoints.length
               ? `${formatShortTradeDate(performancePoints[0]?.date || null)} - ${formatShortTradeDate(performancePoints[performancePoints.length - 1]?.date || null)}`
