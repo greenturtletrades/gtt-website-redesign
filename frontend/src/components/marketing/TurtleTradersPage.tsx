@@ -2,6 +2,8 @@ import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import {
   Activity,
   ArrowLeft,
+  ArrowDownRight,
+  ArrowUpRight,
   ArrowUpDown,
   BarChart3,
   ExternalLink,
@@ -291,7 +293,8 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
           </div>
         </div>
 
-        <div className="mb-3 h-32 rounded-xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 px-3 pb-6 pt-3">
+        <div className="mb-3 rounded-xl bg-slate-50 p-3">
+          <div className="h-28">
           {performancePath ? (
             <div className="relative h-full">
               <div className="absolute inset-0 grid grid-rows-3">
@@ -320,9 +323,10 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
               No public performance chart available yet.
             </div>
           )}
-          <div className="mt-2 flex justify-between text-xs text-slate-500">
-            <span>{formatShortTradeDate(performancePoints[0]?.date || null)}</span>
-            <span>{formatShortTradeDate(performancePoints[performancePoints.length - 1]?.date || null)}</span>
+          </div>
+          <div className="mt-2 flex justify-between px-0.5 text-[0.6875rem] text-slate-500">
+            <span>{performancePoints.length ? formatShortTradeDate(performancePoints[0]?.date || null) : "Start"}</span>
+            <span>{performancePoints.length ? formatShortTradeDate(performancePoints[performancePoints.length - 1]?.date || null) : "Latest"}</span>
           </div>
         </div>
 
@@ -435,7 +439,7 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
         </div>
       ) : null}
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-slate-950">Recent Trades</h3>
           <button
@@ -447,27 +451,25 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
           </button>
         </div>
         {recentTrades.length ? (
-          <div className="divide-y divide-slate-100 rounded-lg border border-slate-200">
+          <div className="space-y-2">
             {recentTrades.map((trade) => (
-              <div key={trade.id} className="flex items-center justify-between gap-4 px-3 py-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="truncate text-sm font-semibold text-slate-950">{trade.symbol}</span>
-                    <span className={`rounded px-2 py-0.5 text-[0.6875rem] font-semibold ${trade.side === "SHORT" ? "bg-rose-50 text-rose-700" : "bg-teal-50 text-teal-700"}`}>
-                      {trade.side}
-                    </span>
+              <div key={trade.id} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 p-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${trade.side === "SHORT" ? "bg-rose-50 text-rose-700" : "bg-teal-50 text-teal-700"}`}>
+                    {trade.side === "SHORT" ? <ArrowDownRight className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
                   </div>
-                  <div className="mt-1 text-xs text-slate-500">
-                    {formatShortTradeDate(trade.exitTime || trade.entryTime)}{trade.closeReason ? ` · ${trade.closeReason}` : ""}
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-slate-950">{trade.symbol}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {trade.side} · {formatShortTradeDate(trade.exitTime || trade.entryTime)}
+                    </p>
                   </div>
                 </div>
                 <div className="flex-shrink-0 text-right">
-                  <div className="text-sm font-semibold" style={signedValueTextStyle(trade.pnl)}>
-                    {formatCurrency(trade.pnl)}
-                  </div>
-                  <div className="text-xs" style={signedValueTextStyle(trade.pnlPercent)}>
+                  <p className="text-sm font-semibold" style={signedValueTextStyle(trade.pnlPercent)}>
                     {formatSignedPercent(trade.pnlPercent)}
-                  </div>
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500">{formatCurrency(trade.pnl)}</p>
                 </div>
               </div>
             ))}
