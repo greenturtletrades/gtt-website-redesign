@@ -126,12 +126,6 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
       <section className="w-full bg-[#f8fafc] px-4 py-14 text-slate-950 sm:px-6 sm:py-18">
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-5xl text-center">
-            <div className="flex justify-center">
-              <div className="mb-4 inline-flex items-center justify-center gap-2 rounded-full border border-teal-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-teal-700">
-                <GraduationCap className="h-4 w-4" />
-                University Competition
-              </div>
-            </div>
             <h1 className="mx-auto max-w-4xl text-4xl leading-tight tracking-tight text-slate-950 sm:text-5xl md:text-6xl">
               Scotland&apos;s next generation of investors, ranked live.
             </h1>
