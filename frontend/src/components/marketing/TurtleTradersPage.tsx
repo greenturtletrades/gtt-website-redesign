@@ -423,7 +423,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
   return (
     <div className="min-h-screen bg-white">
       <section
-        className="w-full bg-[#fafbfc] px-4 pb-14 text-[#111827] sm:px-6 sm:pb-18"
+        className="w-full bg-[#fafbfc] px-4 pb-24 text-[#111827] sm:px-6 sm:pb-32"
         style={{ paddingTop: "clamp(9.5rem, 12vw, 12rem)" }}
       >
         <div className="mx-auto max-w-7xl">
