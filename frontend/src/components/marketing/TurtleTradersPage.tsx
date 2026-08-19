@@ -122,8 +122,8 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
     : traders.reduce((sum, trader) => sum + trader.followers, 0);
 
   return (
-    <div className="min-h-screen bg-white pt-28 sm:pt-32">
-      <section className="w-full bg-[#f8fafc] px-4 pb-14 pt-10 text-slate-950 sm:px-6 sm:pb-18 sm:pt-12">
+    <div className="min-h-screen bg-white">
+      <section className="w-full bg-[#f8fafc] px-4 pb-14 pt-36 text-slate-950 sm:px-6 sm:pb-18 sm:pt-40 lg:pt-44">
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-5xl text-center">
             <h1 className="mx-auto max-w-4xl text-4xl leading-tight tracking-tight text-slate-950 sm:text-5xl md:text-6xl">
