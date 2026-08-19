@@ -84,24 +84,33 @@ function universityFilterButtonStyle(active: boolean): CSSProperties {
 }
 
 function universityViewSwitchStyle(active: boolean): CSSProperties {
-  return active
-    ? {
-        backgroundColor: "#107949",
-        borderColor: "#107949",
-        boxShadow: "inset 0 2px 6px rgba(8, 47, 31, 0.22)",
-      }
-    : {
-        backgroundColor: "#dbe7e2",
-        borderColor: "#9fb8ae",
-        boxShadow: "inset 0 2px 6px rgba(15, 23, 42, 0.12)",
-      };
+  return {
+    alignSelf: "center",
+    backgroundColor: active ? "#107949" : "#dbe7e2",
+    borderColor: active ? "#107949" : "#9fb8ae",
+    borderRadius: 999,
+    borderStyle: "solid",
+    borderWidth: 1,
+    boxShadow: active ? "inset 0 2px 6px rgba(8, 47, 31, 0.22)" : "inset 0 2px 6px rgba(15, 23, 42, 0.12)",
+    height: 28,
+    overflow: "hidden",
+    position: "relative",
+    transform: "translateY(-1px)",
+    width: 54,
+  };
 }
 
 function universityViewKnobStyle(active: boolean): CSSProperties {
   return {
     backgroundColor: active ? "#ffffff" : "#334155",
+    borderRadius: 999,
     boxShadow: active ? "0 2px 7px rgba(0, 0, 0, 0.22)" : "0 2px 7px rgba(15, 23, 42, 0.25)",
-    transform: `translateX(${active ? 24 : 0}px)`,
+    height: 22,
+    left: 3,
+    position: "absolute",
+    top: 2,
+    transform: `translateX(${active ? 25 : 0}px)`,
+    width: 22,
   };
 }
 
@@ -475,11 +484,11 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                         if (leaderboardView === "universities") setSortBy("topPerformers");
                       }}
                       style={universityViewSwitchStyle(leaderboardView === "universities")}
-                      className="relative h-8 w-14 flex-shrink-0 overflow-hidden rounded-full border transition-all active:scale-95"
+                      className="flex-shrink-0 cursor-pointer p-0 transition-transform active:scale-95"
                     >
                       <span
                         style={universityViewKnobStyle(leaderboardView === "universities")}
-                        className="absolute left-1 top-1 h-6 w-6 rounded-full transition-transform duration-200 ease-out"
+                        className="transition-transform duration-200 ease-out"
                       />
                     </button>
                   </div>
