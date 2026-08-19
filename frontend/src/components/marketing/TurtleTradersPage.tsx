@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Trophy, Users, Wallet, TrendingUp, ShieldCheck, Search, GraduationCap } from "lucide-react";
 import { Footer } from "./Footer";
 import { fetchPublicLeaderboard } from "../../api/public";
 import type { PublicLeaderboardRow } from "../../api/public";
@@ -8,108 +9,52 @@ interface TurtleTradersPageProps {
   onNavigate?: (page: ViewType) => void;
 }
 
-const scoringModel = [
-  {
-    name: "Win Rate",
-    weight: "35%",
-    detail: "Win rate shows how often a trader closes positions profitably across verified journal history. It matters because consistency is easier to trust than one or two standout trades.",
-  },
-  {
-    name: "Expectancy",
-    weight: "30%",
-    detail: "Expectancy is the average R-multiple per trade. It shows the average edge a trader produces each time they take risk, which makes it a strong measure of trade quality over time.",
-  },
-  {
-    name: "Total Trades",
-    weight: "20%",
-    detail: "A larger verified trade sample gives more confidence in the result. This helps prevent a trader from ranking highly based on only a small number of successful trades.",
-  },
-  {
-    name: "Risk Per Trade",
-    weight: "15%",
-    detail: "We still score risk discipline, but it should support proven edge rather than outweigh it. Traders who keep risk controlled rank better than traders who try to manufacture performance through oversized exposure.",
-  },
-];
-
-function riskPillClass(riskLevel: string) {
-  if (riskLevel === "Low") {
-    return "bg-emerald-100 text-emerald-700";
-  }
-
-  if (riskLevel === "Medium") {
-    return "bg-amber-100 text-amber-700";
-  }
-
-  if (riskLevel === "N/A") {
-    return "bg-slate-100 text-slate-600";
-  }
-
-  return "bg-rose-100 text-rose-700";
+function formatSignedPercent(value: number, decimals = 2) {
+  if (!Number.isFinite(value)) return "0.00%";
+  const prefix = value > 0 ? "+" : "";
+  return `${prefix}${value.toFixed(decimals)}%`;
 }
 
-function formatRiskPercent(value: number | null) {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return "N/A";
-  }
-
-  return `${value.toFixed(2)}%`;
+function formatCompactCurrency(value: number) {
+  if (!Number.isFinite(value)) return "£0";
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value);
 }
 
-function formatWinRate(value: number | null) {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return "N/A";
-  }
-
-  return `${value.toFixed(1)}%`;
+function formatInvestorCount(value: number) {
+  return `${value} ${value === 1 ? "backer" : "backers"}`;
 }
 
-function formatExpectancy(value: number | null) {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return "N/A";
-  }
-
-  return `${value.toFixed(2)}R`;
+function rankBadge(rank: number) {
+  if (rank === 1) return "🥇";
+  if (rank === 2) return "🥈";
+  if (rank === 3) return "🥉";
+  return `#${rank}`;
 }
 
-function formatProfitFactor(value: number | null) {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return "N/A";
-  }
-
-  return value.toFixed(2);
-}
-
-function splitMarketSummary(value: string) {
-  return String(value)
-    .split("+")
-    .map((part) => part.trim())
-    .filter(Boolean);
+function riskClass(label: string) {
+  const normalized = label.toLowerCase();
+  if (normalized.includes("low")) return "bg-emerald-100 text-emerald-700 border-emerald-200";
+  if (normalized.includes("medium")) return "bg-amber-100 text-amber-700 border-amber-200";
+  if (normalized.includes("high")) return "bg-rose-100 text-rose-700 border-rose-200";
+  return "bg-slate-100 text-slate-600 border-slate-200";
 }
 
 function formatRelativeTimestamp(value: string | null) {
-  if (!value) {
-    return "Just updated";
-  }
-
+  if (!value) return "Live";
   const date = new Date(value);
   const diffMs = Date.now() - date.getTime();
-
-  if (!Number.isFinite(diffMs) || diffMs < 0) {
-    return "Just updated";
-  }
-
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  if (diffHours < 1) {
-    const diffMinutes = Math.max(1, Math.floor(diffMs / (1000 * 60)));
-    return `${diffMinutes}m ago`;
-  }
-
-  if (diffHours < 24) {
-    return `${diffHours}h ago`;
-  }
-
-  const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays}d ago`;
+  if (!Number.isFinite(diffMs) || diffMs < 0) return "Live";
+  const diffMinutes = Math.floor(diffMs / 60000);
+  if (diffMinutes < 1) return "Live";
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${Math.floor(diffHours / 24)}d ago`;
 }
 
 export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
@@ -125,22 +70,14 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
     const loadLeaderboard = async () => {
       try {
         const response = await fetchPublicLeaderboard();
-        if (cancelled) {
-          return;
-        }
-
+        if (cancelled) return;
         setTraders(response.leaderboard);
         setLoadError(null);
       } catch (error) {
-        if (cancelled) {
-          return;
-        }
-
-        setLoadError(error instanceof Error ? error.message : "Unable to load the public leaderboard.");
+        if (cancelled) return;
+        setLoadError(error instanceof Error ? error.message : "Unable to load the university competition leaderboard.");
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     };
 
@@ -150,177 +87,205 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
     };
   }, []);
 
-  const normalizedSearch = searchTerm.trim().toLowerCase();
-  const filteredTraders = traders.filter((trader) => {
-    if (!normalizedSearch) {
-      return true;
-    }
+  const filteredTraders = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    if (!query) return traders;
+    return traders.filter((trader) => (
+      trader.name.toLowerCase().includes(query) ||
+      trader.universityName.toLowerCase().includes(query)
+    ));
+  }, [searchTerm, traders]);
 
-    return trader.name.toLowerCase().includes(normalizedSearch);
-  });
-
-  const visibleTraders = showAllRows || normalizedSearch ? filteredTraders : filteredTraders.slice(0, 5);
-  const hasHiddenRows = !normalizedSearch && filteredTraders.length > 5;
+  const visibleTraders = showAllRows || searchTerm.trim() ? filteredTraders : filteredTraders.slice(0, 8);
+  const hasHiddenRows = !searchTerm.trim() && filteredTraders.length > 8;
+  const topTrader = traders[0] || null;
+  const activeUniversities = new Set(traders.map((trader) => trader.universityName).filter(Boolean)).size;
+  const totalTrades = traders.reduce((sum, trader) => sum + trader.totalTrades, 0);
+  const totalBackers = traders.reduce((sum, trader) => sum + trader.followers, 0);
 
   return (
     <div className="min-h-screen bg-white pt-20">
-      <section className="w-full bg-gradient-to-br from-teal-50 via-cyan-50 to-teal-50 py-16 sm:py-20 px-4 sm:px-6 relative overflow-hidden text-slate-950">
-        <div className="absolute inset-0 overflow-hidden opacity-30">
-          <div className="absolute -top-1/4 -right-1/4 h-1/2 w-1/2 rounded-full bg-gradient-to-br from-teal-200 to-cyan-200 blur-3xl" />
-          <div className="absolute -bottom-1/4 -left-1/4 h-1/2 w-1/2 rounded-full bg-gradient-to-tr from-cyan-200 to-teal-200 blur-3xl" />
-        </div>
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#0d948808_1px,transparent_1px),linear-gradient(to_bottom,#0d948808_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]"></div>
+      <section className="w-full bg-[#f8fafc] px-4 py-14 text-slate-950 sm:px-6 sm:py-18">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-end">
+            <div>
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-teal-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-teal-700">
+                <GraduationCap className="h-4 w-4" />
+                University Competition
+              </div>
+              <h1 className="max-w-4xl text-4xl leading-tight tracking-tight text-slate-950 sm:text-5xl md:text-6xl">
+                Scotland&apos;s next generation of investors, ranked live.
+              </h1>
+              <p className="mt-5 max-w-3xl text-base font-medium leading-8 text-slate-700 sm:text-lg">
+                The university competition gives Scottish students a risk-free place to learn practical investing,
+                build discipline, and gain market experience before real capital is on the line. The leaderboard below
+                is powered by live in-house competition data from the Green Turtle platform.
+              </p>
+            </div>
 
-        <div className="mx-auto max-w-7xl relative z-10">
-          <div className="mb-12 text-center">
-            <h1 className="text-4xl leading-tight text-slate-900 sm:text-5xl md:text-6xl tracking-tight">Turtle Traders Leaderboard</h1>
-            <p className="mx-auto mt-5 max-w-3xl text-base font-semibold leading-relaxed text-slate-900 sm:text-lg">
-              Verified data matters. The public traders leaderboard ranks trading performance from connected account data, including win rate, expectancy, risk control, and verified trade history. Raw trades stay private.
-            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Top Competitor</div>
+                <div className="mt-3 text-2xl font-semibold text-slate-950">{topTrader?.name || "Loading"}</div>
+                <div className="mt-1 text-sm text-slate-600">{topTrader?.universityName || "University competition"}</div>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Live Score</div>
+                <div className="mt-3 text-2xl font-semibold text-slate-950">{topTrader ? topTrader.score.toFixed(1) : "0.0"}</div>
+                <div className="mt-1 text-sm text-slate-600">Score from competition engine</div>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Universities</div>
+                <div className="mt-3 text-2xl font-semibold text-slate-950">{activeUniversities}</div>
+                <div className="mt-1 text-sm text-slate-600">Represented on the board</div>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Competition Activity</div>
+                <div className="mt-3 text-2xl font-semibold text-slate-950">{totalTrades}</div>
+                <div className="mt-1 text-sm text-slate-600">{formatInvestorCount(totalBackers)} following traders</div>
+              </div>
+            </div>
           </div>
 
-          <div className="mx-auto overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
-            <div className="flex flex-col gap-2 border-b border-teal-200 bg-gradient-to-r from-teal-600 to-cyan-600 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="text-sm text-white">Ranked by verified account data</div>
-            </div>
-            <div className="flex flex-col gap-3 border-b border-slate-200 bg-white px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="w-full sm:max-w-xs">
-                <label className="mb-2 block text-[11px] uppercase tracking-[0.18em] text-slate-600">
-                  Search Trader
-                </label>
+          <div className="mt-12 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+            <div className="flex flex-col gap-4 border-b border-slate-200 bg-slate-950 px-5 py-5 text-white sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-sm font-semibold">Live Trader Leaderboard</div>
+                <div className="mt-1 text-xs text-slate-300">Ranked from central university competition scoring</div>
+              </div>
+              <div className="relative w-full sm:max-w-sm">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Search by trader name"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
+                  placeholder="Search trader or university"
+                  className="w-full rounded-lg border border-slate-700 bg-slate-900 py-3 pl-10 pr-4 text-sm text-white placeholder:text-slate-400 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400/20"
                 />
               </div>
-              {hasHiddenRows ? (
+            </div>
+
+            <div className="divide-y divide-slate-100">
+              {loading ? (
+                <div className="px-5 py-10 text-center text-sm text-slate-600">Loading university competition leaderboard...</div>
+              ) : null}
+
+              {!loading && loadError ? (
+                <div className="px-5 py-10 text-center text-sm text-red-600">{loadError}</div>
+              ) : null}
+
+              {!loading && !loadError && visibleTraders.length === 0 ? (
+                <div className="px-5 py-10 text-center text-sm text-slate-600">No competition traders match that search.</div>
+              ) : null}
+
+              {visibleTraders.map((trader) => {
+                const isPositive = trader.totalReturnPercent >= 0;
+                return (
+                  <article key={trader.id} className="bg-white px-5 py-5 transition-colors hover:bg-teal-50/40">
+                    <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
+                      <div className="flex min-w-0 flex-1 items-start gap-4">
+                        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-teal-100 text-lg font-semibold text-teal-800">
+                          {trader.rank <= 3 ? rankBadge(trader.rank) : trader.initials}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h2 className="text-lg font-semibold text-slate-950">{trader.name}</h2>
+                            <ShieldCheck className="h-4 w-4 text-teal-600" />
+                          </div>
+                          <div className="mt-1 text-sm text-slate-600">{trader.universityName}</div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {trader.mainAssets.length ? trader.mainAssets.map((asset) => (
+                              <span key={`${trader.id}-${asset}`} className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-600">
+                                {asset}
+                              </span>
+                            )) : (
+                              <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-600">
+                                Building history
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-4 lg:max-w-2xl">
+                        <div>
+                          <div className="text-xs text-slate-500">Score</div>
+                          <div className="mt-1 text-base font-semibold tabular-nums text-slate-950">{trader.score.toFixed(1)}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-slate-500">Win Rate</div>
+                          <div className="mt-1 text-base font-semibold tabular-nums text-slate-950">{trader.winRate.toFixed(1)}%</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-slate-500">Avg Return</div>
+                          <div className={`mt-1 text-base font-semibold tabular-nums ${trader.avgReturn >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                            {formatSignedPercent(trader.avgReturn)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-slate-500">Total Return</div>
+                          <div className={`mt-1 text-base font-semibold tabular-nums ${isPositive ? "text-emerald-600" : "text-rose-600"}`}>
+                            {formatSignedPercent(trader.totalReturnPercent)}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 lg:w-[25rem] lg:justify-end">
+                        <span className={`rounded-full border px-3 py-1 font-medium ${riskClass(trader.riskLabel)}`}>{trader.riskLabel}</span>
+                        <span className="inline-flex items-center gap-1">
+                          <Wallet className="h-3.5 w-3.5" />
+                          {formatCompactCurrency(trader.aum)} AUM
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <Users className="h-3.5 w-3.5" />
+                          {formatInvestorCount(trader.followers)}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <TrendingUp className="h-3.5 w-3.5" />
+                          {trader.totalTrades} closed / {trader.openTrades} open
+                        </span>
+                        <span>{formatRelativeTimestamp(trader.lastUpdatedAt)}</span>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            {hasHiddenRows ? (
+              <div className="border-t border-slate-200 bg-slate-50 px-5 py-4 text-center">
                 <button
                   type="button"
                   onClick={() => setShowAllRows((current) => !current)}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 transition-colors hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700"
+                  className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700"
                 >
-                  {showAllRows ? "Show Top 5" : "Show Full Leaderboard"}
+                  {showAllRows ? "Show Top 8" : "Show Full Leaderboard"}
                 </button>
-              ) : null}
-            </div>
-            <div className="overflow-x-auto p-2 sm:p-3">
-              <table className="w-full min-w-[1160px] table-fixed">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th className="w-16 px-4 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Rank</th>
-                    <th className="w-40 px-4 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Trader</th>
-                    <th className="w-44 px-4 py-4 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">Market</th>
-                    <th className="w-24 px-4 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Win Rate</th>
-                    <th className="w-28 px-4 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Profit Factor</th>
-                    <th className="w-28 px-4 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Risk Per Trade</th>
-                    <th className="w-24 px-4 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Total Trades</th>
-                    <th className="w-24 px-4 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Expectancy</th>
-                    <th className="w-24 px-4 py-4 text-center text-[11px] uppercase tracking-[0.2em] text-slate-600">Risk Level</th>
-                    <th className="w-24 px-4 py-4 text-right text-[11px] uppercase tracking-[0.2em] text-slate-600">Last Updated</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr>
-                      <td colSpan={10} className="px-5 py-8 text-center text-sm text-slate-600">
-                        Loading public leaderboard...
-                      </td>
-                    </tr>
-                  ) : null}
-                  {!loading && loadError ? (
-                    <tr>
-                      <td colSpan={10} className="px-5 py-8 text-center text-sm text-red-600">
-                        {loadError}
-                      </td>
-                    </tr>
-                  ) : null}
-                  {!loading && !loadError && visibleTraders.length === 0 && !normalizedSearch ? (
-                    <tr>
-                      <td colSpan={10} className="px-5 py-8 text-center text-sm text-slate-600">
-                        No public trader performance has been published yet.
-                      </td>
-                    </tr>
-                  ) : null}
-                  {visibleTraders.map((trader) => {
-                    return (
-                    <tr key={trader.id} className="border-t border-slate-100 transition-colors odd:bg-white even:bg-slate-50/40 hover:bg-teal-50/60">
-                      <td className="px-4 py-4 align-top text-sm font-semibold tabular-nums text-slate-900">
-                        {trader.rank}
-                      </td>
-                      <td className="px-4 py-4 align-top">
-                        <div>
-                          <div className="text-sm font-semibold leading-5 text-slate-950">{trader.name}</div>
-                          <div className="mt-1 text-xs uppercase tracking-[0.16em] leading-4 text-slate-500">
-                            {trader.source === "analysis" ? "Verified Analysis" : "Verified Journal"}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 align-top">
-                        <div className="flex max-w-[220px] flex-wrap gap-1.5">
-                          {splitMarketSummary(trader.market).map((market) => (
-                            <span
-                              key={`${trader.id}-${market}`}
-                              className="rounded-full border border-teal-100 bg-teal-50 px-2.5 py-1 text-xs font-medium leading-4 text-teal-700"
-                            >
-                              {market}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 align-top text-right">
-                        <div className="text-base font-semibold tabular-nums text-slate-950">{formatWinRate(trader.winRate)}</div>
-                      </td>
-                      <td className="px-4 py-4 align-top text-right text-base font-medium tabular-nums text-slate-950">{formatProfitFactor(trader.profitFactor)}</td>
-                      <td className="px-4 py-4 align-top text-right text-base font-medium tabular-nums text-slate-950">{formatRiskPercent(trader.riskPerTradePercent)}</td>
-                      <td className="px-4 py-4 align-top text-right text-base font-medium tabular-nums text-slate-950">{trader.totalTrades}</td>
-                      <td className="px-4 py-4 align-top text-right text-base font-medium tabular-nums text-slate-950">{formatExpectancy(trader.expectancyR)}</td>
-                      <td className="px-4 py-4 align-top text-center">
-                        <span className={`rounded-full px-3 py-1 text-xs font-medium ${riskPillClass(trader.riskLevel)}`}>
-                          {trader.riskLevel}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 align-top text-right text-sm tabular-nums text-slate-700 whitespace-nowrap">{formatRelativeTimestamp(trader.lastUpdatedAt)}</td>
-                    </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            {normalizedSearch && visibleTraders.length === 0 ? (
-              <div className="border-t border-slate-200 px-6 py-5 text-sm text-slate-600">
-                No verified traders match that search yet.
               </div>
             ) : null}
           </div>
 
-          <div className="mt-8 rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-6 text-slate-950 shadow-lg">
-            <div className="flex flex-col gap-3 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <div className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-teal-700">
-                  Scoring model
-                </div>
-                <h3 className="text-2xl text-slate-900">How we decide who is best</h3>
-                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
-                  The leaderboard is not built around one lucky month or one impressive screenshot. It is designed to reward traders who show strong verified performance over time, manage risk with discipline, and do it across a meaningful sample of real trades.
-                </p>
-              </div>
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <Trophy className="h-5 w-5 text-teal-600" />
+              <h3 className="mt-4 text-lg font-semibold text-slate-950">Risk-free learning</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Students trade with virtual capital, so they can build practical experience without risking personal money.
+              </p>
             </div>
-
-            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {scoringModel.map((item) => (
-                <div key={item.name} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <div className="text-sm uppercase tracking-[0.16em] text-slate-600">{item.name}</div>
-                  <div className="mt-3 text-3xl text-slate-900">{item.weight}</div>
-                  <p className="mt-3 text-sm leading-relaxed text-slate-600">{item.detail}</p>
-                </div>
-              ))}
+            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <GraduationCap className="h-5 w-5 text-teal-600" />
+              <h3 className="mt-4 text-lg font-semibold text-slate-950">University pride</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Competitors represent their university while learning portfolio discipline, risk control, and market behaviour.
+              </p>
             </div>
-
-            <div className="mt-6 rounded-2xl border border-teal-200 bg-teal-50 px-5 py-4 text-sm leading-relaxed text-slate-700">
-              In practice, this means the strongest traders are not simply the ones showing the biggest headline gain. The better rank goes to the trader combining win rate, expectancy, meaningful sample size, and controlled risk. Profit factor is shown as extra context because it helps explain how efficiently a trader converts wins versus losses. CSV-imported trades are excluded from leaderboard calculations because CSV files can be edited outside the platform.
+            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <ShieldCheck className="h-5 w-5 text-teal-600" />
+              <h3 className="mt-4 text-lg font-semibold text-slate-950">Central scoring</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Public rankings use the same competition engine as the app, so website visitors see the live official board.
+              </p>
             </div>
           </div>
         </div>

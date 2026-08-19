@@ -369,70 +369,62 @@ test("PATCH /api/me/leaderboard normalizes spacing before saving", async () => {
   });
 });
 
-test("GET /api/public/leaderboard excludes CSV-imported trades from public ranking", async () => {
-  const verifiedTrades = Array.from({ length: 1 }, (_, index) => ({
-    symbol: "EURUSD",
-    side: "LONG",
-    entryPrice: 100,
-    exitPrice: index % 2 === 0 ? 102 : 99,
-    stopLoss: 98,
-    profit: index % 2 === 0 ? 20 : -10,
-    commission: -1,
-    swap: 0,
-    updatedAt: new Date(`2026-05-${String(index + 1).padStart(2, "0")}T10:00:00.000Z`),
-  }));
+test("GET /api/public/leaderboard proxies the university competition leaderboard", async () => {
+  const originalFetch = global.fetch;
+  global.fetch = async (url) => {
+    if (String(url).startsWith("http://127.0.0.1:")) {
+      return originalFetch(url);
+    }
 
-  prismaMock.user.findMany = async ({ select }) => {
-    assert.deepEqual(select.storedTrades.where, {
-      source: {
-        not: "csv_import",
-      },
-    });
-
-    return [
-      {
-        id: "csv-only",
-        leaderboardDisplayName: "CSV Only",
-        leaderboardPublishedAt: new Date("2026-05-01T10:00:00.000Z"),
-        profile: { firstName: "Csv", lastName: "Only" },
-        analysisSnapshots: [
+    assert.equal(String(url), "https://comp.turtletrades.co.uk/app/competition/traders?limit=100");
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        traders: [
           {
-            updatedAt: new Date("2026-05-20T10:00:00.000Z"),
-            totalR: 100,
-            winRate: 100,
+            id: "trader-record-1",
+            userId: "user-1",
+            displayName: "Sean",
+            data: {
+              universityName: "Heriot-Watt University",
+              competitionScore: 39.5,
+              winRate: 70,
+              avgReturn: 0.09,
+              totalReturnPercent: 0.88,
+              realizedReturnPercent: 0.88,
+              unrealizedReturnPercent: 0,
+              riskLabel: "Low",
+              totalTrades: 10,
+              followers: 0,
+              aum: 100880.58,
+              mainAssets: ["SLV", "TAK"],
+              liveTrades: [{ id: "live-1" }],
+            },
           },
         ],
-        storedTrades: [],
-      },
-      {
-        id: "mixed-account",
-        leaderboardDisplayName: "Mixed Account",
-        leaderboardPublishedAt: new Date("2026-05-02T10:00:00.000Z"),
-        profile: { firstName: "Mixed", lastName: "Account" },
-        analysisSnapshots: [
-          {
-            updatedAt: new Date("2026-05-21T10:00:00.000Z"),
-            totalR: 100,
-            winRate: 100,
-          },
-        ],
-        storedTrades: verifiedTrades,
-      },
-    ];
+      }),
+    };
   };
 
-  await withServer(async (server) => {
-    const response = await request(server, "/api/public/leaderboard");
+  try {
+    await withServer(async (server) => {
+      const response = await request(server, "/api/public/leaderboard");
 
-    assert.equal(response.status, 200);
-    assert.equal(response.body.ok, true);
-    assert.equal(response.body.leaderboard.length, 1);
-    assert.equal(response.body.leaderboard[0].id, "mixed-account");
-    assert.equal(response.body.minimumTradeCount, 1);
-    assert.equal(response.body.leaderboard[0].totalTrades, 1);
-    assert.equal(response.body.leaderboard[0].winRate, 100);
-    assert.equal(response.body.leaderboard[0].expectancyR, 1);
-  });
+      assert.equal(response.status, 200);
+      assert.equal(response.body.ok, true);
+      assert.equal(response.body.source, "university_competition");
+      assert.equal(response.body.leaderboard.length, 1);
+      assert.equal(response.body.leaderboard[0].id, "user-1");
+      assert.equal(response.body.leaderboard[0].name, "Sean");
+      assert.equal(response.body.leaderboard[0].universityName, "Heriot-Watt University");
+      assert.equal(response.body.leaderboard[0].score, 39.5);
+      assert.equal(response.body.leaderboard[0].totalTrades, 10);
+      assert.equal(response.body.leaderboard[0].openTrades, 1);
+    });
+  } finally {
+    global.fetch = originalFetch;
+  }
 });
 
 test("POST /api/admin/staff/invite rejects trader tokens", async () => {

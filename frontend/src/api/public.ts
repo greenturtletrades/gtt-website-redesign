@@ -4,22 +4,26 @@ export interface PublicLeaderboardRow {
   rank: number;
   id: string;
   name: string;
-  market: string;
-  percentilePnl: number | null;
-  verifiedPnl: number | null;
-  winRate: number | null;
-  riskPerTradePercent: number | null;
+  initials: string;
+  universityName: string;
+  score: number;
+  winRate: number;
+  avgReturn: number;
+  totalReturnPercent: number;
+  realizedReturnPercent: number;
+  unrealizedReturnPercent: number;
+  riskLabel: string;
   totalTrades: number;
-  expectancyR: number | null;
-  profitFactor: number | null;
-  riskLevel: "Low" | "Medium" | "High" | "N/A";
+  openTrades: number;
+  followers: number;
+  aum: number;
+  mainAssets: string[];
   lastUpdatedAt: string | null;
-  source: "analysis" | "journal";
 }
 
 export interface PublicLeaderboardResponse {
   ok: boolean;
-  minimumTradeCount: number;
+  source: "university_competition";
   leaderboard: PublicLeaderboardRow[];
 }
 

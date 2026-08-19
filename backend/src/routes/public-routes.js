@@ -182,6 +182,74 @@ function calculatePercentileRanks(values, { descending = true } = {}) {
   return values.map((item) => rankMap.get(item.id) || 0);
 }
 
+function number(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function formatInitials(name) {
+  const parts = String(name || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!parts.length) return "T";
+  return parts.slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+}
+
+function normalizeCompetitionLeaderboardRow(trader, index) {
+  const data = trader && typeof trader.data === "object" && trader.data ? trader.data : {};
+  const name = String(trader?.displayName || data.displayName || data.name || `Trader ${index + 1}`);
+  const totalReturnPercent = number(data.totalReturnPercent ?? data.totalPnLPercent, 0);
+  const realizedReturnPercent = number(data.realizedReturnPercent, 0);
+  const unrealizedReturnPercent = number(data.unrealizedReturnPercent, 0);
+  const score = number(data.competitionScore ?? data.score, 0);
+  const totalTrades = Math.max(0, Math.floor(number(data.totalTrades, 0)));
+  const liveTrades = Array.isArray(data.liveTrades) ? data.liveTrades : [];
+  const mainAssets = Array.isArray(data.mainAssets)
+    ? data.mainAssets.map((asset) => String(asset)).filter(Boolean).slice(0, 4)
+    : [];
+
+  return {
+    rank: index + 1,
+    id: String(trader?.userId || trader?.id || `competition-trader-${index + 1}`),
+    name,
+    initials: formatInitials(name),
+    universityName: String(data.universityName || "Verified University"),
+    score,
+    winRate: number(data.winRate, 0),
+    avgReturn: number(data.avgReturn, 0),
+    totalReturnPercent,
+    realizedReturnPercent,
+    unrealizedReturnPercent,
+    riskLabel: String(data.riskLabel || "Unrated"),
+    totalTrades,
+    openTrades: liveTrades.length,
+    followers: Math.max(0, Math.floor(number(data.followers, 0))),
+    aum: number(data.aum ?? data.equity, 0),
+    mainAssets,
+    lastUpdatedAt: data.updatedAt || data.lastUpdatedAt || null,
+  };
+}
+
+async function fetchCompetitionLeaderboard(env) {
+  const baseUrl = String(env.COMPETITION_API_BASE_URL || env.COMPETITION_APP_API_BASE_URL || "https://comp.turtletrades.co.uk").replace(/\/+$/, "");
+  const limit = Math.max(1, Math.min(500, number(env.PUBLIC_COMPETITION_LEADERBOARD_LIMIT, 100)));
+  const response = await fetch(`${baseUrl}/app/competition/traders?limit=${limit}`, {
+    headers: {
+      accept: "application/json",
+    },
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = payload?.error || payload?.message || `Competition API returned ${response.status}`;
+    throw new Error(message);
+  }
+
+  const traders = Array.isArray(payload?.traders) ? payload.traders : [];
+  return traders.map(normalizeCompetitionLeaderboardRow);
+}
+
 function registerPublicRoutes(app, {
   prisma,
   sendEmail,
@@ -191,6 +259,13 @@ function registerPublicRoutes(app, {
 }) {
   app.get("/api/public/leaderboard", async (req, res, next) => {
     try {
+      const competitionLeaderboard = await fetchCompetitionLeaderboard(env);
+      return res.json({
+        ok: true,
+        source: "university_competition",
+        leaderboard: competitionLeaderboard,
+      });
+
       const users = await prisma.user.findMany({
         where: {
           role: "TRADER",
