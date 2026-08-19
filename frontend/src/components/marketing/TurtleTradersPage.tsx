@@ -305,7 +305,7 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
         </div>
 
         <div className="mb-3 rounded-xl bg-slate-50 px-3 py-2">
-          <div className="flex h-24 gap-2">
+          <div className="flex h-20 gap-2">
             {performancePath ? (
               <>
                 <div className="flex w-12 flex-col justify-between py-0.5 text-[0.625rem] leading-none text-slate-500">
