@@ -306,7 +306,7 @@ function fetchJson(url, { timeoutMs = 8000 } = {}) {
 }
 
 async function fetchCompetitionData(env) {
-  const baseUrl = String(env.COMPETITION_API_BASE_URL || env.COMPETITION_APP_API_BASE_URL || "https://comp.turtletrades.co.uk").replace(/\/+$/, "");
+  const baseUrl = String(env.COMPETITION_API_BASE_URL || env.COMPETITION_APP_API_BASE_URL || "https://comp.turtletrades.co.uk/api").replace(/\/+$/, "");
   const limit = Math.max(1, Math.min(500, number(env.PUBLIC_COMPETITION_LEADERBOARD_LIMIT, 100)));
   const [traderResponse, universityResponse] = await Promise.allSettled([
     fetchJson(`${baseUrl}/app/competition/traders?limit=${limit}`),
