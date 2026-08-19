@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import {
   Activity,
   ArrowLeft,
@@ -67,6 +67,21 @@ function riskTextClass(label: string) {
   if (normalized.includes("medium")) return "text-[#d97706]";
   if (normalized.includes("high")) return "text-[#dc2626]";
   return "text-[#9ca3af]";
+}
+
+function universityFilterButtonStyle(active: boolean): CSSProperties {
+  return active
+    ? {
+        backgroundColor: "#0f6b45",
+        borderColor: "#0f6b45",
+        boxShadow: "0 8px 18px rgba(15, 107, 69, 0.2)",
+        color: "#ffffff",
+      }
+    : {
+        backgroundColor: "#e8f2ee",
+        borderColor: "#b9d0c7",
+        color: "#12372b",
+      };
 }
 
 function rankBadgeClass(rankIndex: number) {
@@ -504,11 +519,9 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                       <button
                         type="button"
                         onClick={() => setSelectedUniversity("")}
-                        className={`flex flex-shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium shadow-sm transition-colors ${
-                          !selectedUniversity
-                            ? "border-[#107949] bg-[#107949] text-white shadow-[#107949]/15"
-                            : "border-[#d9e2e8] bg-[#f8faf9] text-[#334155] hover:border-[#107949]/40 hover:bg-white hover:text-[#0f5132]"
-                        }`}
+                        aria-pressed={!selectedUniversity}
+                        style={universityFilterButtonStyle(!selectedUniversity)}
+                        className="flex flex-shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-semibold shadow-sm transition-all hover:-translate-y-px hover:brightness-[0.98] active:translate-y-0"
                       >
                         <Trophy className="h-3.5 w-3.5" />
                         Total Uni Overview
@@ -518,11 +531,9 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                           key={university.universityName}
                           type="button"
                           onClick={() => setSelectedUniversity(university.universityName)}
-                          className={`flex-shrink-0 rounded-lg border px-3 py-2 text-sm font-medium shadow-sm transition-colors ${
-                            selectedUniversity === university.universityName
-                              ? "border-[#107949] bg-[#107949] text-white shadow-[#107949]/15"
-                              : "border-[#d9e2e8] bg-[#f8faf9] text-[#334155] hover:border-[#107949]/40 hover:bg-white hover:text-[#0f5132]"
-                          }`}
+                          aria-pressed={selectedUniversity === university.universityName}
+                          style={universityFilterButtonStyle(selectedUniversity === university.universityName)}
+                          className="flex-shrink-0 rounded-lg border px-3 py-2 text-sm font-semibold shadow-sm transition-all hover:-translate-y-px hover:brightness-[0.98] active:translate-y-0"
                         >
                           {university.universityName}
                         </button>
