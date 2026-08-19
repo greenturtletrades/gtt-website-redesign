@@ -467,64 +467,19 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
             </p>
           </div>
 
-          <div className="mx-auto mt-8 grid max-w-5xl gap-3 lg:grid-cols-[1.4fr_0.8fr]">
-            <div className="rounded-xl border border-[#d9e2e8] bg-white p-5 text-left shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[#107949]">
-                    {competition ? competitionPhaseLabel(competition.status) : "Competition setup"}
-                  </div>
-                  <h2 className="mt-2 text-xl font-semibold text-slate-950">
-                    {competition?.name || "University Investment Challenge"}
-                  </h2>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">
-                    {competition?.status === "testing"
-                      ? "Testing mode is scheduled for internal checks before the public competition goes live."
-                      : competition?.status === "active"
-                        ? "The live leaderboard is updating from the official competition engine."
-                        : competition?.status === "finished" || competition?.status === "archived"
-                          ? "This competition has finished and the final leaderboard is locked."
-                          : "The next competition schedule and setup are controlled from the admin competition panel."}
-                  </p>
-                </div>
-                <span className="rounded-lg border border-[#b9d0c7] bg-[#e8f2ee] px-3 py-1.5 text-xs font-semibold text-[#12372b]">
-                  {competition?.region || "Scotland"} {competition?.year || new Date().getFullYear()}
-                </span>
-              </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-lg bg-slate-50 p-3">
-                  <p className="text-xs text-slate-500">Starts</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-950">{formatPublicCompetitionDate(competition?.startsAt || null)}</p>
-                </div>
-                <div className="rounded-lg bg-slate-50 p-3">
-                  <p className="text-xs text-slate-500">Ends</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-950">{formatPublicCompetitionDate(competition?.endsAt || null)}</p>
-                </div>
-                <div className="rounded-lg bg-slate-50 p-3">
-                  <p className="text-xs text-slate-500">Included Universities</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-950">{competition?.includedUniversities?.length || universities.length || 0}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-[#d9e2e8] bg-white p-5 text-left shadow-sm">
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Past Competitions</div>
+          <div className="mx-auto mt-7 max-w-5xl rounded-lg border border-[#d9e2e8] bg-white/80 px-4 py-3 text-left shadow-sm">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-600">
+              <span className="rounded-full border border-[#b9d0c7] bg-[#e8f2ee] px-2.5 py-1 font-semibold text-[#12372b]">
+                {competition ? competitionPhaseLabel(competition.status) : "Competition setup"}
+              </span>
+              <span className="font-semibold text-slate-950">{competition?.name || "University Investment Challenge"}</span>
+              <span>{competition?.region || "Scotland"} {competition?.year || new Date().getFullYear()}</span>
+              <span>Starts {formatPublicCompetitionDate(competition?.startsAt || null)}</span>
+              <span>Ends {formatPublicCompetitionDate(competition?.endsAt || null)}</span>
+              <span>{competition?.includedUniversities?.length || universities.length || 0} universities</span>
               {competition?.archives?.length ? (
-                <div className="mt-3 space-y-2">
-                  {competition.archives.slice(0, 3).map((archive) => (
-                    <div key={archive.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                      <p className="text-sm font-semibold text-slate-950">{archive.archiveLabel}</p>
-                      <p className="mt-1 text-xs text-slate-600">
-                        {archive.rowCount} ranked competitors{archive.savedAt ? ` · saved ${formatPublicCompetitionDate(archive.savedAt)}` : ""}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="mt-3 text-sm leading-6 text-slate-600">
-                  Finished competitions will appear here once the admin panel locks a final leaderboard archive.
-                </p>
-              )}
+                <span>{competition.archives.length} archived {competition.archives.length === 1 ? "competition" : "competitions"}</span>
+              ) : null}
             </div>
           </div>
 
