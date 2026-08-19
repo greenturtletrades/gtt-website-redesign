@@ -714,7 +714,6 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                             <div className="min-w-0 flex-1">
                               <div className="mb-1 flex items-start justify-between gap-2">
                                 <div className="flex min-w-0 items-center gap-2">
-                                  {showRankBadge ? <span className="mr-1 flex-shrink-0 text-base">{trader.initials}</span> : null}
                                   <h4 className="truncate text-base font-semibold text-slate-950">{trader.name}</h4>
                                   <ShieldCheck className="h-4 w-4 flex-shrink-0 text-teal-600" />
                                 </div>
