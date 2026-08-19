@@ -450,10 +450,12 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
   return (
     <div className="min-h-screen bg-white">
       <section
-        className="w-full bg-[#fafbfc] px-4 pb-24 text-[#111827] sm:px-6 sm:pb-32"
+        className="relative w-full overflow-hidden bg-gradient-to-br from-teal-50 via-white to-cyan-50/70 px-4 pb-24 text-[#111827] sm:px-6 sm:pb-32"
         style={{ paddingTop: "clamp(9.5rem, 12vw, 12rem)" }}
       >
-        <div className="mx-auto max-w-7xl">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#0d94880a_1px,transparent_1px),linear-gradient(to_bottom,#0891b20a_1px,transparent_1px)] bg-[size:4rem_4rem]" />
+        <div className="absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-white/80 to-transparent" />
+        <div className="relative mx-auto max-w-7xl">
           <div className="mx-auto max-w-5xl text-center">
             <h1 className="mx-auto max-w-4xl text-4xl leading-tight text-slate-950 sm:text-5xl md:text-6xl">
               Scotland&apos;s next generation of investors, ranked live.
@@ -466,15 +468,15 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
           </div>
 
           <div className="mx-auto mt-10 grid max-w-6xl gap-4 md:grid-cols-2">
-              <div className="relative overflow-hidden rounded-2xl border border-[#d9e2e8] bg-white p-5 text-left shadow-[0_14px_38px_rgba(15,23,42,0.08)]">
-                <div className="absolute inset-x-0 top-0 h-1 bg-[#107949]" />
+              <div className="relative overflow-hidden rounded-2xl border border-teal-200/80 bg-white/90 p-5 text-left shadow-[0_18px_44px_rgba(15,107,69,0.10)] backdrop-blur">
+                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-teal-600 via-emerald-500 to-cyan-500" />
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <div className="text-xs font-semibold uppercase text-slate-500">Top Individual Performer</div>
                     <div className="mt-3 truncate text-2xl font-semibold text-slate-950">{topTrader?.name || "Loading"}</div>
                     <div className="mt-1 text-sm text-slate-600">{topTrader?.universityName || "University competition"}</div>
                   </div>
-                  <div className="flex h-11 min-w-16 flex-shrink-0 flex-col items-center justify-center rounded-xl border border-[#d9e2e8] bg-[#f8fbfa] px-3">
+                  <div className="flex h-11 min-w-16 flex-shrink-0 flex-col items-center justify-center rounded-xl border border-teal-200 bg-gradient-to-br from-teal-50 to-white px-3">
                     <span className="text-[0.6875rem] font-semibold text-slate-500">Score</span>
                     <span className="text-base font-semibold text-[#107949]">{topTrader ? topTrader.score.toFixed(1) : "0.0"}</span>
                   </div>
@@ -487,8 +489,8 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                   </div>
                 ) : null}
               </div>
-              <div className="relative overflow-hidden rounded-2xl border border-[#d9e2e8] bg-white p-5 text-left shadow-[0_14px_38px_rgba(15,23,42,0.08)]">
-                <div className="absolute inset-x-0 top-0 h-1 bg-[#12372b]" />
+              <div className="relative overflow-hidden rounded-2xl border border-cyan-200/80 bg-white/90 p-5 text-left shadow-[0_18px_44px_rgba(8,145,178,0.10)] backdrop-blur">
+                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-slate-800 via-teal-700 to-cyan-500" />
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <div className="text-xs font-semibold uppercase text-slate-500">Top University</div>
@@ -497,7 +499,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                       {topUniversity ? `${topUniversity.activeTraders} active / ${topUniversity.totalTraders} competitors` : "University leaderboard"}
                     </div>
                   </div>
-                  <div className="flex h-11 min-w-16 flex-shrink-0 flex-col items-center justify-center rounded-xl border border-[#d9e2e8] bg-[#f8fbfa] px-3">
+                  <div className="flex h-11 min-w-16 flex-shrink-0 flex-col items-center justify-center rounded-xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-white px-3">
                     <span className="text-[0.6875rem] font-semibold text-slate-500">Score</span>
                     <span className="text-base font-semibold text-[#107949]">{topUniversity ? topUniversity.score.toFixed(1) : "0.0"}</span>
                   </div>
@@ -518,7 +520,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
             ) : (
               <div className="space-y-4">
                 <div
-                  className="grid items-center gap-2 rounded-2xl border border-[#d9e2e8] bg-white p-2 shadow-[0_12px_30px_rgba(15,23,42,0.06)]"
+                  className="grid items-center gap-2 rounded-2xl border border-white/80 bg-white/85 p-2 shadow-[0_16px_38px_rgba(15,23,42,0.08)] backdrop-blur"
                   style={{ gridTemplateColumns: "minmax(0, 1fr) auto" }}
                 >
                   <div className="relative min-w-0">
@@ -528,7 +530,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                       value={searchTerm}
                       onChange={(event) => setSearchTerm(event.target.value)}
                       placeholder="Search by name, strategy, or assets..."
-                      className="w-full rounded-xl border border-transparent bg-[#f8faf9] py-3 pl-10 pr-4 text-sm text-[#111827] placeholder:text-[#9ca3af] focus:border-[#107949] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#107949]/20"
+                      className="w-full rounded-xl border border-transparent bg-white/70 py-3 pl-10 pr-4 text-sm text-[#111827] placeholder:text-[#9ca3af] focus:border-[#107949] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#107949]/20"
                     />
                   </div>
                   <div className="flex flex-shrink-0 justify-end gap-2">
@@ -536,7 +538,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                     type="button"
                     onClick={handleRefresh}
                     disabled={refreshing}
-                    className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border border-[#d9e2e8] bg-white text-[#4b5563] transition-colors hover:bg-[#fafbfc] disabled:opacity-60"
+                    className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border border-[#d9e2e8] bg-white text-[#4b5563] shadow-sm transition-colors hover:bg-[#f8fbfa] disabled:opacity-60"
                     aria-label="Refresh leaderboard"
                   >
                     <RefreshCw className={`h-5 w-5 ${refreshing ? "animate-spin" : ""}`} />
@@ -630,7 +632,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                 ) : null}
 
                 {leaderboardView === "universities" && selectedUniversity ? (
-                  <div className="rounded-xl border border-[#e5eaef] bg-white p-4 shadow-sm">
+                  <div className="rounded-xl border border-teal-200 bg-white/90 p-4 shadow-sm backdrop-blur">
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <p className="text-sm font-medium text-slate-950">{selectedUniversity} participant rankings</p>
@@ -655,7 +657,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                           key={university.universityName}
                           type="button"
                           onClick={() => setSelectedUniversity(university.universityName)}
-                          className="w-full rounded-lg border border-[#e5eaef] bg-white p-4 text-left shadow-sm transition-colors hover:bg-[#fafbfc] sm:p-5"
+                          className="w-full rounded-lg border border-[#d9e2e8] bg-white/90 p-4 text-left shadow-sm transition-all hover:border-teal-200 hover:bg-white hover:shadow-md sm:p-5"
                         >
                           <div className="flex items-start gap-3 sm:gap-4">
                             <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${rankBadgeClass(index)}`}>
@@ -703,7 +705,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                           key={trader.id}
                           type="button"
                           onClick={() => setSelectedTrader(trader)}
-                          className={`w-full rounded-lg border border-[#e5eaef] bg-white p-4 text-left shadow-sm transition-colors hover:bg-[#fafbfc] sm:p-5 ${showRankBadge && index < 3 ? "bg-[#fafbfc]" : ""}`}
+                          className={`w-full rounded-lg border border-[#d9e2e8] bg-white/90 p-4 text-left shadow-sm transition-all hover:border-teal-200 hover:bg-white hover:shadow-md sm:p-5 ${showRankBadge && index < 3 ? "bg-gradient-to-br from-white to-teal-50/40" : ""}`}
                         >
                           <div className="flex items-start gap-3 sm:gap-4">
                             <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${showRankBadge ? rankBadgeClass(index) : "bg-teal-50 text-teal-700"}`}>
@@ -746,18 +748,18 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
             )}
           </div>
 
-          <div className="mx-auto mt-6 max-w-6xl rounded-xl border border-[#d9e2e8] bg-white px-4 py-3 text-left shadow-[0_10px_26px_rgba(15,23,42,0.06)]">
+          <div className="mx-auto mt-6 max-w-6xl rounded-xl border border-white/80 bg-white/85 px-4 py-3 text-left shadow-[0_12px_30px_rgba(15,23,42,0.07)] backdrop-blur">
             <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
               <span className="rounded-full border border-[#b9d0c7] bg-[#e8f2ee] px-2.5 py-1 font-semibold text-[#12372b]">
                 {competition ? competitionPhaseLabel(competition.status) : "Competition setup"}
               </span>
-              <span className="rounded-full bg-[#f8faf9] px-2.5 py-1 font-semibold text-slate-950">{selectedArchive?.archiveLabel || competition?.name || "University Investment Challenge"}</span>
-              <span className="rounded-full bg-[#f8faf9] px-2.5 py-1">{competition?.region || "Scotland"} {competition?.year || new Date().getFullYear()}</span>
-              <span className="rounded-full bg-[#f8faf9] px-2.5 py-1">Starts {formatPublicCompetitionDate(competition?.startsAt || null)}</span>
-              <span className="rounded-full bg-[#f8faf9] px-2.5 py-1">Ends {formatPublicCompetitionDate(competition?.endsAt || null)}</span>
-              <span className="rounded-full bg-[#f8faf9] px-2.5 py-1">{competition?.includedUniversities?.length || universities.length || 0} universities</span>
+              <span className="rounded-full bg-white/80 px-2.5 py-1 font-semibold text-slate-950">{selectedArchive?.archiveLabel || competition?.name || "University Investment Challenge"}</span>
+              <span className="rounded-full bg-white/80 px-2.5 py-1">{competition?.region || "Scotland"} {competition?.year || new Date().getFullYear()}</span>
+              <span className="rounded-full bg-white/80 px-2.5 py-1">Starts {formatPublicCompetitionDate(competition?.startsAt || null)}</span>
+              <span className="rounded-full bg-white/80 px-2.5 py-1">Ends {formatPublicCompetitionDate(competition?.endsAt || null)}</span>
+              <span className="rounded-full bg-white/80 px-2.5 py-1">{competition?.includedUniversities?.length || universities.length || 0} universities</span>
               {competition?.archives?.length ? (
-                <span className="rounded-full bg-[#f8faf9] px-2.5 py-1">{competition.archives.length} archived {competition.archives.length === 1 ? "competition" : "competitions"}</span>
+                <span className="rounded-full bg-white/80 px-2.5 py-1">{competition.archives.length} archived {competition.archives.length === 1 ? "competition" : "competitions"}</span>
               ) : null}
             </div>
             {competition?.archives?.length ? (
@@ -794,22 +796,22 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
           </div>
 
           <div className="mt-8 grid gap-4 md:grid-cols-3">
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="rounded-xl border border-teal-200/80 bg-white/90 p-5 shadow-sm backdrop-blur">
               <Trophy className="h-5 w-5 text-teal-600" />
               <h3 className="mt-4 text-lg font-semibold text-slate-950">Risk-free learning</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">
                 Students trade with virtual capital, so they can build practical experience without risking personal money.
               </p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <GraduationCap className="h-5 w-5 text-teal-600" />
+            <div className="rounded-xl border border-cyan-200/80 bg-white/90 p-5 shadow-sm backdrop-blur">
+              <GraduationCap className="h-5 w-5 text-cyan-700" />
               <h3 className="mt-4 text-lg font-semibold text-slate-950">University pride</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">
                 Competitors represent their university while learning portfolio discipline, risk control, and market behaviour.
               </p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <ShieldCheck className="h-5 w-5 text-teal-600" />
+            <div className="rounded-xl border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur">
+              <ShieldCheck className="h-5 w-5 text-slate-700" />
               <h3 className="mt-4 text-lg font-semibold text-slate-950">Central scoring</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">
                 Public rankings use the same competition engine as the app, so website visitors see the live official board.
