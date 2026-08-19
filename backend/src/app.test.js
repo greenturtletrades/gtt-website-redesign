@@ -376,7 +376,33 @@ test("GET /api/public/leaderboard proxies the university competition leaderboard
       return originalFetch(url);
     }
 
-    assert.equal(String(url), "https://comp.turtletrades.co.uk/app/competition/traders?limit=100");
+    const requestUrl = String(url);
+    if (requestUrl === "https://comp.turtletrades.co.uk/app/competition/universities?limit=100") {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          universities: [
+            {
+              universityName: "Heriot-Watt University",
+              activeTraders: 2,
+              totalTraders: 3,
+              totalReturnPercent: 0.65,
+              realizedReturnPercent: 0.79,
+              unrealizedReturnPercent: -0.14,
+              score: 36.4,
+              avgTraderScore: 53.2,
+              winRate: 95.5,
+              avgRiskScore: 2.4,
+              trades: 12,
+              followers: 1,
+            },
+          ],
+        }),
+      };
+    }
+
+    assert.equal(requestUrl, "https://comp.turtletrades.co.uk/app/competition/traders?limit=100");
     return {
       ok: true,
       status: 200,
@@ -415,6 +441,10 @@ test("GET /api/public/leaderboard proxies the university competition leaderboard
       assert.equal(response.body.ok, true);
       assert.equal(response.body.source, "university_competition");
       assert.equal(response.body.leaderboard.length, 1);
+      assert.equal(response.body.universities.length, 1);
+      assert.equal(response.body.universities[0].universityName, "Heriot-Watt University");
+      assert.equal(response.body.universities[0].activeTraders, 2);
+      assert.equal(response.body.universities[0].score, 36.4);
       assert.equal(response.body.leaderboard[0].id, "user-1");
       assert.equal(response.body.leaderboard[0].name, "Sean");
       assert.equal(response.body.leaderboard[0].universityName, "Heriot-Watt University");

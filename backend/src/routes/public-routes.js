@@ -231,23 +231,62 @@ function normalizeCompetitionLeaderboardRow(trader, index) {
   };
 }
 
-async function fetchCompetitionLeaderboard(env) {
+function normalizeCompetitionUniversityRow(university, index) {
+  const name = String(university?.universityName || university?.university || `University ${index + 1}`);
+  const avgRiskScore = university?.avgRiskScore == null ? null : number(university.avgRiskScore, 0);
+  const riskLabel = avgRiskScore == null
+    ? "Unrated"
+    : avgRiskScore <= 3
+      ? "Low"
+      : avgRiskScore <= 6
+        ? "Medium"
+        : "High";
+
+  return {
+    rank: index + 1,
+    universityName: name,
+    activeTraders: Math.max(0, Math.floor(number(university?.activeTraders, 0))),
+    totalTraders: Math.max(0, Math.floor(number(university?.totalTraders ?? university?.totalParticipants, 0))),
+    totalReturnPercent: number(university?.totalReturnPercent, 0),
+    realizedReturnPercent: number(university?.realizedReturnPercent ?? university?.realizedPnlPercent, 0),
+    unrealizedReturnPercent: number(university?.unrealizedReturnPercent ?? university?.unrealizedPnlPercent, 0),
+    score: number(university?.score, 0),
+    avgTraderScore: number(university?.avgTraderScore, 0),
+    winRate: number(university?.winRate, 0),
+    avgRiskScore,
+    riskLabel,
+    trades: Math.max(0, Math.floor(number(university?.trades, 0))),
+    followers: Math.max(0, Math.floor(number(university?.followers ?? university?.backers, 0))),
+    aum: number(university?.aum, 0),
+  };
+}
+
+async function fetchCompetitionData(env) {
   const baseUrl = String(env.COMPETITION_API_BASE_URL || env.COMPETITION_APP_API_BASE_URL || "https://comp.turtletrades.co.uk").replace(/\/+$/, "");
   const limit = Math.max(1, Math.min(500, number(env.PUBLIC_COMPETITION_LEADERBOARD_LIMIT, 100)));
-  const response = await fetch(`${baseUrl}/app/competition/traders?limit=${limit}`, {
-    headers: {
-      accept: "application/json",
-    },
-  });
+  const headers = { accept: "application/json" };
+  const [traderResponse, universityResponse] = await Promise.all([
+    fetch(`${baseUrl}/app/competition/traders?limit=${limit}`, { headers }),
+    fetch(`${baseUrl}/app/competition/universities?limit=${limit}`, { headers }),
+  ]);
 
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const message = payload?.error || payload?.message || `Competition API returned ${response.status}`;
+  const traderPayload = await traderResponse.json().catch(() => ({}));
+  const universityPayload = await universityResponse.json().catch(() => ({}));
+  if (!traderResponse.ok) {
+    const message = traderPayload?.error || traderPayload?.message || `Competition traders API returned ${traderResponse.status}`;
+    throw new Error(message);
+  }
+  if (!universityResponse.ok) {
+    const message = universityPayload?.error || universityPayload?.message || `Competition universities API returned ${universityResponse.status}`;
     throw new Error(message);
   }
 
-  const traders = Array.isArray(payload?.traders) ? payload.traders : [];
-  return traders.map(normalizeCompetitionLeaderboardRow);
+  const traders = Array.isArray(traderPayload?.traders) ? traderPayload.traders : [];
+  const universities = Array.isArray(universityPayload?.universities) ? universityPayload.universities : [];
+  return {
+    leaderboard: traders.map(normalizeCompetitionLeaderboardRow),
+    universities: universities.map(normalizeCompetitionUniversityRow),
+  };
 }
 
 function registerPublicRoutes(app, {
@@ -259,11 +298,12 @@ function registerPublicRoutes(app, {
 }) {
   app.get("/api/public/leaderboard", async (req, res, next) => {
     try {
-      const competitionLeaderboard = await fetchCompetitionLeaderboard(env);
+      const competitionData = await fetchCompetitionData(env);
       return res.json({
         ok: true,
         source: "university_competition",
-        leaderboard: competitionLeaderboard,
+        leaderboard: competitionData.leaderboard,
+        universities: competitionData.universities,
       });
 
       const users = await prisma.user.findMany({

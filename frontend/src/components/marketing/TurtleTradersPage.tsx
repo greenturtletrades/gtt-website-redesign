@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Trophy, Users, Wallet, TrendingUp, ShieldCheck, Search, GraduationCap } from "lucide-react";
 import { Footer } from "./Footer";
 import { fetchPublicLeaderboard } from "../../api/public";
-import type { PublicLeaderboardRow } from "../../api/public";
+import type { PublicLeaderboardRow, PublicUniversityLeaderboardRow } from "../../api/public";
 import type { ViewType } from "../../seo/routes";
 
 interface TurtleTradersPageProps {
@@ -44,6 +44,14 @@ function riskClass(label: string) {
   return "bg-slate-100 text-slate-600 border-slate-200";
 }
 
+function riskTextClass(label: string) {
+  const normalized = label.toLowerCase();
+  if (normalized.includes("low")) return "text-emerald-600";
+  if (normalized.includes("medium")) return "text-amber-600";
+  if (normalized.includes("high")) return "text-rose-600";
+  return "text-slate-500";
+}
+
 function formatRelativeTimestamp(value: string | null) {
   if (!value) return "Live";
   const date = new Date(value);
@@ -60,7 +68,9 @@ function formatRelativeTimestamp(value: string | null) {
 export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [showAllRows, setShowAllRows] = useState(false);
+  const [selectedUniversity, setSelectedUniversity] = useState("");
   const [traders, setTraders] = useState<PublicLeaderboardRow[]>([]);
+  const [universities, setUniversities] = useState<PublicUniversityLeaderboardRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -72,6 +82,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
         const response = await fetchPublicLeaderboard();
         if (cancelled) return;
         setTraders(response.leaderboard);
+        setUniversities(response.universities || []);
         setLoadError(null);
       } catch (error) {
         if (cancelled) return;
@@ -89,19 +100,26 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
 
   const filteredTraders = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
-    if (!query) return traders;
-    return traders.filter((trader) => (
+    const scoped = selectedUniversity
+      ? traders.filter((trader) => trader.universityName === selectedUniversity)
+      : traders;
+    if (!query) return scoped;
+    return scoped.filter((trader) => (
       trader.name.toLowerCase().includes(query) ||
       trader.universityName.toLowerCase().includes(query)
     ));
-  }, [searchTerm, traders]);
+  }, [searchTerm, selectedUniversity, traders]);
 
   const visibleTraders = showAllRows || searchTerm.trim() ? filteredTraders : filteredTraders.slice(0, 8);
   const hasHiddenRows = !searchTerm.trim() && filteredTraders.length > 8;
   const topTrader = traders[0] || null;
-  const activeUniversities = new Set(traders.map((trader) => trader.universityName).filter(Boolean)).size;
-  const totalTrades = traders.reduce((sum, trader) => sum + trader.totalTrades, 0);
-  const totalBackers = traders.reduce((sum, trader) => sum + trader.followers, 0);
+  const activeUniversities = universities.length || new Set(traders.map((trader) => trader.universityName).filter(Boolean)).size;
+  const totalTrades = universities.length
+    ? universities.reduce((sum, university) => sum + university.trades, 0)
+    : traders.reduce((sum, trader) => sum + trader.totalTrades, 0);
+  const totalBackers = universities.length
+    ? universities.reduce((sum, university) => sum + university.followers, 0)
+    : traders.reduce((sum, trader) => sum + trader.followers, 0);
 
   return (
     <div className="min-h-screen bg-white pt-20">
@@ -150,7 +168,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
           <div className="mt-12 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
             <div className="flex flex-col gap-4 border-b border-slate-200 bg-slate-950 px-5 py-5 text-white sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <div className="text-sm font-semibold">Live Trader Leaderboard</div>
+                <div className="text-sm font-semibold">University Leaderboard</div>
                 <div className="mt-1 text-xs text-slate-300">Ranked from central university competition scoring</div>
               </div>
               <div className="relative w-full sm:max-w-sm">
@@ -165,6 +183,35 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
               </div>
             </div>
 
+            <div className="flex gap-2 overflow-x-auto border-b border-slate-200 bg-white px-5 py-4">
+              <button
+                type="button"
+                onClick={() => setSelectedUniversity("")}
+                className={`flex-shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  !selectedUniversity
+                    ? "bg-teal-600 text-white"
+                    : "bg-slate-100 text-slate-700 hover:bg-teal-50 hover:text-teal-700"
+                }`}
+              >
+                Total Uni Overview
+              </button>
+              {universities.map((university) => (
+                <button
+                  key={university.universityName}
+                  type="button"
+                  onClick={() => setSelectedUniversity(university.universityName)}
+                  className={`flex-shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    selectedUniversity === university.universityName
+                      ? "bg-teal-600 text-white"
+                      : "bg-slate-100 text-slate-700 hover:bg-teal-50 hover:text-teal-700"
+                  }`}
+                >
+                  {university.universityName}
+                </button>
+              ))}
+              <div className="ml-auto hidden items-center text-sm font-medium text-slate-500 sm:flex">Uni view</div>
+            </div>
+
             <div className="divide-y divide-slate-100">
               {loading ? (
                 <div className="px-5 py-10 text-center text-sm text-slate-600">Loading university competition leaderboard...</div>
@@ -174,11 +221,74 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                 <div className="px-5 py-10 text-center text-sm text-red-600">{loadError}</div>
               ) : null}
 
-              {!loading && !loadError && visibleTraders.length === 0 ? (
+              {!loading && !loadError && !selectedUniversity && universities.length === 0 ? (
                 <div className="px-5 py-10 text-center text-sm text-slate-600">No competition traders match that search.</div>
               ) : null}
 
-              {visibleTraders.map((trader) => {
+              {!selectedUniversity && universities.map((university) => {
+                const isPositive = university.totalReturnPercent >= 0;
+                return (
+                  <article
+                    key={university.universityName}
+                    className="bg-white px-5 py-5 transition-colors hover:bg-teal-50/40"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-teal-100 text-lg font-semibold text-teal-800">
+                        {rankBadge(university.rank)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0">
+                            <h2 className="truncate text-lg font-semibold text-slate-950">{university.universityName}</h2>
+                            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
+                              <span>{university.activeTraders} active / {university.totalTraders}</span>
+                              <span>
+                                Return <span className={isPositive ? "text-emerald-600" : "text-rose-600"}>{formatSignedPercent(university.totalReturnPercent)}</span>
+                              </span>
+                              <span>
+                                R <span className={university.realizedReturnPercent >= 0 ? "text-emerald-600" : "text-rose-600"}>{formatSignedPercent(university.realizedReturnPercent)}</span>
+                                {" "}· U <span className={university.unrealizedReturnPercent >= 0 ? "text-emerald-600" : "text-rose-600"}>{formatSignedPercent(university.unrealizedReturnPercent)}</span>
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex-shrink-0 text-right">
+                            <div className="text-xs text-slate-500">Score</div>
+                            <div className="text-lg font-semibold tabular-nums text-slate-950">{university.score.toFixed(1)}</div>
+                          </div>
+                        </div>
+                        <div className="mt-4 grid grid-cols-2 gap-x-5 gap-y-3 sm:grid-cols-5">
+                          <div>
+                            <div className="text-[0.6875rem] text-slate-500">Trader Score</div>
+                            <div className="text-sm text-slate-950">{university.avgTraderScore.toFixed(1)}</div>
+                          </div>
+                          <div>
+                            <div className="text-[0.6875rem] text-slate-500">Win Rate</div>
+                            <div className="text-sm text-slate-950">{university.winRate.toFixed(1)}%</div>
+                          </div>
+                          <div>
+                            <div className="text-[0.6875rem] text-slate-500">Risk</div>
+                            <div className={`text-sm ${riskTextClass(university.riskLabel)}`}>{university.riskLabel}</div>
+                          </div>
+                          <div>
+                            <div className="text-[0.6875rem] text-slate-500">Trades</div>
+                            <div className="text-sm text-slate-950">{university.trades}</div>
+                          </div>
+                          <div>
+                            <div className="text-[0.6875rem] text-slate-500">Backers</div>
+                            <div className="text-sm text-slate-950">{university.followers}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+
+              {selectedUniversity && visibleTraders.length === 0 && !loading && !loadError ? (
+                <div className="px-5 py-10 text-center text-sm text-slate-600">No traders found for {selectedUniversity}.</div>
+              ) : null}
+
+              {selectedUniversity && visibleTraders.map((trader) => {
                 const isPositive = trader.totalReturnPercent >= 0;
                 return (
                   <article key={trader.id} className="bg-white px-5 py-5 transition-colors hover:bg-teal-50/40">
@@ -252,7 +362,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
               })}
             </div>
 
-            {hasHiddenRows ? (
+            {selectedUniversity && hasHiddenRows ? (
               <div className="border-t border-slate-200 bg-slate-50 px-5 py-4 text-center">
                 <button
                   type="button"

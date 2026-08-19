@@ -21,10 +21,29 @@ export interface PublicLeaderboardRow {
   lastUpdatedAt: string | null;
 }
 
+export interface PublicUniversityLeaderboardRow {
+  rank: number;
+  universityName: string;
+  activeTraders: number;
+  totalTraders: number;
+  totalReturnPercent: number;
+  realizedReturnPercent: number;
+  unrealizedReturnPercent: number;
+  score: number;
+  avgTraderScore: number;
+  winRate: number;
+  avgRiskScore: number | null;
+  riskLabel: string;
+  trades: number;
+  followers: number;
+  aum: number;
+}
+
 export interface PublicLeaderboardResponse {
   ok: boolean;
   source: "university_competition";
   leaderboard: PublicLeaderboardRow[];
+  universities: PublicUniversityLeaderboardRow[];
 }
 
 export function fetchPublicLeaderboard() {
