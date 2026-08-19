@@ -475,7 +475,7 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 px-5 py-3 text-sm text-slate-900 transition-all hover:border-teal-300 hover:text-teal-700"
               >
                 <Users className="h-4 w-4" />
-                Traders Leaderboard
+                University Competition
               </button>
             </div>
           </div>

@@ -55,7 +55,7 @@ const websiteStructuredData = {
     `${siteUrl}/trading-journal`,
     `${siteUrl}/verified-traders`,
     `${siteUrl}/turtle-analytics`,
-    `${siteUrl}/traders-leaderboard`,
+    `${siteUrl}/university-competition`,
   ],
 };
 
@@ -138,7 +138,7 @@ function buildFallback({ h1, paragraphs }) {
               <li><a href="/">Green Turtle Trades homepage</a></li>
               <li><a href="/about">About Green Turtle Trades</a></li>
               <li><a href="/turtle-analytics">Turtle Analytics</a></li>
-              <li><a href="/traders-leaderboard">Traders Leaderboard</a></li>
+              <li><a href="/university-competition">University Competition</a></li>
               <li><a href="/trading-analytics">Trading Analytics</a></li>
               <li><a href="/trading-journal">Trading Journal</a></li>
               <li><a href="/verified-traders">Verified Traders</a></li>
@@ -160,7 +160,7 @@ const pages = [
       "Green Turtle Trades was started by four university students based in Edinburgh after seeing more people pulled into trading propaganda, signal groups, and unverifiable performance claims.",
       "Green Turtle Trades is building the UK's most transparent platform for trader-backed investing by helping traders, investors, and evaluators review performance through trade history, risk, consistency, and public trader summaries.",
       "Green Turtle Trades is a trader-backed investing platform built for people comparing fintech investment platforms, copy trading platforms, trader marketplaces, and prop firm alternatives.",
-      "The platform focuses on trading analytics, trader verification, trading journal workflows, and transparent performance records through Turtle Analytics and the public traders leaderboard.",
+      "The platform focuses on trading analytics, trader verification, trading journal workflows, transparent performance records through Turtle Analytics, and the public university competition leaderboard.",
     ],
     topics: [
       "Trader-backed investing",
@@ -203,18 +203,18 @@ const pages = [
     ],
   }),
   page({
-    route: "/traders-leaderboard",
-    title: "Traders Leaderboard | Green Turtle Trades",
+    route: "/university-competition",
+    title: "University Competition Leaderboard | Green Turtle Trades",
     description:
-      "View the Green Turtle Trades public traders leaderboard, ranked by verified account performance, win rate, expectancy, risk control, and trade history.",
+      "View the Green Turtle Trades university competition leaderboard for Scottish students, live university rankings, trader scores, returns, win rate, risk, and competition activity.",
     keywords:
-      "traders leaderboard, public traders leaderboard, verified trading leaderboard, trading performance leaderboard, turtle traders leaderboard",
-    h1: "Traders Leaderboard",
+      "university competition leaderboard, Scottish university investment competition, student investing competition, trading competition leaderboard, university trader leaderboard, Green Turtle Trades competition",
+    h1: "University Competition Leaderboard",
     paragraphs: [
-      "The Green Turtle Trades public traders leaderboard helps visitors review opted-in trader performance summaries with clearer context around account performance, risk, expectancy, win rate, and trade history.",
-      "Raw trades remain private while public summaries help make trader comparison more transparent.",
+      "The Green Turtle Trades university competition leaderboard helps visitors follow Scottish university competitors using live ranking data, trader scores, return metrics, risk labels, win rate, and competition activity.",
+      "Students trade with virtual capital in a risk-free environment while universities compete on individual performance, active participation, disciplined risk, and overall team results.",
     ],
-    topics: ["Trader leaderboard", "Verified trading performance", "Trader comparison"],
+    topics: ["University competition", "Student investing competition", "Scottish university trading leaderboard"],
   }),
   page({
     route: "/green-turtle-trades",

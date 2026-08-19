@@ -25,7 +25,7 @@ export function SeoContentPage({ view, onNavigate }: SeoContentPageProps) {
     ["Copy Trading Platform", "seo-copy-trading-platform"],
     ["Trader Funding", "seo-trader-funding"],
     ["Prop Firm Alternative", "seo-prop-firm-alternative"],
-    ["Traders Leaderboard", "turtle-traders"],
+    ["University Competition", "turtle-traders"],
   ];
 
   const featureIcons = [ShieldCheck, BarChart3, LineChart, CheckCircle2];
@@ -154,7 +154,7 @@ export function SeoContentPage({ view, onNavigate }: SeoContentPageProps) {
           <div>
             <h2 className="text-xl text-slate-950">Explore Green Turtle Trades</h2>
             <p className="mt-2 text-sm text-slate-700">
-              Review the public traders leaderboard or open Turtle Analytics to see the platform in context.
+              Review the university competition leaderboard or open Turtle Analytics to see the platform in context.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -163,7 +163,7 @@ export function SeoContentPage({ view, onNavigate }: SeoContentPageProps) {
               onClick={() => onNavigate("turtle-traders")}
               className="rounded-lg bg-teal-600 px-4 py-2 text-sm text-white transition-colors hover:bg-teal-700"
             >
-              Traders Leaderboard
+              University Competition
             </button>
             <button
               type="button"

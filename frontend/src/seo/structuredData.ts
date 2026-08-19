@@ -29,7 +29,8 @@ const organizationStructuredData = {
     "Trading analytics",
     "Verified traders",
     "Trading journal",
-    "Trader leaderboard",
+    "University investment competition",
+    "Student trading competition",
     "Trading risk management",
     "Trading performance analysis",
     "Trader-backed investing",
@@ -50,7 +51,7 @@ const websiteStructuredData = {
     "@id": `${SITE_URL}/#organization`,
   },
   description:
-    "A verified trader platform with trading analytics, a trading journal, investor capital access, and a public traders leaderboard.",
+    "A verified trader platform with trading analytics, a trading journal, investor capital access, and a public university competition leaderboard.",
   about: {
     "@id": `${SITE_URL}/#organization`,
   },
@@ -61,7 +62,7 @@ const websiteStructuredData = {
     `${SITE_URL}/trading-journal`,
     `${SITE_URL}/verified-traders`,
     `${SITE_URL}/turtle-analytics`,
-    `${SITE_URL}/traders-leaderboard`,
+    `${SITE_URL}/university-competition`,
   ],
 };
 
@@ -230,10 +231,10 @@ export function buildStructuredData(view: ViewType) {
         websiteStructuredData,
         {
           "@type": "WebPage",
-          name: "Traders Leaderboard",
+          name: "University Competition Leaderboard",
           url: getCanonicalUrl(view),
           description:
-            "A public traders leaderboard from Green Turtle Trades showing verified trading performance, win rate, expectancy, risk control, and trade history.",
+            "A public university competition leaderboard from Green Turtle Trades showing Scottish university rankings, student trader scores, returns, win rate, risk, and competition activity.",
           isPartOf: {
             "@id": `${SITE_URL}/#website`,
           },
@@ -242,7 +243,7 @@ export function buildStructuredData(view: ViewType) {
           },
           about: {
             "@type": "Thing",
-            name: "Verified trading performance leaderboard",
+            name: "University investment competition leaderboard",
           },
         },
       ],

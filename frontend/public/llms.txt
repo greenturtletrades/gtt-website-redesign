@@ -55,7 +55,7 @@ Green Turtle Trades focuses on trader analytics, transparency, and performance v
 - Trading journals
 - Risk management tools
 - Performance tracking
-- Public trader leaderboard summaries
+- Public university competition leaderboard summaries
 - Trade history analysis
 - Trader evaluation systems
 - Turtle Analytics
@@ -121,8 +121,8 @@ https://greenturtletraders.co.uk/verified-traders
 Turtle Analytics:
 https://greenturtletraders.co.uk/turtle-analytics
 
-Traders Leaderboard:
-https://greenturtletraders.co.uk/traders-leaderboard
+University Competition:
+https://greenturtletraders.co.uk/university-competition
 
 Contact:
 https://greenturtletraders.co.uk/contact
@@ -166,7 +166,7 @@ Green Turtle Trades is a UK-based trading analytics and trader-backed investing 
 - Trading analytics software
 - Risk management for traders
 - Verified trading records
-- Trader leaderboard
+- University competition leaderboard
 - Trading performance analytics
 - Trading statistics dashboard
 - Retail trader analytics

@@ -31,7 +31,7 @@ export const viewPaths: Partial<Record<ViewType, string>> = {
   landing: "/",
   about: "/about",
   "turtle-analytics": "/turtle-analytics",
-  "turtle-traders": "/traders-leaderboard",
+  "turtle-traders": "/university-competition",
   terms: "/terms",
   privacy: "/privacy",
   "risk-disclosure": "/risk-disclosure",
@@ -63,9 +63,12 @@ export function getViewFromPath(pathname: string): ViewType {
     normalizedPath === "/about-us" ||
     normalizedPath === "/what-is-green-turtle-trades" ||
     normalizedPath === "/green-turtle-traders" ||
-    normalizedPath === "/what-is-green-turtle-traders"
+    normalizedPath === "/what-is-green-turtle-traders" ||
+    normalizedPath === "/traders-leaderboard"
   ) {
-    return normalizedPath === "/about-us" ? "about" : "seo-green-turtle-trades";
+    if (normalizedPath === "/about-us") return "about";
+    if (normalizedPath === "/traders-leaderboard") return "turtle-traders";
+    return "seo-green-turtle-trades";
   }
 
   const match = Object.entries(viewPaths).find(([, path]) => path === normalizedPath);
