@@ -125,7 +125,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
     <div className="min-h-screen bg-white">
       <section
         className="w-full bg-[#f8fafc] px-4 pb-14 text-slate-950 sm:px-6 sm:pb-18"
-        style={{ paddingTop: "clamp(12rem, 16vw, 15rem)" }}
+        style={{ paddingTop: "clamp(9.5rem, 12vw, 12rem)" }}
       >
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-5xl text-center">
