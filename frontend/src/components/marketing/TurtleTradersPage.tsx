@@ -122,54 +122,54 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
     : traders.reduce((sum, trader) => sum + trader.followers, 0);
 
   return (
-    <div className="min-h-screen bg-white pt-20">
-      <section className="w-full bg-[#f8fafc] px-4 py-14 text-slate-950 sm:px-6 sm:py-18">
+    <div className="min-h-screen bg-slate-950 pt-20">
+      <section className="w-full bg-slate-950 px-4 py-10 text-white sm:px-6 sm:py-14">
         <div className="mx-auto max-w-7xl">
-          <div className="mx-auto max-w-5xl text-center">
+          <div className="mx-auto max-w-4xl text-center">
             <div className="flex justify-center">
-              <div className="mb-4 inline-flex items-center justify-center gap-2 rounded-full border border-teal-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-teal-700">
+              <div className="mb-4 inline-flex items-center justify-center gap-2 rounded-full border border-teal-400/25 bg-teal-400/10 px-3 py-1 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-teal-200">
                 <GraduationCap className="h-4 w-4" />
                 University Competition
               </div>
             </div>
-            <h1 className="mx-auto max-w-4xl text-4xl leading-tight tracking-tight text-slate-950 sm:text-5xl md:text-6xl">
+            <h1 className="mx-auto max-w-3xl text-3xl leading-tight tracking-tight text-white sm:text-4xl md:text-5xl">
               Scotland&apos;s next generation of investors, ranked live.
             </h1>
-            <p className="mx-auto mt-5 max-w-3xl text-base font-medium leading-8 text-slate-700 sm:text-lg">
+            <p className="mx-auto mt-4 max-w-3xl text-sm font-medium leading-7 text-slate-300 sm:text-base">
               The university competition gives Scottish students a risk-free place to learn practical investing,
               build discipline, and gain market experience before real capital is on the line. The leaderboard below
               is powered by live in-house competition data from the Green Turtle platform.
             </p>
           </div>
 
-          <div className="mx-auto mt-10 grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Top Competitor</div>
-                <div className="mt-3 text-2xl font-semibold text-slate-950">{topTrader?.name || "Loading"}</div>
-                <div className="mt-1 text-sm text-slate-600">{topTrader?.universityName || "University competition"}</div>
+          <div className="mx-auto mt-8 grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-lg border border-slate-800 bg-slate-900/80 p-4 shadow-sm">
+                <div className="text-[0.6875rem] uppercase tracking-[0.16em] text-slate-500">Top Competitor</div>
+                <div className="mt-2 text-lg font-semibold text-white">{topTrader?.name || "Loading"}</div>
+                <div className="mt-1 text-xs text-slate-400">{topTrader?.universityName || "University competition"}</div>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Live Score</div>
-                <div className="mt-3 text-2xl font-semibold text-slate-950">{topTrader ? topTrader.score.toFixed(1) : "0.0"}</div>
-                <div className="mt-1 text-sm text-slate-600">Score from competition engine</div>
+              <div className="rounded-lg border border-slate-800 bg-slate-900/80 p-4 shadow-sm">
+                <div className="text-[0.6875rem] uppercase tracking-[0.16em] text-slate-500">Live Score</div>
+                <div className="mt-2 text-lg font-semibold text-white">{topTrader ? topTrader.score.toFixed(1) : "0.0"}</div>
+                <div className="mt-1 text-xs text-slate-400">Score from competition engine</div>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Universities</div>
-                <div className="mt-3 text-2xl font-semibold text-slate-950">{activeUniversities}</div>
-                <div className="mt-1 text-sm text-slate-600">Represented on the board</div>
+              <div className="rounded-lg border border-slate-800 bg-slate-900/80 p-4 shadow-sm">
+                <div className="text-[0.6875rem] uppercase tracking-[0.16em] text-slate-500">Universities</div>
+                <div className="mt-2 text-lg font-semibold text-white">{activeUniversities}</div>
+                <div className="mt-1 text-xs text-slate-400">Represented on the board</div>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Competition Activity</div>
-                <div className="mt-3 text-2xl font-semibold text-slate-950">{totalTrades}</div>
-                <div className="mt-1 text-sm text-slate-600">{formatInvestorCount(totalBackers)} following traders</div>
+              <div className="rounded-lg border border-slate-800 bg-slate-900/80 p-4 shadow-sm">
+                <div className="text-[0.6875rem] uppercase tracking-[0.16em] text-slate-500">Competition Activity</div>
+                <div className="mt-2 text-lg font-semibold text-white">{totalTrades}</div>
+                <div className="mt-1 text-xs text-slate-400">{formatInvestorCount(totalBackers)} following traders</div>
               </div>
           </div>
 
-          <div className="mt-12 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
-            <div className="flex flex-col gap-4 border-b border-slate-200 bg-slate-950 px-5 py-5 text-white sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-10 overflow-hidden rounded-xl border border-slate-800 bg-slate-900 shadow-2xl">
+            <div className="flex flex-col gap-4 border-b border-slate-800 bg-slate-950 px-4 py-4 text-white sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="text-sm font-semibold">University Leaderboard</div>
-                <div className="mt-1 text-xs text-slate-300">Ranked from central university competition scoring</div>
+                <div className="mt-1 text-[0.75rem] text-slate-400">Ranked from central university competition scoring</div>
               </div>
               <div className="relative w-full sm:max-w-sm">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -178,19 +178,19 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="Search trader or university"
-                  className="w-full rounded-lg border border-slate-700 bg-slate-900 py-3 pl-10 pr-4 text-sm text-white placeholder:text-slate-400 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400/20"
+                  className="w-full rounded-lg border border-slate-700 bg-slate-900 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400/20"
                 />
               </div>
             </div>
 
-            <div className="flex gap-2 overflow-x-auto border-b border-slate-200 bg-white px-5 py-4">
+            <div className="flex gap-2 overflow-x-auto border-b border-slate-800 bg-slate-950/80 px-4 py-3">
               <button
                 type="button"
                 onClick={() => setSelectedUniversity("")}
-                className={`flex-shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                className={`flex-shrink-0 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
                   !selectedUniversity
                     ? "bg-teal-600 text-white"
-                    : "bg-slate-100 text-slate-700 hover:bg-teal-50 hover:text-teal-700"
+                    : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
                 }`}
               >
                 Total Uni Overview
@@ -200,29 +200,29 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                   key={university.universityName}
                   type="button"
                   onClick={() => setSelectedUniversity(university.universityName)}
-                  className={`flex-shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  className={`flex-shrink-0 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
                     selectedUniversity === university.universityName
                       ? "bg-teal-600 text-white"
-                      : "bg-slate-100 text-slate-700 hover:bg-teal-50 hover:text-teal-700"
+                      : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
                   }`}
                 >
                   {university.universityName}
                 </button>
               ))}
-              <div className="ml-auto hidden items-center text-sm font-medium text-slate-500 sm:flex">Uni view</div>
+              <div className="ml-auto hidden items-center text-xs font-medium text-slate-500 sm:flex">Uni view</div>
             </div>
 
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-slate-800">
               {loading ? (
-                <div className="px-5 py-10 text-center text-sm text-slate-600">Loading university competition leaderboard...</div>
+                <div className="px-5 py-10 text-center text-sm text-slate-400">Loading university competition leaderboard...</div>
               ) : null}
 
               {!loading && loadError ? (
-                <div className="px-5 py-10 text-center text-sm text-red-600">{loadError}</div>
+                <div className="px-5 py-10 text-center text-sm text-rose-300">{loadError}</div>
               ) : null}
 
               {!loading && !loadError && !selectedUniversity && universities.length === 0 ? (
-                <div className="px-5 py-10 text-center text-sm text-slate-600">No competition traders match that search.</div>
+                <div className="px-5 py-10 text-center text-sm text-slate-400">No competition traders match that search.</div>
               ) : null}
 
               {!selectedUniversity && universities.map((university) => {
@@ -230,40 +230,40 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                 return (
                   <article
                     key={university.universityName}
-                    className="bg-white px-5 py-5 transition-colors hover:bg-teal-50/40"
+                    className="bg-slate-900 px-4 py-4 transition-colors hover:bg-slate-800/80"
                   >
                     <div className="flex items-start gap-4">
-                      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-teal-100 text-lg font-semibold text-teal-800">
+                      <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-slate-800 text-base font-semibold text-teal-200">
                         {rankBadge(university.rank)}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-4">
                           <div className="min-w-0">
-                            <h2 className="truncate text-lg font-semibold text-slate-950">{university.universityName}</h2>
-                            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
+                            <h2 className="truncate text-base font-semibold text-white">{university.universityName}</h2>
+                            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.75rem] text-slate-400">
                               <span>{university.activeTraders} active / {university.totalTraders}</span>
                               <span>
-                                Return <span className={isPositive ? "text-emerald-600" : "text-rose-600"}>{formatSignedPercent(university.totalReturnPercent)}</span>
+                                Return <span className={isPositive ? "text-emerald-300" : "text-rose-300"}>{formatSignedPercent(university.totalReturnPercent)}</span>
                               </span>
                               <span>
-                                R <span className={university.realizedReturnPercent >= 0 ? "text-emerald-600" : "text-rose-600"}>{formatSignedPercent(university.realizedReturnPercent)}</span>
-                                {" "}· U <span className={university.unrealizedReturnPercent >= 0 ? "text-emerald-600" : "text-rose-600"}>{formatSignedPercent(university.unrealizedReturnPercent)}</span>
+                                R <span className={university.realizedReturnPercent >= 0 ? "text-emerald-300" : "text-rose-300"}>{formatSignedPercent(university.realizedReturnPercent)}</span>
+                                {" "}· U <span className={university.unrealizedReturnPercent >= 0 ? "text-emerald-300" : "text-rose-300"}>{formatSignedPercent(university.unrealizedReturnPercent)}</span>
                               </span>
                             </div>
                           </div>
                           <div className="flex-shrink-0 text-right">
-                            <div className="text-xs text-slate-500">Score</div>
-                            <div className="text-lg font-semibold tabular-nums text-slate-950">{university.score.toFixed(1)}</div>
+                            <div className="text-[0.6875rem] text-slate-500">Score</div>
+                            <div className="text-base font-semibold tabular-nums text-white">{university.score.toFixed(1)}</div>
                           </div>
                         </div>
-                        <div className="mt-4 grid grid-cols-2 gap-x-5 gap-y-3 sm:grid-cols-5">
+                        <div className="mt-3 grid grid-cols-2 gap-x-5 gap-y-2.5 sm:grid-cols-5">
                           <div>
                             <div className="text-[0.6875rem] text-slate-500">Trader Score</div>
-                            <div className="text-sm text-slate-950">{university.avgTraderScore.toFixed(1)}</div>
+                            <div className="text-sm text-slate-200">{university.avgTraderScore.toFixed(1)}</div>
                           </div>
                           <div>
                             <div className="text-[0.6875rem] text-slate-500">Win Rate</div>
-                            <div className="text-sm text-slate-950">{university.winRate.toFixed(1)}%</div>
+                            <div className="text-sm text-slate-200">{university.winRate.toFixed(1)}%</div>
                           </div>
                           <div>
                             <div className="text-[0.6875rem] text-slate-500">Risk</div>
@@ -271,11 +271,11 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                           </div>
                           <div>
                             <div className="text-[0.6875rem] text-slate-500">Trades</div>
-                            <div className="text-sm text-slate-950">{university.trades}</div>
+                            <div className="text-sm text-slate-200">{university.trades}</div>
                           </div>
                           <div>
                             <div className="text-[0.6875rem] text-slate-500">Backers</div>
-                            <div className="text-sm text-slate-950">{university.followers}</div>
+                            <div className="text-sm text-slate-200">{university.followers}</div>
                           </div>
                         </div>
                       </div>
@@ -285,31 +285,31 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
               })}
 
               {selectedUniversity && visibleTraders.length === 0 && !loading && !loadError ? (
-                <div className="px-5 py-10 text-center text-sm text-slate-600">No traders found for {selectedUniversity}.</div>
+                <div className="px-5 py-10 text-center text-sm text-slate-400">No traders found for {selectedUniversity}.</div>
               ) : null}
 
               {selectedUniversity && visibleTraders.map((trader) => {
                 const isPositive = trader.totalReturnPercent >= 0;
                 return (
-                  <article key={trader.id} className="bg-white px-5 py-5 transition-colors hover:bg-teal-50/40">
+                  <article key={trader.id} className="bg-slate-900 px-4 py-4 transition-colors hover:bg-slate-800/80">
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
                       <div className="flex min-w-0 flex-1 items-start gap-4">
-                        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-teal-100 text-lg font-semibold text-teal-800">
+                        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-slate-800 text-base font-semibold text-teal-200">
                           {trader.rank <= 3 ? rankBadge(trader.rank) : trader.initials}
                         </div>
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h2 className="text-lg font-semibold text-slate-950">{trader.name}</h2>
-                            <ShieldCheck className="h-4 w-4 text-teal-600" />
+                            <h2 className="text-base font-semibold text-white">{trader.name}</h2>
+                            <ShieldCheck className="h-4 w-4 text-teal-300" />
                           </div>
-                          <div className="mt-1 text-sm text-slate-600">{trader.universityName}</div>
-                          <div className="mt-3 flex flex-wrap gap-2">
+                          <div className="mt-1 text-xs text-slate-400">{trader.universityName}</div>
+                          <div className="mt-2 flex flex-wrap gap-2">
                             {trader.mainAssets.length ? trader.mainAssets.map((asset) => (
-                              <span key={`${trader.id}-${asset}`} className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-600">
+                              <span key={`${trader.id}-${asset}`} className="rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs text-slate-300">
                                 {asset}
                               </span>
                             )) : (
-                              <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-600">
+                              <span className="rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs text-slate-300">
                                 Building history
                               </span>
                             )}
@@ -320,27 +320,27 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                       <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-4 lg:max-w-2xl">
                         <div>
                           <div className="text-xs text-slate-500">Score</div>
-                          <div className="mt-1 text-base font-semibold tabular-nums text-slate-950">{trader.score.toFixed(1)}</div>
+                          <div className="mt-1 text-sm font-semibold tabular-nums text-white">{trader.score.toFixed(1)}</div>
                         </div>
                         <div>
                           <div className="text-xs text-slate-500">Win Rate</div>
-                          <div className="mt-1 text-base font-semibold tabular-nums text-slate-950">{trader.winRate.toFixed(1)}%</div>
+                          <div className="mt-1 text-sm font-semibold tabular-nums text-white">{trader.winRate.toFixed(1)}%</div>
                         </div>
                         <div>
                           <div className="text-xs text-slate-500">Avg Return</div>
-                          <div className={`mt-1 text-base font-semibold tabular-nums ${trader.avgReturn >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                          <div className={`mt-1 text-sm font-semibold tabular-nums ${trader.avgReturn >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
                             {formatSignedPercent(trader.avgReturn)}
                           </div>
                         </div>
                         <div>
                           <div className="text-xs text-slate-500">Total Return</div>
-                          <div className={`mt-1 text-base font-semibold tabular-nums ${isPositive ? "text-emerald-600" : "text-rose-600"}`}>
+                          <div className={`mt-1 text-sm font-semibold tabular-nums ${isPositive ? "text-emerald-300" : "text-rose-300"}`}>
                             {formatSignedPercent(trader.totalReturnPercent)}
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 lg:w-[25rem] lg:justify-end">
+                      <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400 lg:w-[25rem] lg:justify-end">
                         <span className={`rounded-full border px-3 py-1 font-medium ${riskClass(trader.riskLabel)}`}>{trader.riskLabel}</span>
                         <span className="inline-flex items-center gap-1">
                           <Wallet className="h-3.5 w-3.5" />
@@ -363,11 +363,11 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
             </div>
 
             {selectedUniversity && hasHiddenRows ? (
-              <div className="border-t border-slate-200 bg-slate-50 px-5 py-4 text-center">
+              <div className="border-t border-slate-800 bg-slate-950 px-5 py-4 text-center">
                 <button
                   type="button"
                   onClick={() => setShowAllRows((current) => !current)}
-                  className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700"
+                  className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-medium text-slate-200 transition-colors hover:border-teal-400/40 hover:bg-slate-700 hover:text-white"
                 >
                   {showAllRows ? "Show Top 8" : "Show Full Leaderboard"}
                 </button>
@@ -375,25 +375,25 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
             ) : null}
           </div>
 
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <Trophy className="h-5 w-5 text-teal-600" />
-              <h3 className="mt-4 text-lg font-semibold text-slate-950">Risk-free learning</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
+          <div className="mt-6 grid gap-3 md:grid-cols-3">
+            <div className="rounded-lg border border-slate-800 bg-slate-900/80 p-4 shadow-sm">
+              <Trophy className="h-4 w-4 text-teal-300" />
+              <h3 className="mt-3 text-sm font-semibold text-white">Risk-free learning</h3>
+              <p className="mt-2 text-xs leading-5 text-slate-400">
                 Students trade with virtual capital, so they can build practical experience without risking personal money.
               </p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <GraduationCap className="h-5 w-5 text-teal-600" />
-              <h3 className="mt-4 text-lg font-semibold text-slate-950">University pride</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
+            <div className="rounded-lg border border-slate-800 bg-slate-900/80 p-4 shadow-sm">
+              <GraduationCap className="h-4 w-4 text-teal-300" />
+              <h3 className="mt-3 text-sm font-semibold text-white">University pride</h3>
+              <p className="mt-2 text-xs leading-5 text-slate-400">
                 Competitors represent their university while learning portfolio discipline, risk control, and market behaviour.
               </p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <ShieldCheck className="h-5 w-5 text-teal-600" />
-              <h3 className="mt-4 text-lg font-semibold text-slate-950">Central scoring</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
+            <div className="rounded-lg border border-slate-800 bg-slate-900/80 p-4 shadow-sm">
+              <ShieldCheck className="h-4 w-4 text-teal-300" />
+              <h3 className="mt-3 text-sm font-semibold text-white">Central scoring</h3>
+              <p className="mt-2 text-xs leading-5 text-slate-400">
                 Public rankings use the same competition engine as the app, so website visitors see the live official board.
               </p>
             </div>
