@@ -204,17 +204,22 @@ const pages = [
   }),
   page({
     route: "/university-competition",
-    title: "University Competition Leaderboard | Green Turtle Trades",
+    title: "University Investment Competition Leaderboard Scotland | Green Turtle Trades",
     description:
-      "View the Green Turtle Trades university competition leaderboard for Scottish students, live university rankings, trader scores, returns, win rate, risk, and competition activity.",
+      "Follow the Green Turtle Trades University Investment Competition: live Scottish university rankings, student trader scores, returns, win rate, risk, backers, and competition activity.",
     keywords:
-      "university competition leaderboard, Scottish university investment competition, student investing competition, trading competition leaderboard, university trader leaderboard, Green Turtle Trades competition",
-    h1: "University Competition Leaderboard",
+      "university investment competition, Scottish university investment competition, student investing competition Scotland, university competition leaderboard, student trader leaderboard, Scottish university trading competition, Green Turtle Trades competition, risk free investing competition, virtual trading competition",
+    h1: "University Investment Competition Leaderboard",
     paragraphs: [
-      "The Green Turtle Trades university competition leaderboard helps visitors follow Scottish university competitors using live ranking data, trader scores, return metrics, risk labels, win rate, and competition activity.",
-      "Students trade with virtual capital in a risk-free environment while universities compete on individual performance, active participation, disciplined risk, and overall team results.",
+      "The Green Turtle Trades University Investment Competition helps visitors follow Scottish university competitors using live ranking data, individual trader scores, university scores, return metrics, risk labels, win rate, backers, and competition activity.",
+      "Students trade with virtual capital in a risk-free environment while universities compete on individual performance, active participation, disciplined risk, trader-backing activity, and overall team results.",
     ],
-    topics: ["University competition", "Student investing competition", "Scottish university trading leaderboard"],
+    topics: [
+      "University investment competition",
+      "Student investing competition Scotland",
+      "Scottish university trading leaderboard",
+      "Risk-free virtual investing competition",
+    ],
   }),
   page({
     route: "/green-turtle-trades",

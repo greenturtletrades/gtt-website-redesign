@@ -231,20 +231,58 @@ export function buildStructuredData(view: ViewType) {
         websiteStructuredData,
         {
           "@type": "WebPage",
-          name: "University Competition Leaderboard",
+          name: "University Investment Competition Leaderboard Scotland",
+          headline: "Scotland's next generation of investors, ranked live",
           url: getCanonicalUrl(view),
           description:
-            "A public university competition leaderboard from Green Turtle Trades showing Scottish university rankings, student trader scores, returns, win rate, risk, and competition activity.",
+            "A public university investment competition leaderboard from Green Turtle Trades showing Scottish university rankings, student trader scores, returns, win rate, risk, backers, and competition activity.",
           isPartOf: {
             "@id": `${SITE_URL}/#website`,
           },
           publisher: {
             "@id": `${SITE_URL}/#organization`,
           },
-          about: {
-            "@type": "Thing",
-            name: "University investment competition leaderboard",
+          about: [
+            {
+              "@type": "Thing",
+              name: "University investment competition leaderboard",
+            },
+            {
+              "@type": "Thing",
+              name: "Scottish student investing competition",
+            },
+            {
+              "@type": "Thing",
+              name: "Risk-free virtual trading competition",
+            },
+          ],
+          mainEntity: {
+            "@type": "Event",
+            name: "Green Turtle Trades University Investment Competition",
+            eventAttendanceMode: "https://schema.org/OnlineEventAttendanceMode",
+            eventStatus: "https://schema.org/EventScheduled",
+            location: {
+              "@type": "VirtualLocation",
+              url: getCanonicalUrl(view),
+            },
+            organizer: {
+              "@id": `${SITE_URL}/#organization`,
+            },
+            description:
+              "A Scottish university investment competition where students use virtual market capital and a separate trader-backing account to learn practical investing, risk control, and portfolio discipline.",
+            audience: {
+              "@type": "Audience",
+              audienceType: "Scottish university students",
+            },
           },
+        },
+        {
+          "@type": "ItemList",
+          name: "University competition leaderboard",
+          description:
+            "Live public leaderboard covering top individual student competitors and university rankings from the Green Turtle Trades competition engine.",
+          itemListOrder: "https://schema.org/ItemListOrderDescending",
+          url: getCanonicalUrl(view),
         },
       ],
     };
