@@ -1,5 +1,22 @@
 import { apiGet } from "./client";
 
+export interface PublicPerformancePoint {
+  date: string | null;
+  value: number;
+}
+
+export interface PublicRecentTrade {
+  id: string;
+  symbol: string;
+  side: "LONG" | "SHORT";
+  status: string;
+  pnl: number;
+  pnlPercent: number;
+  entryTime: string | null;
+  exitTime: string | null;
+  closeReason: string | null;
+}
+
 export interface PublicLeaderboardRow {
   rank: number;
   id: string;
@@ -18,6 +35,8 @@ export interface PublicLeaderboardRow {
   followers: number;
   aum: number;
   mainAssets: string[];
+  performanceData: PublicPerformancePoint[];
+  recentTrades: PublicRecentTrade[];
   lastUpdatedAt: string | null;
 }
 

@@ -198,6 +198,38 @@ function formatInitials(name) {
   return parts.slice(0, 2).map((part) => part[0]).join("").toUpperCase();
 }
 
+function normalizePublicPerformancePoint(point) {
+  if (!point || typeof point !== "object") return null;
+  const rawDate = point.date || point.timestamp || point.time || point.label || null;
+  const rawValue = point.value ?? point.equity ?? point.returnPercent ?? point.pnl ?? null;
+  const value = number(rawValue, NaN);
+  if (!Number.isFinite(value)) return null;
+  return {
+    date: rawDate ? String(rawDate) : null,
+    value,
+  };
+}
+
+function normalizePublicTrade(trade, index) {
+  if (!trade || typeof trade !== "object") return null;
+  const symbol = String(trade.symbol || trade.asset || "UNKNOWN").trim();
+  if (!symbol) return null;
+  const side = String(trade.side || trade.type || "").toUpperCase();
+  const normalizedSide = side.includes("SHORT") ? "SHORT" : "LONG";
+  const pnl = number(trade.pnl ?? trade.profit, 0);
+  return {
+    id: String(trade.id || trade.sourceOrderId || `public-trade-${index + 1}`),
+    symbol,
+    side: normalizedSide,
+    status: String(trade.status || "closed").toLowerCase(),
+    pnl,
+    pnlPercent: number(trade.pnlPercent, 0),
+    entryTime: trade.entryTime ? String(trade.entryTime) : null,
+    exitTime: trade.exitTime ? String(trade.exitTime) : null,
+    closeReason: trade.closeReason || trade.statusLabel || null,
+  };
+}
+
 function normalizeCompetitionLeaderboardRow(trader, index) {
   const data = trader && typeof trader.data === "object" && trader.data ? trader.data : {};
   const name = String(trader?.displayName || data.displayName || data.name || `Trader ${index + 1}`);
@@ -209,6 +241,12 @@ function normalizeCompetitionLeaderboardRow(trader, index) {
   const liveTrades = Array.isArray(data.liveTrades) ? data.liveTrades : [];
   const mainAssets = Array.isArray(data.mainAssets)
     ? data.mainAssets.map((asset) => String(asset)).filter(Boolean).slice(0, 4)
+    : [];
+  const performanceData = Array.isArray(data.performanceData)
+    ? data.performanceData.map(normalizePublicPerformancePoint).filter(Boolean).slice(-40)
+    : [];
+  const recentTrades = Array.isArray(data.recentTrades)
+    ? data.recentTrades.map(normalizePublicTrade).filter(Boolean).slice(0, 5)
     : [];
 
   return {
@@ -229,6 +267,8 @@ function normalizeCompetitionLeaderboardRow(trader, index) {
     followers: Math.max(0, Math.floor(number(data.followers, 0))),
     aum: number(data.aum ?? data.equity, 0),
     mainAssets,
+    performanceData,
+    recentTrades,
     lastUpdatedAt: data.updatedAt || data.lastUpdatedAt || null,
   };
 }

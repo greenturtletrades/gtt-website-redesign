@@ -45,6 +45,15 @@ function formatCompactCurrency(value: number) {
   }).format(value);
 }
 
+function formatCurrency(value: number) {
+  if (!Number.isFinite(value)) return "£0.00";
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
 function formatInvestorCount(value: number) {
   return `${value} ${value === 1 ? "backer" : "backers"}`;
 }
@@ -190,9 +199,39 @@ function formatRelativeTimestamp(value: string | null) {
   return `${Math.floor(diffHours / 24)}d ago`;
 }
 
+function formatShortTradeDate(value: string | null) {
+  if (!value) return "Recent";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Recent";
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    timeZone: "Europe/London",
+  }).format(date);
+}
+
+function buildPerformancePath(points: Array<{ value: number }>) {
+  const values = points.map((point) => point.value).filter(Number.isFinite);
+  if (values.length < 2) return "";
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  return values
+    .map((value, index) => {
+      const x = (index / Math.max(1, values.length - 1)) * 100;
+      const y = 100 - ((value - min) / range) * 100;
+      return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
+    })
+    .join(" ");
+}
+
 function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow; onBack: () => void }) {
   const totalReturnPositive = trader.totalReturnPercent >= 0;
   const hasOpenTrades = trader.openTrades > 0;
+  const [showAdvancedPrompt, setShowAdvancedPrompt] = useState(false);
+  const performancePoints = Array.isArray(trader.performanceData) ? trader.performanceData.filter((point) => Number.isFinite(point.value)) : [];
+  const performancePath = buildPerformancePath(performancePoints);
+  const recentTrades = Array.isArray(trader.recentTrades) ? trader.recentTrades : [];
 
   return (
     <div className="space-y-4">
@@ -252,14 +291,33 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
         </div>
 
         <div className="mb-4 h-44 rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <div className="flex h-full items-end gap-2">
-            {[0.15, 0.34, 0.28, 0.52, 0.46, 0.7, 0.62, 0.86, 0.78, 1].map((height, index) => (
-              <div
-                key={index}
-                className={`flex-1 rounded-t ${totalReturnPositive ? "bg-teal-500/70" : "bg-rose-500/70"}`}
-                style={{ height: `${Math.max(8, height * 100)}%` }}
-              />
-            ))}
+          {performancePath ? (
+            <div className="relative h-full">
+              <div className="absolute inset-0 grid grid-rows-4">
+                {[0, 1, 2, 3].map((line) => (
+                  <div key={line} className="border-t border-slate-200/70" />
+                ))}
+              </div>
+              <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="relative h-full w-full overflow-visible">
+                <path
+                  d={performancePath}
+                  fill="none"
+                  stroke={totalReturnPositive ? "#0d9488" : "#e11d48"}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2.5"
+                  vectorEffect="non-scaling-stroke"
+                />
+              </svg>
+            </div>
+          ) : (
+            <div className="flex h-full items-center justify-center text-center text-sm text-slate-500">
+              No public performance chart available yet.
+            </div>
+          )}
+          <div className="mt-2 flex justify-between text-xs text-slate-500">
+            <span>{formatShortTradeDate(performancePoints[0]?.date || null)}</span>
+            <span>{formatShortTradeDate(performancePoints[performancePoints.length - 1]?.date || null)}</span>
           </div>
         </div>
 
@@ -331,13 +389,34 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
         </div>
       </div>
 
-      <button
-        type="button"
-        className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700"
-      >
-        <BarChart3 className="h-5 w-5" />
-        Advanced Analytics
-      </button>
+      <div className="space-y-3">
+        <button
+          type="button"
+          onClick={() => setShowAdvancedPrompt(true)}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700"
+        >
+          <BarChart3 className="h-5 w-5" />
+          Advanced Analytics
+        </button>
+        {showAdvancedPrompt ? (
+          <div className="rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-slate-700">
+            <div className="font-semibold text-slate-950">Please log in to your account to view advanced analytics.</div>
+            <p className="mt-1 leading-6">
+              Full analytics, expanded trade history, and account actions are available inside the secure university competition app.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                window.location.href = competitionAppUrl;
+              }}
+              className="mt-3 inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-teal-700"
+            >
+              Open competition login
+              <ExternalLink className="h-4 w-4" />
+            </button>
+          </div>
+        ) : null}
+      </div>
 
       {hasOpenTrades ? (
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -354,11 +433,48 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-slate-950">Recent Trades</h3>
-          <span className="text-sm text-teal-700">View All Trades</span>
+          <button
+            type="button"
+            onClick={() => setShowAdvancedPrompt(true)}
+            className="text-sm font-medium text-teal-700 hover:underline"
+          >
+            View All Trades
+          </button>
         </div>
-        <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+        {recentTrades.length ? (
+          <div className="divide-y divide-slate-100 rounded-lg border border-slate-200">
+            {recentTrades.map((trade) => (
+              <div key={trade.id} className="flex items-center justify-between gap-4 px-3 py-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate text-sm font-semibold text-slate-950">{trade.symbol}</span>
+                    <span className={`rounded px-2 py-0.5 text-[0.6875rem] font-semibold ${trade.side === "SHORT" ? "bg-rose-50 text-rose-700" : "bg-teal-50 text-teal-700"}`}>
+                      {trade.side}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    {formatShortTradeDate(trade.exitTime || trade.entryTime)}{trade.closeReason ? ` · ${trade.closeReason}` : ""}
+                  </div>
+                </div>
+                <div className="flex-shrink-0 text-right">
+                  <div className="text-sm font-semibold" style={signedValueTextStyle(trade.pnl)}>
+                    {formatCurrency(trade.pnl)}
+                  </div>
+                  <div className="text-xs" style={signedValueTextStyle(trade.pnlPercent)}>
+                    {formatSignedPercent(trade.pnlPercent)}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+            No public recent trades available yet.
+          </div>
+        )}
+        <p className="mt-3 text-xs leading-5 text-slate-500">
           Public trade rows are limited on the website. Full trade history is available inside the competition platform.
-        </div>
+        </p>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -366,14 +482,14 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
           <div className="flex items-center justify-between">
             <div>
               <p className="mb-1 text-xs text-slate-500">Public Competition Profile</p>
-              <h3 className="text-lg font-semibold text-slate-950">Log in or sign up to invest / follow this trader</h3>
+              <h3 className="text-lg font-semibold text-slate-950">Log in or sign up to follow this trader</h3>
             </div>
             <span className={`rounded-lg border px-3 py-1.5 text-xs font-medium ${riskClass(trader.riskLabel)}`}>
               {trader.riskLabel}
             </span>
           </div>
           <p className="text-sm leading-6 text-slate-600">
-            Website visitors can inspect public competition performance here. Investing, following, and account actions happen inside the secure university competition app.
+            Website visitors can inspect public competition performance here. Following and account actions happen inside the secure university competition app.
           </p>
           <button
             type="button"
