@@ -467,22 +467,6 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
             </p>
           </div>
 
-          <div className="mx-auto mt-7 max-w-5xl rounded-lg border border-[#d9e2e8] bg-white/80 px-4 py-3 text-left shadow-sm">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-600">
-              <span className="rounded-full border border-[#b9d0c7] bg-[#e8f2ee] px-2.5 py-1 font-semibold text-[#12372b]">
-                {competition ? competitionPhaseLabel(competition.status) : "Competition setup"}
-              </span>
-              <span className="font-semibold text-slate-950">{competition?.name || "University Investment Challenge"}</span>
-              <span>{competition?.region || "Scotland"} {competition?.year || new Date().getFullYear()}</span>
-              <span>Starts {formatPublicCompetitionDate(competition?.startsAt || null)}</span>
-              <span>Ends {formatPublicCompetitionDate(competition?.endsAt || null)}</span>
-              <span>{competition?.includedUniversities?.length || universities.length || 0} universities</span>
-              {competition?.archives?.length ? (
-                <span>{competition.archives.length} archived {competition.archives.length === 1 ? "competition" : "competitions"}</span>
-              ) : null}
-            </div>
-          </div>
-
           <div className="mx-auto mt-10 grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Top Competitor</div>
@@ -733,6 +717,22 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                 ) : null}
               </div>
             )}
+          </div>
+
+          <div className="mx-auto mt-6 max-w-6xl rounded-lg border border-[#d9e2e8] bg-white/80 px-4 py-3 text-left shadow-sm">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-600">
+              <span className="rounded-full border border-[#b9d0c7] bg-[#e8f2ee] px-2.5 py-1 font-semibold text-[#12372b]">
+                {competition ? competitionPhaseLabel(competition.status) : "Competition setup"}
+              </span>
+              <span className="font-semibold text-slate-950">{competition?.name || "University Investment Challenge"}</span>
+              <span>{competition?.region || "Scotland"} {competition?.year || new Date().getFullYear()}</span>
+              <span>Starts {formatPublicCompetitionDate(competition?.startsAt || null)}</span>
+              <span>Ends {formatPublicCompetitionDate(competition?.endsAt || null)}</span>
+              <span>{competition?.includedUniversities?.length || universities.length || 0} universities</span>
+              {competition?.archives?.length ? (
+                <span>{competition.archives.length} archived {competition.archives.length === 1 ? "competition" : "competitions"}</span>
+              ) : null}
+            </div>
           </div>
 
           <div className="mt-8 grid gap-4 md:grid-cols-3">
