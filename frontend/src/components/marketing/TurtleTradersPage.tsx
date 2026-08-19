@@ -107,23 +107,24 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
     <div className="min-h-screen bg-white pt-20">
       <section className="w-full bg-[#f8fafc] px-4 py-14 text-slate-950 sm:px-6 sm:py-18">
         <div className="mx-auto max-w-7xl">
-          <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-end">
-            <div>
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-teal-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-teal-700">
+          <div className="mx-auto max-w-5xl text-center">
+            <div className="flex justify-center">
+              <div className="mb-4 inline-flex items-center justify-center gap-2 rounded-full border border-teal-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-teal-700">
                 <GraduationCap className="h-4 w-4" />
                 University Competition
               </div>
-              <h1 className="max-w-4xl text-4xl leading-tight tracking-tight text-slate-950 sm:text-5xl md:text-6xl">
-                Scotland&apos;s next generation of investors, ranked live.
-              </h1>
-              <p className="mt-5 max-w-3xl text-base font-medium leading-8 text-slate-700 sm:text-lg">
-                The university competition gives Scottish students a risk-free place to learn practical investing,
-                build discipline, and gain market experience before real capital is on the line. The leaderboard below
-                is powered by live in-house competition data from the Green Turtle platform.
-              </p>
             </div>
+            <h1 className="mx-auto max-w-4xl text-4xl leading-tight tracking-tight text-slate-950 sm:text-5xl md:text-6xl">
+              Scotland&apos;s next generation of investors, ranked live.
+            </h1>
+            <p className="mx-auto mt-5 max-w-3xl text-base font-medium leading-8 text-slate-700 sm:text-lg">
+              The university competition gives Scottish students a risk-free place to learn practical investing,
+              build discipline, and gain market experience before real capital is on the line. The leaderboard below
+              is powered by live in-house competition data from the Green Turtle platform.
+            </p>
+          </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+          <div className="mx-auto mt-10 grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Top Competitor</div>
                 <div className="mt-3 text-2xl font-semibold text-slate-950">{topTrader?.name || "Loading"}</div>
@@ -144,7 +145,6 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                 <div className="mt-3 text-2xl font-semibold text-slate-950">{totalTrades}</div>
                 <div className="mt-1 text-sm text-slate-600">{formatInvestorCount(totalBackers)} following traders</div>
               </div>
-            </div>
           </div>
 
           <div className="mt-12 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
