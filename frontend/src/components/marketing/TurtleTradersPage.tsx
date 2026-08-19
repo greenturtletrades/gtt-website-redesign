@@ -231,6 +231,7 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
   const [showAdvancedPrompt, setShowAdvancedPrompt] = useState(false);
   const performancePoints = Array.isArray(trader.performanceData) ? trader.performanceData.filter((point) => Number.isFinite(point.value)) : [];
   const performancePath = buildPerformancePath(performancePoints);
+  const performanceAreaPath = performancePath ? `${performancePath} L 100 100 L 0 100 Z` : "";
   const recentTrades = Array.isArray(trader.recentTrades) ? trader.recentTrades : [];
 
   return (
@@ -274,8 +275,8 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-3 flex items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-slate-950">Performance</h3>
           <div className="flex gap-1 rounded-lg bg-slate-100 p-1">
             {["1M", "3M", "6M", "All"].map((filter) => (
@@ -290,28 +291,32 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
           </div>
         </div>
 
-        <div className="mb-4 h-44 rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <div className="mb-3 h-32 rounded-xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 px-3 pb-6 pt-3">
           {performancePath ? (
             <div className="relative h-full">
-              <div className="absolute inset-0 grid grid-rows-4">
-                {[0, 1, 2, 3].map((line) => (
-                  <div key={line} className="border-t border-slate-200/70" />
+              <div className="absolute inset-0 grid grid-rows-3">
+                {[0, 1, 2].map((line) => (
+                  <div key={line} className="border-t border-slate-200/60" />
                 ))}
               </div>
               <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="relative h-full w-full overflow-visible">
+                <path
+                  d={performanceAreaPath}
+                  fill={totalReturnPositive ? "rgba(13, 148, 136, 0.12)" : "rgba(225, 29, 72, 0.12)"}
+                />
                 <path
                   d={performancePath}
                   fill="none"
                   stroke={totalReturnPositive ? "#0d9488" : "#e11d48"}
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth="2.5"
+                  strokeWidth="2"
                   vectorEffect="non-scaling-stroke"
                 />
               </svg>
             </div>
           ) : (
-            <div className="flex h-full items-center justify-center text-center text-sm text-slate-500">
+            <div className="flex h-full items-center justify-center text-center text-xs text-slate-500">
               No public performance chart available yet.
             </div>
           )}
