@@ -68,10 +68,10 @@ function riskTextClass(label: string) {
   return "text-[#9ca3af]";
 }
 
-function signedValueTextClass(value: number) {
-  if (value > 0) return "text-[#107949]";
-  if (value < 0) return "text-[#dc2626]";
-  return "text-slate-950";
+function signedValueTextStyle(value: number): CSSProperties {
+  if (value > 0) return { color: "#107949" };
+  if (value < 0) return { color: "#dc2626" };
+  return { color: "#0f172a" };
 }
 
 function universityFilterButtonStyle(active: boolean): CSSProperties {
@@ -239,19 +239,19 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-xl bg-slate-50 p-3">
             <p className="mb-1 text-xs text-slate-500">Total Return</p>
-            <p className={`text-lg font-semibold ${signedValueTextClass(trader.totalReturnPercent)}`}>
+            <p className="text-lg font-semibold" style={signedValueTextStyle(trader.totalReturnPercent)}>
               {formatSignedPercent(trader.totalReturnPercent)}
             </p>
           </div>
           <div className="rounded-xl bg-slate-50 p-3">
             <p className="mb-1 text-xs text-slate-500">Realized Return</p>
-            <p className={`text-lg font-semibold ${signedValueTextClass(trader.realizedReturnPercent)}`}>
+            <p className="text-lg font-semibold" style={signedValueTextStyle(trader.realizedReturnPercent)}>
               {formatSignedPercent(trader.realizedReturnPercent)}
             </p>
           </div>
           <div className="rounded-xl bg-slate-50 p-3">
             <p className="mb-1 text-xs text-slate-500">Unrealized Return</p>
-            <p className={`text-lg font-semibold ${signedValueTextClass(trader.unrealizedReturnPercent)}`}>
+            <p className="text-lg font-semibold" style={signedValueTextStyle(trader.unrealizedReturnPercent)}>
               {formatSignedPercent(trader.unrealizedReturnPercent)}
             </p>
           </div>
@@ -615,10 +615,10 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                                   <h4 className="truncate text-base font-semibold text-[#111827]">{university.universityName}</h4>
                                   <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#4b5563]">
                                     <span>{university.activeTraders} active / {university.totalTraders}</span>
-                                    <span>Return <span className={signedValueTextClass(university.totalReturnPercent)}>{formatSignedPercent(university.totalReturnPercent, 2)}</span></span>
+                                    <span>Return <span style={signedValueTextStyle(university.totalReturnPercent)}>{formatSignedPercent(university.totalReturnPercent, 2)}</span></span>
                                     <span>
-                                      R <span className={signedValueTextClass(university.realizedReturnPercent)}>{formatSignedPercent(university.realizedReturnPercent, 2)}</span>
-                                      {" "}· U <span className={signedValueTextClass(university.unrealizedReturnPercent)}>{formatSignedPercent(university.unrealizedReturnPercent, 2)}</span>
+                                      R <span style={signedValueTextStyle(university.realizedReturnPercent)}>{formatSignedPercent(university.realizedReturnPercent, 2)}</span>
+                                      {" "}· U <span style={signedValueTextStyle(university.unrealizedReturnPercent)}>{formatSignedPercent(university.unrealizedReturnPercent, 2)}</span>
                                     </span>
                                   </div>
                                 </div>
@@ -669,8 +669,8 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                               <div className={`${showRankBadge ? "grid-cols-2 sm:grid-cols-5" : "grid-cols-4"} mb-3 grid gap-x-4 gap-y-2`}>
                                 {showRankBadge ? <div><p className="text-xs text-slate-500">Score</p><p className="text-sm text-slate-950">{trader.score.toFixed(1)}</p></div> : null}
                                 <div><p className="text-xs text-slate-500">Win Rate</p><p className="text-sm text-slate-950">{trader.winRate.toFixed(1)}%</p></div>
-                                <div><p className="text-xs text-slate-500">Avg Return</p><p className={`text-sm ${signedValueTextClass(trader.avgReturn)}`}>{formatSignedPercent(trader.avgReturn, 2)}</p></div>
-                                <div><p className="text-xs text-slate-500">Total Return</p><p className={`text-sm ${signedValueTextClass(trader.totalReturnPercent)}`}>{formatSignedPercent(trader.totalReturnPercent, 2)}</p></div>
+                                <div><p className="text-xs text-slate-500">Avg Return</p><p className="text-sm" style={signedValueTextStyle(trader.avgReturn)}>{formatSignedPercent(trader.avgReturn, 2)}</p></div>
+                                <div><p className="text-xs text-slate-500">Total Return</p><p className="text-sm" style={signedValueTextStyle(trader.totalReturnPercent)}>{formatSignedPercent(trader.totalReturnPercent, 2)}</p></div>
                                 <div><p className="text-xs text-slate-500">Risk</p><p className={`text-sm ${riskTextClass(trader.riskLabel)}`}>{trader.riskLabel}</p></div>
                               </div>
                               <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
