@@ -55,25 +55,25 @@ function rankBadge(rank: number) {
 
 function riskClass(label: string) {
   const normalized = label.toLowerCase();
-  if (normalized.includes("low")) return "bg-emerald-100 text-emerald-700 border-emerald-200";
-  if (normalized.includes("medium")) return "bg-amber-100 text-amber-700 border-amber-200";
-  if (normalized.includes("high")) return "bg-rose-100 text-rose-700 border-rose-200";
-  return "bg-slate-100 text-slate-600 border-slate-200";
+  if (normalized.includes("low")) return "bg-[#ecfdf5] text-[#107949] border-[#bbf7d0]";
+  if (normalized.includes("medium")) return "bg-[#fef9eb] text-[#d97706] border-[#fde68a]";
+  if (normalized.includes("high")) return "bg-[#fef2f2] text-[#dc2626] border-[#fecaca]";
+  return "bg-white text-[#9ca3af] border-[#e5eaef]";
 }
 
 function riskTextClass(label: string) {
   const normalized = label.toLowerCase();
-  if (normalized.includes("low")) return "text-emerald-600";
-  if (normalized.includes("medium")) return "text-amber-600";
-  if (normalized.includes("high")) return "text-rose-600";
-  return "text-slate-500";
+  if (normalized.includes("low")) return "text-[#107949]";
+  if (normalized.includes("medium")) return "text-[#d97706]";
+  if (normalized.includes("high")) return "text-[#dc2626]";
+  return "text-[#9ca3af]";
 }
 
 function rankBadgeClass(rankIndex: number) {
   if (rankIndex === 0) return "bg-yellow-500 text-yellow-900";
   if (rankIndex === 1) return "bg-slate-400 text-slate-900";
   if (rankIndex === 2) return "bg-amber-700 text-amber-100";
-  return "bg-slate-100 text-slate-600";
+  return "bg-white text-[#4b5563]";
 }
 
 function riskSortValue(label: string) {
@@ -368,7 +368,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
   return (
     <div className="min-h-screen bg-white">
       <section
-        className="w-full bg-[#f8fafc] px-4 pb-14 text-slate-950 sm:px-6 sm:pb-18"
+        className="w-full bg-[#fafbfc] px-4 pb-14 text-[#111827] sm:px-6 sm:pb-18"
         style={{ paddingTop: "clamp(9.5rem, 12vw, 12rem)" }}
       >
         <div className="mx-auto max-w-7xl">
@@ -419,14 +419,14 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                       value={searchTerm}
                       onChange={(event) => setSearchTerm(event.target.value)}
                       placeholder="Search by name, strategy, or assets..."
-                      className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm text-slate-950 placeholder:text-slate-400 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400/20"
+                      className="w-full rounded-xl border border-[#e5eaef] bg-white py-3 pl-10 pr-4 text-sm text-[#111827] placeholder:text-[#9ca3af] focus:border-[#107949] focus:outline-none focus:ring-2 focus:ring-[#107949]/20"
                     />
                   </div>
                   <button
                     type="button"
                     onClick={handleRefresh}
                     disabled={refreshing}
-                    className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-60"
+                    className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border border-[#e5eaef] bg-white text-[#4b5563] transition-colors hover:bg-[#fafbfc] disabled:opacity-60"
                     aria-label="Refresh leaderboard"
                   >
                     <RefreshCw className={`h-5 w-5 ${refreshing ? "animate-spin" : ""}`} />
@@ -434,7 +434,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                   <button
                     type="button"
                     onClick={() => setShowFilters((current) => !current)}
-                    className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50"
+                    className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border border-[#e5eaef] bg-white text-[#4b5563] transition-colors hover:bg-[#fafbfc]"
                     aria-label="Filter leaderboard"
                   >
                     <Filter className="h-5 w-5" />
@@ -442,7 +442,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                 </div>
 
                 {showFilters ? (
-                  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="rounded-xl border border-[#e5eaef] bg-white p-4 shadow-sm">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <p className="text-sm font-medium text-slate-950">Filters</p>
                       <button
@@ -461,8 +461,8 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                           onClick={() => setRiskFilter(risk)}
                           className={`rounded-lg px-3 py-2 text-sm transition-colors ${
                             riskFilter === risk
-                              ? "bg-teal-600 text-white"
-                              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                              ? "bg-[#107949] text-white"
+                              : "bg-white text-[#4b5563] hover:bg-[#fafbfc]"
                           }`}
                         >
                           {risk || "All Risk"}
@@ -489,8 +489,8 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                           onClick={() => setSortBy(value as SortOption)}
                           className={`flex flex-shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm transition-colors ${
                             sortBy === value
-                              ? "bg-teal-600 text-white"
-                              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                              ? "bg-[#107949] text-white"
+                              : "bg-white text-[#4b5563] hover:bg-[#fafbfc]"
                           }`}
                         >
                           {value === "topPerformers" ? <Trophy className="h-3.5 w-3.5" /> : null}
@@ -505,7 +505,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                         type="button"
                         onClick={() => setSelectedUniversity("")}
                         className={`flex flex-shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm transition-colors ${
-                          !selectedUniversity ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                          !selectedUniversity ? "bg-[#107949] text-white" : "bg-white text-[#4b5563] hover:bg-[#fafbfc]"
                         }`}
                       >
                         <Trophy className="h-3.5 w-3.5" />
@@ -518,8 +518,8 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                           onClick={() => setSelectedUniversity(university.universityName)}
                           className={`flex-shrink-0 rounded-lg px-3 py-2 text-sm transition-colors ${
                             selectedUniversity === university.universityName
-                              ? "bg-teal-600 text-white"
-                              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                              ? "bg-[#107949] text-white"
+                              : "bg-white text-[#4b5563] hover:bg-[#fafbfc]"
                           }`}
                         >
                           {university.universityName}
@@ -528,7 +528,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                     </>
                   )}
                   <div className="ml-auto flex flex-shrink-0 items-center gap-3 pl-2">
-                    <span className="whitespace-nowrap text-sm font-medium text-slate-600">Uni view</span>
+                    <span className="whitespace-nowrap text-sm font-medium text-[#4b5563]">Uni view</span>
                     <button
                       type="button"
                       role="switch"
@@ -540,7 +540,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                         if (leaderboardView === "universities") setSortBy("topPerformers");
                       }}
                       className={`relative h-8 w-14 flex-shrink-0 rounded-full border shadow-inner transition-all active:scale-95 ${
-                        leaderboardView === "universities" ? "border-teal-600 bg-teal-600" : "border-slate-200 bg-slate-100"
+                        leaderboardView === "universities" ? "border-[#107949] bg-[#107949]" : "border-[#e5eaef] bg-white"
                       }`}
                     >
                       <span
@@ -565,7 +565,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                 ) : null}
 
                 {leaderboardView === "universities" && selectedUniversity ? (
-                  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="rounded-xl border border-[#e5eaef] bg-white p-4 shadow-sm">
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <p className="text-sm font-medium text-slate-950">{selectedUniversity} participant rankings</p>
@@ -591,7 +591,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                           key={university.universityName}
                           type="button"
                           onClick={() => setSelectedUniversity(university.universityName)}
-                          className="w-full rounded-lg border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors hover:bg-slate-50 sm:p-5"
+                          className="w-full rounded-lg border border-[#e5eaef] bg-white p-4 text-left shadow-sm transition-colors hover:bg-[#fafbfc] sm:p-5"
                         >
                           <div className="flex items-start gap-3 sm:gap-4">
                             <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${rankBadgeClass(index)}`}>
@@ -600,19 +600,19 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                             <div className="min-w-0 flex-1">
                               <div className="flex items-start justify-between gap-4">
                                 <div className="min-w-0">
-                                  <h4 className="truncate text-base font-semibold text-slate-950">{university.universityName}</h4>
-                                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
+                                  <h4 className="truncate text-base font-semibold text-[#111827]">{university.universityName}</h4>
+                                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#4b5563]">
                                     <span>{university.activeTraders} active / {university.totalTraders}</span>
-                                    <span>Return <span className={isPositive ? "text-emerald-600" : "text-rose-600"}>{formatSignedPercent(university.totalReturnPercent, 2)}</span></span>
+                                    <span>Return <span className={isPositive ? "text-[#107949]" : "text-[#dc2626]"}>{formatSignedPercent(university.totalReturnPercent, 2)}</span></span>
                                     <span>
-                                      R <span className={university.realizedReturnPercent >= 0 ? "text-emerald-600" : "text-rose-600"}>{formatSignedPercent(university.realizedReturnPercent, 2)}</span>
-                                      {" "}· U <span className={university.unrealizedReturnPercent >= 0 ? "text-emerald-600" : "text-rose-600"}>{formatSignedPercent(university.unrealizedReturnPercent, 2)}</span>
+                                      R <span className={university.realizedReturnPercent >= 0 ? "text-[#107949]" : "text-[#dc2626]"}>{formatSignedPercent(university.realizedReturnPercent, 2)}</span>
+                                      {" "}· U <span className={university.unrealizedReturnPercent >= 0 ? "text-[#107949]" : "text-[#dc2626]"}>{formatSignedPercent(university.unrealizedReturnPercent, 2)}</span>
                                     </span>
                                   </div>
                                 </div>
                                 <div className="flex-shrink-0 text-right">
                                   <p className="text-[0.6875rem] text-slate-500">Score</p>
-                                  <p className="text-base font-semibold leading-tight text-slate-950">{university.score.toFixed(1)}</p>
+                                  <p className="text-base font-semibold leading-tight text-[#111827]">{university.score.toFixed(1)}</p>
                                 </div>
                               </div>
                               <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-5">
@@ -640,7 +640,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                           key={trader.id}
                           type="button"
                           onClick={() => setSelectedTrader(trader)}
-                          className={`w-full rounded-lg border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors hover:bg-slate-50 sm:p-5 ${showRankBadge && index < 3 ? "bg-slate-50/70" : ""}`}
+                          className={`w-full rounded-lg border border-[#e5eaef] bg-white p-4 text-left shadow-sm transition-colors hover:bg-[#fafbfc] sm:p-5 ${showRankBadge && index < 3 ? "bg-[#fafbfc]" : ""}`}
                         >
                           <div className="flex items-start gap-3 sm:gap-4">
                             <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${showRankBadge ? rankBadgeClass(index) : "bg-teal-50 text-teal-700"}`}>

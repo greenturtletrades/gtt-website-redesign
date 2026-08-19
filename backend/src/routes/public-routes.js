@@ -305,59 +305,6 @@ function fetchJson(url, { timeoutMs = 8000 } = {}) {
   });
 }
 
-function deriveUniversitiesFromLeaderboard(leaderboard) {
-  const grouped = new Map();
-  leaderboard.forEach((trader) => {
-    const universityName = trader.universityName || "Verified University";
-    const current = grouped.get(universityName) || {
-      universityName,
-      activeTraders: 0,
-      totalTraders: 0,
-      totalReturnPercent: 0,
-      realizedReturnPercent: 0,
-      unrealizedReturnPercent: 0,
-      score: 0,
-      avgTraderScore: 0,
-      winRate: 0,
-      riskLabel: "Unrated",
-      trades: 0,
-      followers: 0,
-      aum: 0,
-      riskScores: [],
-    };
-    current.totalTraders += 1;
-    if (trader.totalTrades > 0 || trader.openTrades > 0) current.activeTraders += 1;
-    current.totalReturnPercent += trader.totalReturnPercent;
-    current.realizedReturnPercent += trader.realizedReturnPercent;
-    current.unrealizedReturnPercent += trader.unrealizedReturnPercent;
-    current.avgTraderScore += trader.score;
-    current.winRate += trader.winRate;
-    current.trades += trader.totalTrades;
-    current.followers += trader.followers;
-    current.aum += trader.aum;
-    grouped.set(universityName, current);
-  });
-
-  return Array.from(grouped.values())
-    .map((university) => {
-      const divisor = Math.max(1, university.totalTraders);
-      const activeDivisor = Math.max(1, university.activeTraders || university.totalTraders);
-      const avgTraderScore = university.avgTraderScore / divisor;
-      const totalReturnPercent = university.totalReturnPercent / activeDivisor;
-      return {
-        ...university,
-        totalReturnPercent,
-        realizedReturnPercent: university.realizedReturnPercent / activeDivisor,
-        unrealizedReturnPercent: university.unrealizedReturnPercent / activeDivisor,
-        score: avgTraderScore,
-        avgTraderScore,
-        winRate: university.winRate / activeDivisor,
-      };
-    })
-    .sort((left, right) => right.score - left.score || right.totalReturnPercent - left.totalReturnPercent)
-    .map((university, index) => normalizeCompetitionUniversityRow(university, index));
-}
-
 async function fetchCompetitionData(env) {
   const baseUrl = String(env.COMPETITION_API_BASE_URL || env.COMPETITION_APP_API_BASE_URL || "https://comp.turtletrades.co.uk").replace(/\/+$/, "");
   const limit = Math.max(1, Math.min(500, number(env.PUBLIC_COMPETITION_LEADERBOARD_LIMIT, 100)));
@@ -375,12 +322,17 @@ async function fetchCompetitionData(env) {
 
   const traders = Array.isArray(traderResponse.value.payload?.traders) ? traderResponse.value.payload.traders : [];
   const leaderboard = traders.map(normalizeCompetitionLeaderboardRow);
-  const universityRows = universityResponse.status === "fulfilled" && universityResponse.value.ok
-    ? universityResponse.value.payload?.universities
+  if (universityResponse.status !== "fulfilled" || !universityResponse.value.ok) {
+    const status = universityResponse.status === "fulfilled" ? universityResponse.value.status : "network_error";
+    const payload = universityResponse.status === "fulfilled" ? universityResponse.value.payload : {};
+    const message = payload?.error || payload?.message || `Competition universities API returned ${status}`;
+    throw new Error(message);
+  }
+
+  const universityRows = Array.isArray(universityResponse.value.payload?.universities)
+    ? universityResponse.value.payload.universities
     : [];
-  const universities = Array.isArray(universityRows) && universityRows.length
-    ? universityRows.map(normalizeCompetitionUniversityRow)
-    : deriveUniversitiesFromLeaderboard(leaderboard);
+  const universities = universityRows.map(normalizeCompetitionUniversityRow);
   return {
     leaderboard,
     universities,
