@@ -795,7 +795,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
             ) : null}
           </div>
 
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
+          <div className="mt-8 grid gap-4 md:grid-cols-3" style={{ marginBottom: "clamp(4.5rem, 7vw, 7rem)" }}>
             <div className="rounded-xl border border-teal-200/80 bg-white/90 p-5 shadow-sm backdrop-blur">
               <Trophy className="h-5 w-5 text-teal-600" />
               <h3 className="mt-4 text-lg font-semibold text-slate-950">Risk-free learning</h3>
