@@ -884,6 +884,91 @@ export const seoContentPages: SeoContentPage[] = [
     ],
   },
   {
+    view: "seo-trading-drawdown",
+    title: "Trading Drawdown",
+    eyebrow: "Trading Metrics",
+    description:
+      "Trading drawdown explained: max drawdown, equity high to low, realised and unrealised drawdown, recovery math, risk control, and how Turtle Analytics reviews drawdown.",
+    keywords:
+      "trading drawdown, max drawdown trading, maximum drawdown, drawdown meaning trading, drawdown calculator trading, equity drawdown, trading risk management",
+    intro:
+      "Trading drawdown shows how far an account, strategy, or trader falls from a previous equity high. It is one of the most important risk metrics because it reveals the downside behind a return figure.",
+    sections: [
+      {
+        title: "What trading drawdown means",
+        body:
+          "Drawdown measures the fall from a previous equity peak to a later low. If an account rises to £110,000 and then falls to £100,000 before recovering, the drawdown from that peak is £10,000 or about 9.09%.",
+      },
+      {
+        title: "Maximum drawdown",
+        body:
+          "Maximum drawdown is the largest peak-to-trough fall in the period being reviewed. It helps traders and evaluators understand the worst historical downside in a trading record.",
+      },
+      {
+        title: "Drawdown is different from one losing trade",
+        body:
+          "A single losing trade can contribute to drawdown, but drawdown measures the account-level decline across a sequence of trades or open positions. It captures the combined effect of losses, exposure, and unrecovered equity.",
+      },
+      {
+        title: "Realised and unrealised drawdown",
+        body:
+          "Realised drawdown comes from closed losses and account history. Unrealised drawdown can come from open positions moving against the trader. A full risk review should make clear whether drawdown includes open trade marks or only closed performance.",
+      },
+      {
+        title: "Why drawdown matters more than headline return",
+        body:
+          "Two traders can both make 10%, but one may have experienced a 2% drawdown while another went through a 25% drawdown. The return number alone does not show how much downside risk was taken to reach it.",
+      },
+      {
+        title: "Recovery math",
+        body:
+          "The deeper a drawdown becomes, the larger the return needed to recover. A 10% drawdown needs about 11.1% to recover, while a 50% drawdown needs 100% to recover. This is why controlling downside matters.",
+      },
+      {
+        title: "How Turtle Analytics reviews drawdown",
+        body:
+          "Turtle Analytics reviews drawdown alongside trade history, risk per trade, open exposure, leverage where available, holding time, expectancy, and journal records. That helps traders see whether drawdown came from normal strategy variance or weak risk behaviour.",
+      },
+      {
+        title: "Limitations of drawdown",
+        body:
+          "Drawdown is based on available historical data. It does not predict the next loss, remove trading risk, or guarantee that future drawdown will be smaller. It should be reviewed with sample size, exposure, risk consistency, and market context.",
+      },
+    ],
+    faqs: [
+      {
+        question: "What is drawdown in trading?",
+        answer:
+          "Drawdown in trading is the decline from a previous account or strategy equity high to a later low.",
+      },
+      {
+        question: "What is maximum drawdown?",
+        answer:
+          "Maximum drawdown is the largest peak-to-trough decline over the period being measured.",
+      },
+      {
+        question: "Why is drawdown important?",
+        answer:
+          "Drawdown shows the downside risk behind returns. It helps traders understand how much equity was lost before recovery.",
+      },
+      {
+        question: "Is drawdown the same as a loss?",
+        answer:
+          "No. A loss is usually a single trade or realised outcome. Drawdown measures the wider equity decline from a previous high.",
+      },
+      {
+        question: "Should open positions count toward drawdown?",
+        answer:
+          "Open positions can affect unrealised drawdown. Pages should label whether drawdown includes open trade marks or only closed-trade performance.",
+      },
+      {
+        question: "Does low drawdown guarantee a safe trader?",
+        answer:
+          "No. Low historical drawdown does not guarantee future safety. Drawdown should be reviewed alongside exposure, sample size, leverage, risk per trade, and market conditions.",
+      },
+    ],
+  },
+  {
     view: "seo-mt4-mt5-trading-journal",
     title: "MT4 and MT5 Trading Journal",
     eyebrow: "MetaTrader Journal",

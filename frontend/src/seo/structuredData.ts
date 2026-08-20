@@ -80,6 +80,7 @@ const websiteStructuredData = {
     `${SITE_URL}/turtle-analytics`,
     `${SITE_URL}/trading-analytics`,
     `${SITE_URL}/trading-expectancy`,
+    `${SITE_URL}/trading-drawdown`,
     `${SITE_URL}/university-competition`,
     COMPETITION_APP_URL,
     `${SITE_URL}/verified-traders`,

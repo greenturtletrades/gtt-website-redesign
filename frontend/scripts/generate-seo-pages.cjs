@@ -73,6 +73,7 @@ const websiteStructuredData = {
     `${siteUrl}/turtle-analytics`,
     `${siteUrl}/trading-analytics`,
     `${siteUrl}/trading-expectancy`,
+    `${siteUrl}/trading-drawdown`,
     `${siteUrl}/university-competition`,
     competitionAppUrl,
     `${siteUrl}/verified-traders`,
@@ -236,6 +237,7 @@ function buildFallback({ h1, paragraphs }) {
               <li><a href="/turtle-analytics">Turtle Analytics</a></li>
               <li><a href="/trading-analytics">Trading Analytics</a></li>
               <li><a href="/trading-expectancy">Trading Expectancy</a></li>
+              <li><a href="/trading-drawdown">Trading Drawdown</a></li>
               <li><a href="/university-competition">University Competition</a></li>
               <li><a href="/verified-traders">Verified Traders</a></li>
               <li><a href="/methodology">Methodology</a></li>
@@ -1264,6 +1266,113 @@ const pages = [
             acceptedAnswer: {
               "@type": "Answer",
               text: "No. Positive historical expectancy does not guarantee future results. Market conditions, risk behaviour, sample size, and execution can all change.",
+            },
+          },
+        ],
+      },
+    ],
+  }),
+  page({
+    route: "/trading-drawdown",
+    title: "Trading Drawdown Explained | Green Turtle Trades",
+    description:
+      "Trading drawdown explained: max drawdown, equity high to low, realised and unrealised drawdown, recovery math, risk control, and how Turtle Analytics reviews drawdown.",
+    keywords:
+      "trading drawdown, max drawdown trading, maximum drawdown, drawdown meaning trading, drawdown calculator trading, equity drawdown, trading risk management",
+    h1: "Trading Drawdown",
+    headline: "Understand trading drawdown, maximum drawdown, recovery math, and downside risk.",
+    paragraphs: [
+      "Trading drawdown shows how far an account, strategy, or trader falls from a previous equity high.",
+      "Drawdown measures the fall from a previous equity peak to a later low. If an account rises to £110,000 and then falls to £100,000 before recovering, the drawdown from that peak is £10,000 or about 9.09%.",
+      "Maximum drawdown is the largest peak-to-trough fall in the period being reviewed. It helps traders and evaluators understand the worst historical downside in a trading record.",
+      "A single losing trade can contribute to drawdown, but drawdown measures the account-level decline across a sequence of trades or open positions.",
+      "Realised drawdown comes from closed losses and account history. Unrealised drawdown can come from open positions moving against the trader.",
+      "Two traders can both make 10%, but one may have experienced a 2% drawdown while another went through a 25% drawdown. The return number alone does not show how much downside risk was taken.",
+      "The deeper a drawdown becomes, the larger the return needed to recover. A 10% drawdown needs about 11.1% to recover, while a 50% drawdown needs 100% to recover.",
+      "Turtle Analytics reviews drawdown alongside trade history, risk per trade, open exposure, leverage where available, holding time, expectancy, and journal records.",
+      "Drawdown is based on available historical data. It does not predict the next loss, remove trading risk, or guarantee that future drawdown will be smaller.",
+    ],
+    topics: [
+      "Trading drawdown",
+      "Maximum drawdown",
+      "Max drawdown trading",
+      "Equity drawdown",
+      "Realised drawdown",
+      "Unrealised drawdown",
+      "Trading risk management",
+      "Risk per trade",
+      "Turtle Analytics",
+      "Trading journal",
+    ],
+    extraGraph: [
+      {
+        "@type": "Article",
+        headline: "Trading Drawdown Explained",
+        url: `${siteUrl}/trading-drawdown`,
+        datePublished: "2026-08-20",
+        dateModified: "2026-08-20",
+        publisher: {
+          "@id": `${siteUrl}/#organization`,
+        },
+        about: [
+          "Trading drawdown",
+          "Maximum drawdown",
+          "Risk management",
+          "Trading analytics",
+          "Turtle Analytics",
+        ],
+        description:
+          "An educational guide explaining trading drawdown, maximum drawdown, equity peak-to-trough declines, realised and unrealised drawdown, recovery math, and risk control.",
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: [
+          {
+            "@type": "Question",
+            name: "What is drawdown in trading?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Drawdown in trading is the decline from a previous account or strategy equity high to a later low.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "What is maximum drawdown?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Maximum drawdown is the largest peak-to-trough decline over the period being measured.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Why is drawdown important?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Drawdown shows the downside risk behind returns. It helps traders understand how much equity was lost before recovery.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Is drawdown the same as a loss?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "No. A loss is usually a single trade or realised outcome. Drawdown measures the wider equity decline from a previous high.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Should open positions count toward drawdown?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Open positions can affect unrealised drawdown. Pages should label whether drawdown includes open trade marks or only closed-trade performance.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Does low drawdown guarantee a safe trader?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "No. Low historical drawdown does not guarantee future safety. Drawdown should be reviewed alongside exposure, sample size, leverage, risk per trade, and market conditions.",
             },
           },
         ],
