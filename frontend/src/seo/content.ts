@@ -238,43 +238,78 @@ export const seoContentPages: SeoContentPage[] = [
     title: "Verified Traders",
     eyebrow: "Verified Traders",
     description:
-      "Green Turtle Trades focuses on verified traders, transparent performance data, risk control, and investor trust.",
+      "Verified traders on Green Turtle Trades are evaluated through structured performance records, risk metrics, journal data, and transparent public summaries rather than screenshots alone.",
     keywords:
-      "verified traders, verified trading performance, transparent traders, trader verification, professional traders",
+      "verified traders, verified trading performance, trader verification, transparent traders, verified trading records, trader performance verification, risk adjusted trader performance",
     intro:
-      "Verified trader data matters because trust cannot be built from screenshots alone. Green Turtle Trades is designed around transparent performance records, risk controls, and trader accountability.",
+      "Verified trader data matters because trust cannot be built from screenshots, claims, or isolated winning trades. Green Turtle Trades is designed around structured performance records, risk controls, trading analytics, journal data, and clearly labelled public summaries.",
     sections: [
       {
-        title: "Why verification matters",
+        title: "Why verified trader records matter",
         body:
-          "Investors and platforms need to understand whether a trader's results come from real performance, responsible risk, and a meaningful trade history. Verified data helps separate repeatable skill from isolated outcomes.",
+          "A trader's headline return is not enough. A useful verification workflow should help explain whether results came from repeatable behaviour, responsible risk, a meaningful trade sample, and real trading history rather than edited screenshots or unsupported claims.",
+      },
+      {
+        title: "What verification means",
+        body:
+          "Verification means a trading record is supported by platform-recorded activity, connected account data, imported broker history, MetaTrader-connected history, or in-house competition execution records. It does not mean Green Turtle Trades guarantees future performance or labels any trader as risk-free.",
+      },
+      {
+        title: "Risk-adjusted performance, not only P/L",
+        body:
+          "Trader evaluation should look beyond profit and loss. Green Turtle Trades focuses on metrics such as win rate, expectancy, drawdown, profit factor, risk per trade, average hold time, open exposure, sample size, and consistency so users can understand the shape of performance.",
       },
       {
         title: "Performance without exposing raw trades",
         body:
-          "The public traders leaderboard shows summary performance while keeping raw trades private. This gives visitors a clearer view of trader quality without exposing sensitive trading records.",
+          "Public trader profiles should show controlled summary performance while keeping raw trades, account details, private notes, and personal information protected. This gives visitors a clearer view of trader quality without exposing sensitive trading records.",
       },
       {
-        title: "Built for serious trader evaluation",
+        title: "Connected to methodology",
         body:
-          "Green Turtle Trades combines trading analytics, journal data, risk metrics, and transparent ranking logic to support more responsible trader evaluation.",
+          "The Green Turtle Trades methodology explains how data sources, realised and unrealised P/L, risk labels, duplicate trade handling, public summaries, and competition calculations should be treated. Verified trader pages should stay aligned with that methodology.",
+      },
+      {
+        title: "Foundation for trader-backed investing",
+        body:
+          "Green Turtle Trades is building toward a trader-backed investing model where capital decisions can be informed by clearer evidence. Verified records, risk-adjusted analytics, and transparent summaries are the foundation for that future workflow.",
+      },
+      {
+        title: "Limits of verification",
+        body:
+          "Verification does not remove trading risk. Historical performance can change, data can be incomplete, open positions can move quickly, and market conditions can shift. Public trader data is informational and should not be treated as financial advice.",
       },
     ],
     faqs: [
       {
         question: "What is a verified trader?",
         answer:
-          "A verified trader is a trader whose performance can be reviewed through account-connected or platform-recorded trade data rather than unsupported claims.",
+          "A verified trader is a trader whose performance can be reviewed through platform-recorded activity, connected account data, imported broker history, MetaTrader-connected records, or in-house competition execution data rather than unsupported claims alone.",
       },
       {
-        question: "Do verified traders publish every trade?",
+        question: "Does verified mean risk-free?",
         answer:
-          "No. Raw trades stay private. Public pages show summary statistics such as win rate, expectancy, risk, and total verified trades.",
+          "No. Verified means the record is supported by a data source. It does not mean future performance is guaranteed or that the trader is risk-free.",
+      },
+      {
+        question: "Do verified traders publish every raw trade?",
+        answer:
+          "No. Raw trades, account details, and private notes stay private by default. Public pages should show controlled summary statistics such as return, win rate, expectancy, risk, drawdown, and trade count.",
+      },
+      {
+        question: "Which metrics matter for trader verification?",
+        answer:
+          "Useful verification metrics include realised and unrealised return, win rate, expectancy, profit factor, drawdown, risk per trade, average hold time, sample size, exposure, and consistency.",
       },
       {
         question: "Why are CSV trades excluded from public ranking?",
         answer:
           "CSV files can be edited outside the platform, so they are not trusted for public leaderboard ranking calculations.",
+      },
+      {
+        question: "Are verified trader summaries financial advice?",
+        answer:
+          "No. Public rankings, verified summaries, and trader analytics are informational and should not be treated as financial advice or guarantees of future results.",
       },
     ],
   },

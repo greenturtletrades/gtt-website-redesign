@@ -717,15 +717,78 @@ const pages = [
     route: "/verified-traders",
     title: "Verified Traders | Green Turtle Trades",
     description:
-      "Green Turtle Trades focuses on verified traders, transparent performance data, risk control, and investor trust.",
+      "Verified traders on Green Turtle Trades are evaluated through structured performance records, risk metrics, journal data, and transparent public summaries rather than screenshots alone.",
     keywords:
-      "verified traders, verified trading performance, transparent traders, trader verification, professional traders",
+      "verified traders, verified trading performance, trader verification, transparent traders, verified trading records, trader performance verification, risk adjusted trader performance",
     h1: "Verified Traders",
+    headline: "Trader verification built around evidence, risk metrics, and transparent summaries.",
     paragraphs: [
-      "Verified trader data matters because trust cannot be built from screenshots alone.",
-      "Green Turtle Trades is designed around transparent performance records, risk controls, and trader accountability.",
+      "Verified trader data matters because trust cannot be built from screenshots, claims, or isolated winning trades.",
+      "Green Turtle Trades is designed around structured performance records, risk controls, trading analytics, journal data, and clearly labelled public summaries.",
+      "A trader's headline return is not enough. A useful verification workflow should help explain whether results came from repeatable behaviour, responsible risk, a meaningful trade sample, and real trading history rather than edited screenshots or unsupported claims.",
+      "Verification means a trading record is supported by platform-recorded activity, connected account data, imported broker history, MetaTrader-connected history, or in-house competition execution records. It does not mean Green Turtle Trades guarantees future performance or labels any trader as risk-free.",
+      "Trader evaluation should look beyond profit and loss. Green Turtle Trades focuses on metrics such as win rate, expectancy, drawdown, profit factor, risk per trade, average hold time, open exposure, sample size, and consistency so users can understand the shape of performance.",
+      "Public trader profiles should show controlled summary performance while keeping raw trades, account details, private notes, and personal information protected.",
+      "Green Turtle Trades is building toward a trader-backed investing model where capital decisions can be informed by clearer evidence. Verified records, risk-adjusted analytics, and transparent summaries are the foundation for that future workflow.",
+      "Public rankings, verified summaries, and trader analytics are informational and should not be treated as financial advice or guarantees of future results.",
     ],
-    topics: ["Verified traders", "Trader verification", "Trading transparency"],
+    topics: [
+      "Verified traders",
+      "Trader verification",
+      "Verified trading records",
+      "Trading transparency",
+      "Risk-adjusted performance",
+      "Trader performance verification",
+      "Trading analytics",
+      "Trader-backed investing",
+    ],
+    extraGraph: [
+      {
+        "@type": "FAQPage",
+        mainEntity: [
+          {
+            "@type": "Question",
+            name: "What is a verified trader?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "A verified trader is a trader whose performance can be reviewed through platform-recorded activity, connected account data, imported broker history, MetaTrader-connected records, or in-house competition execution data rather than unsupported claims alone.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Does verified mean risk-free?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "No. Verified means the record is supported by a data source. It does not mean future performance is guaranteed or that the trader is risk-free.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Do verified traders publish every raw trade?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "No. Raw trades, account details, and private notes stay private by default. Public pages should show controlled summary statistics such as return, win rate, expectancy, risk, drawdown, and trade count.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Which metrics matter for trader verification?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Useful verification metrics include realised and unrealised return, win rate, expectancy, profit factor, drawdown, risk per trade, average hold time, sample size, exposure, and consistency.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Are verified trader summaries financial advice?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "No. Public rankings, verified summaries, and trader analytics are informational and should not be treated as financial advice or guarantees of future results.",
+            },
+          },
+        ],
+      },
+    ],
   }),
   page({
     route: "/investor-capital-for-traders",
