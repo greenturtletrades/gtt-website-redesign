@@ -1,9 +1,25 @@
-import { BadgeCheck, Instagram, Linkedin, Mail, Music2, Youtube } from "lucide-react";
+import { BadgeCheck, Instagram, Linkedin, Mail, Youtube } from "lucide-react";
 import logo from "figma:asset/6f4515e0be3e9f42f43c7a32bab7fda8514f9833.png";
 import type { ViewType } from "../../seo/routes";
 
 interface FooterProps {
   onNavigate?: (page: ViewType) => void;
+}
+
+function TikTokIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={className} fill="currentColor">
+      <path d="M16.6 2c.3 2.4 1.7 4 4 4.2v3.5c-1.5 0-2.8-.4-4-1.2v6.6c0 4.2-2.7 6.9-6.7 6.9-3.5 0-6.1-2.3-6.1-5.7 0-3.7 2.9-6 6.8-5.7v3.7c-1.7-.3-3 .4-3 1.9 0 1.3 1 2.1 2.3 2.1 1.5 0 2.5-.8 2.5-3V2h4.2Z" />
+    </svg>
+  );
+}
+
+function XIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={className} fill="currentColor">
+      <path d="M18.2 2.8h3.1l-6.8 7.8 8 10.6h-6.3l-4.9-6.4-5.7 6.4H2.5l7.3-8.3L2.1 2.8h6.5l4.4 5.8 5.2-5.8Zm-1.1 16.5h1.7L7.7 4.6H5.9l11.2 14.7Z" />
+    </svg>
+  );
 }
 
 const socialLinks = [
@@ -20,12 +36,12 @@ const socialLinks = [
   {
     label: "Green Turtle Trades on TikTok",
     href: "https://www.tiktok.com/@greenturtletrades",
-    icon: Music2,
+    icon: TikTokIcon,
   },
   {
     label: "Green Turtle Trades on X",
     href: "https://x.com/GreenTurtleT",
-    icon: null,
+    icon: XIcon,
   },
   {
     label: "Green Turtle Trades on YouTube",
@@ -45,7 +61,7 @@ export function Footer({ onNavigate }: FooterProps) {
             <p className="text-slate-400 text-sm">
               Where equity meets talent
             </p>
-            <div className="mt-4 flex flex-wrap items-center gap-3">
+            <div className="mt-4 flex flex-wrap items-center gap-4">
               {socialLinks.map((link) => {
                 const Icon = link.icon;
                 return (
@@ -55,9 +71,9 @@ export function Footer({ onNavigate }: FooterProps) {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={link.label}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-700 text-slate-400 transition-colors hover:border-teal-400 hover:text-teal-400"
+                    className="inline-flex items-center justify-center text-slate-400 transition-all hover:-translate-y-0.5 hover:text-teal-400"
                   >
-                    {Icon ? <Icon className="h-4 w-4" /> : <span className="text-sm font-semibold">X</span>}
+                    <Icon className="h-5 w-5" />
                   </a>
                 );
               })}
