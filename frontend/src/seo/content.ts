@@ -153,33 +153,58 @@ export const seoContentPages: SeoContentPage[] = [
     title: "Trading Journal",
     eyebrow: "Trading Journal",
     description:
-      "A trading journal for recording trades, reviewing performance, tracking lessons, and understanding risk across your trading history.",
+      "A trading journal for recording trades, reviewing decisions, tracking lessons, measuring expectancy, and understanding risk across your trading history.",
     keywords:
-      "trading journal, trade journal, forex trading journal, trading journal app, trading performance journal",
+      "trading journal, trade journal, trading journal app, MT4 trading journal, MT5 trading journal, trading performance journal, trade notes, trading analytics journal",
     intro:
-      "A trading journal is where traders turn trade history into feedback. Green Turtle Trades helps traders keep a structured record of trades, notes, lessons, performance, and risk.",
+      "A trading journal is where traders turn trade history into feedback. Green Turtle Trades helps traders keep a structured record of entries, exits, notes, lessons, risk, account activity, and performance metrics so each trade becomes part of a clearer review process.",
     sections: [
       {
-        title: "Track trades and behaviour together",
+        title: "What a trading journal should record",
         body:
-          "A useful trading journal should hold more than entry and exit prices. Traders need notes, emotions, lessons learned, trade timing, risk, and performance context so they can review both decisions and outcomes.",
+          "A useful trading journal should hold more than entry and exit prices. Traders should be able to review the symbol, direction, size, entry, exit, stop loss, take profit, risk, holding time, order type, setup, notes, lessons learned, and the market context around the decision.",
       },
       {
-        title: "Connect journal data to analytics",
+        title: "Review decisions as well as outcomes",
         body:
-          "Green Turtle Trades connects journal records with Turtle Analytics so traders can move from simple record keeping to deeper performance analysis across expectancy, drawdown, holding time, and market regime behaviour.",
+          "The point of a trading journal is not just to see whether a trade made money. It should help traders understand whether the trade followed the plan, whether risk was controlled, whether the exit was disciplined, and whether the same mistake keeps appearing over time.",
       },
       {
-        title: "Private records, optional public summary",
+        title: "Connect journal data to Turtle Analytics",
         body:
-          "Journal data stays private by default. Traders can opt in to publish summary performance on the public leaderboard, but raw trades are not made public.",
+          "Green Turtle Trades connects journal records with Turtle Analytics so traders can move from simple record keeping to deeper performance analysis across expectancy, profit factor, win rate, drawdown, holding time, R-multiple, best and worst trades, and risk behaviour.",
+      },
+      {
+        title: "Import MT4, MT5, Trading 212, and CSV history",
+        body:
+          "A journal becomes more useful when trade history can be imported rather than manually rebuilt from memory. Turtle Analytics supports MetaTrader-connected workflows for MT4 and MT5 traders, Trading 212 history, and CSV imports where available, then brings that history into one structured review process.",
+      },
+      {
+        title: "Measure expectancy and trading quality",
+        body:
+          "Journal metrics should show whether the trading process has a positive expected outcome. Expectancy, average win, average loss, win rate, risk/reward, profit factor, and average return help traders understand whether performance is repeatable or dependent on isolated trades.",
+      },
+      {
+        title: "Track risk, drawdown, and exposure",
+        body:
+          "Green Turtle Trades treats risk as part of the journal, not a separate afterthought. Traders can review drawdown, risk per trade, open exposure, leverage where available, largest loss, missing stop-loss behaviour, and consistency signals across their own trading history.",
+      },
+      {
+        title: "Private records, optional public summaries",
+        body:
+          "Journal data stays private by default. Raw trades, notes, account details, and personal records should not be exposed publicly. Traders may choose to publish controlled summary metrics, but public performance should be clearly labelled and methodology-backed.",
+      },
+      {
+        title: "Built for beginners and serious traders",
+        body:
+          "Beginners can use a journal to build discipline and stop repeating avoidable mistakes. More experienced traders can use it to test whether a strategy is producing a real edge, whether risk is consistent, and whether behaviour changes across market conditions.",
       },
     ],
     faqs: [
       {
         question: "What should a trading journal include?",
         answer:
-          "A trading journal should include entry and exit data, risk, position direction, notes, trade lessons, emotions, and performance metrics.",
+          "A trading journal should include entry and exit data, symbol, direction, position size, stop loss, take profit, risk, holding time, notes, trade lessons, market context, and performance metrics.",
       },
       {
         question: "Is a trading journal useful for beginners?",
@@ -187,9 +212,24 @@ export const seoContentPages: SeoContentPage[] = [
           "Yes. A journal helps new traders build discipline, review mistakes, and understand whether progress is based on repeatable behaviour.",
       },
       {
+        question: "Can a trading journal connect to MT4 or MT5?",
+        answer:
+          "Turtle Analytics supports MetaTrader-connected workflows for MT4 and MT5 traders, alongside Trading 212 history and CSV import workflows where available.",
+      },
+      {
+        question: "Which trading journal metrics matter most?",
+        answer:
+          "Useful journal metrics include expectancy, win rate, profit factor, average win, average loss, risk/reward, drawdown, risk per trade, holding time, and trade count.",
+      },
+      {
+        question: "Does a trading journal predict future trades?",
+        answer:
+          "No. A trading journal reviews historical decisions and outcomes. It can help traders identify patterns and risks, but it does not predict market prices or guarantee returns.",
+      },
+      {
         question: "Are my journal trades public?",
         answer:
-          "No. Raw journal trades stay private. Only optional summary stats can appear publicly if a trader enables leaderboard publishing.",
+          "No. Raw journal trades, notes, and account details stay private by default. Only controlled summary stats can appear publicly if a trader enables public performance features.",
       },
     ],
   },

@@ -640,15 +640,78 @@ const pages = [
     route: "/trading-journal",
     title: "Trading Journal | Green Turtle Trades",
     description:
-      "A trading journal for recording trades, reviewing performance, tracking lessons, and understanding risk across your trading history.",
+      "A trading journal for recording trades, reviewing decisions, tracking lessons, measuring expectancy, and understanding risk across your trading history.",
     keywords:
-      "trading journal, trade journal, forex trading journal, trading journal app, trading performance journal",
+      "trading journal, trade journal, trading journal app, MT4 trading journal, MT5 trading journal, trading performance journal, trade notes, trading analytics journal",
     h1: "Trading Journal",
+    headline: "A structured trading journal for decisions, risk, lessons, and performance review.",
     paragraphs: [
       "A trading journal helps traders turn trade history into feedback by recording notes, lessons, decisions, outcomes, and risk.",
-      "Green Turtle Trades connects journal records with Turtle Analytics so traders can move from simple record keeping to deeper performance analysis.",
+      "Green Turtle Trades helps traders keep a structured record of entries, exits, symbols, direction, position size, stop loss, take profit, risk, holding time, order type, setup, market context, and account activity.",
+      "The journal is designed to review decisions as well as outcomes. Traders should be able to see whether a trade followed the plan, whether risk was controlled, whether the exit was disciplined, and whether the same mistake keeps appearing over time.",
+      "Green Turtle Trades connects journal records with Turtle Analytics so traders can move from simple record keeping to deeper performance analysis across expectancy, profit factor, win rate, drawdown, holding time, R-multiple, best and worst trades, and risk behaviour.",
+      "Turtle Analytics supports MetaTrader-connected workflows for MT4 and MT5 traders, Trading 212 history, and CSV imports where available, then brings that history into one structured journal and analytics workflow.",
+      "Risk belongs inside the trading journal. Traders can review drawdown, risk per trade, open exposure, leverage where available, largest loss, missing stop-loss behaviour, and consistency signals across their own history.",
+      "Raw journal trades, private notes, and account details stay private by default. Public performance should use controlled summary metrics and methodology-backed calculations rather than exposing private records.",
     ],
-    topics: ["Trading journal", "Trade journal", "Trader performance records"],
+    topics: [
+      "Trading journal",
+      "Trade journal",
+      "MT4 trading journal",
+      "MT5 trading journal",
+      "Trader performance records",
+      "Trading notes",
+      "Expectancy",
+      "Drawdown",
+      "Risk per trade",
+    ],
+    extraGraph: [
+      {
+        "@type": "FAQPage",
+        mainEntity: [
+          {
+            "@type": "Question",
+            name: "What should a trading journal include?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "A trading journal should include entry and exit data, symbol, direction, position size, stop loss, take profit, risk, holding time, notes, trade lessons, market context, and performance metrics.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Is a trading journal useful for beginners?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Yes. A journal helps new traders build discipline, review mistakes, and understand whether progress is based on repeatable behaviour.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Can a trading journal connect to MT4 or MT5?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Turtle Analytics supports MetaTrader-connected workflows for MT4 and MT5 traders, alongside Trading 212 history and CSV import workflows where available.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Which trading journal metrics matter most?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Useful journal metrics include expectancy, win rate, profit factor, average win, average loss, risk/reward, drawdown, risk per trade, holding time, and trade count.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Are my journal trades public?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "No. Raw journal trades, notes, and account details stay private by default. Only controlled summary stats can appear publicly if a trader enables public performance features.",
+            },
+          },
+        ],
+      },
+    ],
   }),
   page({
     route: "/verified-traders",
