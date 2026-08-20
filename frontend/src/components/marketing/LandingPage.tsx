@@ -7,7 +7,6 @@ import { Footer } from "./Footer";
 import { TurtleAnalyticsFeature } from "./TurtleAnalyticsFeature";
 import { ScrollProgress } from "./ScrollProgress";
 import { WaitingListSignup } from "./WaitingListSignup";
-import { SearchPresenceSection } from "./SearchPresenceSection";
 import type { ViewType } from "../../seo/routes";
 
 interface LandingPageProps {
@@ -37,7 +36,6 @@ export function LandingPage({
         onApplyClick={onApplyClick}
         onScrollToWaitingList={scrollToWaitingList}
       />
-      <SearchPresenceSection onNavigate={onNavigate} />
       <ProductSummary />
       <PlatformPreview />
       <TurtleAnalyticsFeature mlEnabled={mlEnabled} />
