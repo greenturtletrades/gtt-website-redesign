@@ -125,6 +125,10 @@ University Competition:
 https://greenturtletraders.co.uk/university-competition
 Scotland's next generation of investors, ranked live through the Green Turtle Trades University Investment Competition leaderboard.
 
+Official Competition App:
+https://comp.turtletrades.co.uk
+The secure Green Turtle Trades university competition app where competitors log in, trade virtual market capital, follow traders, and review competition analytics.
+
 Investment Competition:
 https://greenturtletraders.co.uk/investment-competition
 

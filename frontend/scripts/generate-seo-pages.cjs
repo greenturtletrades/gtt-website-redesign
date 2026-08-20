@@ -4,6 +4,7 @@ const path = require("path");
 const buildDir = path.resolve(__dirname, "..", "build");
 const indexPath = path.join(buildDir, "index.html");
 const siteUrl = "https://greenturtletraders.co.uk";
+const competitionAppUrl = "https://comp.turtletrades.co.uk";
 const socialImageUrl = `${siteUrl}/favicon-v2.png`;
 
 const organizationStructuredData = {
@@ -37,6 +38,7 @@ const organizationStructuredData = {
   description:
     "Green Turtle Trades is an Edinburgh-based UK fintech company building trading analytics, trader journal tools, trader-backed investing workflows, and a Scottish university investment competition.",
   sameAs: [
+    competitionAppUrl,
     "https://www.linkedin.com/company/green-turtle-trade/",
     "https://www.instagram.com/greenturtletrades_/",
     "https://www.tiktok.com/@greenturtletrades",
@@ -72,6 +74,7 @@ const websiteStructuredData = {
     `${siteUrl}/verified-traders`,
     `${siteUrl}/turtle-analytics`,
     `${siteUrl}/university-competition`,
+    competitionAppUrl,
     `${siteUrl}/investment-competition`,
     `${siteUrl}/student-investing-competition`,
     `${siteUrl}/virtual-trading-competition`,
@@ -83,6 +86,29 @@ const websiteStructuredData = {
     "@type": "SearchAction",
     target: `${siteUrl}/?q={search_term_string}`,
     "query-input": "required name=search_term_string",
+  },
+};
+
+const competitionAppStructuredData = {
+  "@type": "WebApplication",
+  "@id": `${competitionAppUrl}/#webapp`,
+  name: "Green Turtle Trades University Competition App",
+  alternateName: "Turtle Trades Competition",
+  url: competitionAppUrl,
+  applicationCategory: "FinanceApplication",
+  operatingSystem: "Web",
+  provider: {
+    "@id": `${siteUrl}/#organization`,
+  },
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "GBP",
+  },
+  description:
+    "The secure Green Turtle Trades university competition app where Scottish university competitors log in, trade virtual market capital, follow traders, review competition analytics, and manage competition accounts.",
+  isPartOf: {
+    "@id": `${siteUrl}/#website`,
   },
 };
 
@@ -154,6 +180,7 @@ function page({
           mainEntityOfPage: canonical,
         },
         websiteStructuredData,
+        competitionAppStructuredData,
         breadcrumbStructuredData,
         {
           "@type": schemaType,
@@ -289,6 +316,27 @@ const pages = [
       "Student investing competition Scotland",
       "Scottish university trading leaderboard",
       "Risk-free virtual investing competition",
+    ],
+    extraGraph: [
+      {
+        "@type": "Event",
+        name: "Green Turtle Trades University Investment Competition",
+        eventAttendanceMode: "https://schema.org/OnlineEventAttendanceMode",
+        eventStatus: "https://schema.org/EventScheduled",
+        location: {
+          "@type": "VirtualLocation",
+          url: competitionAppUrl,
+        },
+        organizer: {
+          "@id": `${siteUrl}/#organization`,
+        },
+        sameAs: competitionAppUrl,
+        workFeatured: {
+          "@id": `${competitionAppUrl}/#webapp`,
+        },
+        description:
+          "The official secure competition app for Green Turtle Trades university competitors, connected to the public university competition leaderboard.",
+      },
     ],
   }),
   page({

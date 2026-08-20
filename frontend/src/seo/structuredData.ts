@@ -1,6 +1,8 @@
 import { getSeoContentPage } from "./content";
 import { SITE_URL, getCanonicalUrl, type ViewType } from "./routes";
 
+const COMPETITION_APP_URL = "https://comp.turtletrades.co.uk";
+
 const organizationStructuredData = {
   "@type": "Organization",
   "@id": `${SITE_URL}/#organization`,
@@ -33,6 +35,7 @@ const organizationStructuredData = {
   description:
     "Green Turtle Trades is an Edinburgh-based UK fintech company building trading analytics, trader journal tools, trader-backed investing workflows, and a Scottish university investment competition.",
   sameAs: [
+    COMPETITION_APP_URL,
     "https://www.linkedin.com/company/green-turtle-trade/",
     "https://www.instagram.com/greenturtletrades_/",
     "https://www.tiktok.com/@greenturtletrades",
@@ -78,6 +81,7 @@ const websiteStructuredData = {
     `${SITE_URL}/verified-traders`,
     `${SITE_URL}/turtle-analytics`,
     `${SITE_URL}/university-competition`,
+    COMPETITION_APP_URL,
     `${SITE_URL}/investment-competition`,
     `${SITE_URL}/student-investing-competition`,
     `${SITE_URL}/virtual-trading-competition`,
@@ -89,6 +93,29 @@ const websiteStructuredData = {
     "@type": "SearchAction",
     target: `${SITE_URL}/?q={search_term_string}`,
     "query-input": "required name=search_term_string",
+  },
+};
+
+const competitionAppStructuredData = {
+  "@type": "WebApplication",
+  "@id": `${COMPETITION_APP_URL}/#webapp`,
+  name: "Green Turtle Trades University Competition App",
+  alternateName: "Turtle Trades Competition",
+  url: COMPETITION_APP_URL,
+  applicationCategory: "FinanceApplication",
+  operatingSystem: "Web",
+  provider: {
+    "@id": `${SITE_URL}/#organization`,
+  },
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "GBP",
+  },
+  description:
+    "The secure Green Turtle Trades university competition app where Scottish university competitors log in, trade virtual market capital, follow traders, review competition analytics, and manage competition accounts.",
+  isPartOf: {
+    "@id": `${SITE_URL}/#website`,
   },
 };
 
@@ -155,6 +182,7 @@ export function buildStructuredData(view: ViewType) {
       "@graph": [
         organizationStructuredData,
         websiteStructuredData,
+        competitionAppStructuredData,
         buildBreadcrumbStructuredData(view),
         {
           "@type": "WebPage",
@@ -204,6 +232,7 @@ export function buildStructuredData(view: ViewType) {
       "@graph": [
         organizationStructuredData,
         websiteStructuredData,
+        competitionAppStructuredData,
         buildBreadcrumbStructuredData(view),
         {
           "@type": "AboutPage",
@@ -282,6 +311,7 @@ export function buildStructuredData(view: ViewType) {
       "@graph": [
         organizationStructuredData,
         websiteStructuredData,
+        competitionAppStructuredData,
         buildBreadcrumbStructuredData(view),
         {
           "@type": "WebPage",
@@ -300,6 +330,7 @@ export function buildStructuredData(view: ViewType) {
             `${SITE_URL}/green-turtle-trades`,
             `${SITE_URL}/investment-competition`,
             `${SITE_URL}/university-competition`,
+            COMPETITION_APP_URL,
             `${SITE_URL}/prop-firm-alternative`,
             `${SITE_URL}/trading-performance-tracker`,
             `${SITE_URL}/turtle-analytics`,
@@ -337,6 +368,7 @@ export function buildStructuredData(view: ViewType) {
       "@graph": [
         organizationStructuredData,
         websiteStructuredData,
+        competitionAppStructuredData,
         buildBreadcrumbStructuredData(view),
         {
           "@type": "WebPage",
@@ -344,6 +376,7 @@ export function buildStructuredData(view: ViewType) {
           headline: "Scotland's next generation of investors, ranked live.",
           alternativeHeadline: "Live Scottish university investment competition leaderboard",
           url: getCanonicalUrl(view),
+          relatedLink: COMPETITION_APP_URL,
           description:
             "Scotland's next generation of investors, ranked live. A public university investment competition leaderboard from Green Turtle Trades showing Scottish university rankings, student trader scores, returns, win rate, risk, backers, and competition activity.",
           primaryImageOfPage: {
@@ -377,7 +410,7 @@ export function buildStructuredData(view: ViewType) {
             eventStatus: "https://schema.org/EventScheduled",
             location: {
               "@type": "VirtualLocation",
-              url: getCanonicalUrl(view),
+              url: COMPETITION_APP_URL,
             },
             organizer: {
               "@id": `${SITE_URL}/#organization`,
@@ -388,6 +421,10 @@ export function buildStructuredData(view: ViewType) {
               "@type": "Audience",
               audienceType: "Scottish university students",
             },
+            sameAs: COMPETITION_APP_URL,
+            workFeatured: {
+              "@id": `${COMPETITION_APP_URL}/#webapp`,
+            },
           },
         },
         {
@@ -397,6 +434,7 @@ export function buildStructuredData(view: ViewType) {
             "Live public leaderboard covering top individual student competitors and university rankings from the Green Turtle Trades competition engine.",
           itemListOrder: "https://schema.org/ItemListOrderDescending",
           url: getCanonicalUrl(view),
+          sameAs: COMPETITION_APP_URL,
         },
       ],
     };
@@ -408,6 +446,7 @@ export function buildStructuredData(view: ViewType) {
       "@graph": [
         organizationStructuredData,
         websiteStructuredData,
+        competitionAppStructuredData,
         buildBreadcrumbStructuredData(view),
         {
           "@type": "SoftwareApplication",
