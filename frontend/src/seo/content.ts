@@ -618,33 +618,58 @@ export const seoContentPages: SeoContentPage[] = [
     title: "Trading Risk Management",
     eyebrow: "Risk Management",
     description:
-      "Trading risk management tools and analytics for reviewing risk per trade, drawdown, expectancy, and trader consistency.",
+      "Trading risk management tools and analytics for reviewing risk per trade, drawdown, exposure, stop-loss behaviour, leverage, expectancy, and trader consistency.",
     keywords:
-      "trading risk management, risk management trading, trading risk analytics, risk per trade, trading drawdown",
+      "trading risk management, risk management trading, trading risk analytics, risk per trade, trading drawdown, stop loss analytics, trading exposure, risk reward ratio",
     intro:
-      "Risk management is central to serious trading. Green Turtle Trades helps traders review risk per trade, drawdown behaviour, expectancy, and performance consistency.",
+      "Risk management is central to serious trading. Green Turtle Trades helps traders review risk per trade, drawdown behaviour, open exposure, stop-loss discipline, leverage where available, expectancy, and performance consistency.",
     sections: [
       {
         title: "Risk is part of every trade",
         body:
-          "Every trade has risk. The question is whether that risk is measured, controlled, and consistent with the trader's edge and account objectives.",
+          "Every trade has risk. The question is whether that risk is measured, controlled, and consistent with the trader's edge, account size, and trading plan. A trader can have strong returns and still be fragile if the risk behind those returns is uncontrolled.",
+      },
+      {
+        title: "Risk per trade",
+        body:
+          "Risk per trade shows how much of the account is exposed if a trade fails. Reviewing this metric across a full trade history helps traders see whether they are sizing positions consistently or allowing one trade to carry too much account risk.",
+      },
+      {
+        title: "Drawdown and largest loss",
+        body:
+          "Drawdown shows how far performance falls from a previous equity high. Largest loss shows how much damage one trade created. Together, they help traders understand whether returns are being earned with acceptable downside or with hidden blow-up risk.",
+      },
+      {
+        title: "Stop-loss behaviour and risk/reward",
+        body:
+          "A risk workflow should show whether trades have planned exits, whether stop-loss behaviour is consistent, and whether average reward is large enough compared with average risk. Win rate alone is not enough without understanding risk/reward.",
+      },
+      {
+        title: "Open exposure and leverage",
+        body:
+          "Risk does not only exist in closed trades. Open exposure, correlated positions, leverage where available, and concentrated symbols can all increase account vulnerability. Turtle Analytics helps traders review exposure alongside realised performance.",
       },
       {
         title: "Use analytics to spot weak risk habits",
         body:
-          "Trading analytics can highlight oversized risk, weak setups, poor reward-to-risk behaviour, and conditions where a trader tends to underperform.",
+          "Trading analytics can highlight oversized risk, weak setups, poor reward-to-risk behaviour, overtrading, long hold times, missing stop-loss patterns, and conditions where a trader tends to underperform.",
+      },
+      {
+        title: "Risk-adjusted trader evaluation",
+        body:
+          "Green Turtle Trades treats risk as part of performance quality. Verified summaries, trader comparisons, and competition scoring should consider return alongside drawdown, sample size, exposure, and risk consistency rather than rewarding raw P/L alone.",
       },
       {
         title: "Public rankings reward controlled risk",
         body:
-          "The public traders leaderboard includes risk per trade as part of its ranking model because responsible risk control should support performance.",
+          "Public rankings and competition scoring should reward controlled risk because responsible risk control supports more sustainable performance. Risk labels are summary indicators, not financial advice or guarantees of future returns.",
       },
     ],
     faqs: [
       {
         question: "What is trading risk management?",
         answer:
-          "Trading risk management is the process of controlling position risk, drawdown, loss exposure, and decision quality across trades.",
+          "Trading risk management is the process of controlling position size, risk per trade, drawdown, exposure, stop-loss behaviour, leverage, and decision quality across trades.",
       },
       {
         question: "Why is risk per trade important?",
@@ -652,9 +677,29 @@ export const seoContentPages: SeoContentPage[] = [
           "Risk per trade shows how much a trader is exposing on each position. Consistent risk helps make performance easier to evaluate.",
       },
       {
+        question: "What is trading drawdown?",
+        answer:
+          "Drawdown measures how far an account or strategy falls from a previous equity high to a later low. It helps show downside risk behind the returns.",
+      },
+      {
+        question: "Why is risk/reward important?",
+        answer:
+          "Risk/reward compares how much a trader risks against the potential or realised reward. A high win rate can still be weak if losses are much larger than wins.",
+      },
+      {
+        question: "Should open positions be included in risk review?",
+        answer:
+          "Yes. Open positions affect exposure, unrealised P/L, leverage, and concentration risk, so they should be reviewed alongside closed-trade performance.",
+      },
+      {
         question: "Can analytics improve trading risk management?",
         answer:
-          "Analytics can reveal patterns in losses, drawdowns, trade duration, stop placement, and conditions where risk tends to increase.",
+          "Analytics can reveal patterns in losses, drawdowns, trade duration, stop placement, exposure, oversized trades, and conditions where risk tends to increase.",
+      },
+      {
+        question: "Are risk labels investment advice?",
+        answer:
+          "No. Risk labels and analytics are informational summaries. They are not financial advice and do not guarantee future performance.",
       },
     ],
   },

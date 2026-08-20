@@ -884,15 +884,86 @@ const pages = [
     route: "/trading-risk-management",
     title: "Trading Risk Management | Green Turtle Trades",
     description:
-      "Trading risk management tools and analytics for reviewing risk per trade, drawdown, expectancy, and trader consistency.",
+      "Trading risk management tools and analytics for reviewing risk per trade, drawdown, exposure, stop-loss behaviour, leverage, expectancy, and trader consistency.",
     keywords:
-      "trading risk management, risk management trading, trading risk analytics, risk per trade, trading drawdown",
+      "trading risk management, risk management trading, trading risk analytics, risk per trade, trading drawdown, stop loss analytics, trading exposure, risk reward ratio",
     h1: "Trading Risk Management",
+    headline: "Review risk per trade, drawdown, exposure, stops, and trading consistency.",
     paragraphs: [
-      "Risk management is central to serious trading.",
-      "Green Turtle Trades helps traders review risk per trade, drawdown behaviour, expectancy, and performance consistency.",
+      "Risk management is central to serious trading. Green Turtle Trades helps traders review risk per trade, drawdown behaviour, open exposure, stop-loss discipline, leverage where available, expectancy, and performance consistency.",
+      "Every trade has risk. The question is whether that risk is measured, controlled, and consistent with the trader's edge, account size, and trading plan.",
+      "Risk per trade shows how much of the account is exposed if a trade fails. Reviewing this metric across a full trade history helps traders see whether they are sizing positions consistently or allowing one trade to carry too much account risk.",
+      "Drawdown shows how far performance falls from a previous equity high. Largest loss shows how much damage one trade created. Together, they help traders understand whether returns are being earned with acceptable downside or hidden blow-up risk.",
+      "A risk workflow should show whether trades have planned exits, whether stop-loss behaviour is consistent, and whether average reward is large enough compared with average risk.",
+      "Open exposure, correlated positions, leverage where available, and concentrated symbols can all increase account vulnerability. Turtle Analytics helps traders review exposure alongside realised performance.",
+      "Green Turtle Trades treats risk as part of performance quality. Verified summaries, trader comparisons, and competition scoring should consider return alongside drawdown, sample size, exposure, and risk consistency rather than rewarding raw P/L alone.",
+      "Risk labels and analytics are informational summaries. They are not financial advice and do not guarantee future performance.",
     ],
-    topics: ["Trading risk management", "Risk per trade", "Drawdown analytics"],
+    topics: [
+      "Trading risk management",
+      "Risk per trade",
+      "Drawdown analytics",
+      "Stop-loss behaviour",
+      "Trading exposure",
+      "Risk reward ratio",
+      "Trading leverage",
+      "Risk-adjusted performance",
+    ],
+    extraGraph: [
+      {
+        "@type": "FAQPage",
+        mainEntity: [
+          {
+            "@type": "Question",
+            name: "What is trading risk management?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Trading risk management is the process of controlling position size, risk per trade, drawdown, exposure, stop-loss behaviour, leverage, and decision quality across trades.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Why is risk per trade important?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Risk per trade shows how much a trader is exposing on each position. Consistent risk helps make performance easier to evaluate.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "What is trading drawdown?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Drawdown measures how far an account or strategy falls from a previous equity high to a later low. It helps show downside risk behind the returns.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Why is risk/reward important?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Risk/reward compares how much a trader risks against the potential or realised reward. A high win rate can still be weak if losses are much larger than wins.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Should open positions be included in risk review?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Yes. Open positions affect exposure, unrealised P/L, leverage, and concentration risk, so they should be reviewed alongside closed-trade performance.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Are risk labels investment advice?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "No. Risk labels and analytics are informational summaries. They are not financial advice and do not guarantee future performance.",
+            },
+          },
+        ],
+      },
+    ],
   }),
   page({
     route: "/mt4-mt5-trading-journal",
