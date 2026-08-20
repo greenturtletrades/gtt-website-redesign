@@ -106,7 +106,7 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
           </div>
 
           {/* Private Analytics Workflow */}
-          <div className="mb-12 rounded-2xl border border-teal-400/30 bg-white/[0.04] p-5 shadow-2xl shadow-teal-950/30 backdrop-blur-sm sm:p-7">
+          <div className="mb-12 rounded-2xl border border-teal-400/30 bg-gradient-to-br from-white/[0.08] via-white/[0.04] to-cyan-400/[0.06] p-5 shadow-2xl shadow-teal-950/30 backdrop-blur-sm sm:p-7">
             <div className="mb-7 text-center">
               <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs text-cyan-200">
                 <Shield className="h-3.5 w-3.5" />
@@ -121,7 +121,7 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
               </p>
             </div>
 
-            <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="mb-5 grid grid-cols-1 gap-5 md:grid-cols-3">
               {[
                 {
                   icon: Shield,
@@ -150,14 +150,14 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.5, delay: i * 0.08 }}
-                    className="rounded-xl border border-teal-300/20 bg-slate-950/30 p-5 transition-all hover:border-teal-300/40 hover:bg-slate-950/45"
+                    className="group rounded-xl border border-teal-400/30 bg-white/5 p-6 shadow-lg shadow-slate-950/10 backdrop-blur-sm transition-all hover:-translate-y-1 hover:border-teal-300/60 hover:bg-white/10"
                   >
-                    <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-teal-400/15 text-teal-200">
-                      <Icon className="h-5 w-5" />
+                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-teal-400/20 text-teal-300 transition-transform group-hover:scale-105">
+                      <Icon className="h-6 w-6" />
                     </div>
                     <h3 className="mb-2 text-white">{item.title}</h3>
                     <p className="mb-3 text-sm leading-6 text-teal-100">{item.desc}</p>
-                    <div className="inline-flex rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs text-cyan-200">
+                    <div className="inline-flex rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs text-cyan-300">
                       {item.highlight}
                     </div>
                   </motion.div>
@@ -165,7 +165,7 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
               })}
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-4">
               {[
                 {
                   icon: RefreshCw,
@@ -200,14 +200,14 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.5, delay: index * 0.08 }}
-                    className="rounded-xl border border-teal-300/20 bg-white/5 p-5 transition-all hover:border-teal-300/40 hover:bg-white/10"
+                    className="group rounded-xl border border-teal-400/30 bg-white/5 p-6 shadow-lg shadow-slate-950/10 backdrop-blur-sm transition-all hover:-translate-y-1 hover:border-teal-300/60 hover:bg-white/10"
                   >
-                    <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-teal-400/15 text-teal-200">
-                      <Icon className="h-5 w-5" />
+                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-teal-400/20 text-teal-300 transition-transform group-hover:scale-105">
+                      <Icon className="h-6 w-6" />
                     </div>
                     <h3 className="mb-2 text-white">{item.title}</h3>
                     <p className="mb-3 text-sm leading-6 text-teal-100">{item.desc}</p>
-                    <div className="inline-flex rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs text-cyan-200">
+                    <div className="inline-flex rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs text-cyan-300">
                       {item.highlight}
                     </div>
                   </motion.div>
