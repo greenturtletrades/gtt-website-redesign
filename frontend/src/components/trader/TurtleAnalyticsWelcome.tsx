@@ -90,28 +90,11 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                 </>
               )}
             </div>
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="mt-4 flex justify-center"
-            >
-              <div className="max-w-2xl px-4 text-center">
-                <p className="text-xs leading-relaxed text-teal-100/80 sm:text-sm">
-                  Connect your MetaTrader account, import Trading 212 history, or upload CSV trade history for analysis.
-                </p>
-              </div>
-            </motion.div>
           </div>
 
           {/* Private Analytics Workflow */}
           <div className="mb-12 rounded-2xl border border-teal-400/30 bg-gradient-to-br from-white/[0.08] via-white/[0.04] to-cyan-400/[0.06] p-5 shadow-2xl shadow-teal-950/30 backdrop-blur-sm sm:p-7">
             <div className="mb-7 text-center">
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs text-cyan-200">
-                <Shield className="h-3.5 w-3.5" />
-                Private by design
-              </div>
               <h2 className="mx-auto max-w-4xl text-2xl text-white sm:text-3xl">
                 One workflow for journal, analytics, risk review, and personal feedback
               </h2>
