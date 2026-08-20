@@ -573,43 +573,88 @@ export const seoContentPages: SeoContentPage[] = [
     title: "Trading Performance Tracker",
     eyebrow: "Performance Tracking",
     description:
-      "Track trading performance with metrics such as win rate, expectancy, R-multiple, risk per trade, drawdown, and trade history.",
+      "Track trading performance with metrics such as win rate, expectancy, R-multiple, profit factor, risk per trade, drawdown, holding time, trade count, and consistency.",
     keywords:
-      "trading performance tracker, trading performance, trade tracker, trading metrics, track trading performance",
+      "trading performance tracker, trading performance, trade tracker, trading metrics, track trading performance, trading statistics, trading dashboard, trader performance analytics",
     intro:
-      "A trading performance tracker helps traders understand whether their results are consistent, risk-aware, and repeatable. Green Turtle Trades combines performance tracking with journal and analytics workflows.",
+      "A trading performance tracker helps traders understand whether their results are consistent, risk-aware, and repeatable. Green Turtle Trades combines performance tracking with journal records, account history, risk analytics, and Turtle Analytics dashboards.",
     sections: [
+      {
+        title: "What a trading performance tracker does",
+        body:
+          "A trading performance tracker records and summarizes trading results so traders can review the full pattern behind their trades. It should show more than account balance by connecting trade outcomes, risk, timing, notes, and behaviour.",
+      },
       {
         title: "Track the metrics that explain performance",
         body:
-          "Win rate, expectancy, R-multiple, profit factor, risk per trade, and sample size all help explain whether trading results come from a repeatable edge.",
+          "Win rate, expectancy, R-multiple, profit factor, average win, average loss, risk/reward, risk per trade, drawdown, holding time, trade count, best trade, worst trade, and sample size all help explain whether trading results come from a repeatable edge.",
+      },
+      {
+        title: "Sample size and consistency matter",
+        body:
+          "A small number of winning trades can create misleading confidence. A useful performance tracker should help traders judge whether results are backed by enough trades, whether wins and losses are consistent, and whether one outlier trade is doing too much of the work.",
       },
       {
         title: "Connect results to behaviour",
         body:
-          "Performance tracking is most useful when it links results to trader behaviour, notes, timing, market conditions, and risk decisions.",
+          "Performance tracking is most useful when it links results to trader behaviour, notes, timing, market conditions, setup quality, and risk decisions. Green Turtle Trades connects tracking with journal records so traders can review both the result and the decision process.",
+      },
+      {
+        title: "Track realised and unrealised performance clearly",
+        body:
+          "Performance pages should distinguish realised P/L from closed trades and unrealised P/L from open positions. Total performance is clearer when the source of each figure is labelled and calculated consistently.",
+      },
+      {
+        title: "Review risk-adjusted performance",
+        body:
+          "Raw return is not enough. Turtle Analytics helps traders review performance alongside drawdown, risk per trade, exposure, leverage where available, profit factor, and expectancy so performance quality is easier to evaluate.",
+      },
+      {
+        title: "Private tracking and optional public summaries",
+        body:
+          "Private tracking can include raw trades, notes, account history, and journal records. Public summaries should use controlled metrics such as return, win rate, trade count, risk, and drawdown without exposing private account details.",
       },
       {
         title: "Turn tracking into improvement",
         body:
-          "Turtle Analytics helps traders move from simple tracking to deeper analysis by showing patterns across trade history and risk behaviour.",
+          "Turtle Analytics helps traders move from simple tracking to deeper analysis by showing patterns across trade history, risk behaviour, holding time, market exposure, and recurring mistakes.",
       },
     ],
     faqs: [
       {
         question: "What is a trading performance tracker?",
         answer:
-          "A trading performance tracker records and summarizes trading results so traders can review metrics such as win rate, expectancy, risk, and trade history.",
+          "A trading performance tracker records and summarizes trading results so traders can review metrics such as win rate, expectancy, risk, drawdown, holding time, and trade history.",
       },
       {
         question: "Which trading metrics matter most?",
         answer:
-          "Useful metrics include expectancy, win rate, R-multiple, profit factor, risk per trade, drawdown, sample size, and consistency.",
+          "Useful metrics include expectancy, win rate, R-multiple, profit factor, average win, average loss, risk per trade, drawdown, holding time, sample size, and consistency.",
+      },
+      {
+        question: "How is a performance tracker different from a trading journal?",
+        answer:
+          "A trading journal records trade context, notes, and lessons. A performance tracker summarizes the metrics across those trades. The strongest workflow connects both.",
+      },
+      {
+        question: "Why does sample size matter in trading performance?",
+        answer:
+          "Small samples can be misleading. More trade history makes it easier to judge whether performance is repeatable or driven by a few outlier trades.",
       },
       {
         question: "Can performance tracking help risk management?",
         answer:
           "Yes. Tracking risk per trade and drawdown behaviour helps traders identify when risk is too high or inconsistent.",
+      },
+      {
+        question: "Should unrealised P/L be included in performance tracking?",
+        answer:
+          "Unrealised P/L can be included when a page represents full account performance, but it should be labelled separately from realised P/L from closed trades.",
+      },
+      {
+        question: "Does performance tracking guarantee future returns?",
+        answer:
+          "No. Performance tracking reviews historical trading behaviour. It does not predict markets or guarantee future returns.",
       },
     ],
   },
