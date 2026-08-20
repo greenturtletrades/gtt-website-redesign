@@ -33,7 +33,7 @@ const organizationStructuredData = {
   description:
     "Green Turtle Trades is an Edinburgh-based UK fintech company building trading analytics, trader journal tools, trader-backed investing workflows, and a Scottish university investment competition.",
   sameAs: [
-    "https://www.linkedin.com/company/green-turtle-trade/posts/?feedView=all",
+    "https://www.linkedin.com/company/green-turtle-trade/",
     "https://www.instagram.com/greenturtletrades_/",
     "https://www.tiktok.com/@greenturtletrades",
     "https://x.com/GreenTurtleT",
@@ -123,9 +123,33 @@ function buildBreadcrumbStructuredData(view: ViewType) {
   };
 }
 
+function buildOrganizationProfilePageStructuredData(view: ViewType) {
+  return {
+    "@type": "ProfilePage",
+    name: "Green Turtle Trades official social profiles",
+    url: getCanonicalUrl(view),
+    mainEntity: {
+      "@id": `${SITE_URL}/#organization`,
+      "@type": "Organization",
+      name: "Green Turtle Trades",
+      alternateName: ["Green Turtle Traders", "Turtle Analytics"],
+      url: SITE_URL,
+      sameAs: organizationStructuredData.sameAs,
+      image: `${SITE_URL}/favicon-v2.png`,
+      description:
+        "Official Green Turtle Trades profile connecting the website with LinkedIn, Instagram, TikTok, X, YouTube, and Companies House.",
+    },
+  };
+}
+
 export function buildStructuredData(view: ViewType) {
   const contentPage = getSeoContentPage(view);
   if (contentPage) {
+    const extraGraph =
+      view === "seo-green-turtle-trades"
+        ? [buildOrganizationProfilePageStructuredData(view)]
+        : [];
+
     return {
       "@context": "https://schema.org",
       "@graph": [
@@ -169,6 +193,7 @@ export function buildStructuredData(view: ViewType) {
             },
           })),
         },
+        ...extraGraph,
       ],
     };
   }

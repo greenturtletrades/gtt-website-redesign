@@ -25,7 +25,7 @@ function XIcon({ className = "" }: { className?: string }) {
 const socialLinks = [
   {
     label: "Green Turtle Trades on LinkedIn",
-    href: "https://www.linkedin.com/company/green-turtle-trade/posts/?feedView=all",
+    href: "https://www.linkedin.com/company/green-turtle-trade/",
     icon: Linkedin,
   },
   {
@@ -69,7 +69,7 @@ export function Footer({ onNavigate }: FooterProps) {
                     key={link.href}
                     href={link.href}
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="me noopener noreferrer"
                     aria-label={link.label}
                     className="inline-flex items-center justify-center text-slate-400 transition-all hover:-translate-y-0.5 hover:text-teal-400"
                   >

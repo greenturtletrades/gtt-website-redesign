@@ -37,7 +37,7 @@ const organizationStructuredData = {
   description:
     "Green Turtle Trades is an Edinburgh-based UK fintech company building trading analytics, trader journal tools, trader-backed investing workflows, and a Scottish university investment competition.",
   sameAs: [
-    "https://www.linkedin.com/company/green-turtle-trade/posts/?feedView=all",
+    "https://www.linkedin.com/company/green-turtle-trade/",
     "https://www.instagram.com/greenturtletrades_/",
     "https://www.tiktok.com/@greenturtletrades",
     "https://x.com/GreenTurtleT",
@@ -85,6 +85,25 @@ const websiteStructuredData = {
     "query-input": "required name=search_term_string",
   },
 };
+
+function organizationProfilePage(canonical) {
+  return {
+    "@type": "ProfilePage",
+    name: "Green Turtle Trades official social profiles",
+    url: canonical,
+    mainEntity: {
+      "@id": `${siteUrl}/#organization`,
+      "@type": "Organization",
+      name: "Green Turtle Trades",
+      alternateName: ["Green Turtle Traders", "Turtle Analytics"],
+      url: siteUrl,
+      sameAs: organizationStructuredData.sameAs,
+      image: socialImageUrl,
+      description:
+        "Official Green Turtle Trades profile connecting the website with LinkedIn, Instagram, TikTok, X, YouTube, and Companies House.",
+    },
+  };
+}
 
 function page({
   route,
@@ -355,6 +374,7 @@ const pages = [
       "Verified trader platform",
       "Not Turtle Trading strategy",
     ],
+    extraGraph: [organizationProfilePage(`${siteUrl}/green-turtle-trades`)],
   }),
   page({
     route: "/what-is-green-turtle-trades",
@@ -377,6 +397,7 @@ const pages = [
       "Trading analytics",
       "Verified trader platform",
     ],
+    extraGraph: [organizationProfilePage(`${siteUrl}/green-turtle-trades`)],
   }),
   page({
     route: "/green-turtle-traders",
@@ -399,6 +420,7 @@ const pages = [
       "Turtle Analytics",
       "Verified trader platform",
     ],
+    extraGraph: [organizationProfilePage(`${siteUrl}/green-turtle-trades`)],
   }),
   page({
     route: "/what-is-green-turtle-traders",
@@ -420,6 +442,7 @@ const pages = [
       "UK trading analytics platform",
       "Turtle Analytics",
     ],
+    extraGraph: [organizationProfilePage(`${siteUrl}/green-turtle-trades`)],
   }),
   page({
     route: "/trading-analytics",
