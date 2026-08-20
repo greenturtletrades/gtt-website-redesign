@@ -908,18 +908,23 @@ const pages = [
     route: "/verified-traders",
     title: "Verified Traders | Green Turtle Trades",
     description:
-      "Verified traders on Green Turtle Trades are evaluated through structured performance records, risk metrics, journal data, and transparent public summaries rather than screenshots alone.",
+      "Verified traders on Green Turtle Trades are reviewed through structured performance records, data source labels, risk metrics, journal data, and transparent public summaries rather than screenshots alone.",
     keywords:
-      "verified traders, verified trading performance, trader verification, transparent traders, verified trading records, trader performance verification, risk adjusted trader performance",
+      "verified traders, verified trading performance, trader verification, verified trading records, transparent traders, trader performance verification, risk adjusted trader performance, verify trader performance",
     h1: "Verified Traders",
     headline: "Trader verification built around evidence, risk metrics, and transparent summaries.",
     paragraphs: [
       "Verified trader data matters because trust cannot be built from screenshots, claims, or isolated winning trades.",
       "Green Turtle Trades is designed around structured performance records, risk controls, trading analytics, journal data, and clearly labelled public summaries.",
       "A trader's headline return is not enough. A useful verification workflow should help explain whether results came from repeatable behaviour, responsible risk, a meaningful trade sample, and real trading history rather than edited screenshots or unsupported claims.",
+      "Screenshots can be cropped, selective, edited, or disconnected from the wider account history. Green Turtle Trades treats screenshots as weak evidence compared with structured platform records, connected account data, imported broker history, MetaTrader-connected data, or in-house competition executions.",
       "Verification means a trading record is supported by platform-recorded activity, connected account data, imported broker history, MetaTrader-connected history, or in-house competition execution records. It does not mean Green Turtle Trades guarantees future performance or labels any trader as risk-free.",
+      "Verified summaries should make the data source clear. Public pages should distinguish between in-house competition data, connected account data, imported broker history, MetaTrader-connected records, journal records, and private analytics imports.",
       "Trader evaluation should look beyond profit and loss. Green Turtle Trades focuses on metrics such as win rate, expectancy, drawdown, profit factor, risk per trade, average hold time, open exposure, sample size, and consistency so users can understand the shape of performance.",
+      "Verified performance should label realised and unrealised values separately. Realised performance comes from closed trades. Unrealised performance depends on open positions and current market marks.",
+      "Good verification should handle duplicate trades, missing identifiers, incomplete exits, stale market marks, and mismatched account totals so the same trade is not counted twice.",
       "Public trader profiles should show controlled summary performance while keeping raw trades, account details, private notes, and personal information protected.",
+      "A useful public trader summary can include total return, realised return, unrealised return, win rate, average return, drawdown, profit factor, expectancy, risk label, trade count, active positions, and sample-size warnings where needed.",
       "Green Turtle Trades is building toward a trader-backed investing model where capital decisions can be informed by clearer evidence. Verified records, risk-adjusted analytics, and transparent summaries are the foundation for that future workflow.",
       "Public rankings, verified summaries, and trader analytics are informational and should not be treated as financial advice or guarantees of future results.",
     ],
@@ -932,8 +937,30 @@ const pages = [
       "Trader performance verification",
       "Trading analytics",
       "Trader-backed investing",
+      "Data source labels",
+      "Public performance summaries",
     ],
     extraGraph: [
+      {
+        "@type": "Article",
+        headline: "Verified Traders and Trader Performance Verification",
+        url: `${siteUrl}/verified-traders`,
+        datePublished: "2026-08-20",
+        dateModified: "2026-08-20",
+        publisher: {
+          "@id": `${siteUrl}/#organization`,
+        },
+        about: [
+          "Verified traders",
+          "Trader verification",
+          "Verified trading records",
+          "Risk-adjusted trader performance",
+          "Public trader summaries",
+          "Green Turtle Trades methodology",
+        ],
+        description:
+          "A guide to verified traders, structured performance records, data source labels, risk metrics, public summaries, private raw data, and trader verification limits.",
+      },
       {
         "@type": "FAQPage",
         mainEntity: [
@@ -943,6 +970,14 @@ const pages = [
             acceptedAnswer: {
               "@type": "Answer",
               text: "A verified trader is a trader whose performance can be reviewed through platform-recorded activity, connected account data, imported broker history, MetaTrader-connected records, or in-house competition execution data rather than unsupported claims alone.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Are trading screenshots enough to verify a trader?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "No. Screenshots can be selective or missing context. Verification is stronger when it uses structured records, connected account data, imported broker history, or platform-recorded executions.",
             },
           },
           {
@@ -967,6 +1002,22 @@ const pages = [
             acceptedAnswer: {
               "@type": "Answer",
               text: "Useful verification metrics include realised and unrealised return, win rate, expectancy, profit factor, drawdown, risk per trade, average hold time, sample size, exposure, and consistency.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Why are CSV trades excluded from public ranking?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "CSV files can be edited outside the platform, so they are not trusted for public leaderboard ranking calculations.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "What is the difference between public summaries and raw trades?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Public summaries show controlled metrics such as return, win rate, risk, drawdown, and trade count. Raw trades, account details, and private journal notes remain private by default.",
             },
           },
           {

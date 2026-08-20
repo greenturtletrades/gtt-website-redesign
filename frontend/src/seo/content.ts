@@ -318,9 +318,9 @@ export const seoContentPages: SeoContentPage[] = [
     title: "Verified Traders",
     eyebrow: "Verified Traders",
     description:
-      "Verified traders on Green Turtle Trades are evaluated through structured performance records, risk metrics, journal data, and transparent public summaries rather than screenshots alone.",
+      "Verified traders on Green Turtle Trades are reviewed through structured performance records, data source labels, risk metrics, journal data, and transparent public summaries rather than screenshots alone.",
     keywords:
-      "verified traders, verified trading performance, trader verification, transparent traders, verified trading records, trader performance verification, risk adjusted trader performance",
+      "verified traders, verified trading performance, trader verification, verified trading records, transparent traders, trader performance verification, risk adjusted trader performance, verify trader performance",
     intro:
       "Verified trader data matters because trust cannot be built from screenshots, claims, or isolated winning trades. Green Turtle Trades is designed around structured performance records, risk controls, trading analytics, journal data, and clearly labelled public summaries.",
     sections: [
@@ -330,9 +330,19 @@ export const seoContentPages: SeoContentPage[] = [
           "A trader's headline return is not enough. A useful verification workflow should help explain whether results came from repeatable behaviour, responsible risk, a meaningful trade sample, and real trading history rather than edited screenshots or unsupported claims.",
       },
       {
+        title: "Screenshots are not verification",
+        body:
+          "Screenshots can be cropped, selective, edited, or disconnected from the wider account history. Green Turtle Trades treats screenshots as weak evidence compared with structured platform records, connected account data, imported broker history, MetaTrader-connected data, or in-house competition executions.",
+      },
+      {
         title: "What verification means",
         body:
           "Verification means a trading record is supported by platform-recorded activity, connected account data, imported broker history, MetaTrader-connected history, or in-house competition execution records. It does not mean Green Turtle Trades guarantees future performance or labels any trader as risk-free.",
+      },
+      {
+        title: "Data source labels",
+        body:
+          "Verified summaries should make the data source clear. Public pages should distinguish between in-house competition data, connected account data, imported broker history, MetaTrader-connected records, journal records, and private analytics imports.",
       },
       {
         title: "Risk-adjusted performance, not only P/L",
@@ -340,9 +350,24 @@ export const seoContentPages: SeoContentPage[] = [
           "Trader evaluation should look beyond profit and loss. Green Turtle Trades focuses on metrics such as win rate, expectancy, drawdown, profit factor, risk per trade, average hold time, open exposure, sample size, and consistency so users can understand the shape of performance.",
       },
       {
+        title: "Realised and unrealised performance",
+        body:
+          "Verified performance should label realised and unrealised values separately. Realised performance comes from closed trades. Unrealised performance depends on open positions and current market marks. Keeping those numbers distinct makes public summaries easier to trust.",
+      },
+      {
+        title: "Duplicate and incomplete records",
+        body:
+          "Good verification should handle duplicate trades, missing identifiers, incomplete exits, stale market marks, and mismatched account totals. The goal is to avoid counting the same trade twice or mixing incompatible data sources.",
+      },
+      {
         title: "Performance without exposing raw trades",
         body:
           "Public trader profiles should show controlled summary performance while keeping raw trades, account details, private notes, and personal information protected. This gives visitors a clearer view of trader quality without exposing sensitive trading records.",
+      },
+      {
+        title: "Useful public summary metrics",
+        body:
+          "A useful public trader summary can include total return, realised return, unrealised return, win rate, average return, drawdown, profit factor, expectancy, risk label, trade count, active positions, and sample-size warnings where needed.",
       },
       {
         title: "Connected to methodology",
@@ -367,6 +392,11 @@ export const seoContentPages: SeoContentPage[] = [
           "A verified trader is a trader whose performance can be reviewed through platform-recorded activity, connected account data, imported broker history, MetaTrader-connected records, or in-house competition execution data rather than unsupported claims alone.",
       },
       {
+        question: "Are trading screenshots enough to verify a trader?",
+        answer:
+          "No. Screenshots can be selective or missing context. Verification is stronger when it uses structured records, connected account data, imported broker history, or platform-recorded executions.",
+      },
+      {
         question: "Does verified mean risk-free?",
         answer:
           "No. Verified means the record is supported by a data source. It does not mean future performance is guaranteed or that the trader is risk-free.",
@@ -385,6 +415,11 @@ export const seoContentPages: SeoContentPage[] = [
         question: "Why are CSV trades excluded from public ranking?",
         answer:
           "CSV files can be edited outside the platform, so they are not trusted for public leaderboard ranking calculations.",
+      },
+      {
+        question: "What is the difference between public summaries and raw trades?",
+        answer:
+          "Public summaries show controlled metrics such as return, win rate, risk, drawdown, and trade count. Raw trades, account details, and private journal notes remain private by default.",
       },
       {
         question: "Are verified trader summaries financial advice?",
