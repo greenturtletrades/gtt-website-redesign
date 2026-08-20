@@ -76,9 +76,6 @@ const websiteStructuredData = {
     competitionAppUrl,
     `${siteUrl}/verified-traders`,
     `${siteUrl}/methodology`,
-    `${siteUrl}/investment-competition`,
-    `${siteUrl}/student-investing-competition`,
-    `${siteUrl}/virtual-trading-competition`,
     `${siteUrl}/prop-firm-alternative`,
     `${siteUrl}/trading-performance-tracker`,
     `${siteUrl}/trader-marketplace`,
@@ -384,20 +381,28 @@ const pages = [
     route: "/university-competition",
     title: "University Investment Competition Leaderboard Scotland | Green Turtle Trades",
     description:
-      "Scotland's next generation of investors, ranked live. Follow the Green Turtle Trades University Investment Competition with Scottish university rankings, student trader scores, returns, win rate, risk, backers, and competition activity.",
+      "Scotland's next generation of investors, ranked live. The canonical Green Turtle Trades hub for the university investment competition, live leaderboard, student trader rankings, virtual capital, risk scoring, and Scottish university performance.",
     keywords:
-      "Scotland's next generation of investors, next generation investors Scotland, university investment competition, Scottish university investment competition, student investing competition Scotland, university competition leaderboard, student trader leaderboard, Scottish university trading competition, Green Turtle Trades competition, risk free investing competition, virtual trading competition",
+      "Scotland's next generation of investors, university investment competition, Scottish university investment competition, student investing competition Scotland, university competition leaderboard, student trader leaderboard, virtual trading competition, investment competition, Green Turtle Trades competition, risk free investing competition",
     headline: "Scotland's next generation of investors, ranked live.",
     h1: "University Investment Competition Leaderboard",
     paragraphs: [
-      "Scotland's next generation of investors, ranked live. The Green Turtle Trades University Investment Competition helps visitors follow Scottish university competitors using live ranking data, individual trader scores, university scores, return metrics, risk labels, win rate, backers, and competition activity.",
+      "Scotland's next generation of investors, ranked live. This is the canonical Green Turtle Trades hub for the university investment competition, student investing competition, and virtual trading competition.",
+      "The public leaderboard helps visitors follow Scottish university competitors using live ranking data, individual trader scores, university scores, return metrics, realised and unrealised performance, risk labels, win rate, backers, trade count, and competition activity.",
       "Students trade with virtual capital in a risk-free environment while universities compete on individual performance, active participation, disciplined risk, trader-backing activity, and overall team results.",
+      "The competition is designed to help students learn practical investing, portfolio discipline, risk control, and market decision-making before real capital is involved.",
+      "Rankings should be powered by in-house competition execution data and central scoring logic so the public website, competition app, and admin views stay aligned.",
+      "Public competition rankings are informational and educational. They are not financial advice and do not guarantee future investment returns.",
     ],
     topics: [
       "University investment competition",
       "Student investing competition Scotland",
       "Scottish university trading leaderboard",
       "Risk-free virtual investing competition",
+      "Investment competition",
+      "Virtual trading competition",
+      "Student trader leaderboard",
+      "Scottish university investing",
     ],
     extraGraph: [
       {
@@ -418,6 +423,51 @@ const pages = [
         },
         description:
           "The official secure competition app for Green Turtle Trades university competitors, connected to the public university competition leaderboard.",
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: [
+          {
+            "@type": "Question",
+            name: "What is the Green Turtle Trades University Investment Competition?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "It is a Scottish university investment competition where students use virtual capital, build practical investing experience, and appear on public individual and university leaderboards.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Is this the main competition page?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Yes. The canonical public competition hub is https://greenturtletraders.co.uk/university-competition. Other competition search variants should point to this page.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Does the competition use real money?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Competitors use virtual market capital, so students can gain practical market experience without risking personal money.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "How are competitors ranked?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Competitors are ranked using central competition scoring that considers performance, risk, participation, drawdown, trade activity, and trader-backing signals.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Are competition rankings financial advice?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "No. Public competition rankings are informational and educational. They are not financial advice and do not guarantee future investment returns.",
+            },
+          },
+        ],
       },
     ],
   }),
@@ -471,6 +521,7 @@ const pages = [
   }),
   page({
     route: "/investment-competition",
+    canonicalRoute: "/university-competition",
     title: "Investment Competition | Green Turtle Trades",
     description:
       "A public investment competition from Green Turtle Trades where Scottish university students trade virtual capital, build market experience, and compete on transparent rankings.",
@@ -478,6 +529,7 @@ const pages = [
       "investment competition, investing competition, trading competition, university investment competition, student investment competition, virtual investment competition, Green Turtle Trades competition",
     h1: "Investment Competition",
     paragraphs: [
+      "The canonical Green Turtle Trades competition hub is the University Investment Competition page.",
       "The Green Turtle Trades investment competition gives students a practical way to learn markets without risking personal capital.",
       "Competitors trade with virtual market capital, follow clear rules, and appear on transparent leaderboards powered by in-house execution data.",
       "Rankings consider return, win rate, participation, risk control, drawdown, and trader-backing activity so the competition rewards disciplined investing rather than headline return alone.",
@@ -491,6 +543,7 @@ const pages = [
   }),
   page({
     route: "/student-investing-competition",
+    canonicalRoute: "/university-competition",
     title: "Student Investing Competition | Green Turtle Trades",
     description:
       "A student investing competition for Scottish universities, helping students learn trading, portfolio discipline, risk control, and market decision-making with virtual capital.",
@@ -498,6 +551,7 @@ const pages = [
       "student investing competition, student investment competition, university investing competition, Scottish student trading competition, student trading challenge, university finance competition",
     h1: "Student Investing Competition",
     paragraphs: [
+      "The canonical Green Turtle Trades student competition hub is the University Investment Competition page.",
       "The Green Turtle Trades student investing competition is designed for students who want practical market experience.",
       "Scottish university competitors use virtual capital to trade, review performance, understand drawdown, and see how their decisions affect individual and university rankings.",
       "The public leaderboard shows score, return, win rate, risk, backers, and trade count so performance can be understood in context.",
@@ -511,6 +565,7 @@ const pages = [
   }),
   page({
     route: "/virtual-trading-competition",
+    canonicalRoute: "/university-competition",
     title: "Virtual Trading Competition | Green Turtle Trades",
     description:
       "A virtual trading competition where students use demo capital, compete on live rankings, and learn investing discipline through market execution data.",
@@ -518,6 +573,7 @@ const pages = [
       "virtual trading competition, virtual investing competition, demo trading competition, paper trading competition, student virtual trading, risk free trading competition",
     h1: "Virtual Trading Competition",
     paragraphs: [
+      "The canonical Green Turtle Trades virtual competition hub is the University Investment Competition page.",
       "A virtual trading competition helps people practise market decision-making before real money is on the line.",
       "Green Turtle Trades uses virtual competition capital, transparent scoring, and public ranking data to make student investing more practical and measurable.",
       "The aim is to help students move beyond theory by building a measurable record of investment decisions, risk habits, and performance improvement.",

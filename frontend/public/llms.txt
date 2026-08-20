@@ -51,10 +51,10 @@ Green Turtle Trades is building toward a trader-backed investing model. The curr
 
 ## University Investment Competition
 
-- [University Investment Competition](https://greenturtletraders.co.uk/university-competition): Public information and leaderboard for the Green Turtle Trades University Investment Competition.
-- [Investment Competition](https://greenturtletraders.co.uk/investment-competition): Information about the Green Turtle Trades investment competition.
-- [Student Investing Competition](https://greenturtletraders.co.uk/student-investing-competition): Student-focused investment competition information.
-- [Virtual Trading Competition](https://greenturtletraders.co.uk/virtual-trading-competition): Information about virtual-capital competition functionality.
+- [University Investment Competition](https://greenturtletraders.co.uk/university-competition): Canonical public hub and live leaderboard for the Green Turtle Trades University Investment Competition, student investing competition, investment competition, and virtual trading competition.
+- [Investment Competition](https://greenturtletraders.co.uk/investment-competition): Redirects/canonicalises to the University Investment Competition hub.
+- [Student Investing Competition](https://greenturtletraders.co.uk/student-investing-competition): Redirects/canonicalises to the University Investment Competition hub.
+- [Virtual Trading Competition](https://greenturtletraders.co.uk/virtual-trading-competition): Redirects/canonicalises to the University Investment Competition hub.
 - [Competition Platform](https://comp.turtletrades.co.uk): Secure application used by registered competition participants.
 
 The competition gives Scottish university students a risk-free environment to learn practical investing with virtual capital.

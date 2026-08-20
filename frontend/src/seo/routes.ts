@@ -60,6 +60,12 @@ export const viewPaths: Partial<Record<ViewType, string>> = {
   "trader-application-status": "/trader-application-status",
 };
 
+const canonicalViewPaths: Partial<Record<ViewType, string>> = {
+  "seo-investment-competition": "/university-competition",
+  "seo-student-investing-competition": "/university-competition",
+  "seo-virtual-trading-competition": "/university-competition",
+};
+
 export function getViewFromPath(pathname: string): ViewType {
   const normalizedPath = pathname.replace(/\/+$/, "") || "/";
 
@@ -88,5 +94,6 @@ export function getPathForView(view: ViewType): string {
 }
 
 export function getCanonicalUrl(view: ViewType): string {
-  return `${SITE_URL}${getPathForView(view) === "/" ? "" : getPathForView(view)}`;
+  const path = canonicalViewPaths[view] || getPathForView(view);
+  return `${SITE_URL}${path === "/" ? "" : path}`;
 }

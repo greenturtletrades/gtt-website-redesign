@@ -968,11 +968,11 @@ export const seoContentPages: SeoContentPage[] = [
     title: "Investment Competition",
     eyebrow: "Investment Competition",
     description:
-      "A public investment competition from Green Turtle Trades where Scottish university students trade virtual capital, build practical market experience, and compete on transparent rankings.",
+      "Investment competition information for Green Turtle Trades. The canonical public hub is the University Investment Competition leaderboard.",
     keywords:
       "investment competition, investing competition, trading competition, university investment competition, student investment competition, virtual investment competition, Green Turtle Trades competition",
     intro:
-      "The Green Turtle Trades investment competition gives students a practical way to learn markets without risking personal capital. Competitors trade with virtual market capital, follow clear rules, and appear on transparent leaderboards powered by in-house execution data.",
+      "The canonical Green Turtle Trades competition hub is the University Investment Competition page. The competition gives students a practical way to learn markets without risking personal capital, with transparent leaderboards powered by in-house execution data.",
     sections: [
       {
         title: "A risk-free way to learn practical investing",
@@ -1013,11 +1013,11 @@ export const seoContentPages: SeoContentPage[] = [
     title: "Student Investing Competition",
     eyebrow: "Student Investing",
     description:
-      "A student investing competition for Scottish universities, helping students learn trading, portfolio discipline, risk control, and market decision-making with virtual capital.",
+      "Student investing competition information for Green Turtle Trades. The canonical public hub is the University Investment Competition leaderboard.",
     keywords:
       "student investing competition, student investment competition, university investing competition, Scottish student trading competition, student trading challenge, university finance competition",
     intro:
-      "The Green Turtle Trades student investing competition is designed for students who want practical market experience. It gives university competitors a risk-free environment to trade, track performance, and learn how discipline affects results.",
+      "The canonical Green Turtle Trades student competition hub is the University Investment Competition page. The competition gives university competitors a risk-free environment to trade, track performance, and learn how discipline affects results.",
     sections: [
       {
         title: "Built for Scottish university students",
@@ -1058,11 +1058,11 @@ export const seoContentPages: SeoContentPage[] = [
     title: "Virtual Trading Competition",
     eyebrow: "Virtual Trading",
     description:
-      "A virtual trading competition where students use demo capital, compete on live rankings, and learn investing discipline through market execution data.",
+      "Virtual trading competition information for Green Turtle Trades. The canonical public hub is the University Investment Competition leaderboard.",
     keywords:
       "virtual trading competition, virtual investing competition, demo trading competition, paper trading competition, student virtual trading, risk free trading competition",
     intro:
-      "A virtual trading competition helps people practise market decision-making before real money is on the line. Green Turtle Trades uses virtual competition capital, transparent scoring, and public ranking data to make student investing more practical and measurable.",
+      "The canonical Green Turtle Trades virtual competition hub is the University Investment Competition page. The competition uses virtual capital, transparent scoring, and public ranking data to make student investing more practical and measurable.",
     sections: [
       {
         title: "Practice without personal financial risk",
