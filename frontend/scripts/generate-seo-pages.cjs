@@ -781,17 +781,20 @@ const pages = [
     route: "/trading-journal",
     title: "Trading Journal | Green Turtle Trades",
     description:
-      "A trading journal for recording trades, reviewing decisions, tracking lessons, measuring expectancy, and understanding risk across your trading history.",
+      "A trading journal for recording trades, reviewing decisions, importing MT4 and MT5 history, tracking lessons, measuring expectancy, and understanding trading risk.",
     keywords:
-      "trading journal, trade journal, trading journal app, MT4 trading journal, MT5 trading journal, trading performance journal, trade notes, trading analytics journal",
+      "trading journal, trade journal, trading journal software, trading journal app, MT4 trading journal, MT5 trading journal, trading performance journal, trade notes, trading analytics journal",
     h1: "Trading Journal",
     headline: "A structured trading journal for decisions, risk, lessons, and performance review.",
     paragraphs: [
       "A trading journal helps traders turn trade history into feedback by recording notes, lessons, decisions, outcomes, and risk.",
       "Green Turtle Trades helps traders keep a structured record of entries, exits, symbols, direction, position size, stop loss, take profit, risk, holding time, order type, setup, market context, and account activity.",
+      "Spreadsheets can be useful at the start, but they often become hard to maintain and easy to misread. Screenshots are even weaker because they can be selective and rarely show risk, sizing, context, or the full account history.",
       "The journal is designed to review decisions as well as outcomes. Traders should be able to see whether a trade followed the plan, whether risk was controlled, whether the exit was disciplined, and whether the same mistake keeps appearing over time.",
+      "Weekly and monthly journal reviews can show which setups are working, which symbols create avoidable losses, whether risk is drifting, and whether trades are being taken for clear reasons or emotional reactions.",
       "Green Turtle Trades connects journal records with Turtle Analytics so traders can move from simple record keeping to deeper performance analysis across expectancy, profit factor, win rate, drawdown, holding time, R-multiple, best and worst trades, and risk behaviour.",
       "Turtle Analytics supports MetaTrader-connected workflows for MT4 and MT5 traders, Trading 212 history, and CSV imports where available, then brings that history into one structured journal and analytics workflow.",
+      "Closed trades and open positions should not be mixed without labels. Realised performance comes from closed trades, while unrealised performance depends on open positions and current market marks.",
       "Risk belongs inside the trading journal. Traders can review drawdown, risk per trade, open exposure, leverage where available, largest loss, missing stop-loss behaviour, and consistency signals across their own history.",
       "Raw journal trades, private notes, and account details stay private by default. Public performance should use controlled summary metrics and methodology-backed calculations rather than exposing private records.",
     ],
@@ -804,9 +807,32 @@ const pages = [
       "Trading notes",
       "Expectancy",
       "Drawdown",
+      "Profit factor",
+      "Risk/reward ratio",
       "Risk per trade",
     ],
     extraGraph: [
+      {
+        "@type": "Article",
+        headline: "Trading Journal Guide",
+        url: `${siteUrl}/trading-journal`,
+        datePublished: "2026-08-20",
+        dateModified: "2026-08-20",
+        publisher: {
+          "@id": `${siteUrl}/#organization`,
+        },
+        about: [
+          "Trading journal",
+          "Trade journal software",
+          "MT4 trading journal",
+          "MT5 trading journal",
+          "Trading analytics",
+          "Trading risk management",
+          "Turtle Analytics",
+        ],
+        description:
+          "A guide to trading journals, trade notes, imported trading history, review workflows, risk metrics, expectancy, drawdown, and private performance records.",
+      },
       {
         "@type": "FAQPage",
         mainEntity: [
@@ -816,6 +842,14 @@ const pages = [
             acceptedAnswer: {
               "@type": "Answer",
               text: "A trading journal should include entry and exit data, symbol, direction, position size, stop loss, take profit, risk, holding time, notes, trade lessons, market context, and performance metrics.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Is a trading journal better than a spreadsheet?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "A spreadsheet can work for simple tracking, but a structured trading journal is better for combining notes, risk, imported history, review workflows, and analytics in one place.",
             },
           },
           {
@@ -840,6 +874,22 @@ const pages = [
             acceptedAnswer: {
               "@type": "Answer",
               text: "Useful journal metrics include expectancy, win rate, profit factor, average win, average loss, risk/reward, drawdown, risk per trade, holding time, and trade count.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Does a trading journal predict future trades?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "No. A trading journal reviews historical decisions and outcomes. It can help traders identify patterns and risks, but it does not predict market prices or guarantee returns.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Should a trading journal include open positions?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Open positions can be included, but unrealised performance should be labelled separately from realised closed-trade performance.",
             },
           },
           {

@@ -203,9 +203,9 @@ export const seoContentPages: SeoContentPage[] = [
     title: "Trading Journal",
     eyebrow: "Trading Journal",
     description:
-      "A trading journal for recording trades, reviewing decisions, tracking lessons, measuring expectancy, and understanding risk across your trading history.",
+      "A trading journal for recording trades, reviewing decisions, importing MT4 and MT5 history, tracking lessons, measuring expectancy, and understanding trading risk.",
     keywords:
-      "trading journal, trade journal, trading journal app, MT4 trading journal, MT5 trading journal, trading performance journal, trade notes, trading analytics journal",
+      "trading journal, trade journal, trading journal software, trading journal app, MT4 trading journal, MT5 trading journal, trading performance journal, trade notes, trading analytics journal",
     intro:
       "A trading journal is where traders turn trade history into feedback. Green Turtle Trades helps traders keep a structured record of entries, exits, notes, lessons, risk, account activity, and performance metrics so each trade becomes part of a clearer review process.",
     sections: [
@@ -215,9 +215,19 @@ export const seoContentPages: SeoContentPage[] = [
           "A useful trading journal should hold more than entry and exit prices. Traders should be able to review the symbol, direction, size, entry, exit, stop loss, take profit, risk, holding time, order type, setup, notes, lessons learned, and the market context around the decision.",
       },
       {
+        title: "Why spreadsheets and screenshots are weak",
+        body:
+          "Spreadsheets can be useful at the start, but they often become hard to maintain and easy to misread. Screenshots are even weaker because they can be selective and rarely show risk, sizing, context, or the full account history. A structured journal keeps the record more consistent.",
+      },
+      {
         title: "Review decisions as well as outcomes",
         body:
           "The point of a trading journal is not just to see whether a trade made money. It should help traders understand whether the trade followed the plan, whether risk was controlled, whether the exit was disciplined, and whether the same mistake keeps appearing over time.",
+      },
+      {
+        title: "Build a review process",
+        body:
+          "A journal is most useful when traders review it regularly. Weekly and monthly reviews can show which setups are working, which symbols create avoidable losses, whether risk is drifting, and whether trades are being taken for clear reasons or emotional reactions.",
       },
       {
         title: "Connect journal data to Turtle Analytics",
@@ -235,6 +245,11 @@ export const seoContentPages: SeoContentPage[] = [
           "Journal metrics should show whether the trading process has a positive expected outcome. Expectancy, average win, average loss, win rate, risk/reward, profit factor, and average return help traders understand whether performance is repeatable or dependent on isolated trades.",
       },
       {
+        title: "Separate realised and unrealised performance",
+        body:
+          "Closed trades and open positions should not be mixed without labels. Realised performance comes from closed trades, while unrealised performance depends on open positions and current market marks. Clear labels help prevent account numbers from drifting across different screens.",
+      },
+      {
         title: "Track risk, drawdown, and exposure",
         body:
           "Green Turtle Trades treats risk as part of the journal, not a separate afterthought. Traders can review drawdown, risk per trade, open exposure, leverage where available, largest loss, missing stop-loss behaviour, and consistency signals across their own trading history.",
@@ -249,12 +264,22 @@ export const seoContentPages: SeoContentPage[] = [
         body:
           "Beginners can use a journal to build discipline and stop repeating avoidable mistakes. More experienced traders can use it to test whether a strategy is producing a real edge, whether risk is consistent, and whether behaviour changes across market conditions.",
       },
+      {
+        title: "A private record that can support public proof",
+        body:
+          "The private journal is for honest review. If a trader later chooses to publish a performance summary, the public version should use controlled metrics, clear data-source labels, and methodology-backed calculations rather than exposing private notes or unsupported claims.",
+      },
     ],
     faqs: [
       {
         question: "What should a trading journal include?",
         answer:
           "A trading journal should include entry and exit data, symbol, direction, position size, stop loss, take profit, risk, holding time, notes, trade lessons, market context, and performance metrics.",
+      },
+      {
+        question: "Is a trading journal better than a spreadsheet?",
+        answer:
+          "A spreadsheet can work for simple tracking, but a structured trading journal is better for combining notes, risk, imported history, review workflows, and analytics in one place.",
       },
       {
         question: "Is a trading journal useful for beginners?",
@@ -275,6 +300,11 @@ export const seoContentPages: SeoContentPage[] = [
         question: "Does a trading journal predict future trades?",
         answer:
           "No. A trading journal reviews historical decisions and outcomes. It can help traders identify patterns and risks, but it does not predict market prices or guarantee returns.",
+      },
+      {
+        question: "Should a trading journal include open positions?",
+        answer:
+          "Open positions can be included, but unrealised performance should be labelled separately from realised closed-trade performance.",
       },
       {
         question: "Are my journal trades public?",
