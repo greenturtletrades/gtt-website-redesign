@@ -57,8 +57,8 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
               Turtle Analytics by Green Turtle Trades
             </h1>
             <p className="text-teal-100 max-w-3xl mx-auto text-lg mb-8">
-              Turtle Analytics is the trading analytics and trading journal platform developed by Green Turtle Trades. It combines a journal, performance analytics, and a self-optimising feedback engine that analyses
-              <span className="text-cyan-300"> your unique trading history</span> to reveal hidden patterns, risk behaviour, and personalised improvement opportunities.
+              A private performance workspace for traders who want to understand their own decisions in more depth. Review history, behaviour, risk, and outcomes through
+              <span className="text-cyan-300"> personal analytics built from your own trades</span>.
             </p>
 
             {/* CTA Buttons */}
@@ -99,8 +99,8 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                 One workflow for journal, analytics, risk review, and personal feedback
               </h2>
               <p className="mx-auto mt-3 max-w-3xl text-sm leading-6 text-teal-100 sm:text-base">
-                Turtle Analytics is built around your own trading record: import the history, keep the journal, review the dashboard,
-                and use risk metrics to understand what is actually driving performance.
+                Bring the full review cycle into one place: import trade history, add context, read the dashboard,
+                and use risk metrics to see what is actually driving performance.
               </p>
             </div>
 
