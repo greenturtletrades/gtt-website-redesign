@@ -151,7 +151,7 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
           </div>
 
           {/* Product Hub */}
-          <div className="mb-12 rounded-2xl border border-teal-400/25 bg-slate-950/45 p-5 shadow-2xl backdrop-blur-sm sm:p-6">
+          <div className="mb-12 rounded-2xl border border-teal-400/30 bg-gradient-to-br from-slate-950/70 via-teal-950/35 to-slate-950/70 p-5 shadow-2xl shadow-teal-950/30 backdrop-blur-sm sm:p-6">
             <div className="mb-5 text-center">
               <h2 className="text-2xl text-white sm:text-3xl">Trading journal, analytics, and risk review in one workflow</h2>
               <p className="mx-auto mt-3 max-w-3xl text-sm leading-6 text-teal-100 sm:text-base">
@@ -165,21 +165,29 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                   icon: RefreshCw,
                   title: "Connect history",
                   desc: "MetaTrader 4, MetaTrader 5, Trading 212, and CSV workflows bring trade history into one review process.",
+                  highlight: "MT4, MT5, Trading 212, CSV",
+                  accent: "from-cyan-500 to-teal-500",
                 },
                 {
                   icon: BookOpen,
                   title: "Keep the journal",
                   desc: "Record entries, exits, symbols, direction, notes, holding time, account activity, and lessons learned.",
+                  highlight: "Notes, lessons, context",
+                  accent: "from-teal-500 to-emerald-500",
                 },
                 {
                   icon: BarChart3,
                   title: "Read the dashboard",
                   desc: "Track win rate, expectancy, profit factor, R-multiple, best trade, worst trade, and average hold time.",
+                  highlight: "Metrics that explain performance",
+                  accent: "from-cyan-500 to-blue-500",
                 },
                 {
                   icon: Shield,
                   title: "Control risk",
                   desc: "Review drawdown, risk per trade, open exposure, stop-loss behaviour, leverage, and consistency signals.",
+                  highlight: "Drawdown and exposure review",
+                  accent: "from-emerald-500 to-teal-500",
                 },
               ].map((item, index) => {
                 const Icon = item.icon;
@@ -190,13 +198,17 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.5, delay: index * 0.08 }}
-                    className="rounded-xl border border-teal-400/20 bg-white/[0.06] p-4"
+                    className="group relative overflow-hidden rounded-xl border border-teal-400/30 bg-white/[0.06] p-5 shadow-lg shadow-slate-950/20 backdrop-blur-sm transition-all hover:-translate-y-1 hover:border-teal-300/60 hover:bg-white/[0.09] hover:shadow-teal-950/30"
                   >
-                    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-teal-400/15">
-                      <Icon className="h-5 w-5 text-teal-200" />
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-teal-300/70 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                    <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-br ${item.accent} shadow-lg shadow-teal-950/25`}>
+                      <Icon className="h-5 w-5 text-white" />
                     </div>
                     <h3 className="mb-2 text-white">{item.title}</h3>
-                    <p className="text-sm leading-6 text-teal-100/85">{item.desc}</p>
+                    <p className="min-h-[6rem] text-sm leading-6 text-teal-50/85">{item.desc}</p>
+                    <div className="mt-4 inline-flex rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs text-cyan-200">
+                      {item.highlight}
+                    </div>
                   </motion.div>
                 );
               })}
