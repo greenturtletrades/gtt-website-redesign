@@ -76,12 +76,13 @@ const websiteStructuredData = {
   hasPart: [
     `${SITE_URL}/about`,
     `${SITE_URL}/green-turtle-trades`,
-    `${SITE_URL}/trading-analytics`,
     `${SITE_URL}/trading-journal`,
-    `${SITE_URL}/verified-traders`,
     `${SITE_URL}/turtle-analytics`,
+    `${SITE_URL}/trading-analytics`,
     `${SITE_URL}/university-competition`,
     COMPETITION_APP_URL,
+    `${SITE_URL}/verified-traders`,
+    `${SITE_URL}/methodology`,
     `${SITE_URL}/investment-competition`,
     `${SITE_URL}/student-investing-competition`,
     `${SITE_URL}/virtual-trading-competition`,
@@ -328,12 +329,13 @@ export function buildStructuredData(view: ViewType) {
           },
           significantLink: [
             `${SITE_URL}/green-turtle-trades`,
-            `${SITE_URL}/investment-competition`,
+            `${SITE_URL}/trading-journal`,
+            `${SITE_URL}/turtle-analytics`,
             `${SITE_URL}/university-competition`,
             COMPETITION_APP_URL,
-            `${SITE_URL}/prop-firm-alternative`,
+            `${SITE_URL}/methodology`,
             `${SITE_URL}/trading-performance-tracker`,
-            `${SITE_URL}/turtle-analytics`,
+            `${SITE_URL}/prop-firm-alternative`,
           ],
           about: [
             {
@@ -455,7 +457,7 @@ export function buildStructuredData(view: ViewType) {
           operatingSystem: "Web",
           url: getCanonicalUrl(view),
           description:
-            "A trading analytics and trading journal platform from Green Turtle Trades for reviewing trade history, expectancy, risk control, and performance insights.",
+            "A trading journal and trading analytics platform from Green Turtle Trades for reviewing imported trade history, expectancy, drawdown, risk control, account activity, and trader performance.",
           isPartOf: {
             "@id": `${SITE_URL}/#website`,
           },
@@ -463,12 +465,15 @@ export function buildStructuredData(view: ViewType) {
             "@id": `${SITE_URL}/#organization`,
           },
           featureList: [
-            "Trading analytics",
             "Trading journal",
-            "Trade history analysis",
-            "Risk control insights",
-            "Expectancy analysis",
-            "Performance reporting",
+            "Trading analytics",
+            "MT4 and MT5 trade history analysis",
+            "Trading 212 and CSV import workflows",
+            "Expectancy and profit factor review",
+            "Drawdown and risk-per-trade analysis",
+            "Trade notes and journal records",
+            "Account ledger and stats cards",
+            "Private analytics with optional public performance summaries",
           ],
           offers: {
             "@type": "Offer",

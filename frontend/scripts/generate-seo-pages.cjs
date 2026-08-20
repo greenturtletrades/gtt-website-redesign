@@ -69,12 +69,13 @@ const websiteStructuredData = {
   hasPart: [
     `${siteUrl}/about`,
     `${siteUrl}/green-turtle-trades`,
-    `${siteUrl}/trading-analytics`,
     `${siteUrl}/trading-journal`,
-    `${siteUrl}/verified-traders`,
     `${siteUrl}/turtle-analytics`,
+    `${siteUrl}/trading-analytics`,
     `${siteUrl}/university-competition`,
     competitionAppUrl,
+    `${siteUrl}/verified-traders`,
+    `${siteUrl}/methodology`,
     `${siteUrl}/investment-competition`,
     `${siteUrl}/student-investing-competition`,
     `${siteUrl}/virtual-trading-competition`,
@@ -233,10 +234,10 @@ function buildFallback({ h1, paragraphs }) {
             <ul>
               <li><a href="/">Green Turtle Trades homepage</a></li>
               <li><a href="/about">About Green Turtle Trades</a></li>
-              <li><a href="/turtle-analytics">Turtle Analytics</a></li>
-              <li><a href="/university-competition">University Competition</a></li>
-              <li><a href="/trading-analytics">Trading Analytics</a></li>
               <li><a href="/trading-journal">Trading Journal</a></li>
+              <li><a href="/turtle-analytics">Turtle Analytics</a></li>
+              <li><a href="/trading-analytics">Trading Analytics</a></li>
+              <li><a href="/university-competition">University Competition</a></li>
               <li><a href="/verified-traders">Verified Traders</a></li>
               <li><a href="/methodology">Methodology</a></li>
             </ul>
@@ -274,28 +275,108 @@ const pages = [
   }),
   page({
     route: "/turtle-analytics",
-    title: "Trading Analytics and Trading Journal | Turtle Analytics",
+    title: "Turtle Analytics | Trading Journal and Trading Analytics",
     description:
-      "Use Turtle Analytics as a trading analytics platform and trading journal to review performance, risk control, expectancy, trade history, and improvement opportunities.",
+      "Use Turtle Analytics as a trading journal and trading analytics platform for MT4, MT5, Trading 212, CSV history, expectancy, drawdown, risk review, and trader performance tracking.",
     keywords:
-      "trading analytics, trading journal, trade journal, turtle analytics, trading performance analysis, trading analytics platform",
+      "Turtle Analytics, trading journal, trading analytics, MT4 trading journal, MT5 trading journal, trading performance tracker, expectancy, drawdown analysis, trading risk management",
     h1: "Turtle Analytics",
+    headline: "Trading journal, performance analytics, and risk review for serious traders.",
     paragraphs: [
-      "Turtle Analytics helps traders turn trade history into structured insight across expectancy, risk, win rate, drawdown, trade timing, and journal records.",
-      "The product is designed for traders who want clearer performance analysis, better risk review, and a stronger private trading journal workflow.",
+      "Turtle Analytics is the Green Turtle Trades product hub for trading journals, trading analytics, performance tracking, and risk review.",
+      "Traders can bring account history into one structured workflow through MetaTrader 4, MetaTrader 5, Trading 212, or CSV imports, then review the record through journal rows, account ledgers, stats cards, and analytics dashboards.",
+      "The trading journal keeps entries, exits, direction, symbol, holding time, notes, and account activity in one place so traders can review decisions as well as outcomes.",
+      "The analytics layer focuses on practical performance metrics including win rate, average return, profit factor, expectancy, R-multiple, best and worst trades, average hold time, market exposure, and total realised performance.",
+      "Risk tools help traders understand drawdown, risk per trade, open exposure, leverage where available, stop-loss behaviour, largest loss, and consistency across their own history.",
+      "Turtle Analytics does not predict market prices. It reviews historical trading behaviour so traders can see what happened, where risk increased, and which patterns may need more discipline.",
+      "Raw journal records and account details remain private by default. Public trader summaries should use controlled metrics and methodology-backed calculations rather than exposing private trade data.",
     ],
-    topics: ["Trading analytics", "Trading journal", "Trade history analysis", "Risk control"],
+    topics: [
+      "Trading journal",
+      "Trading analytics",
+      "MT4 trading journal",
+      "MT5 trading journal",
+      "Trading performance tracker",
+      "Expectancy analysis",
+      "Drawdown analysis",
+      "Trading risk management",
+      "Trade history analysis",
+      "Trader performance transparency",
+    ],
     schemaType: "SoftwareApplication",
     extraGraph: [
       {
         "@type": "SoftwareApplication",
         name: "Turtle Analytics",
+        alternateName: ["Green Turtle Trades Trading Journal", "Green Turtle Trades Trading Analytics"],
         applicationCategory: "FinanceApplication",
         operatingSystem: "Web",
         url: `${siteUrl}/turtle-analytics`,
         publisher: {
           "@id": `${siteUrl}/#organization`,
         },
+        description:
+          "Turtle Analytics is a trading journal and trading analytics product for reviewing imported trade history, expectancy, drawdown, risk, account activity, and trader performance.",
+        featureList: [
+          "Trading journal",
+          "MT4 and MT5 trade history analysis",
+          "Trading 212 and CSV import workflows",
+          "Expectancy and profit factor review",
+          "Drawdown and risk-per-trade analysis",
+          "Trade notes and journal records",
+          "Account ledger and stats cards",
+          "Private analytics with optional public performance summaries",
+        ],
+        offers: {
+          "@type": "Offer",
+          priceCurrency: "GBP",
+          availability: "https://schema.org/InStock",
+        },
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: [
+          {
+            "@type": "Question",
+            name: "What is Turtle Analytics?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Turtle Analytics is the Green Turtle Trades trading journal and analytics product for reviewing trade history, expectancy, drawdown, risk, account activity, and trader performance.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Can Turtle Analytics work with MT4 and MT5 trading history?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Turtle Analytics supports MetaTrader-connected workflows for MT4 and MT5 traders, alongside Trading 212 and CSV import workflows where available.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Which trading metrics does Turtle Analytics review?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Turtle Analytics reviews metrics such as win rate, expectancy, profit factor, R-multiple, drawdown, risk per trade, hold time, trade count, best trade, worst trade, and performance by behaviour pattern.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Does Turtle Analytics predict market prices?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "No. Turtle Analytics focuses on historical trading behaviour, journal records, and performance analysis. It does not guarantee returns or predict market prices.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Are raw trade records public?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Raw journal records and account details remain private by default. Public pages should use controlled summary metrics rather than exposing private trade data.",
+            },
+          },
+        ],
       },
     ],
   }),

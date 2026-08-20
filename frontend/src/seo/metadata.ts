@@ -41,11 +41,11 @@ const pageMetadata: Partial<Record<ViewType, SeoMetadata>> = {
       "Scotland's next generation of investors, next generation investors Scotland, university investment competition, Scottish university investment competition, student investing competition Scotland, university competition leaderboard, student trader leaderboard, Scottish university trading competition, Green Turtle Trades competition, risk free investing competition, virtual trading competition",
   },
   "turtle-analytics": {
-    title: "Trading Analytics and Trading Journal | Turtle Analytics",
+    title: "Turtle Analytics | Trading Journal and Trading Analytics",
     description:
-      "Use Turtle Analytics as a trading analytics platform and trading journal to review performance, risk control, expectancy, trade history, and improvement opportunities.",
+      "Use Turtle Analytics as a trading journal and trading analytics platform for MT4, MT5, Trading 212, CSV history, expectancy, drawdown, risk review, and trader performance tracking.",
     keywords:
-      "trading analytics, trading journal, trade journal, turtle analytics, trading performance analysis, trading analytics platform",
+      "Turtle Analytics, trading journal, trading analytics, MT4 trading journal, MT5 trading journal, trading performance tracker, expectancy, drawdown analysis, trading risk management",
   },
   contact: {
     title: "Contact Green Turtle Trades",

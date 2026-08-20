@@ -31,7 +31,7 @@ Use the official website for product, platform, mission, and positioning informa
 
 ## Trading Analytics and Trader Tools
 
-- [Turtle Analytics](https://greenturtletraders.co.uk/turtle-analytics): Green Turtle Trades trading analytics product for reviewing trade history, performance, risk, drawdown, expectancy, holding time, and journal records.
+- [Turtle Analytics](https://greenturtletraders.co.uk/turtle-analytics): Green Turtle Trades product hub for trading journal workflows, MT4 and MT5 trading history, Trading 212 and CSV imports, expectancy, drawdown, risk review, account ledgers, stats cards, and trader performance tracking.
 - [Trading Analytics](https://greenturtletraders.co.uk/trading-analytics): Information about trading performance analysis and trader metrics.
 - [Trading Journal](https://greenturtletraders.co.uk/trading-journal): Trading journal and performance-review workflows.
 - [Verified Traders](https://greenturtletraders.co.uk/verified-traders): Information about trader verification and transparent trading records.

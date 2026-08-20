@@ -148,16 +148,22 @@ export function Footer({ onNavigate }: FooterProps) {
                 What is Green Turtle Trades?
               </button>
               <button
-                onClick={() => onNavigate && onNavigate("turtle-analytics")}
-                className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
-              >
-                Trading Analytics
-              </button>
-              <button
                 onClick={() => onNavigate && onNavigate("seo-trading-journal")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >
                 Trading Journal
+              </button>
+              <button
+                onClick={() => onNavigate && onNavigate("turtle-analytics")}
+                className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
+              >
+                Turtle Analytics
+              </button>
+              <button
+                onClick={() => onNavigate && onNavigate("turtle-traders")}
+                className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
+              >
+                University Competition
               </button>
               <button
                 onClick={() => onNavigate && onNavigate("seo-verified-traders")}
@@ -182,12 +188,6 @@ export function Footer({ onNavigate }: FooterProps) {
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >
                 Copy Trading Platform
-              </button>
-              <button
-                onClick={() => onNavigate && onNavigate("turtle-traders")}
-                className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
-              >
-                University Competition
               </button>
             </div>
           </div>

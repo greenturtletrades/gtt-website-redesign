@@ -98,7 +98,7 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
                 }`}
               >
                 <Brain className="w-4 h-4" />
-                Trading Analytics
+                Trading Journal
               </button>
               <button
                 onClick={() => onNavigate("turtle-traders")}
@@ -131,7 +131,7 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
                     >
                       <Brain className="mt-0.5 h-5 w-5 flex-shrink-0 text-teal-700" />
                       <span>
-                        <span className="block text-sm font-semibold text-slate-900">Trading Analytics</span>
+                        <span className="block text-sm font-semibold text-slate-900">Trading Journal</span>
                         <span className="mt-0.5 block text-xs leading-5 text-slate-500">Log in to Turtle Analytics and trader tools.</span>
                       </span>
                     </button>
@@ -186,7 +186,7 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
                 }`}
               >
                 <Brain className="w-4 h-4" />
-                Trading Analytics
+                Trading Journal
               </button>
               <button
                 onClick={() => onNavigate("turtle-traders")}
@@ -258,7 +258,7 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
                   }`}
                 >
                   <Brain className="w-5 h-5" />
-                  Trading Analytics
+                  Trading Journal
                 </button>
                 <button
                   onClick={() => handleNavigation(() => onNavigate("turtle-traders"))}
@@ -278,7 +278,7 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
                     className="flex w-full items-center gap-3 rounded-lg bg-white px-4 py-3 text-left text-slate-700 transition-colors hover:bg-teal-50"
                   >
                     <Brain className="h-5 w-5 text-teal-700" />
-                    Trading Analytics
+                    Trading Journal
                   </button>
                   <button
                     onClick={() => handleNavigation(openCompetitionApp)}
@@ -323,7 +323,7 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
                   }`}
                 >
                   <Brain className="w-4 h-4" />
-                  Trading Analytics
+                  Trading Journal
                 </button>
                 <button
                   onClick={() => handleNavigation(() => onNavigate("turtle-traders"))}

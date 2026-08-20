@@ -150,6 +150,59 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
             })}
           </div>
 
+          {/* Product Hub */}
+          <div className="mb-12 rounded-2xl border border-teal-400/25 bg-slate-950/45 p-5 shadow-2xl backdrop-blur-sm sm:p-6">
+            <div className="mb-5 text-center">
+              <h2 className="text-2xl text-white sm:text-3xl">Trading journal, analytics, and risk review in one workflow</h2>
+              <p className="mx-auto mt-3 max-w-3xl text-sm leading-6 text-teal-100 sm:text-base">
+                Turtle Analytics is built around your own trading record: import the history, keep the journal, review the dashboard,
+                and use risk metrics to understand what is actually driving performance.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+              {[
+                {
+                  icon: RefreshCw,
+                  title: "Connect history",
+                  desc: "MetaTrader 4, MetaTrader 5, Trading 212, and CSV workflows bring trade history into one review process.",
+                },
+                {
+                  icon: BookOpen,
+                  title: "Keep the journal",
+                  desc: "Record entries, exits, symbols, direction, notes, holding time, account activity, and lessons learned.",
+                },
+                {
+                  icon: BarChart3,
+                  title: "Read the dashboard",
+                  desc: "Track win rate, expectancy, profit factor, R-multiple, best trade, worst trade, and average hold time.",
+                },
+                {
+                  icon: Shield,
+                  title: "Control risk",
+                  desc: "Review drawdown, risk per trade, open exposure, stop-loss behaviour, leverage, and consistency signals.",
+                },
+              ].map((item, index) => {
+                const Icon = item.icon;
+                return (
+                  <motion.div
+                    key={item.title}
+                    initial={{ opacity: 0, y: 24 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: index * 0.08 }}
+                    className="rounded-xl border border-teal-400/20 bg-white/[0.06] p-4"
+                  >
+                    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-teal-400/15">
+                      <Icon className="h-5 w-5 text-teal-200" />
+                    </div>
+                    <h3 className="mb-2 text-white">{item.title}</h3>
+                    <p className="text-sm leading-6 text-teal-100/85">{item.desc}</p>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* What You Get Access To */}
           <div className="mb-12">
             <h2 className="text-white text-2xl sm:text-3xl mb-4 text-center">What You Get Access To</h2>
