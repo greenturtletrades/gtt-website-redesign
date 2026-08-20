@@ -142,5 +142,10 @@ export function applySeoMetadata(view: ViewType) {
   setMetaName("twitter:title", metadata.title);
   setMetaName("twitter:description", metadata.description);
 
+  const googleSiteVerification = import.meta.env.VITE_GOOGLE_SITE_VERIFICATION as string | undefined;
+  if (googleSiteVerification) {
+    setMetaName("google-site-verification", googleSiteVerification);
+  }
+
   setStructuredData(view);
 }

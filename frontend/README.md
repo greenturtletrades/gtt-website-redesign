@@ -32,6 +32,11 @@ npm run dev
 
 The frontend expects the backend to be available for real auth, billing, settings, and analytics flows.
 
+## Environment Variables
+
+- `VITE_API_BASE`: backend API base URL.
+- `VITE_GOOGLE_SITE_VERIFICATION`: optional Google Search Console HTML tag verification token. Set this to the `content` value from Google's `google-site-verification` meta tag.
+
 ## Main Folders
 
 - `src/components/` for UI screens and reusable components

@@ -7,6 +7,7 @@ const organizationStructuredData = {
   name: "Green Turtle Trades",
   alternateName: [
     "Green Turtle Traders",
+    "Green Turtle Trade",
     "Green Turtle Trades Limited",
     "Green Turtle Traders UK",
     "Green Turtle Trading Platform",
@@ -18,8 +19,19 @@ const organizationStructuredData = {
   mainEntityOfPage: `${SITE_URL}/green-turtle-trades`,
   logo: `${SITE_URL}/favicon-v2.png`,
   email: "contact@greenturtletraders.co.uk",
+  foundingDate: "2026-02-11",
+  foundingLocation: {
+    "@type": "Place",
+    name: "Edinburgh, Scotland",
+  },
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: "Edinburgh",
+    addressRegion: "Scotland",
+    addressCountry: "GB",
+  },
   description:
-    "Green Turtle Trades is a UK trading analytics and verified trader platform operated by Green Turtle Trades Limited, company number SC878660.",
+    "Green Turtle Trades is an Edinburgh-based UK fintech company building trading analytics, trader journal tools, trader-backed investing workflows, and a Scottish university investment competition.",
   sameAs: [
     "https://www.linkedin.com/company/green-turtle-trade/posts/?feedView=all",
     "https://www.instagram.com/greenturtletrades_/",
@@ -69,7 +81,15 @@ const websiteStructuredData = {
     `${SITE_URL}/investment-competition`,
     `${SITE_URL}/student-investing-competition`,
     `${SITE_URL}/virtual-trading-competition`,
+    `${SITE_URL}/prop-firm-alternative`,
+    `${SITE_URL}/trading-performance-tracker`,
+    `${SITE_URL}/trader-marketplace`,
   ],
+  potentialAction: {
+    "@type": "SearchAction",
+    target: `${SITE_URL}/?q={search_term_string}`,
+    "query-input": "required name=search_term_string",
+  },
 };
 
 export function buildStructuredData(view: ViewType) {
@@ -205,7 +225,18 @@ export function buildStructuredData(view: ViewType) {
           name: "Green Turtle Trades",
           url: getCanonicalUrl(view),
           description:
-            "Green Turtle Trades connects verified traders with investor capital and provides trading analytics, trade journal tools, and transparent trader performance data.",
+            "Green Turtle Trades connects verified traders with investor capital and provides trading analytics, trade journal tools, transparent trader performance data, and a Scottish university investment competition.",
+          mainEntity: {
+            "@id": `${SITE_URL}/#organization`,
+          },
+          significantLink: [
+            `${SITE_URL}/green-turtle-trades`,
+            `${SITE_URL}/investment-competition`,
+            `${SITE_URL}/university-competition`,
+            `${SITE_URL}/prop-firm-alternative`,
+            `${SITE_URL}/trading-performance-tracker`,
+            `${SITE_URL}/turtle-analytics`,
+          ],
           about: [
             {
               "@type": "Thing",
@@ -222,6 +253,10 @@ export function buildStructuredData(view: ViewType) {
             {
               "@type": "Thing",
               name: "Investor capital",
+            },
+            {
+              "@type": "Thing",
+              name: "University investment competition",
             },
           ],
         },

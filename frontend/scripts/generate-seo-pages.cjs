@@ -11,6 +11,7 @@ const organizationStructuredData = {
   name: "Green Turtle Trades",
   alternateName: [
     "Green Turtle Traders",
+    "Green Turtle Trade",
     "Green Turtle Trades Limited",
     "Green Turtle Traders UK",
     "Green Turtle Trading Platform",
@@ -21,8 +22,19 @@ const organizationStructuredData = {
   url: siteUrl,
   logo: `${siteUrl}/favicon-v2.png`,
   email: "contact@greenturtletraders.co.uk",
+  foundingDate: "2026-02-11",
+  foundingLocation: {
+    "@type": "Place",
+    name: "Edinburgh, Scotland",
+  },
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: "Edinburgh",
+    addressRegion: "Scotland",
+    addressCountry: "GB",
+  },
   description:
-    "Green Turtle Trades is a UK trading analytics and trader-backed investing platform operated by Green Turtle Trades Limited, company number SC878660.",
+    "Green Turtle Trades is an Edinburgh-based UK fintech company building trading analytics, trader journal tools, trader-backed investing workflows, and a Scottish university investment competition.",
   sameAs: [
     "https://www.linkedin.com/company/green-turtle-trade/posts/?feedView=all",
     "https://www.instagram.com/greenturtletrades_/",
@@ -62,7 +74,15 @@ const websiteStructuredData = {
     `${siteUrl}/investment-competition`,
     `${siteUrl}/student-investing-competition`,
     `${siteUrl}/virtual-trading-competition`,
+    `${siteUrl}/prop-firm-alternative`,
+    `${siteUrl}/trading-performance-tracker`,
+    `${siteUrl}/trader-marketplace`,
   ],
+  potentialAction: {
+    "@type": "SearchAction",
+    target: `${siteUrl}/?q={search_term_string}`,
+    "query-input": "required name=search_term_string",
+  },
 };
 
 function page({
