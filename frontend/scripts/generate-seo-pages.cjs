@@ -24,7 +24,10 @@ const organizationStructuredData = {
   description:
     "Green Turtle Trades is a UK trading analytics and trader-backed investing platform operated by Green Turtle Trades Limited, company number SC878660.",
   sameAs: [
-    "https://www.instagram.com/greenturtletrades/",
+    "https://www.linkedin.com/company/green-turtle-trade/posts/?feedView=all",
+    "https://www.instagram.com/greenturtletrades_/",
+    "https://www.tiktok.com/@greenturtletrades",
+    "https://x.com/GreenTurtleT",
     "https://www.youtube.com/@GreenTurtleTrades",
     "https://find-and-update.company-information.service.gov.uk/company/SC878660",
   ],

@@ -1,10 +1,38 @@
-import { Instagram, BadgeCheck, Mail } from "lucide-react";
+import { BadgeCheck, Instagram, Linkedin, Mail, Music2, Youtube } from "lucide-react";
 import logo from "figma:asset/6f4515e0be3e9f42f43c7a32bab7fda8514f9833.png";
 import type { ViewType } from "../../seo/routes";
 
 interface FooterProps {
   onNavigate?: (page: ViewType) => void;
 }
+
+const socialLinks = [
+  {
+    label: "Green Turtle Trades on LinkedIn",
+    href: "https://www.linkedin.com/company/green-turtle-trade/posts/?feedView=all",
+    icon: Linkedin,
+  },
+  {
+    label: "Green Turtle Trades on Instagram",
+    href: "https://www.instagram.com/greenturtletrades_/",
+    icon: Instagram,
+  },
+  {
+    label: "Green Turtle Trades on TikTok",
+    href: "https://www.tiktok.com/@greenturtletrades",
+    icon: Music2,
+  },
+  {
+    label: "Green Turtle Trades on X",
+    href: "https://x.com/GreenTurtleT",
+    icon: null,
+  },
+  {
+    label: "Green Turtle Trades on YouTube",
+    href: "https://www.youtube.com/@GreenTurtleTrades",
+    icon: Youtube,
+  },
+];
 
 export function Footer({ onNavigate }: FooterProps) {
   return (
@@ -17,15 +45,23 @@ export function Footer({ onNavigate }: FooterProps) {
             <p className="text-slate-400 text-sm">
               Where equity meets talent
             </p>
-            <a
-              href="https://www.instagram.com/greenturtletrades/"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Green Turtle Trades on Instagram"
-              className="mt-4 inline-flex text-slate-400 transition-colors hover:text-teal-400"
-            >
-              <Instagram className="h-5 w-5" />
-            </a>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              {socialLinks.map((link) => {
+                const Icon = link.icon;
+                return (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={link.label}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-700 text-slate-400 transition-colors hover:border-teal-400 hover:text-teal-400"
+                  >
+                    {Icon ? <Icon className="h-4 w-4" /> : <span className="text-sm font-semibold">X</span>}
+                  </a>
+                );
+              })}
+            </div>
           </div>
 
           {/* Contact */}
