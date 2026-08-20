@@ -9,20 +9,20 @@ type SeoMetadata = {
 };
 
 const defaultMetadata: SeoMetadata = {
-  title: "Green Turtle Trades | Green Turtle Traders, Trading Analytics and Investor Capital",
+  title: "Green Turtle Trades | Trading Analytics, Investment Competition and Trader Rankings",
   description:
-    "Green Turtle Trades, also searched as Green Turtle Traders, connects verified traders with investor capital, trading analytics, a trading journal, and a public university competition leaderboard.",
+    "Green Turtle Trades, also searched as Green Turtle Traders, provides trading analytics, trader journals, public trader rankings, and a Scottish university investment competition.",
   keywords:
-    "green turtle trades, green turtle traders, verified traders, trading analytics, trading journal, investor capital, university competition leaderboard, trading performance",
+    "green turtle trades, green turtle traders, trading analytics, trading journal, investment competition, trading competition, student investing competition, university competition leaderboard, trader rankings, trading performance",
 };
 
 const pageMetadata: Partial<Record<ViewType, SeoMetadata>> = {
   landing: {
-    title: "Green Turtle Trades | Green Turtle Traders and Trading Analytics Platform",
+    title: "Green Turtle Trades | Trading Analytics and University Investment Competition",
     description:
-      "Green Turtle Trades, also searched as Green Turtle Traders, is a trading platform for verified traders, investor capital, analytics, journals, and public trader performance transparency.",
+      "Green Turtle Trades is a UK trading analytics platform with trader journals, transparent performance data, public trader rankings, and a Scottish university investment competition.",
     keywords:
-      "green turtle trades, green turtle traders, verified traders, trading platform, trading analytics, trading journal, investor capital, trader marketplace, university competition leaderboard",
+      "green turtle trades, green turtle traders, trading analytics platform, trading journal, investment competition, university investment competition, student investing competition, trader rankings, verified traders, trader marketplace",
   },
   about: {
     title: "About Green Turtle Trades | UK Trader-Backed Investing Platform",
@@ -34,7 +34,7 @@ const pageMetadata: Partial<Record<ViewType, SeoMetadata>> = {
   "turtle-traders": {
     title: "University Investment Competition Leaderboard Scotland | Green Turtle Trades",
     description:
-      "Follow the Green Turtle Trades University Investment Competition: live Scottish university rankings, student trader scores, returns, win rate, risk, backers, and competition activity.",
+      "Follow the Green Turtle Trades University Investment Competition: live Scottish university rankings, student investing scores, trader returns, win rate, risk, backers, and competition activity.",
     keywords:
       "university investment competition, Scottish university investment competition, student investing competition Scotland, university competition leaderboard, student trader leaderboard, Scottish university trading competition, Green Turtle Trades competition, risk free investing competition, virtual trading competition",
   },

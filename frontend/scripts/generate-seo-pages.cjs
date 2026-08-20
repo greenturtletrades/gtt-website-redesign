@@ -59,6 +59,9 @@ const websiteStructuredData = {
     `${siteUrl}/verified-traders`,
     `${siteUrl}/turtle-analytics`,
     `${siteUrl}/university-competition`,
+    `${siteUrl}/investment-competition`,
+    `${siteUrl}/student-investing-competition`,
+    `${siteUrl}/virtual-trading-competition`,
   ],
 };
 
@@ -222,6 +225,66 @@ const pages = [
       "Student investing competition Scotland",
       "Scottish university trading leaderboard",
       "Risk-free virtual investing competition",
+    ],
+  }),
+  page({
+    route: "/investment-competition",
+    title: "Investment Competition | Green Turtle Trades",
+    description:
+      "A public investment competition from Green Turtle Trades where Scottish university students trade virtual capital, build market experience, and compete on transparent rankings.",
+    keywords:
+      "investment competition, investing competition, trading competition, university investment competition, student investment competition, virtual investment competition, Green Turtle Trades competition",
+    h1: "Investment Competition",
+    paragraphs: [
+      "The Green Turtle Trades investment competition gives students a practical way to learn markets without risking personal capital.",
+      "Competitors trade with virtual market capital, follow clear rules, and appear on transparent leaderboards powered by in-house execution data.",
+      "Rankings consider return, win rate, participation, risk control, drawdown, and trader-backing activity so the competition rewards disciplined investing rather than headline return alone.",
+    ],
+    topics: [
+      "Investment competition",
+      "University investment competition",
+      "Student investment competition",
+      "Virtual investing competition",
+    ],
+  }),
+  page({
+    route: "/student-investing-competition",
+    title: "Student Investing Competition | Green Turtle Trades",
+    description:
+      "A student investing competition for Scottish universities, helping students learn trading, portfolio discipline, risk control, and market decision-making with virtual capital.",
+    keywords:
+      "student investing competition, student investment competition, university investing competition, Scottish student trading competition, student trading challenge, university finance competition",
+    h1: "Student Investing Competition",
+    paragraphs: [
+      "The Green Turtle Trades student investing competition is designed for students who want practical market experience.",
+      "Scottish university competitors use virtual capital to trade, review performance, understand drawdown, and see how their decisions affect individual and university rankings.",
+      "The public leaderboard shows score, return, win rate, risk, backers, and trade count so performance can be understood in context.",
+    ],
+    topics: [
+      "Student investing competition",
+      "Scottish university trading competition",
+      "University finance competition",
+      "Student trading challenge",
+    ],
+  }),
+  page({
+    route: "/virtual-trading-competition",
+    title: "Virtual Trading Competition | Green Turtle Trades",
+    description:
+      "A virtual trading competition where students use demo capital, compete on live rankings, and learn investing discipline through market execution data.",
+    keywords:
+      "virtual trading competition, virtual investing competition, demo trading competition, paper trading competition, student virtual trading, risk free trading competition",
+    h1: "Virtual Trading Competition",
+    paragraphs: [
+      "A virtual trading competition helps people practise market decision-making before real money is on the line.",
+      "Green Turtle Trades uses virtual competition capital, transparent scoring, and public ranking data to make student investing more practical and measurable.",
+      "The aim is to help students move beyond theory by building a measurable record of investment decisions, risk habits, and performance improvement.",
+    ],
+    topics: [
+      "Virtual trading competition",
+      "Demo trading competition",
+      "Paper trading competition",
+      "Risk-free trading competition",
     ],
   }),
   page({

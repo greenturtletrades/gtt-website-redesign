@@ -628,6 +628,141 @@ export const seoContentPages: SeoContentPage[] = [
       },
     ],
   },
+  {
+    view: "seo-investment-competition",
+    title: "Investment Competition",
+    eyebrow: "Investment Competition",
+    description:
+      "A public investment competition from Green Turtle Trades where Scottish university students trade virtual capital, build practical market experience, and compete on transparent rankings.",
+    keywords:
+      "investment competition, investing competition, trading competition, university investment competition, student investment competition, virtual investment competition, Green Turtle Trades competition",
+    intro:
+      "The Green Turtle Trades investment competition gives students a practical way to learn markets without risking personal capital. Competitors trade with virtual market capital, follow clear rules, and appear on transparent leaderboards powered by in-house execution data.",
+    sections: [
+      {
+        title: "A risk-free way to learn practical investing",
+        body:
+          "An investment competition should reward process as well as outcome. Green Turtle Trades gives competitors virtual capital so they can learn position sizing, risk control, market behaviour, and portfolio discipline before real money is involved.",
+      },
+      {
+        title: "Rankings based on more than return",
+        body:
+          "The competition leaderboard considers return, win rate, active participation, risk, drawdown, and trader-backing activity. This helps prevent pure high-risk speculation from dominating the ranking.",
+      },
+      {
+        title: "Public university and trader leaderboards",
+        body:
+          "Visitors can follow the public university competition leaderboard, compare top student traders, and see how universities rank against each other during the competition.",
+      },
+    ],
+    faqs: [
+      {
+        question: "What is an investment competition?",
+        answer:
+          "An investment competition is a structured challenge where competitors manage virtual or real capital and are ranked by performance, risk, activity, and other rules.",
+      },
+      {
+        question: "Does the Green Turtle Trades competition use real money?",
+        answer:
+          "Competitors use virtual capital in the university competition, so students can gain practical experience without risking personal money.",
+      },
+      {
+        question: "How are competitors ranked?",
+        answer:
+          "Competitors are ranked using a balanced scoring model covering return, win rate, participation, risk control, drawdown, and competition activity.",
+      },
+    ],
+  },
+  {
+    view: "seo-student-investing-competition",
+    title: "Student Investing Competition",
+    eyebrow: "Student Investing",
+    description:
+      "A student investing competition for Scottish universities, helping students learn trading, portfolio discipline, risk control, and market decision-making with virtual capital.",
+    keywords:
+      "student investing competition, student investment competition, university investing competition, Scottish student trading competition, student trading challenge, university finance competition",
+    intro:
+      "The Green Turtle Trades student investing competition is designed for students who want practical market experience. It gives university competitors a risk-free environment to trade, track performance, and learn how discipline affects results.",
+    sections: [
+      {
+        title: "Built for Scottish university students",
+        body:
+          "The competition is focused on Scottish universities and creates a public way for students to represent their university while learning practical investing skills.",
+      },
+      {
+        title: "Learning by doing",
+        body:
+          "Students can place market trades, review performance, understand drawdown, and see how their decisions affect both individual and university rankings.",
+      },
+      {
+        title: "Transparent performance and risk",
+        body:
+          "The leaderboard shows summary metrics such as score, return, win rate, risk, backers, and trade count so performance can be understood in context.",
+      },
+    ],
+    faqs: [
+      {
+        question: "Who can join the student investing competition?",
+        answer:
+          "The competition is designed for participating university students, with university identity linked through approved student email domains.",
+      },
+      {
+        question: "Why use virtual capital?",
+        answer:
+          "Virtual capital lets students learn market behaviour, portfolio discipline, and risk management without personal financial loss.",
+      },
+      {
+        question: "Can visitors see the leaderboard?",
+        answer:
+          "Yes. The public website shows the university competition leaderboard, while account actions remain inside the secure competition app.",
+      },
+    ],
+  },
+  {
+    view: "seo-virtual-trading-competition",
+    title: "Virtual Trading Competition",
+    eyebrow: "Virtual Trading",
+    description:
+      "A virtual trading competition where students use demo capital, compete on live rankings, and learn investing discipline through market execution data.",
+    keywords:
+      "virtual trading competition, virtual investing competition, demo trading competition, paper trading competition, student virtual trading, risk free trading competition",
+    intro:
+      "A virtual trading competition helps people practise market decision-making before real money is on the line. Green Turtle Trades uses virtual competition capital, transparent scoring, and public ranking data to make student investing more practical and measurable.",
+    sections: [
+      {
+        title: "Practice without personal financial risk",
+        body:
+          "Competitors can learn how trades move, how risk compounds, and how position decisions affect performance while using virtual funds rather than personal savings.",
+      },
+      {
+        title: "Live rankings from competition data",
+        body:
+          "Public rankings are powered by in-house competition execution history, so leaderboard metrics come from the same data used inside the competition platform.",
+      },
+      {
+        title: "A bridge between education and markets",
+        body:
+          "The aim is to help students move beyond theory by building a measurable record of investment decisions, risk habits, and performance improvement.",
+      },
+    ],
+    faqs: [
+      {
+        question: "What is a virtual trading competition?",
+        answer:
+          "A virtual trading competition ranks competitors who trade with demo or virtual capital instead of risking personal money.",
+      },
+      {
+        question: "Is virtual trading useful for beginners?",
+        answer:
+          "Yes. It gives beginners practical exposure to market decisions, risk, and performance tracking before real capital is involved.",
+      },
+      {
+        question: "Does Green Turtle Trades show public rankings?",
+        answer:
+          "Yes. The website publishes public leaderboard summaries for the university competition, including individual and university rankings.",
+      },
+    ],
+  },
 ];
 
 export function getSeoContentPage(view: ViewType) {

@@ -20,6 +20,9 @@ export type ViewType =
   | "seo-trading-performance-tracker"
   | "seo-trading-risk-management"
   | "seo-mt4-mt5-trading-journal"
+  | "seo-investment-competition"
+  | "seo-student-investing-competition"
+  | "seo-virtual-trading-competition"
   | "seo-green-turtle-trades"
   | "admin-dashboard"
   | "trader-application"
@@ -47,6 +50,9 @@ export const viewPaths: Partial<Record<ViewType, string>> = {
   "seo-trading-performance-tracker": "/trading-performance-tracker",
   "seo-trading-risk-management": "/trading-risk-management",
   "seo-mt4-mt5-trading-journal": "/mt4-mt5-trading-journal",
+  "seo-investment-competition": "/investment-competition",
+  "seo-student-investing-competition": "/student-investing-competition",
+  "seo-virtual-trading-competition": "/virtual-trading-competition",
   "seo-green-turtle-trades": "/green-turtle-trades",
   "trader-application": "/trader-application",
   "trader-application-status": "/trader-application-status",

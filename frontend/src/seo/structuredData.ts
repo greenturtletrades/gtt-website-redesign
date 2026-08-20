@@ -66,6 +66,9 @@ const websiteStructuredData = {
     `${SITE_URL}/verified-traders`,
     `${SITE_URL}/turtle-analytics`,
     `${SITE_URL}/university-competition`,
+    `${SITE_URL}/investment-competition`,
+    `${SITE_URL}/student-investing-competition`,
+    `${SITE_URL}/virtual-trading-competition`,
   ],
 };
 
