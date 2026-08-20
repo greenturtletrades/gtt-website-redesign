@@ -1036,15 +1036,88 @@ const pages = [
     route: "/investor-capital-for-traders",
     title: "Investor Capital for Traders | Green Turtle Trades",
     description:
-      "Green Turtle Trades helps connect skilled verified traders with investor capital through transparent performance data.",
+      "Investor capital for traders explained through verified performance records, trading analytics, risk metrics, transparent summaries, and aligned trader-backed investing workflows.",
     keywords:
-      "investor capital for traders, trader funding, trading capital, verified traders investor capital, capital for traders",
+      "investor capital for traders, trader funding, trading capital, verified traders investor capital, capital for traders, trader-backed investing, trading performance records",
     h1: "Investor Capital for Traders",
+    headline: "Investor capital should follow verified performance, risk control, and transparent trader evidence.",
     paragraphs: [
       "Many skilled traders need reliable capital, while investors need clearer ways to evaluate trader performance.",
       "Green Turtle Trades is building a transparent bridge between trader skill and investor capital, with a focus on verified performance and responsible risk.",
+      "Traditional funding routes can rely on short challenges, marketing claims, or incomplete performance context. A stronger route starts with trade history, risk metrics, drawdown behaviour, sample size, and consistency.",
+      "Trading analytics and journal data help show whether a trader is consistent, risk-aware, and capable of managing capital responsibly.",
+      "Public trader summaries should make it easier to compare traders without exposing raw trades, private notes, account details, or personal data.",
+      "Important investor-capital metrics include realised return, unrealised return, win rate, expectancy, profit factor, drawdown, risk per trade, average hold time, exposure, sample size, and consistency.",
+      "Green Turtle Trades is building toward trader-backed investing, where capital allocation can be informed by clearer evidence rather than unsupported screenshots or short-term claims.",
+      "Investor capital workflows and public trader summaries are informational. They are not financial advice and do not guarantee future performance.",
     ],
-    topics: ["Investor capital", "Trader-backed investing", "Trader funding"],
+    topics: [
+      "Investor capital",
+      "Trader-backed investing",
+      "Trader funding",
+      "Trading capital",
+      "Verified traders",
+      "Risk-adjusted performance",
+      "Trading analytics",
+    ],
+    extraGraph: [
+      {
+        "@type": "Article",
+        headline: "Investor Capital for Traders",
+        url: `${siteUrl}/investor-capital-for-traders`,
+        datePublished: "2026-08-20",
+        dateModified: "2026-08-20",
+        publisher: {
+          "@id": `${siteUrl}/#organization`,
+        },
+        about: [
+          "Investor capital for traders",
+          "Trader-backed investing",
+          "Trader funding",
+          "Verified trading performance",
+          "Risk-adjusted trader evaluation",
+        ],
+        description:
+          "A guide to investor capital for traders, verified performance records, risk metrics, transparent public summaries, and trader-backed investing workflows.",
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: [
+          {
+            "@type": "Question",
+            name: "How can traders access investor capital?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Traders can build a performance record through verified data, analytics, journal workflows, and transparent summary metrics that help investors evaluate risk and consistency.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "What do investors need to evaluate traders?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Investors need transparent performance metrics, risk controls, trade sample size, win rate, expectancy, drawdown, and evidence of consistency.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Is investor capital based only on return?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "No. Return should be reviewed with risk, drawdown, exposure, sample size, consistency, and whether the performance record is supported by reliable data.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Is Green Turtle Trades a prop firm?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Green Turtle Trades is building a transparent platform connecting trader skill and investor capital, with a focus on verified performance and aligned incentives.",
+            },
+          },
+        ],
+      },
+    ],
   }),
   page({
     route: "/trader-marketplace",
@@ -1061,6 +1134,64 @@ const pages = [
       "The long-term aim is a trader-backed investing platform where capital allocation can be informed by verified records, risk behaviour, and long-term performance data.",
     ],
     topics: ["Trader marketplace", "Trader comparison", "Verified trader metrics", "Trader-backed investing"],
+    extraGraph: [
+      {
+        "@type": "Article",
+        headline: "Trader Marketplace Built Around Verified Performance",
+        url: `${siteUrl}/trader-marketplace`,
+        datePublished: "2026-08-20",
+        dateModified: "2026-08-20",
+        publisher: {
+          "@id": `${siteUrl}/#organization`,
+        },
+        about: [
+          "Trader marketplace",
+          "Verified trader performance",
+          "Trader comparison",
+          "Trader-backed investing",
+          "Trading analytics",
+        ],
+        description:
+          "A guide to trader marketplaces, verified trader metrics, public performance summaries, risk-adjusted comparison, and trader-backed investing.",
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: [
+          {
+            "@type": "Question",
+            name: "What is a trader marketplace?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "A trader marketplace is a platform where investors can discover, compare, and evaluate traders using performance data and risk metrics.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "How should traders be ranked?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Traders should be ranked with balanced metrics such as win rate, expectancy, risk control, sample size, drawdown, and consistency rather than headline returns alone.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Is a trader marketplace the same as copy trading?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Not necessarily. Copy trading usually focuses on following or allocating to traders. A trader marketplace should also help people evaluate trader quality with transparent performance records and risk metrics.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Does Green Turtle Trades publish raw trades?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "No. Raw trades stay private. Public pages show optional summary performance only.",
+            },
+          },
+        ],
+      },
+    ],
   }),
   page({
     route: "/copy-trading-platform",
@@ -1077,20 +1208,150 @@ const pages = [
       "Green Turtle Trades is being built as a more evidence-led approach to trader-backed investing.",
     ],
     topics: ["Copy trading", "Verified copy trading", "Trading risk metrics", "Copy trading alternative"],
+    extraGraph: [
+      {
+        "@type": "Article",
+        headline: "Copy Trading Platform With Verified Trader Data",
+        url: `${siteUrl}/copy-trading-platform`,
+        datePublished: "2026-08-20",
+        dateModified: "2026-08-20",
+        publisher: {
+          "@id": `${siteUrl}/#organization`,
+        },
+        about: [
+          "Copy trading platform",
+          "Verified copy trading",
+          "Trader-backed investing",
+          "Risk metrics",
+          "Trader evaluation",
+        ],
+        description:
+          "A guide to evidence-led copy trading, verified trader performance, public summaries, risk metrics, sample size, and trader-backed investing.",
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: [
+          {
+            "@type": "Question",
+            name: "What is a copy trading platform?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "A copy trading platform lets investors follow or allocate capital to traders, usually based on trader performance, risk metrics, and strategy behaviour.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "What makes copy trading safer to evaluate?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Investors should review verified trade history, risk control, sample size, expectancy, drawdown, and consistency instead of relying only on headline returns.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Is Green Turtle Trades a copy trading platform?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Green Turtle Trades is building a trader-backed investing and analytics platform. It focuses on trader evaluation, public summaries, and verified records that can support better capital allocation decisions.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Does Green Turtle Trades show raw trades publicly?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "No. Raw trades stay private. Public pages show optional summary performance and ranking metrics only.",
+            },
+          },
+        ],
+      },
+    ],
   }),
   page({
     route: "/trader-funding",
     title: "Trader Funding | Green Turtle Trades",
     description:
-      "Trader funding information for skilled traders looking to build transparent performance records and access investor capital.",
+      "Trader funding information for skilled traders looking to build transparent performance records, prove risk control, and access investor capital.",
     keywords:
-      "trader funding, funded trader, trading capital, funded trading account, capital for traders, trader funding platform",
+      "trader funding, funded trader, trading capital, funded trading account, capital for traders, trader funding platform, verified trader funding",
     h1: "Trader Funding",
+    headline: "Trader funding should reward evidence, risk control, and transparent performance.",
     paragraphs: [
       "Trader funding should reward real skill, disciplined risk, and transparent performance.",
       "Green Turtle Trades helps traders build the kind of performance record investors can understand.",
+      "Strong trader funding decisions need more than a short challenge result. Verified performance data, journal history, risk metrics, and repeatable behaviour create a clearer picture of trader quality.",
+      "Trading analytics and journal tools help traders understand their own performance and present summary evidence without exposing raw trades publicly.",
+      "Useful trader funding evidence includes trade sample size, realised return, drawdown, risk per trade, profit factor, expectancy, consistency, and whether the trader can manage open exposure responsibly.",
+      "Green Turtle Trades is built around the idea that trader incentives and investor outcomes should be aligned through transparent performance and responsible risk management.",
+      "Trader funding information is educational and does not guarantee that any trader will receive capital or generate future returns.",
     ],
-    topics: ["Trader funding", "Funded trader", "Trading capital"],
+    topics: [
+      "Trader funding",
+      "Funded trader",
+      "Trading capital",
+      "Verified trader funding",
+      "Trading analytics",
+      "Risk control",
+      "Trader-backed investing",
+    ],
+    extraGraph: [
+      {
+        "@type": "Article",
+        headline: "Trader Funding",
+        url: `${siteUrl}/trader-funding`,
+        datePublished: "2026-08-20",
+        dateModified: "2026-08-20",
+        publisher: {
+          "@id": `${siteUrl}/#organization`,
+        },
+        about: [
+          "Trader funding",
+          "Funded traders",
+          "Trading capital",
+          "Verified trader performance",
+          "Trader-backed investing",
+        ],
+        description:
+          "A guide to trader funding, verified performance evidence, trading analytics, risk control, transparent summaries, and investor-capital alignment.",
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: [
+          {
+            "@type": "Question",
+            name: "What is trader funding?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Trader funding is when a trader receives access to external capital or allocation opportunities based on skill, risk control, and performance evidence.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "How can traders improve funding eligibility?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Traders can improve by keeping a structured journal, reviewing analytics, managing risk, and building a transparent record of verified performance.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Does Green Turtle Trades use trading challenges?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Green Turtle Trades is focused on transparent trader evaluation, verified performance, and investor-capital alignment rather than unrealistic challenge marketing.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Does trader funding guarantee returns?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "No. Trader funding does not guarantee returns. Trading and investing involve risk, and historical performance can change.",
+            },
+          },
+        ],
+      },
+    ],
   }),
   page({
     route: "/prop-firm-alternative",
@@ -1107,6 +1368,64 @@ const pages = [
       "The aim is to make trader funding and investor-capital decisions more evidence-led.",
     ],
     topics: ["Prop firm alternative", "Funded trader alternative", "Verified trader performance", "Trader-backed investing"],
+    extraGraph: [
+      {
+        "@type": "Article",
+        headline: "Prop Firm Alternative for Trader-Backed Investing",
+        url: `${siteUrl}/prop-firm-alternative`,
+        datePublished: "2026-08-20",
+        dateModified: "2026-08-20",
+        publisher: {
+          "@id": `${siteUrl}/#organization`,
+        },
+        about: [
+          "Prop firm alternative",
+          "Funded trader alternative",
+          "Trader-backed investing",
+          "Verified trader performance",
+          "Trading analytics",
+        ],
+        description:
+          "A guide to prop firm alternatives, trader-backed investing, verified performance records, risk analytics, and evidence-led trader funding.",
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: [
+          {
+            "@type": "Question",
+            name: "What is a prop firm alternative?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "A prop firm alternative is another route for traders to access trading capital without relying only on traditional challenge-based funding models.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Why look beyond prop firm challenges?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Some challenges can reward short-term behaviour. Verified performance records and risk analytics can provide a broader view of trader quality.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Is Green Turtle Trades a prop firm?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Green Turtle Trades is not positioned as a traditional challenge-based prop firm. It is building a trader-backed investing platform focused on verified performance, analytics, and clearer alignment between traders and capital.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Can new traders use Green Turtle Trades?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Yes. New traders can start with journal and analytics workflows, then build a performance record over time.",
+            },
+          },
+        ],
+      },
+    ],
   }),
   page({
     route: "/trading-performance-tracker",
