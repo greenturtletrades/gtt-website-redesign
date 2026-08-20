@@ -108,38 +108,88 @@ export const seoContentPages: SeoContentPage[] = [
     title: "Trading Analytics",
     eyebrow: "Trading Analytics",
     description:
-      "Trading analytics helps traders review performance, risk control, expectancy, trade timing, and historical trade behaviour with clear data.",
+      "Trading analytics helps traders review trade history, expectancy, win rate, profit factor, drawdown, risk per trade, holding time, and performance behaviour with clearer data.",
     keywords:
-      "trading analytics, trading performance analytics, trading analytics platform, trade analytics, trading performance analysis",
+      "trading analytics, trading performance analytics, trading analytics platform, trade analytics, trading performance analysis, trader analytics, trading statistics, Turtle Analytics",
     intro:
-      "Green Turtle Trades gives traders a clearer way to understand performance. Turtle Analytics turns trade history into structured insight across expectancy, risk, win rate, drawdown, holding time, and strategy behaviour.",
+      "Trading analytics turns trade history into evidence. Green Turtle Trades gives traders a clearer way to understand performance by connecting account history, journal records, risk metrics, and Turtle Analytics dashboards.",
     sections: [
+      {
+        title: "What trading analytics means",
+        body:
+          "Trading analytics is the process of reviewing trade history, risk, return, timing, behaviour, and consistency to understand how a trader is actually performing. It should explain the pattern behind the results rather than only showing an account balance.",
+      },
+      {
+        title: "Different from a journal or tracker",
+        body:
+          "A trading journal records decisions, notes, and lessons. A performance tracker summarizes results. Trading analytics goes further by connecting those records to deeper metrics, behaviour patterns, risk quality, and possible areas for improvement.",
+      },
       {
         title: "Performance data built around real trading history",
         body:
           "Good trading analytics should explain what is happening across actual trades, not rely on screenshots or headline returns. Turtle Analytics reviews recorded trade history so traders can understand where performance is strong, where risk is too high, and which behaviours need attention.",
       },
       {
-        title: "Risk, expectancy, and consistency in one place",
+        title: "Core analytics metrics",
         body:
-          "The platform focuses on practical trading metrics such as R-multiple, win rate, profit factor, average risk, trade duration, and market conditions. These metrics help traders judge whether results come from repeatable edge or from one-off outcomes.",
+          "Useful trading analytics include expectancy, win rate, R-multiple, profit factor, average win, average loss, risk/reward, risk per trade, drawdown, holding time, trade count, best trade, worst trade, sample size, and consistency.",
       },
       {
-        title: "Private analytics, public proof when traders choose it",
+        title: "Risk-adjusted performance",
         body:
-          "Raw trade data remains private. Traders can choose to publish summary performance on the public traders leaderboard, while CSV-imported trades are excluded from public ranking calculations due to tampering risk.",
+          "Raw P/L can be misleading if it was produced by oversized positions, high leverage, or a single outlier trade. Green Turtle Trades reviews performance alongside drawdown, open exposure, stop-loss behaviour, leverage where available, and risk consistency.",
+      },
+      {
+        title: "Data sources for analytics",
+        body:
+          "Turtle Analytics can support analytics workflows from journal records, platform activity, MetaTrader-connected MT4 and MT5 history, Trading 212 history, and CSV imports where available. Public summaries should always make the data source and calculation method clear.",
+      },
+      {
+        title: "Realised and unrealised performance",
+        body:
+          "Analytics should distinguish realised performance from closed trades and unrealised performance from open positions. That separation helps prevent confusion between completed results and live exposure.",
+      },
+      {
+        title: "Private analytics, optional public summaries",
+        body:
+          "Raw trade data, account details, and notes remain private by default. Traders can choose to publish controlled summary performance where supported, while public metrics should follow methodology-backed calculations.",
+      },
+      {
+        title: "Trading analytics for evaluation",
+        body:
+          "Green Turtle Trades uses analytics to support clearer trader evaluation. Verified summaries, competition rankings, and future trader-backed investing workflows should be based on structured performance evidence rather than unsupported claims.",
       },
     ],
     faqs: [
       {
         question: "What is trading analytics?",
         answer:
-          "Trading analytics is the process of reviewing trade history, risk, expectancy, win rate, drawdown, and behaviour patterns to understand trading performance.",
+          "Trading analytics is the process of reviewing trade history, risk, return, expectancy, win rate, drawdown, timing, and behaviour patterns to understand trading performance.",
+      },
+      {
+        question: "How is trading analytics different from a trading journal?",
+        answer:
+          "A trading journal records decisions, notes, and lessons. Trading analytics turns those records into metrics and patterns such as expectancy, drawdown, profit factor, and risk behaviour.",
+      },
+      {
+        question: "Which trading analytics metrics matter most?",
+        answer:
+          "Useful metrics include expectancy, win rate, R-multiple, profit factor, average win, average loss, risk per trade, drawdown, holding time, sample size, and consistency.",
+      },
+      {
+        question: "Can Turtle Analytics use MT4 or MT5 history?",
+        answer:
+          "Turtle Analytics supports MetaTrader-connected workflows for MT4 and MT5 traders, alongside Trading 212 history and CSV import workflows where available.",
       },
       {
         question: "Does Turtle Analytics predict market prices?",
         answer:
-          "No. Turtle Analytics focuses on historical trade behaviour and performance analysis. It does not make market predictions.",
+          "No. Turtle Analytics focuses on historical trade behaviour and performance analysis. It does not make market predictions or guarantee returns.",
+      },
+      {
+        question: "Should analytics include open positions?",
+        answer:
+          "Open positions can be included when reviewing full account exposure, but unrealised performance should be labelled separately from realised closed-trade performance.",
       },
       {
         question: "Can CSV trades be used in private analytics?",
