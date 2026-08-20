@@ -48,10 +48,10 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="inline-flex items-center gap-2 bg-teal-400/20 text-teal-200 px-4 py-2 rounded-full mb-6 border border-teal-400/30"
+              className="mb-5 inline-flex items-center gap-2 border-b border-teal-300/30 px-1 pb-2 text-xs uppercase tracking-[0.18em] text-teal-200"
             >
-              <Brain className="w-4 h-4" />
-              <span className="text-sm">Machine Learning-Powered Personal Coach</span>
+              <Brain className="h-4 w-4" />
+              <span>Private Trading Analytics</span>
             </motion.div>
             <h1 className="text-white mb-4 text-3xl sm:text-4xl md:text-6xl">
               Turtle Analytics by Green Turtle Trades
