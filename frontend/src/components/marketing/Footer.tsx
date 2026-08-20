@@ -166,6 +166,12 @@ export function Footer({ onNavigate }: FooterProps) {
                 Verified Traders
               </button>
               <button
+                onClick={() => onNavigate && onNavigate("seo-methodology")}
+                className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
+              >
+                Methodology
+              </button>
+              <button
                 onClick={() => onNavigate && onNavigate("seo-trader-funding")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >

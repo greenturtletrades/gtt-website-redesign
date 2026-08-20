@@ -21,6 +21,7 @@ export function SeoContentPage({ view, onNavigate }: SeoContentPageProps) {
     ["Trading Analytics", "seo-trading-analytics"],
     ["Trading Journal", "seo-trading-journal"],
     ["Verified Traders", "seo-verified-traders"],
+    ["Methodology", "seo-methodology"],
     ["Trader Marketplace", "seo-trader-marketplace"],
     ["Copy Trading Platform", "seo-copy-trading-platform"],
     ["Trader Funding", "seo-trader-funding"],

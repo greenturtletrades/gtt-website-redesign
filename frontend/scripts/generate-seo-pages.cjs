@@ -238,6 +238,7 @@ function buildFallback({ h1, paragraphs }) {
               <li><a href="/trading-analytics">Trading Analytics</a></li>
               <li><a href="/trading-journal">Trading Journal</a></li>
               <li><a href="/verified-traders">Verified Traders</a></li>
+              <li><a href="/methodology">Methodology</a></li>
             </ul>
           </section>
         </main>`;
@@ -336,6 +337,54 @@ const pages = [
         },
         description:
           "The official secure competition app for Green Turtle Trades university competitors, connected to the public university competition leaderboard.",
+      },
+    ],
+  }),
+  page({
+    route: "/methodology",
+    title: "Trader Verification Methodology | Green Turtle Trades",
+    description:
+      "Green Turtle Trades methodology for trader verification, trading analytics, risk metrics, public performance summaries, and university competition calculations.",
+    keywords:
+      "trader verification methodology, verified trading performance, trading analytics methodology, trader performance verification, trading risk metrics, Green Turtle Trades methodology",
+    h1: "Trader Verification Methodology",
+    headline: "How Green Turtle Trades verifies trader records, calculates performance, and labels public data.",
+    paragraphs: [
+      "Green Turtle Trades uses structured trading records, account-level summaries, risk metrics, and clearly labelled public data to make trader performance easier to evaluate.",
+      "Verification means a trading record is supported by platform-recorded activity, connected account data, imported trade history, or in-house competition execution records. It does not mean Green Turtle Trades guarantees future performance, approves a trader as risk-free, or verifies every external statement a trader may make outside the platform.",
+      "Green Turtle Trades can use in-house competition orders and executions, trader journal records, imported broker history, MetaTrader-connected history, account balance records, and platform activity logs depending on the product area.",
+      "Realised P/L should come from closed trades. Unrealised P/L should come from open positions using the latest available market mark. Total P/L combines realised and unrealised values where appropriate.",
+      "Risk analysis can consider drawdown, average risk per trade, leverage where available, missing stop-loss behaviour, open exposure, largest loss, and concentration. Risk labels are summary indicators, not investment recommendations.",
+      "University competition rankings use in-house competition data and central scoring logic so public pages, the app, and admin views do not drift apart.",
+      "Public rankings, analytics, trader summaries, and competition data are informational and should not be treated as financial advice or guarantees of future results.",
+    ],
+    topics: [
+      "Trader verification methodology",
+      "Verified trading performance",
+      "Trading analytics methodology",
+      "Risk metrics",
+      "Competition scoring",
+      "Trader performance transparency",
+    ],
+    extraGraph: [
+      {
+        "@type": "TechArticle",
+        headline: "Green Turtle Trades Trader Verification Methodology",
+        url: `${siteUrl}/methodology`,
+        datePublished: "2026-08-20",
+        dateModified: "2026-08-20",
+        publisher: {
+          "@id": `${siteUrl}/#organization`,
+        },
+        about: [
+          "Trader verification",
+          "Trading analytics",
+          "Risk metrics",
+          "Competition scoring",
+          "Verified trading performance",
+        ],
+        description:
+          "A public methodology summary explaining how Green Turtle Trades labels data sources, calculates performance, treats realised and unrealised P/L, reviews risk, and handles university competition calculations.",
       },
     ],
   }),

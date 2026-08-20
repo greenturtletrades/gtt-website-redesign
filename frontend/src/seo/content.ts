@@ -629,6 +629,96 @@ export const seoContentPages: SeoContentPage[] = [
     ],
   },
   {
+    view: "seo-methodology",
+    title: "Trader Verification Methodology",
+    eyebrow: "Methodology",
+    description:
+      "Green Turtle Trades methodology for trader verification, trading analytics, risk metrics, public performance summaries, and university competition calculations.",
+    keywords:
+      "trader verification methodology, verified trading performance, trading analytics methodology, trader performance verification, trading risk metrics, Green Turtle Trades methodology",
+    intro:
+      "Green Turtle Trades uses structured trading records, account-level summaries, risk metrics, and clearly labelled public data to make trader performance easier to evaluate. This methodology explains how trader data is collected, what verification means, how core metrics are calculated, what information may be public, and where the limits of the data are.",
+    sections: [
+      {
+        title: "What verification means",
+        body:
+          "Verification means a trading record is supported by platform-recorded activity, connected account data, imported trade history, or in-house competition execution records. It does not mean Green Turtle Trades guarantees future performance, approves a trader as risk-free, or verifies every external statement a trader may make outside the platform.",
+      },
+      {
+        title: "Data sources",
+        body:
+          "Green Turtle Trades can use several data sources depending on the product area: in-house competition orders and executions, trader journal records, imported broker history, MetaTrader-connected history, account balance records, and platform activity logs. Pages should state whether data is from live platform records, imported history, or public competition summaries.",
+      },
+      {
+        title: "Public and private information",
+        body:
+          "Raw trade history, account details, personal information, and private journal notes should remain private unless a user or competition rule explicitly makes a summary public. Public pages should use summary statistics such as score, return, win rate, risk label, trade count, university ranking, and competition activity rather than exposing sensitive account data.",
+      },
+      {
+        title: "Core performance metrics",
+        body:
+          "Common metrics include realised return, unrealised return, total return, win rate, average return, profit factor, expectancy, drawdown, holding time, trade count, and risk score. Metrics should be calculated from the relevant account or competition dataset rather than being manually re-entered in the frontend.",
+      },
+      {
+        title: "Return and P/L treatment",
+        body:
+          "Realised P/L should come from closed trades. Unrealised P/L should come from open positions using the latest available market mark. Total P/L combines realised and unrealised values where appropriate. If a page is based only on closed journal trades, it should be labelled as realised or journal-based rather than presented as full account P/L.",
+      },
+      {
+        title: "Risk and drawdown",
+        body:
+          "Risk analysis should consider drawdown, average risk per trade, leverage where available, missing stop-loss behaviour, open exposure, largest loss, and concentration. Drawdown should measure the fall from a previous equity high to a later low in the relevant dataset. Risk labels are summary indicators, not investment recommendations.",
+      },
+      {
+        title: "University competition calculations",
+        body:
+          "University competition rankings use in-house competition data and central scoring logic. Individual scores, university scores, active participation, realised and unrealised return, backers, risk labels, and trade activity should come from the central competition calculation source so public pages, the app, and admin views do not drift apart.",
+      },
+      {
+        title: "Data quality and duplication controls",
+        body:
+          "Where trade records can arrive from more than one source, calculations should avoid counting duplicate executions as separate trades. Trade matching should use stable identifiers where available and fall back to consistent fingerprints based on symbol, direction, size, entry time, exit time, and execution details.",
+      },
+      {
+        title: "Limitations",
+        body:
+          "Verification and analytics depend on the available data. Missing broker fields, delayed market prices, imported file errors, duplicated records, timezone differences, and open positions can affect reported metrics. Green Turtle Trades should label data sources and update methodology notes when calculation rules materially change.",
+      },
+      {
+        title: "Methodology version",
+        body:
+          "This methodology is a public summary for Green Turtle Trades website and competition reporting. Methodology version 1.0 was published in August 2026 and should be reviewed whenever scoring, verification, data-source, or risk-calculation logic changes.",
+      },
+    ],
+    faqs: [
+      {
+        question: "Does verified performance guarantee future returns?",
+        answer:
+          "No. Verified performance means the record is supported by platform, account, import, or competition data. Historical performance does not guarantee future performance.",
+      },
+      {
+        question: "Does Green Turtle Trades publish raw account data?",
+        answer:
+          "Public pages should use summary metrics and leaderboard information. Raw account details, personal information, and private journal notes should not be exposed publicly unless a specific product rule or user permission allows it.",
+      },
+      {
+        question: "How should realised and unrealised P/L be handled?",
+        answer:
+          "Realised P/L comes from closed trades. Unrealised P/L comes from open positions using the latest available market mark. Total P/L combines them only when the page is representing full account performance.",
+      },
+      {
+        question: "Why does methodology matter for trader verification?",
+        answer:
+          "A clear methodology helps users understand where the data comes from, what each metric means, and what limitations apply before comparing traders or competition results.",
+      },
+      {
+        question: "Are public rankings financial advice?",
+        answer:
+          "No. Public rankings, analytics, trader summaries, and competition data are informational and should not be treated as financial advice or guarantees of future results.",
+      },
+    ],
+  },
+  {
     view: "seo-investment-competition",
     title: "Investment Competition",
     eyebrow: "Investment Competition",
