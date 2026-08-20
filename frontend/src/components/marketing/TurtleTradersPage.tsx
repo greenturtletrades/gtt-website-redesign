@@ -47,15 +47,6 @@ function formatCompactCurrency(value: number) {
   }).format(value);
 }
 
-function formatCurrency(value: number) {
-  if (!Number.isFinite(value)) return "£0.00";
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-    maximumFractionDigits: 2,
-  }).format(value);
-}
-
 function formatInvestorCount(value: number) {
   return `${value} ${value === 1 ? "backer" : "backers"}`;
 }
@@ -501,7 +492,6 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
                   <p className="text-sm font-semibold" style={signedValueTextStyle(trade.pnlPercent)}>
                     {formatSignedPercent(trade.pnlPercent)}
                   </p>
-                  <p className="mt-0.5 text-xs text-slate-500">{formatCurrency(trade.pnl)}</p>
                 </div>
               </div>
             ))}
