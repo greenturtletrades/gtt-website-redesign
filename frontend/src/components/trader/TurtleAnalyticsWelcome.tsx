@@ -166,28 +166,28 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                   title: "Connect history",
                   desc: "MetaTrader 4, MetaTrader 5, Trading 212, and CSV workflows bring trade history into one review process.",
                   highlight: "MT4, MT5, Trading 212, CSV",
-                  accent: "from-cyan-500 to-teal-500",
+                  iconClass: "bg-gradient-to-br from-cyan-500 to-teal-500",
                 },
                 {
                   icon: BookOpen,
                   title: "Keep the journal",
                   desc: "Record entries, exits, symbols, direction, notes, holding time, account activity, and lessons learned.",
                   highlight: "Notes, lessons, context",
-                  accent: "from-teal-500 to-emerald-500",
+                  iconClass: "bg-gradient-to-br from-teal-500 to-emerald-500",
                 },
                 {
                   icon: BarChart3,
                   title: "Read the dashboard",
                   desc: "Track win rate, expectancy, profit factor, R-multiple, best trade, worst trade, and average hold time.",
                   highlight: "Metrics that explain performance",
-                  accent: "from-cyan-500 to-blue-500",
+                  iconClass: "bg-gradient-to-br from-cyan-500 to-blue-500",
                 },
                 {
                   icon: Shield,
                   title: "Control risk",
                   desc: "Review drawdown, risk per trade, open exposure, stop-loss behaviour, leverage, and consistency signals.",
                   highlight: "Drawdown and exposure review",
-                  accent: "from-emerald-500 to-teal-500",
+                  iconClass: "bg-gradient-to-br from-emerald-500 to-teal-500",
                 },
               ].map((item, index) => {
                 const Icon = item.icon;
@@ -198,15 +198,15 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.5, delay: index * 0.08 }}
-                    className="group relative overflow-hidden rounded-xl border border-teal-400/30 bg-white/[0.06] p-5 shadow-lg shadow-slate-950/20 backdrop-blur-sm transition-all hover:-translate-y-1 hover:border-teal-300/60 hover:bg-white/[0.09] hover:shadow-teal-950/30"
+                    className="group relative overflow-hidden rounded-xl border border-teal-400/35 bg-white/5 p-6 shadow-xl shadow-slate-950/25 backdrop-blur-sm transition-all hover:-translate-y-1 hover:border-teal-300/70 hover:bg-white/10 hover:shadow-teal-950/40"
                   >
-                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-teal-300/70 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-                    <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-br ${item.accent} shadow-lg shadow-teal-950/25`}>
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-300/0 via-cyan-300/80 to-teal-300/0 opacity-70 transition-opacity group-hover:opacity-100" />
+                    <div className={`${item.iconClass} mb-4 flex h-12 w-12 items-center justify-center rounded-lg shadow-lg shadow-teal-950/30`}>
                       <Icon className="h-5 w-5 text-white" />
                     </div>
                     <h3 className="mb-2 text-white">{item.title}</h3>
-                    <p className="min-h-[6rem] text-sm leading-6 text-teal-50/85">{item.desc}</p>
-                    <div className="mt-4 inline-flex rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs text-cyan-200">
+                    <p className="min-h-[6rem] text-sm leading-6 text-teal-50/90">{item.desc}</p>
+                    <div className="mt-4 inline-flex rounded-full border border-cyan-300/30 bg-cyan-300/15 px-3 py-1 text-xs text-cyan-100">
                       {item.highlight}
                     </div>
                   </motion.div>
