@@ -88,6 +88,7 @@ const websiteStructuredData = {
 
 function page({
   route,
+  canonicalRoute = route,
   title,
   description,
   keywords,
@@ -98,7 +99,7 @@ function page({
   headline = h1,
   extraGraph = [],
 }) {
-  const canonical = `${siteUrl}${route}`;
+  const canonical = `${siteUrl}${canonicalRoute}`;
   const breadcrumbStructuredData = {
     "@type": "BreadcrumbList",
     itemListElement: [
@@ -353,6 +354,71 @@ const pages = [
       "Trading analytics",
       "Verified trader platform",
       "Not Turtle Trading strategy",
+    ],
+  }),
+  page({
+    route: "/what-is-green-turtle-trades",
+    canonicalRoute: "/green-turtle-trades",
+    title: "Green Turtle Trades and Green Turtle Traders | UK Trading Analytics Platform",
+    description:
+      "Green Turtle Trades, also searched as Green Turtle Traders, is a UK trading analytics and verified trader platform operated by Green Turtle Trades Limited, company number SC878660.",
+    keywords:
+      "green turtle trades, green turtle traders, Green Turtle Trades Limited, Green Turtle Traders UK, green turtle trading platform, SC878660, UK trading analytics platform, verified trader platform, Turtle Analytics",
+    h1: "Green Turtle Trades and Green Turtle Traders",
+    paragraphs: [
+      "Green Turtle Trades is a UK trading analytics and verified trader platform operated by Green Turtle Trades Limited, company number SC878660.",
+      "This alias page points search engines to the official company overview at greenturtletraders.co.uk/green-turtle-trades.",
+      "The platform helps traders review trade history, use Turtle Analytics, keep a trading journal, and build transparent performance records.",
+    ],
+    topics: [
+      "Green Turtle Trades",
+      "Green Turtle Traders",
+      "Green Turtle Trades Limited",
+      "Trading analytics",
+      "Verified trader platform",
+    ],
+  }),
+  page({
+    route: "/green-turtle-traders",
+    canonicalRoute: "/green-turtle-trades",
+    title: "Green Turtle Trades and Green Turtle Traders | UK Trading Analytics Platform",
+    description:
+      "Green Turtle Traders is a common search variation for Green Turtle Trades, a UK trading analytics and verified trader platform operated by Green Turtle Trades Limited.",
+    keywords:
+      "green turtle traders, green turtle trades, Green Turtle Trades Limited, Green Turtle Traders UK, green turtle trading platform, trading analytics, verified trader platform, Turtle Analytics",
+    h1: "Green Turtle Trades and Green Turtle Traders",
+    paragraphs: [
+      "Green Turtle Traders is a common search variation for Green Turtle Trades and the official website greenturtletraders.co.uk.",
+      "This alias page points search engines to the official company overview at greenturtletraders.co.uk/green-turtle-trades.",
+      "Green Turtle Trades provides trading analytics, Turtle Analytics, trading journal workflows, public competition rankings, and transparent trader performance records.",
+    ],
+    topics: [
+      "Green Turtle Traders",
+      "Green Turtle Trades",
+      "Trading analytics",
+      "Turtle Analytics",
+      "Verified trader platform",
+    ],
+  }),
+  page({
+    route: "/what-is-green-turtle-traders",
+    canonicalRoute: "/green-turtle-trades",
+    title: "Green Turtle Trades and Green Turtle Traders | UK Trading Analytics Platform",
+    description:
+      "Green Turtle Traders is a search variation for Green Turtle Trades, a UK trading analytics and verified trader platform operated by Green Turtle Trades Limited.",
+    keywords:
+      "what is green turtle traders, green turtle traders, green turtle trades, Green Turtle Trades Limited, UK trading analytics platform, Turtle Analytics",
+    h1: "Green Turtle Trades and Green Turtle Traders",
+    paragraphs: [
+      "Green Turtle Traders is a search variation for Green Turtle Trades, the UK trading analytics and verified trader platform.",
+      "This alias page points search engines to the official company overview at greenturtletraders.co.uk/green-turtle-trades.",
+      "The platform helps traders review trade history, use Turtle Analytics, keep a trading journal, and build transparent performance records.",
+    ],
+    topics: [
+      "Green Turtle Traders",
+      "Green Turtle Trades",
+      "UK trading analytics platform",
+      "Turtle Analytics",
     ],
   }),
   page({
