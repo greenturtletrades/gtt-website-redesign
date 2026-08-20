@@ -105,60 +105,66 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
             </motion.div>
           </div>
 
-          {/* Key Differentiators */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            {[
-              {
-                icon: Shield,
-                title: "No Predictions",
-                desc: "We analyse your historical trading behaviour and identify alternative scenarios that could have improved performance.",
-                highlight: "100% based on YOUR historical trades"
-              },
-              {
-                icon: Lock,
-                title: "Zero Cross-Trader Data",
-                desc: "We analyse your trading behaviour in complete isolation. Every insight is derived exclusively from your own patterns.",
-                highlight: "Your data stays yours, always private"
-              },
-              {
-                icon: Sparkles,
-                title: "Continuously Learning",
-                desc: "The model refines recommendations with each additional trade, learning your unique patterns without overfitting.",
-                highlight: "Self-optimising feedback loop"
-              }
-            ].map((item, i) => {
-              const Icon = item.icon;
-              return (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6, delay: i * 0.1 }}
-                  className="bg-white/5 border border-teal-400/30 rounded-xl p-6 backdrop-blur-sm hover:bg-white/10 transition-all"
-                >
-                  <div className="w-12 h-12 bg-teal-400/20 rounded-lg flex items-center justify-center mb-4">
-                    <Icon className="w-6 h-6 text-teal-300" />
-                  </div>
-                  <h3 className="text-white mb-2">{item.title}</h3>
-                  <p className="text-teal-100 text-sm mb-3">{item.desc}</p>
-                  <div className="text-xs text-cyan-300 bg-cyan-400/10 px-3 py-1 rounded-full inline-block border border-cyan-400/20">
-                    {item.highlight}
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-
-          {/* Product Hub */}
-          <div className="mb-12">
-            <div className="mb-5 text-center">
-              <h2 className="text-2xl text-white sm:text-3xl">Trading journal, analytics, and risk review in one workflow</h2>
+          {/* Private Analytics Workflow */}
+          <div className="mb-12 rounded-2xl border border-teal-400/30 bg-white/[0.04] p-5 shadow-2xl shadow-teal-950/30 backdrop-blur-sm sm:p-7">
+            <div className="mb-7 text-center">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs text-cyan-200">
+                <Shield className="h-3.5 w-3.5" />
+                Private by design
+              </div>
+              <h2 className="mx-auto max-w-4xl text-2xl text-white sm:text-3xl">
+                One workflow for journal, analytics, risk review, and personal feedback
+              </h2>
               <p className="mx-auto mt-3 max-w-3xl text-sm leading-6 text-teal-100 sm:text-base">
                 Turtle Analytics is built around your own trading record: import the history, keep the journal, review the dashboard,
                 and use risk metrics to understand what is actually driving performance.
               </p>
             </div>
+
+            <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+              {[
+                {
+                  icon: Shield,
+                  title: "No Predictions",
+                  desc: "We analyse your historical trading behaviour and identify alternative scenarios that could have improved performance.",
+                  highlight: "100% based on YOUR historical trades",
+                },
+                {
+                  icon: Lock,
+                  title: "Zero Cross-Trader Data",
+                  desc: "We analyse your trading behaviour in complete isolation. Every insight is derived exclusively from your own patterns.",
+                  highlight: "Your data stays yours, always private",
+                },
+                {
+                  icon: Sparkles,
+                  title: "Continuously Learning",
+                  desc: "The model refines recommendations with each additional trade, learning your unique patterns without overfitting.",
+                  highlight: "Self-optimising feedback loop",
+                },
+              ].map((item, i) => {
+                const Icon = item.icon;
+                return (
+                  <motion.div
+                    key={item.title}
+                    initial={{ opacity: 0, y: 24 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: i * 0.08 }}
+                    className="rounded-xl border border-teal-300/20 bg-slate-950/30 p-5 transition-all hover:border-teal-300/40 hover:bg-slate-950/45"
+                  >
+                    <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-teal-400/15 text-teal-200">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <h3 className="mb-2 text-white">{item.title}</h3>
+                    <p className="mb-3 text-sm leading-6 text-teal-100">{item.desc}</p>
+                    <div className="inline-flex rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs text-cyan-200">
+                      {item.highlight}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+
             <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
               {[
                 {
@@ -194,14 +200,14 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.5, delay: index * 0.08 }}
-                    className="bg-white/5 border border-teal-400/30 rounded-xl p-6 backdrop-blur-sm hover:bg-white/10 transition-all"
+                    className="rounded-xl border border-teal-300/20 bg-white/5 p-5 transition-all hover:border-teal-300/40 hover:bg-white/10"
                   >
-                    <div className="w-12 h-12 bg-teal-400/20 rounded-lg flex items-center justify-center mb-4">
-                      <Icon className="w-6 h-6 text-teal-300" />
+                    <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-teal-400/15 text-teal-200">
+                      <Icon className="h-5 w-5" />
                     </div>
-                    <h3 className="text-white mb-2">{item.title}</h3>
-                    <p className="text-teal-100 text-sm mb-3">{item.desc}</p>
-                    <div className="text-xs text-cyan-300 bg-cyan-400/10 px-3 py-1 rounded-full inline-block border border-cyan-400/20">
+                    <h3 className="mb-2 text-white">{item.title}</h3>
+                    <p className="mb-3 text-sm leading-6 text-teal-100">{item.desc}</p>
+                    <div className="inline-flex rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs text-cyan-200">
                       {item.highlight}
                     </div>
                   </motion.div>
