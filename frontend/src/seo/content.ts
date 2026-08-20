@@ -628,43 +628,73 @@ export const seoContentPages: SeoContentPage[] = [
     title: "MT4 and MT5 Trading Journal",
     eyebrow: "MetaTrader Journal",
     description:
-      "A trading journal and analytics workflow for MetaTrader 4 and MetaTrader 5 traders who want clearer performance records.",
+      "An MT4 and MT5 trading journal for turning MetaTrader account history into structured notes, performance analytics, expectancy, drawdown, and risk review.",
     keywords:
-      "MT4 trading journal, MT5 trading journal, MetaTrader trading journal, MetaTrader analytics, MT4 analytics, MT5 analytics",
+      "MT4 trading journal, MT5 trading journal, MetaTrader trading journal, MetaTrader analytics, MT4 analytics, MT5 analytics, MetaTrader performance tracker, MT5 trade journal",
     intro:
-      "MetaTrader traders need a clear way to turn account history into performance feedback. Green Turtle Trades supports MetaTrader-connected workflows for journal records and analytics.",
+      "MetaTrader account history shows what happened, but it rarely explains why it happened. Green Turtle Trades supports MetaTrader-connected workflows so MT4 and MT5 traders can turn trading history into journal records, analytics dashboards, risk review, and clearer performance feedback.",
     sections: [
       {
-        title: "Bring MetaTrader history into a journal workflow",
+        title: "Turn MT4 and MT5 history into a journal workflow",
         body:
-          "A MetaTrader trading journal helps traders review entries, exits, risk, holding time, and notes in a more structured way than account history alone.",
+          "A MetaTrader trading journal should bring account history into a structured review process. Instead of only seeing tickets and account history rows, traders should be able to review symbol, direction, entry, exit, lot size, holding time, risk, result, notes, and lessons in one place.",
       },
       {
-        title: "Analyze MT4 and MT5 performance",
+        title: "Account history is not enough",
         body:
-          "Turtle Analytics can use connected trade history to review performance metrics, risk behaviour, expectancy, and patterns across a trader's own historical trades.",
+          "MetaTrader account history is useful for raw execution records, but it does not usually provide the full decision context. A trading journal adds the missing layer: setup notes, trade rationale, exit quality, recurring mistakes, emotional triggers, risk behaviour, and whether a trade followed the plan.",
       },
       {
-        title: "Keep raw trades private",
+        title: "Analyze MetaTrader performance in Turtle Analytics",
         body:
-          "MetaTrader-connected data can support private analytics and optional public summary performance, while raw trade details remain private.",
+          "Turtle Analytics can use MetaTrader-connected history to review win rate, expectancy, profit factor, average win, average loss, R-multiple, drawdown, risk per trade, average holding time, best and worst trades, and performance patterns across a trader's own historical record.",
+      },
+      {
+        title: "Review risk and drawdown",
+        body:
+          "A strong MT4 or MT5 journal should make risk visible. Traders can review position sizing, leverage where available, drawdown, open exposure, largest loss, stop-loss behaviour, and whether risk stayed consistent across different market conditions.",
+      },
+      {
+        title: "Private analytics and optional summaries",
+        body:
+          "MetaTrader-connected data can support private analytics and optional public summary performance. Raw trade records, account details, and private notes remain private by default, while public summaries should use controlled metrics and clearly labelled methodology.",
+      },
+      {
+        title: "Useful for forex, indices, commodities, crypto, and CFDs",
+        body:
+          "MetaTrader is used across many markets. The journal workflow is designed around trade records and risk behaviour rather than one asset class, so traders can review performance across forex pairs, indices, commodities, crypto, and CFDs where their account history supports it.",
       },
     ],
     faqs: [
       {
         question: "What is an MT4 trading journal?",
         answer:
-          "An MT4 trading journal is a structured record of MetaTrader 4 trade history, notes, risk, and performance metrics.",
+          "An MT4 trading journal is a structured record of MetaTrader 4 trade history, notes, risk, holding time, decision context, and performance metrics.",
       },
       {
-        question: "Can MT5 traders use a trading journal?",
+        question: "What is an MT5 trading journal?",
         answer:
-          "Yes. MT5 traders can use journal and analytics workflows to review performance, risk, expectancy, and trade history.",
+          "An MT5 trading journal helps MetaTrader 5 traders review account history through notes, analytics, risk metrics, expectancy, drawdown, and performance dashboards.",
+      },
+      {
+        question: "How is a trading journal different from MetaTrader account history?",
+        answer:
+          "MetaTrader account history records executions and balances. A trading journal adds context, notes, lessons, risk review, strategy review, and performance analytics.",
+      },
+      {
+        question: "Which MetaTrader metrics matter most?",
+        answer:
+          "Useful MetaTrader journal metrics include expectancy, win rate, profit factor, average win, average loss, R-multiple, drawdown, risk per trade, average hold time, best trade, worst trade, and sample size.",
       },
       {
         question: "Is MetaTrader data better than CSV for public ranking?",
         answer:
           "Connected account data is more trustworthy for public ranking than CSV files because CSV files can be edited outside the platform.",
+      },
+      {
+        question: "Does a MetaTrader journal predict market prices?",
+        answer:
+          "No. A MetaTrader journal reviews historical trades and risk behaviour. It does not predict market prices or guarantee future returns.",
       },
     ],
   },
