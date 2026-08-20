@@ -969,6 +969,276 @@ export const seoContentPages: SeoContentPage[] = [
     ],
   },
   {
+    view: "seo-profit-factor-trading",
+    title: "Profit Factor in Trading",
+    eyebrow: "Trading Metrics",
+    description:
+      "Profit factor in trading explained: formula, gross profit, gross loss, sample size, win rate, expectancy, drawdown, and how Turtle Analytics reviews profit factor.",
+    keywords:
+      "profit factor trading, trading profit factor, profit factor formula, good profit factor trading, gross profit gross loss, trading metrics, Turtle Analytics",
+    intro:
+      "Profit factor shows how much gross profit a trader generated for every unit of gross loss. It is a useful trading metric because it connects winning trades and losing trades into one simple ratio, but it needs sample size and risk context to be meaningful.",
+    sections: [
+      {
+        title: "What profit factor means",
+        body:
+          "Profit factor compares total profits from winning trades with total losses from losing trades. A profit factor above 1.0 means gross profits were larger than gross losses over the period being reviewed. A profit factor below 1.0 means losses were larger than profits.",
+      },
+      {
+        title: "Profit factor formula",
+        body:
+          "The common formula is: profit factor = gross profit / absolute gross loss. For example, if a trader made $1,500 from winning trades and lost $750 from losing trades, the profit factor is 2.0.",
+      },
+      {
+        title: "Why gross profit and gross loss matter",
+        body:
+          "Profit factor uses gross totals rather than net profit alone. That matters because two traders can have the same net profit but very different risk profiles. One may have smooth gains and controlled losses, while another may swing through large wins and large losses.",
+      },
+      {
+        title: "What is a good profit factor?",
+        body:
+          "A profit factor above 1.0 is positive historically, but it does not automatically mean the strategy is strong. A very high profit factor can be distorted by a small trade sample, one large outlier, or a period with no meaningful losses.",
+      },
+      {
+        title: "Profit factor needs sample size",
+        body:
+          "Profit factor is more useful when there are enough closed trades. With only a few trades, the ratio can move sharply after one win or one loss. Sample size, trade count, and consistency should always be reviewed alongside profit factor.",
+      },
+      {
+        title: "Profit factor vs win rate",
+        body:
+          "Win rate shows how often trades win. Profit factor shows whether the wins were large enough compared with the losses. A trader can have a lower win rate and a strong profit factor if average wins are much larger than average losses.",
+      },
+      {
+        title: "Profit factor vs expectancy",
+        body:
+          "Expectancy estimates the average outcome per trade. Profit factor compares total winning output with total losing output. Both metrics are useful, but expectancy is usually better for understanding the average trade and profit factor is useful for understanding aggregate payoff quality.",
+      },
+      {
+        title: "How Turtle Analytics reviews profit factor",
+        body:
+          "Turtle Analytics reviews profit factor alongside win rate, average win, average loss, expectancy, drawdown, holding time, risk per trade, and sample size. In the journal workflow, profit factor is calculated from winning outcomes divided by the absolute value of losing outcomes when enough loss data exists.",
+      },
+      {
+        title: "Limitations of profit factor",
+        body:
+          "Profit factor is based on historical results. It does not predict future trades, remove market risk, or guarantee future performance. It should be read with drawdown, exposure, trade count, and risk consistency.",
+      },
+    ],
+    faqs: [
+      {
+        question: "What is profit factor in trading?",
+        answer:
+          "Profit factor is the ratio of gross profit from winning trades to the absolute gross loss from losing trades.",
+      },
+      {
+        question: "What is the profit factor formula?",
+        answer:
+          "The common formula is profit factor = gross profit / absolute gross loss.",
+      },
+      {
+        question: "What is a good profit factor?",
+        answer:
+          "A profit factor above 1.0 is historically positive, but it should be reviewed with sample size, drawdown, risk, and consistency.",
+      },
+      {
+        question: "Can profit factor be misleading?",
+        answer:
+          "Yes. Profit factor can be misleading when it is based on very few trades, one large outlier, or a period with no meaningful losses.",
+      },
+      {
+        question: "Is profit factor better than win rate?",
+        answer:
+          "Profit factor shows whether wins were large enough compared with losses, while win rate only shows how often trades won. Both should be reviewed together.",
+      },
+      {
+        question: "Does high profit factor guarantee future returns?",
+        answer:
+          "No. High historical profit factor does not guarantee future returns. Market conditions, risk behaviour, and execution can all change.",
+      },
+    ],
+  },
+  {
+    view: "seo-risk-reward-ratio-trading",
+    title: "Risk/Reward Ratio in Trading",
+    eyebrow: "Trading Metrics",
+    description:
+      "Risk/reward ratio in trading explained: planned risk, potential reward, realised average win/loss, win rate, expectancy, and how Turtle Analytics reviews risk/reward.",
+    keywords:
+      "risk reward ratio trading, risk/reward trading, trading risk reward ratio, reward risk ratio, win rate risk reward, trading expectancy",
+    intro:
+      "Risk/reward ratio compares how much a trader is risking with how much they are trying to make. It is one of the most practical trading metrics because it shows why win rate alone is never enough.",
+    sections: [
+      {
+        title: "What risk/reward ratio means",
+        body:
+          "Risk/reward ratio compares planned downside with planned upside. If a trader risks $100 to target $200, the planned reward is twice the planned risk, often described as 2:1.",
+      },
+      {
+        title: "Risk/reward formula",
+        body:
+          "A common formula is: risk/reward = potential reward / amount risked. The same idea can also be reviewed after trades close by comparing average winning trade size with average losing trade size.",
+      },
+      {
+        title: "Planned ratio vs realised ratio",
+        body:
+          "Planned risk/reward uses the stop-loss, entry, and take-profit idea before the trade. Realised risk/reward uses what actually happened after trades closed. Both are useful, but realised average win/loss behaviour is often more reliable than what a trader intended.",
+      },
+      {
+        title: "Why win rate and risk/reward belong together",
+        body:
+          "A trader with a 40% win rate can still be profitable if average wins are much larger than average losses. A trader with an 80% win rate can still lose money if losses are very large. Risk/reward explains the trade-off.",
+      },
+      {
+        title: "Risk/reward and expectancy",
+        body:
+          "Expectancy combines win rate and average win/loss size into one average expected outcome. Risk/reward is one of the main inputs that makes expectancy positive or negative over a series of trades.",
+      },
+      {
+        title: "Average win/loss ratio",
+        body:
+          "When stop-loss and take-profit data is incomplete, platforms can still review realised payoff quality by comparing average winner size with average loser size. This is often displayed as an average win/loss or payoff ratio.",
+      },
+      {
+        title: "Risk/reward and discipline",
+        body:
+          "A good planned ratio only matters if trades are executed consistently. Moving stops, closing winners early, adding to losers, or oversizing positions can make the realised ratio weaker than the planned setup.",
+      },
+      {
+        title: "How Turtle Analytics reviews risk/reward",
+        body:
+          "Turtle Analytics reviews risk/reward alongside expectancy, profit factor, drawdown, average win, average loss, risk per trade, holding time, and journal notes. Where full plan data is unavailable, realised average win/loss behaviour helps show the actual payoff profile.",
+      },
+      {
+        title: "Limitations of risk/reward",
+        body:
+          "Risk/reward does not guarantee profitability. It must be read with win rate, execution quality, sample size, slippage, market conditions, and whether trades followed the original plan.",
+      },
+    ],
+    faqs: [
+      {
+        question: "What is risk/reward ratio in trading?",
+        answer:
+          "Risk/reward ratio compares the amount a trader risks with the amount they are trying to make on a trade.",
+      },
+      {
+        question: "How do you calculate risk/reward ratio?",
+        answer:
+          "A common calculation is potential reward divided by amount risked. For closed trades, traders can also review average win size divided by average loss size.",
+      },
+      {
+        question: "Is 2:1 risk/reward always good?",
+        answer:
+          "No. A 2:1 setup still depends on win rate, execution quality, costs, slippage, and whether the trader follows the plan.",
+      },
+      {
+        question: "Can a low risk/reward strategy be profitable?",
+        answer:
+          "Yes. A lower risk/reward strategy can be profitable if the win rate is high enough and losses are controlled.",
+      },
+      {
+        question: "Is risk/reward the same as profit factor?",
+        answer:
+          "No. Risk/reward compares risk and reward per trade or average trade. Profit factor compares total gross profit with total gross loss.",
+      },
+      {
+        question: "Does risk/reward guarantee returns?",
+        answer:
+          "No. Risk/reward is a planning and review metric. It does not guarantee future returns or remove market risk.",
+      },
+    ],
+  },
+  {
+    view: "seo-trader-verification-guide",
+    title: "Trader Verification Guide",
+    eyebrow: "Trader Verification",
+    description:
+      "Trader verification guide explaining verified trading records, data sources, screenshots, public summaries, private raw data, risk metrics, and Green Turtle Trades methodology.",
+    keywords:
+      "trader verification guide, verify trader performance, verified trading records, trader performance verification, verified traders, Green Turtle Trades methodology",
+    intro:
+      "Trader verification should make performance harder to misunderstand. A strong verification workflow explains where the data came from, which metrics were calculated, what is public, what stays private, and what the limits of the record are.",
+    sections: [
+      {
+        title: "Why trader verification matters",
+        body:
+          "Trading performance is easy to exaggerate when it is shown through screenshots, edited spreadsheets, or isolated wins. Verification creates a more structured record so traders, evaluators, and investors can review performance with clearer evidence.",
+      },
+      {
+        title: "Screenshots are not enough",
+        body:
+          "Screenshots can be cropped, selective, or missing context. A useful verification process should rely on platform-recorded activity, connected account data, imported history, or in-house execution records where possible.",
+      },
+      {
+        title: "What verified can mean",
+        body:
+          "Verified does not mean risk-free. It means a trading record is supported by a stated data source. That source might be platform-recorded competition executions, connected broker history, MetaTrader history, uploaded records, or journal data depending on the product area.",
+      },
+      {
+        title: "Data source labels",
+        body:
+          "Public pages should label whether data is live platform data, imported broker history, MetaTrader-connected history, journal records, or competition execution data. Clear labels reduce confusion and help users understand the strength of the evidence.",
+      },
+      {
+        title: "Private raw data vs public summaries",
+        body:
+          "Raw trades, account details, and private journal notes should not automatically be public. Public profiles can show controlled summaries such as return, win rate, profit factor, expectancy, drawdown, risk labels, and trade count while keeping sensitive records private.",
+      },
+      {
+        title: "Metrics that matter",
+        body:
+          "Useful verification metrics include realised return, unrealised return, total return, win rate, expectancy, profit factor, drawdown, risk per trade, average hold time, sample size, exposure, and consistency.",
+      },
+      {
+        title: "Handling duplicate or weak data",
+        body:
+          "Verification should be strict about duplicate trades, missing identifiers, stale marks, incomplete exits, and mismatched account totals. The same account should use one central calculation source so public pages, app screens, and admin screens do not drift apart.",
+      },
+      {
+        title: "How Green Turtle Trades approaches verification",
+        body:
+          "Green Turtle Trades separates raw records from public summaries, uses central metric logic where possible, and explains calculation rules in the trader verification methodology. The aim is clear evidence, not unsupported performance claims.",
+      },
+      {
+        title: "Limits of verification",
+        body:
+          "Verification does not guarantee future performance, remove trading risk, or mean a trader is suitable for every investor. Public analytics and rankings are informational and should not be treated as financial advice.",
+      },
+    ],
+    faqs: [
+      {
+        question: "What is trader verification?",
+        answer:
+          "Trader verification is the process of supporting a trading record with clear data sources, calculation rules, and controlled performance summaries.",
+      },
+      {
+        question: "Why are screenshots not enough to verify a trader?",
+        answer:
+          "Screenshots can be selective or missing context. Verification is stronger when it uses platform-recorded activity, connected account data, or imported account history.",
+      },
+      {
+        question: "Does verified mean a trader is safe?",
+        answer:
+          "No. Verified means the record is supported by stated data. It does not mean the trader is risk-free or guaranteed to perform in the future.",
+      },
+      {
+        question: "Do verified traders need to publish raw trades?",
+        answer:
+          "Not necessarily. Public profiles can show controlled summary metrics while raw trades, account details, and private journal notes remain private.",
+      },
+      {
+        question: "Which metrics matter for trader verification?",
+        answer:
+          "Important metrics include realised and unrealised return, win rate, expectancy, profit factor, drawdown, risk per trade, average hold time, trade count, sample size, exposure, and consistency.",
+      },
+      {
+        question: "Where can I read the Green Turtle Trades methodology?",
+        answer:
+          "The public methodology is available at https://greenturtletraders.co.uk/methodology.",
+      },
+    ],
+  },
+  {
     view: "seo-mt4-mt5-trading-journal",
     title: "MT4 and MT5 Trading Journal",
     eyebrow: "MetaTrader Journal",
