@@ -29,14 +29,21 @@ import { createCheckoutSession, pauseSubscription, resumeSubscription } from "./
 import { getConfig } from "./api/config";
 import { type TraderApplicationStatus as ApplicationStatus } from "./api/traderApplication";
 import { applySeoMetadata } from "./seo/metadata";
-import { getPathForView, getViewFromPath, type ViewType } from "./seo/routes";
+import { getPathForView, getRedirectPathForPath, getViewFromPath, type ViewType } from "./seo/routes";
 
 export type UserType = "trader" | "admin" | null;
 export type { ViewType } from "./seo/routes";
 
 export default function App() {
   const [isAdminRoute, setIsAdminRoute] = useState(() => window.location.pathname === "/admin");
-  const [currentView, setCurrentView] = useState<ViewType>(() => getViewFromPath(window.location.pathname));
+  const [currentView, setCurrentView] = useState<ViewType>(() => {
+    const redirectPath = getRedirectPathForPath(window.location.pathname);
+    if (redirectPath) {
+      window.history.replaceState({}, "", redirectPath);
+      return getViewFromPath(redirectPath);
+    }
+    return getViewFromPath(window.location.pathname);
+  });
   const [userType, setUserType] = useState<UserType>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showPlanSelectionModal, setShowPlanSelectionModal] = useState(false);

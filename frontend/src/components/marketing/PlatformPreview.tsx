@@ -19,7 +19,7 @@ export function PlatformPreview() {
         >
           <h2 className="text-slate-900 mb-3 sm:mb-4 text-2xl sm:text-3xl md:text-4xl">Experience the Trading Platform</h2>
           <p className="text-slate-600 max-w-2xl mx-auto text-sm sm:text-base md:text-lg">
-            A seamless interface for verified traders, investors, trading analytics, and performance transparency.
+            A seamless interface for trading analytics, verified performance records, university competition activity, and future trader-backed investing workflows.
           </p>
         </motion.div>
 
@@ -29,7 +29,7 @@ export function PlatformPreview() {
             {
               image: splashScreen,
               title: "Welcome to Turtle Trades",
-              description: "Where equity meets talent. A transparent platform connecting verified traders with real investor capital. Experience our clean, professional fintech interface designed for serious traders and investors.",
+              description: "Where equity meets talent. A transparent trading analytics platform building toward trader-backed investing. Experience our clean, professional fintech interface designed for serious traders and future investor workflows.",
               highlights: [
                 "Professional fintech aesthetic",
                 "Secure and transparent platform",
@@ -40,7 +40,7 @@ export function PlatformPreview() {
             {
               image: marketplace,
               title: "Trader Marketplace",
-              description: "Browse and invest with verified traders. Filter by performance metrics, risk level, and trading style. See real-time stats including win rates, average returns, follower counts, and total trades across all top performers.",
+              description: "Browse verified trader summaries and competition profiles. Filter by performance metrics, risk level, and trading style. See stats including win rates, average returns, follower counts, and total trades across top performers.",
               highlights: [
                 "Advanced filtering and search",
                 "Real-time performance metrics",
@@ -199,16 +199,16 @@ export function PlatformPreview() {
                     desc: "Use your existing MT4/MT5 platform with no platform switching, trade from the comfort of your own account"
                   },
                   {
-                    title: "Access Larger Capital Pools",
-                    desc: "Trade with significantly more capital through investor allocations"
+                    title: "Build Toward Capital Access",
+                    desc: "Use verified performance records and risk analytics to support future investor-capital workflows"
                   },
                   {
                     title: "Turtle Analytics",
                     desc: "Advanced ML-powered analytics to optimise your performance and refine your trading strategies"
                   },
                   {
-                    title: "On-Demand Payouts",
-                    desc: "Access your earnings instantly with secure in-app payouts available on request"
+                    title: "Transparent Account Workflows",
+                    desc: "Keep account activity, analytics, and performance summaries in a clearer platform record"
                   }
                 ].map((item, i) => (
                   <motion.div

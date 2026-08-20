@@ -20,14 +20,14 @@ export type SeoContentPage = {
 export const seoContentPages: SeoContentPage[] = [
   {
     view: "seo-green-turtle-trades",
-    title: "Green Turtle Trades and Green Turtle Traders",
+    title: "Green Turtle Trades",
     eyebrow: "Company",
     description:
       "Green Turtle Trades, also searched as Green Turtle Traders, is a UK trading analytics and verified trader platform operated by Green Turtle Trades Limited, company number SC878660.",
     keywords:
       "green turtle trades, green turtle traders, Green Turtle Trades Limited, Green Turtle Traders UK, green turtle trading platform, SC878660, UK trading analytics platform, verified trader platform, Turtle Analytics",
     intro:
-      "Green Turtle Trades is a UK trading analytics and verified trader platform operated by Green Turtle Trades Limited, company number SC878660. People may also search for Green Turtle Traders because the official website is greenturtletraders.co.uk. It helps traders review real trade history, keep a structured trading journal, use Turtle Analytics, and build transparent performance records for trader evaluation.",
+      "Green Turtle Trades is a UK trading analytics and verified trader platform operated by Green Turtle Trades Limited, company number SC878660. It helps traders review real trade history, keep a structured trading journal, use Turtle Analytics, and build transparent performance records for trader evaluation.",
     sections: [
       {
         title: "What Green Turtle Trades does",

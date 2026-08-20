@@ -284,15 +284,15 @@ const pages = [
   }),
   page({
     route: "/turtle-analytics",
-    title: "Turtle Analytics | Trading Journal and Trading Analytics",
+    title: "Turtle Analytics by Green Turtle Trades | Trading Analytics & Journal",
     description:
       "Use Turtle Analytics as a trading journal and trading analytics platform for MT4, MT5, Trading 212, CSV history, expectancy, drawdown, risk review, and trader performance tracking.",
     keywords:
       "Turtle Analytics, trading journal, trading analytics, MT4 trading journal, MT5 trading journal, trading performance tracker, expectancy, drawdown analysis, trading risk management",
-    h1: "Turtle Analytics",
+    h1: "Turtle Analytics by Green Turtle Trades",
     headline: "Trading journal, performance analytics, and risk review for serious traders.",
     paragraphs: [
-      "Turtle Analytics is the Green Turtle Trades product hub for trading journals, trading analytics, performance tracking, and risk review.",
+      "Turtle Analytics is the trading analytics and trading journal platform developed by Green Turtle Trades.",
       "Traders can bring account history into one structured workflow through MetaTrader 4, MetaTrader 5, Trading 212, or CSV imports, then review the record through journal rows, account ledgers, stats cards, and analytics dashboards.",
       "The trading journal keeps entries, exits, direction, symbol, holding time, notes, and account activity in one place so traders can review decisions as well as outcomes.",
       "The analytics layer focuses on practical performance metrics including win rate, average return, profit factor, expectancy, R-multiple, best and worst trades, average hold time, market exposure, and total realised performance.",
@@ -316,8 +316,8 @@ const pages = [
     extraGraph: [
       {
         "@type": "SoftwareApplication",
-        name: "Turtle Analytics",
-        alternateName: ["Green Turtle Trades Trading Journal", "Green Turtle Trades Trading Analytics"],
+        name: "Turtle Analytics by Green Turtle Trades",
+        alternateName: ["Turtle Analytics", "Green Turtle Trades Trading Journal", "Green Turtle Trades Trading Analytics"],
         applicationCategory: "FinanceApplication",
         operatingSystem: "Web",
         url: `${siteUrl}/turtle-analytics`,
@@ -325,7 +325,7 @@ const pages = [
           "@id": `${siteUrl}/#organization`,
         },
         description:
-          "Turtle Analytics is a trading journal and trading analytics product for reviewing imported trade history, expectancy, drawdown, risk, account activity, and trader performance.",
+          "Turtle Analytics is the trading journal and trading analytics product developed by Green Turtle Trades for reviewing imported trade history, expectancy, drawdown, risk, account activity, and trader performance.",
         featureList: [
           "Trading journal",
           "MT4 and MT5 trade history analysis",
@@ -532,79 +532,13 @@ const pages = [
     ],
   }),
   page({
-    route: "/investment-competition",
-    canonicalRoute: "/university-competition",
-    title: "Investment Competition | Green Turtle Trades",
-    description:
-      "A public investment competition from Green Turtle Trades where Scottish university students trade virtual capital, build market experience, and compete on transparent rankings.",
-    keywords:
-      "investment competition, investing competition, trading competition, university investment competition, student investment competition, virtual investment competition, Green Turtle Trades competition",
-    h1: "Investment Competition",
-    paragraphs: [
-      "The canonical Green Turtle Trades competition hub is the University Investment Competition page.",
-      "The Green Turtle Trades investment competition gives students a practical way to learn markets without risking personal capital.",
-      "Competitors trade with virtual market capital, follow clear rules, and appear on transparent leaderboards powered by in-house execution data.",
-      "Rankings consider return, win rate, participation, risk control, drawdown, and trader-backing activity so the competition rewards disciplined investing rather than headline return alone.",
-    ],
-    topics: [
-      "Investment competition",
-      "University investment competition",
-      "Student investment competition",
-      "Virtual investing competition",
-    ],
-  }),
-  page({
-    route: "/student-investing-competition",
-    canonicalRoute: "/university-competition",
-    title: "Student Investing Competition | Green Turtle Trades",
-    description:
-      "A student investing competition for Scottish universities, helping students learn trading, portfolio discipline, risk control, and market decision-making with virtual capital.",
-    keywords:
-      "student investing competition, student investment competition, university investing competition, Scottish student trading competition, student trading challenge, university finance competition",
-    h1: "Student Investing Competition",
-    paragraphs: [
-      "The canonical Green Turtle Trades student competition hub is the University Investment Competition page.",
-      "The Green Turtle Trades student investing competition is designed for students who want practical market experience.",
-      "Scottish university competitors use virtual capital to trade, review performance, understand drawdown, and see how their decisions affect individual and university rankings.",
-      "The public leaderboard shows score, return, win rate, risk, backers, and trade count so performance can be understood in context.",
-    ],
-    topics: [
-      "Student investing competition",
-      "Scottish university trading competition",
-      "University finance competition",
-      "Student trading challenge",
-    ],
-  }),
-  page({
-    route: "/virtual-trading-competition",
-    canonicalRoute: "/university-competition",
-    title: "Virtual Trading Competition | Green Turtle Trades",
-    description:
-      "A virtual trading competition where students use demo capital, compete on live rankings, and learn investing discipline through market execution data.",
-    keywords:
-      "virtual trading competition, virtual investing competition, demo trading competition, paper trading competition, student virtual trading, risk free trading competition",
-    h1: "Virtual Trading Competition",
-    paragraphs: [
-      "The canonical Green Turtle Trades virtual competition hub is the University Investment Competition page.",
-      "A virtual trading competition helps people practise market decision-making before real money is on the line.",
-      "Green Turtle Trades uses virtual competition capital, transparent scoring, and public ranking data to make student investing more practical and measurable.",
-      "The aim is to help students move beyond theory by building a measurable record of investment decisions, risk habits, and performance improvement.",
-    ],
-    topics: [
-      "Virtual trading competition",
-      "Demo trading competition",
-      "Paper trading competition",
-      "Risk-free trading competition",
-    ],
-  }),
-  page({
     route: "/green-turtle-trades",
-    title: "Green Turtle Trades and Green Turtle Traders | UK Trading Analytics Platform",
+    title: "Green Turtle Trades | UK Trading Analytics Platform",
     description:
       "Green Turtle Trades, also searched as Green Turtle Traders, is a UK trading analytics and verified trader platform operated by Green Turtle Trades Limited, company number SC878660.",
     keywords:
       "green turtle trades, green turtle traders, Green Turtle Trades Limited, Green Turtle Traders UK, green turtle trading platform, SC878660, UK trading analytics platform, verified trader platform, Turtle Analytics",
-    h1: "Green Turtle Trades and Green Turtle Traders",
+    h1: "Green Turtle Trades",
     paragraphs: [
       "Green Turtle Trades is a UK trading analytics and verified trader platform operated by Green Turtle Trades Limited, company number SC878660.",
       "Green Turtle Traders is a common search variation connected to the official domain greenturtletraders.co.uk. Both names refer to the same platform and company.",
@@ -619,74 +553,6 @@ const pages = [
       "Trading analytics",
       "Verified trader platform",
       "Not Turtle Trading strategy",
-    ],
-    extraGraph: [organizationProfilePage(`${siteUrl}/green-turtle-trades`)],
-  }),
-  page({
-    route: "/what-is-green-turtle-trades",
-    canonicalRoute: "/green-turtle-trades",
-    title: "Green Turtle Trades and Green Turtle Traders | UK Trading Analytics Platform",
-    description:
-      "Green Turtle Trades, also searched as Green Turtle Traders, is a UK trading analytics and verified trader platform operated by Green Turtle Trades Limited, company number SC878660.",
-    keywords:
-      "green turtle trades, green turtle traders, Green Turtle Trades Limited, Green Turtle Traders UK, green turtle trading platform, SC878660, UK trading analytics platform, verified trader platform, Turtle Analytics",
-    h1: "Green Turtle Trades and Green Turtle Traders",
-    paragraphs: [
-      "Green Turtle Trades is a UK trading analytics and verified trader platform operated by Green Turtle Trades Limited, company number SC878660.",
-      "This alias page points search engines to the official company overview at greenturtletraders.co.uk/green-turtle-trades.",
-      "The platform helps traders review trade history, use Turtle Analytics, keep a trading journal, and build transparent performance records.",
-    ],
-    topics: [
-      "Green Turtle Trades",
-      "Green Turtle Traders",
-      "Green Turtle Trades Limited",
-      "Trading analytics",
-      "Verified trader platform",
-    ],
-    extraGraph: [organizationProfilePage(`${siteUrl}/green-turtle-trades`)],
-  }),
-  page({
-    route: "/green-turtle-traders",
-    canonicalRoute: "/green-turtle-trades",
-    title: "Green Turtle Trades and Green Turtle Traders | UK Trading Analytics Platform",
-    description:
-      "Green Turtle Traders is a common search variation for Green Turtle Trades, a UK trading analytics and verified trader platform operated by Green Turtle Trades Limited.",
-    keywords:
-      "green turtle traders, green turtle trades, Green Turtle Trades Limited, Green Turtle Traders UK, green turtle trading platform, trading analytics, verified trader platform, Turtle Analytics",
-    h1: "Green Turtle Trades and Green Turtle Traders",
-    paragraphs: [
-      "Green Turtle Traders is a common search variation for Green Turtle Trades and the official website greenturtletraders.co.uk.",
-      "This alias page points search engines to the official company overview at greenturtletraders.co.uk/green-turtle-trades.",
-      "Green Turtle Trades provides trading analytics, Turtle Analytics, trading journal workflows, public competition rankings, and transparent trader performance records.",
-    ],
-    topics: [
-      "Green Turtle Traders",
-      "Green Turtle Trades",
-      "Trading analytics",
-      "Turtle Analytics",
-      "Verified trader platform",
-    ],
-    extraGraph: [organizationProfilePage(`${siteUrl}/green-turtle-trades`)],
-  }),
-  page({
-    route: "/what-is-green-turtle-traders",
-    canonicalRoute: "/green-turtle-trades",
-    title: "Green Turtle Trades and Green Turtle Traders | UK Trading Analytics Platform",
-    description:
-      "Green Turtle Traders is a search variation for Green Turtle Trades, a UK trading analytics and verified trader platform operated by Green Turtle Trades Limited.",
-    keywords:
-      "what is green turtle traders, green turtle traders, green turtle trades, Green Turtle Trades Limited, UK trading analytics platform, Turtle Analytics",
-    h1: "Green Turtle Trades and Green Turtle Traders",
-    paragraphs: [
-      "Green Turtle Traders is a search variation for Green Turtle Trades, the UK trading analytics and verified trader platform.",
-      "This alias page points search engines to the official company overview at greenturtletraders.co.uk/green-turtle-trades.",
-      "The platform helps traders review trade history, use Turtle Analytics, keep a trading journal, and build transparent performance records.",
-    ],
-    topics: [
-      "Green Turtle Traders",
-      "Green Turtle Trades",
-      "UK trading analytics platform",
-      "Turtle Analytics",
     ],
     extraGraph: [organizationProfilePage(`${siteUrl}/green-turtle-trades`)],
   }),

@@ -37,6 +37,15 @@ export type ViewType =
 
 export const SITE_URL = "https://greenturtletraders.co.uk";
 
+const redirectPaths: Record<string, string> = {
+  "/what-is-green-turtle-trades": "/green-turtle-trades",
+  "/green-turtle-traders": "/green-turtle-trades",
+  "/what-is-green-turtle-traders": "/green-turtle-trades",
+  "/investment-competition": "/university-competition",
+  "/student-investing-competition": "/university-competition",
+  "/virtual-trading-competition": "/university-competition",
+};
+
 export const viewPaths: Partial<Record<ViewType, string>> = {
   landing: "/",
   about: "/about",
@@ -80,6 +89,10 @@ const canonicalViewPaths: Partial<Record<ViewType, string>> = {
 
 export function getViewFromPath(pathname: string): ViewType {
   const normalizedPath = pathname.replace(/\/+$/, "") || "/";
+  const redirectPath = redirectPaths[normalizedPath];
+  if (redirectPath) {
+    return getViewFromPath(redirectPath);
+  }
 
   if (normalizedPath === "/admin") {
     return "admin-dashboard";
@@ -99,6 +112,11 @@ export function getViewFromPath(pathname: string): ViewType {
 
   const match = Object.entries(viewPaths).find(([, path]) => path === normalizedPath);
   return (match?.[0] as ViewType | undefined) || "landing";
+}
+
+export function getRedirectPathForPath(pathname: string): string | null {
+  const normalizedPath = pathname.replace(/\/+$/, "") || "/";
+  return redirectPaths[normalizedPath] || null;
 }
 
 export function getPathForView(view: ViewType): string {

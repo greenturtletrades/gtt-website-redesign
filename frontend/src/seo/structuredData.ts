@@ -69,7 +69,7 @@ const websiteStructuredData = {
     "@id": `${SITE_URL}/#organization`,
   },
   description:
-    "A verified trader platform with trading analytics, a trading journal, investor capital access, and a public university competition leaderboard.",
+    "A verified trader platform with trading analytics, a trading journal, public performance summaries, and a public university competition leaderboard.",
   about: {
     "@id": `${SITE_URL}/#organization`,
   },
@@ -322,7 +322,7 @@ export function buildStructuredData(view: ViewType) {
           name: "Green Turtle Trades",
           url: getCanonicalUrl(view),
           description:
-            "Green Turtle Trades connects verified traders with investor capital and provides trading analytics, trade journal tools, transparent trader performance data, and a Scottish university investment competition.",
+            "Green Turtle Trades provides trading analytics, trade journal tools, verified trader performance records, transparent public summaries, and a Scottish university investment competition while building toward trader-backed investing.",
           primaryImageOfPage: {
             "@type": "ImageObject",
             url: `${SITE_URL}/favicon-v2.png`,
@@ -455,7 +455,8 @@ export function buildStructuredData(view: ViewType) {
         buildBreadcrumbStructuredData(view),
         {
           "@type": "SoftwareApplication",
-          name: "Turtle Analytics",
+          name: "Turtle Analytics by Green Turtle Trades",
+          alternateName: "Turtle Analytics",
           applicationCategory: "FinanceApplication",
           operatingSystem: "Web",
           url: getCanonicalUrl(view),

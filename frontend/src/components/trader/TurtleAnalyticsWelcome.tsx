@@ -54,10 +54,10 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
               <span className="text-sm">Machine Learning-Powered Personal Coach</span>
             </motion.div>
             <h1 className="text-white mb-4 text-3xl sm:text-4xl md:text-6xl">
-              Trading Analytics and Trading Journal
+              Turtle Analytics by Green Turtle Trades
             </h1>
             <p className="text-teal-100 max-w-3xl mx-auto text-lg mb-8">
-              Turtle Analytics combines a trading journal, performance analytics, and a self-optimising feedback engine that analyses
+              Turtle Analytics is the trading analytics and trading journal platform developed by Green Turtle Trades. It combines a journal, performance analytics, and a self-optimising feedback engine that analyses
               <span className="text-cyan-300"> your unique trading history</span> to reveal hidden patterns, risk behaviour, and personalised improvement opportunities.
             </p>
 

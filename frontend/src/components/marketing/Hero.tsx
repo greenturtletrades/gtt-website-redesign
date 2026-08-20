@@ -65,7 +65,7 @@ export function Hero({ onTraderClick, onApplyClick, onScrollToWaitingList }: Her
           transition={{ delay: 0.2 }}
           className="text-slate-600 max-w-3xl mx-auto mb-8 sm:mb-12 text-base sm:text-lg md:text-xl leading-relaxed px-4"
         >
-          Green Turtle Trades connects verified traders with investor capital, trading analytics, trading journal tools, and transparent performance data.
+          Green Turtle Trades provides trading analytics, trading journal tools, verified performance records, and a Scottish university investment competition while building toward trader-backed investing.
         </motion.p>
         
         <motion.div
