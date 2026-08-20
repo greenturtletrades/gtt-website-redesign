@@ -104,7 +104,7 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
               </p>
             </div>
 
-            <div className="mb-5 grid grid-cols-1 gap-5 md:grid-cols-3">
+            <div className="mb-10 grid grid-cols-1 gap-5 md:grid-cols-3">
               {[
                 {
                   icon: Shield,
@@ -148,6 +148,7 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
               })}
             </div>
 
+            <div className="border-t border-teal-300/15 pt-8">
             <div className="grid grid-cols-1 gap-5 md:grid-cols-4">
               {[
                 {
@@ -196,6 +197,7 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                   </motion.div>
                 );
               })}
+            </div>
             </div>
           </div>
 
