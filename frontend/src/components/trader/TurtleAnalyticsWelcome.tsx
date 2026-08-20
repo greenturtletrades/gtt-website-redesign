@@ -43,16 +43,6 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
         <div className="max-w-7xl mx-auto relative z-10">
           {/* Header */}
           <div className="text-center mb-12">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="mb-5 inline-flex items-center gap-2 border-b border-teal-300/30 px-1 pb-2 text-xs uppercase tracking-[0.18em] text-teal-200"
-            >
-              <Brain className="h-4 w-4" />
-              <span>Private Trading Analytics</span>
-            </motion.div>
             <h1 className="text-white mb-4 text-3xl sm:text-4xl md:text-6xl">
               Turtle Analytics by Green Turtle Trades
             </h1>
