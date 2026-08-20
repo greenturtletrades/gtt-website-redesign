@@ -4,6 +4,7 @@ const path = require("path");
 const buildDir = path.resolve(__dirname, "..", "build");
 const indexPath = path.join(buildDir, "index.html");
 const siteUrl = "https://greenturtletraders.co.uk";
+const socialImageUrl = `${siteUrl}/favicon-v2.png`;
 
 const organizationStructuredData = {
   "@type": "Organization",
@@ -98,6 +99,23 @@ function page({
   extraGraph = [],
 }) {
   const canonical = `${siteUrl}${route}`;
+  const breadcrumbStructuredData = {
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Green Turtle Trades",
+        item: siteUrl,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: h1,
+        item: canonical,
+      },
+    ],
+  };
   return {
     route,
     outputPath: path.join(buildDir, route.replace(/^\//, ""), "index.html"),
@@ -116,12 +134,17 @@ function page({
           mainEntityOfPage: canonical,
         },
         websiteStructuredData,
+        breadcrumbStructuredData,
         {
           "@type": schemaType,
           name: h1,
           headline,
           url: canonical,
           description,
+          primaryImageOfPage: {
+            "@type": "ImageObject",
+            url: socialImageUrl,
+          },
           mainEntity:
             schemaType === "AboutPage"
               ? {
@@ -535,10 +558,35 @@ function buildRouteHtml(baseHtml, pageConfig) {
     /<meta\s+property="og:description"\s+content="[^"]*"\s*\/>/,
     `<meta property="og:description" content="${escapeAttribute(pageConfig.ogDescription)}" />`,
   );
+  html = html.replace(
+    /<meta\s+property="og:image"\s+content="[^"]*"\s*\/>\s*/g,
+    "",
+  );
+  html = html.replace(
+    /<meta\s+property="og:image:alt"\s+content="[^"]*"\s*\/>\s*/g,
+    "",
+  );
   html = replaceTag(
     html,
     /<meta\s+property="og:url"\s+content="[^"]*"\s*\/>/,
-    `<meta property="og:url" content="${pageConfig.canonical}" />`,
+    `<meta property="og:url" content="${pageConfig.canonical}" />
+    <meta property="og:image" content="${socialImageUrl}" />
+    <meta property="og:image:alt" content="Green Turtle Trades logo" />`,
+  );
+  html = html.replace(
+    /<meta\s+name="twitter:image"\s+content="[^"]*"\s*\/>\s*/g,
+    "",
+  );
+  html = html.replace(
+    /<meta\s+name="twitter:image:alt"\s+content="[^"]*"\s*\/>\s*/g,
+    "",
+  );
+  html = replaceTag(
+    html,
+    /<meta\s+name="twitter:card"\s+content="[^"]*"\s*\/>/,
+    `<meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="${socialImageUrl}" />
+    <meta name="twitter:image:alt" content="Green Turtle Trades logo" />`,
   );
   html = replaceTag(
     html,

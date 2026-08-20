@@ -1,6 +1,6 @@
 import { buildStructuredData } from "./structuredData";
 import { getSeoContentPage } from "./content";
-import { getCanonicalUrl, type ViewType } from "./routes";
+import { SITE_URL, getCanonicalUrl, type ViewType } from "./routes";
 
 type SeoMetadata = {
   title: string;
@@ -15,6 +15,8 @@ const defaultMetadata: SeoMetadata = {
   keywords:
     "green turtle trades, green turtle traders, trading analytics, trading journal, investment competition, trading competition, student investing competition, university competition leaderboard, trader rankings, trading performance",
 };
+
+const socialImageUrl = `${SITE_URL}/favicon-v2.png`;
 
 const pageMetadata: Partial<Record<ViewType, SeoMetadata>> = {
   landing: {
@@ -137,10 +139,14 @@ export function applySeoMetadata(view: ViewType) {
   setMetaProperty("og:type", "website");
   setMetaProperty("og:url", canonicalUrl);
   setMetaProperty("og:site_name", "Green Turtle Trades");
+  setMetaProperty("og:image", socialImageUrl);
+  setMetaProperty("og:image:alt", "Green Turtle Trades logo");
 
   setMetaName("twitter:card", "summary_large_image");
   setMetaName("twitter:title", metadata.title);
   setMetaName("twitter:description", metadata.description);
+  setMetaName("twitter:image", socialImageUrl);
+  setMetaName("twitter:image:alt", "Green Turtle Trades logo");
 
   const googleSiteVerification = import.meta.env.VITE_GOOGLE_SITE_VERIFICATION as string | undefined;
   if (googleSiteVerification) {

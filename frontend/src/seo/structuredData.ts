@@ -92,6 +92,37 @@ const websiteStructuredData = {
   },
 };
 
+function buildBreadcrumbStructuredData(view: ViewType) {
+  const url = getCanonicalUrl(view);
+  const contentPage = getSeoContentPage(view);
+  const pageName =
+    contentPage?.title ||
+    (view === "landing"
+      ? "Home"
+      : view
+          .split("-")
+          .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+          .join(" "));
+
+  return {
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Green Turtle Trades",
+        item: SITE_URL,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: pageName,
+        item: url,
+      },
+    ],
+  };
+}
+
 export function buildStructuredData(view: ViewType) {
   const contentPage = getSeoContentPage(view);
   if (contentPage) {
@@ -100,11 +131,16 @@ export function buildStructuredData(view: ViewType) {
       "@graph": [
         organizationStructuredData,
         websiteStructuredData,
+        buildBreadcrumbStructuredData(view),
         {
           "@type": "WebPage",
           name: contentPage.title,
           url: getCanonicalUrl(view),
           description: contentPage.description,
+          primaryImageOfPage: {
+            "@type": "ImageObject",
+            url: `${SITE_URL}/favicon-v2.png`,
+          },
           mainEntity:
             view === "seo-green-turtle-trades"
               ? {
@@ -143,6 +179,7 @@ export function buildStructuredData(view: ViewType) {
       "@graph": [
         organizationStructuredData,
         websiteStructuredData,
+        buildBreadcrumbStructuredData(view),
         {
           "@type": "AboutPage",
           name: "About Green Turtle Trades",
@@ -220,12 +257,17 @@ export function buildStructuredData(view: ViewType) {
       "@graph": [
         organizationStructuredData,
         websiteStructuredData,
+        buildBreadcrumbStructuredData(view),
         {
           "@type": "WebPage",
           name: "Green Turtle Trades",
           url: getCanonicalUrl(view),
           description:
             "Green Turtle Trades connects verified traders with investor capital and provides trading analytics, trade journal tools, transparent trader performance data, and a Scottish university investment competition.",
+          primaryImageOfPage: {
+            "@type": "ImageObject",
+            url: `${SITE_URL}/favicon-v2.png`,
+          },
           mainEntity: {
             "@id": `${SITE_URL}/#organization`,
           },
@@ -270,6 +312,7 @@ export function buildStructuredData(view: ViewType) {
       "@graph": [
         organizationStructuredData,
         websiteStructuredData,
+        buildBreadcrumbStructuredData(view),
         {
           "@type": "WebPage",
           name: "University Investment Competition Leaderboard Scotland",
@@ -278,6 +321,10 @@ export function buildStructuredData(view: ViewType) {
           url: getCanonicalUrl(view),
           description:
             "Scotland's next generation of investors, ranked live. A public university investment competition leaderboard from Green Turtle Trades showing Scottish university rankings, student trader scores, returns, win rate, risk, backers, and competition activity.",
+          primaryImageOfPage: {
+            "@type": "ImageObject",
+            url: `${SITE_URL}/favicon-v2.png`,
+          },
           isPartOf: {
             "@id": `${SITE_URL}/#website`,
           },
@@ -336,6 +383,7 @@ export function buildStructuredData(view: ViewType) {
       "@graph": [
         organizationStructuredData,
         websiteStructuredData,
+        buildBreadcrumbStructuredData(view),
         {
           "@type": "SoftwareApplication",
           name: "Turtle Analytics",
