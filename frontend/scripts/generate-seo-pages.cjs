@@ -232,12 +232,13 @@ const pages = [
     route: "/university-competition",
     title: "University Investment Competition Leaderboard Scotland | Green Turtle Trades",
     description:
-      "Follow the Green Turtle Trades University Investment Competition: live Scottish university rankings, student trader scores, returns, win rate, risk, backers, and competition activity.",
+      "Scotland's next generation of investors, ranked live. Follow the Green Turtle Trades University Investment Competition with Scottish university rankings, student trader scores, returns, win rate, risk, backers, and competition activity.",
     keywords:
-      "university investment competition, Scottish university investment competition, student investing competition Scotland, university competition leaderboard, student trader leaderboard, Scottish university trading competition, Green Turtle Trades competition, risk free investing competition, virtual trading competition",
+      "Scotland's next generation of investors, next generation investors Scotland, university investment competition, Scottish university investment competition, student investing competition Scotland, university competition leaderboard, student trader leaderboard, Scottish university trading competition, Green Turtle Trades competition, risk free investing competition, virtual trading competition",
+    headline: "Scotland's next generation of investors, ranked live.",
     h1: "University Investment Competition Leaderboard",
     paragraphs: [
-      "The Green Turtle Trades University Investment Competition helps visitors follow Scottish university competitors using live ranking data, individual trader scores, university scores, return metrics, risk labels, win rate, backers, and competition activity.",
+      "Scotland's next generation of investors, ranked live. The Green Turtle Trades University Investment Competition helps visitors follow Scottish university competitors using live ranking data, individual trader scores, university scores, return metrics, risk labels, win rate, backers, and competition activity.",
       "Students trade with virtual capital in a risk-free environment while universities compete on individual performance, active participation, disciplined risk, trader-backing activity, and overall team results.",
     ],
     topics: [

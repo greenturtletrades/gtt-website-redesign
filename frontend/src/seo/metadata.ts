@@ -34,9 +34,9 @@ const pageMetadata: Partial<Record<ViewType, SeoMetadata>> = {
   "turtle-traders": {
     title: "University Investment Competition Leaderboard Scotland | Green Turtle Trades",
     description:
-      "Follow the Green Turtle Trades University Investment Competition: live Scottish university rankings, student investing scores, trader returns, win rate, risk, backers, and competition activity.",
+      "Scotland's next generation of investors, ranked live. Follow the Green Turtle Trades University Investment Competition with Scottish university rankings, student trader scores, returns, win rate, risk, backers, and competition activity.",
     keywords:
-      "university investment competition, Scottish university investment competition, student investing competition Scotland, university competition leaderboard, student trader leaderboard, Scottish university trading competition, Green Turtle Trades competition, risk free investing competition, virtual trading competition",
+      "Scotland's next generation of investors, next generation investors Scotland, university investment competition, Scottish university investment competition, student investing competition Scotland, university competition leaderboard, student trader leaderboard, Scottish university trading competition, Green Turtle Trades competition, risk free investing competition, virtual trading competition",
   },
   "turtle-analytics": {
     title: "Trading Analytics and Trading Journal | Turtle Analytics",

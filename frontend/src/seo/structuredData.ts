@@ -273,10 +273,11 @@ export function buildStructuredData(view: ViewType) {
         {
           "@type": "WebPage",
           name: "University Investment Competition Leaderboard Scotland",
-          headline: "Scotland's next generation of investors, ranked live",
+          headline: "Scotland's next generation of investors, ranked live.",
+          alternativeHeadline: "Live Scottish university investment competition leaderboard",
           url: getCanonicalUrl(view),
           description:
-            "A public university investment competition leaderboard from Green Turtle Trades showing Scottish university rankings, student trader scores, returns, win rate, risk, backers, and competition activity.",
+            "Scotland's next generation of investors, ranked live. A public university investment competition leaderboard from Green Turtle Trades showing Scottish university rankings, student trader scores, returns, win rate, risk, backers, and competition activity.",
           isPartOf: {
             "@id": `${SITE_URL}/#website`,
           },
@@ -310,7 +311,7 @@ export function buildStructuredData(view: ViewType) {
               "@id": `${SITE_URL}/#organization`,
             },
             description:
-              "A Scottish university investment competition where students use virtual market capital and a separate trader-backing account to learn practical investing, risk control, and portfolio discipline.",
+              "Scotland's next generation of investors, ranked live through a Scottish university investment competition where students use virtual market capital and a separate trader-backing account to learn practical investing, risk control, and portfolio discipline.",
             audience: {
               "@type": "Audience",
               audienceType: "Scottish university students",
