@@ -233,22 +233,14 @@ function buildFallback({ h1, paragraphs }) {
               .join("\n            ")}
           </section>
           <section>
-            <h2>Key Green Turtle Trades pages</h2>
+            <h2>Primary Green Turtle Trades pages</h2>
             <ul>
               <li><a href="/">Green Turtle Trades homepage</a></li>
-              <li><a href="/about">About Green Turtle Trades</a></li>
-              <li><a href="/trading-journal">Trading Journal</a></li>
               <li><a href="/turtle-analytics">Turtle Analytics</a></li>
-              <li><a href="/trading-analytics">Trading Analytics</a></li>
+              <li><a href="/trading-journal">Trading Journal</a></li>
               <li><a href="/trading-education">Trading Education</a></li>
-              <li><a href="/trading-expectancy">Trading Expectancy</a></li>
-              <li><a href="/trading-drawdown">Trading Drawdown</a></li>
-              <li><a href="/profit-factor-trading">Profit Factor in Trading</a></li>
-              <li><a href="/risk-reward-ratio-trading">Risk/Reward Ratio in Trading</a></li>
-              <li><a href="/trader-verification-guide">Trader Verification Guide</a></li>
-              <li><a href="/university-competition">University Competition</a></li>
-              <li><a href="/verified-traders">Verified Traders</a></li>
               <li><a href="/methodology">Methodology</a></li>
+              <li><a href="/university-competition">University Competition</a></li>
             </ul>
           </section>
         </main>`;
@@ -496,9 +488,17 @@ const pages = [
       "Green Turtle Trades uses structured trading records, account-level summaries, risk metrics, and clearly labelled public data to make trader performance easier to evaluate.",
       "Verification means a trading record is supported by platform-recorded activity, connected account data, imported trade history, or in-house competition execution records. It does not mean Green Turtle Trades guarantees future performance, approves a trader as risk-free, or verifies every external statement a trader may make outside the platform.",
       "Green Turtle Trades can use in-house competition orders and executions, trader journal records, imported broker history, MetaTrader-connected history, account balance records, and platform activity logs depending on the product area.",
+      "Verification levels are labelled by data strength: Verified - Platform for in-house competition executions, Verified - Connected for broker or platform-connected history, Imported for trader-uploaded files, and Self-reported for manually entered information.",
+      "CSV imports can support private analytics, but they should not be treated like platform executions for public rankings.",
       "Realised P/L should come from closed trades. Unrealised P/L should come from open positions using the latest available market mark. Total P/L combines realised and unrealised values where appropriate.",
+      "For competition accounts, starting balance is the account starting balance, realised P/L is the sum of deduped closed-trade P/L, unrealised P/L is the sum of open-position P/L, total P/L is realised plus unrealised, equity is starting balance plus total P/L, and return percentage is total P/L divided by starting balance.",
+      "Competition trade count is based on closed competition trades after duplicate handling. Win rate is calculated from non-zero closed trades only: winning non-zero closed trades divided by all non-zero closed trades.",
+      "Profit factor is gross profit divided by absolute gross loss. Competition expectancy is based on average R-multiple where risk can be estimated, while broader analytics pages may also discuss currency or percentage expectancy for journal review.",
       "Risk analysis can consider drawdown, average risk per trade, leverage where available, missing stop-loss behaviour, open exposure, largest loss, and concentration. Risk labels are summary indicators, not investment recommendations.",
+      "The competition risk score blends average risk per trade, missing stop-loss rate, average leverage, largest loss percentage, and open exposure percentage.",
       "University competition rankings use in-house competition data and central scoring logic so public pages, the app, and admin views do not drift apart.",
+      "Individual competition scoring blends total return quality, trade quality from expectancy and win rate, participation, risk control, drawdown control, and consistency. Penalties apply for no market activity, negative return, drawdown above 15%, and high risk score.",
+      "Where trade records can arrive from more than one source, calculations should avoid counting duplicate executions as separate trades. Trade matching should use stable close-order identifiers where available and fall back to consistent fingerprints based on symbol, direction, P/L, return percentage, holding time, and exit date.",
       "Public rankings, analytics, trader summaries, and competition data are informational and should not be treated as financial advice or guarantees of future results.",
     ],
     topics: [
@@ -1434,6 +1434,7 @@ const pages = [
       "A small number of winning trades can create misleading confidence. A useful performance tracker should help traders judge whether results are backed by enough trades, whether wins and losses are consistent, and whether one outlier trade is doing too much of the work.",
       "Performance tracking is most useful when it links results to trader behaviour, notes, timing, market conditions, setup quality, and risk decisions.",
       "Performance pages should distinguish realised P/L from closed trades and unrealised P/L from open positions. Total performance is clearer when the source of each figure is labelled and calculated consistently.",
+      "A tracker becomes unreliable if the dashboard, journal, leaderboard, and admin tools all recalculate numbers differently. Green Turtle Trades treats the backend account projection as the source for realised P/L, unrealised P/L, total return, trade count, and equity-style summaries where those figures are shown publicly.",
       "Raw return is not enough. Turtle Analytics helps traders review performance alongside drawdown, risk per trade, exposure, leverage where available, profit factor, and expectancy so performance quality is easier to evaluate.",
       "Private tracking can include raw trades, notes, account history, and journal records. Public summaries should use controlled metrics such as return, win rate, trade count, risk, and drawdown without exposing private account details.",
     ],
@@ -1517,10 +1518,11 @@ const pages = [
     paragraphs: [
       "Risk management is central to serious trading. Green Turtle Trades helps traders review risk per trade, drawdown behaviour, open exposure, stop-loss discipline, leverage where available, expectancy, and performance consistency.",
       "Every trade has risk. The question is whether that risk is measured, controlled, and consistent with the trader's edge, account size, and trading plan.",
-      "Risk per trade shows how much of the account is exposed if a trade fails. Reviewing this metric across a full trade history helps traders see whether they are sizing positions consistently or allowing one trade to carry too much account risk.",
+      "Risk per trade shows how much of the account is exposed if a trade fails. Where a stop loss is available, risk can be estimated from the distance between entry and stop multiplied by size. Where stop data is missing, Green Turtle competition risk logic uses conservative fallback signals such as notional exposure and leverage.",
       "Drawdown shows how far performance falls from a previous equity high. Largest loss shows how much damage one trade created. Together, they help traders understand whether returns are being earned with acceptable downside or hidden blow-up risk.",
       "A risk workflow should show whether trades have planned exits, whether stop-loss behaviour is consistent, and whether average reward is large enough compared with average risk.",
       "Open exposure, correlated positions, leverage where available, and concentrated symbols can all increase account vulnerability. Turtle Analytics helps traders review exposure alongside realised performance.",
+      "The competition risk score blends average risk per trade, missing stop-loss rate, average leverage, largest loss percentage, and open exposure percentage. Lower risk scores receive better risk labels, while limited samples may be marked provisional or unrated.",
       "Green Turtle Trades treats risk as part of performance quality. Verified summaries, trader comparisons, and competition scoring should consider return alongside drawdown, sample size, exposure, and risk consistency rather than rewarding raw P/L alone.",
       "Risk labels and analytics are informational summaries. They are not financial advice and do not guarantee future performance.",
     ],
@@ -1607,6 +1609,8 @@ const pages = [
       "Expectancy connects directly to risk/reward. When a trader risks £100 to make £50, the win rate needs to be much higher than when a trader risks £100 to make £200.",
       "Expectancy is more useful when it is based on enough trades. A small sample can be distorted by one large win or loss, while a larger sample gives a clearer view of whether the trading process has a repeatable edge.",
       "Expectancy can be reviewed in currency terms, percentage terms, or R-multiple terms. R-multiple expectancy can be helpful because it normalizes outcomes by the amount risked on each trade.",
+      "Expectancy calculator example: if a trader wins 50% of trades, averages £120 on winners, and loses £70 on losers, expectancy is (0.50 x £120) - (0.50 x £70), which equals £25 per trade before costs and future market changes.",
+      "In the competition scoring model, expectancy is reviewed as average R-multiple from closed competition trades where risk can be estimated. It contributes to trade quality, but it does not override return, drawdown, risk control, consistency, or participation.",
       "Turtle Analytics connects expectancy with journal records, trade history, risk per trade, drawdown, holding time, and setup behaviour.",
       "Expectancy is based on historical data. It does not predict future trades, remove market risk, or guarantee returns.",
     ],
@@ -1706,6 +1710,8 @@ const pages = [
       "Realised drawdown comes from closed losses and account history. Unrealised drawdown can come from open positions moving against the trader.",
       "Two traders can both make 10%, but one may have experienced a 2% drawdown while another went through a 25% drawdown. The return number alone does not show how much downside risk was taken.",
       "The deeper a drawdown becomes, the larger the return needed to recover. A 10% drawdown needs about 11.1% to recover, while a 50% drawdown needs 100% to recover.",
+      "Approximate recovery requirements are: 5% drawdown needs 5.3% recovery, 10% needs 11.1%, 20% needs 25.0%, 30% needs 42.9%, 40% needs 66.7%, and 50% needs 100.0%.",
+      "Competition drawdown is calculated from the account equity path in chronological order. Closed trades move the realised equity curve, and unrealised P/L from open positions can also affect drawdown when the page represents full account performance.",
       "Turtle Analytics reviews drawdown alongside trade history, risk per trade, open exposure, leverage where available, holding time, expectancy, and journal records.",
       "Drawdown is based on available historical data. It does not predict the next loss, remove trading risk, or guarantee that future drawdown will be smaller.",
     ],

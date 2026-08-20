@@ -800,6 +800,11 @@ export const seoContentPages: SeoContentPage[] = [
           "Performance pages should distinguish realised P/L from closed trades and unrealised P/L from open positions. Total performance is clearer when the source of each figure is labelled and calculated consistently.",
       },
       {
+        title: "Use one calculation source",
+        body:
+          "A tracker becomes unreliable if the dashboard, journal, leaderboard, and admin tools all recalculate numbers differently. Green Turtle Trades treats the backend account projection as the source for realised P/L, unrealised P/L, total return, trade count, and equity-style summaries where those figures are shown publicly.",
+      },
+      {
         title: "Review risk-adjusted performance",
         body:
           "Raw return is not enough. Turtle Analytics helps traders review performance alongside drawdown, risk per trade, exposure, leverage where available, profit factor, and expectancy so performance quality is easier to evaluate.",
@@ -872,7 +877,7 @@ export const seoContentPages: SeoContentPage[] = [
       {
         title: "Risk per trade",
         body:
-          "Risk per trade shows how much of the account is exposed if a trade fails. Reviewing this metric across a full trade history helps traders see whether they are sizing positions consistently or allowing one trade to carry too much account risk.",
+          "Risk per trade shows how much of the account is exposed if a trade fails. Where a stop loss is available, risk can be estimated from the distance between entry and stop multiplied by size. Where stop data is missing, Green Turtle competition risk logic uses conservative fallback signals such as notional exposure and leverage.",
       },
       {
         title: "Drawdown and largest loss",
@@ -888,6 +893,11 @@ export const seoContentPages: SeoContentPage[] = [
         title: "Open exposure and leverage",
         body:
           "Risk does not only exist in closed trades. Open exposure, correlated positions, leverage where available, and concentrated symbols can all increase account vulnerability. Turtle Analytics helps traders review exposure alongside realised performance.",
+      },
+      {
+        title: "Competition risk score inputs",
+        body:
+          "The competition risk score blends average risk per trade, missing stop-loss rate, average leverage, largest loss percentage, and open exposure percentage. Lower risk scores receive better risk labels, while limited samples may be marked provisional or unrated.",
       },
       {
         title: "Use analytics to spot weak risk habits",
@@ -985,6 +995,16 @@ export const seoContentPages: SeoContentPage[] = [
           "Expectancy can be reviewed in currency terms, percentage terms, or R-multiple terms. R-multiple expectancy can be helpful because it normalizes outcomes by the amount risked on each trade.",
       },
       {
+        title: "Expectancy calculator example",
+        body:
+          "If a trader wins 50% of trades, averages £120 on winners, and loses £70 on losers, expectancy is (0.50 x £120) - (0.50 x £70), which equals £25 per trade before costs and future market changes.",
+      },
+      {
+        title: "Expectancy in the competition scoring model",
+        body:
+          "In the competition scoring model, expectancy is reviewed as average R-multiple from closed competition trades where risk can be estimated. It contributes to trade quality, but it does not override return, drawdown, risk control, consistency, or participation.",
+      },
+      {
         title: "How Turtle Analytics uses expectancy",
         body:
           "Turtle Analytics connects expectancy with journal records, trade history, risk per trade, drawdown, holding time, and setup behaviour. That helps traders see whether expectancy is coming from disciplined repeatable decisions or from isolated outlier trades.",
@@ -1068,6 +1088,16 @@ export const seoContentPages: SeoContentPage[] = [
         title: "Recovery math",
         body:
           "The deeper a drawdown becomes, the larger the return needed to recover. A 10% drawdown needs about 11.1% to recover, while a 50% drawdown needs 100% to recover. This is why controlling downside matters.",
+      },
+      {
+        title: "Drawdown recovery table",
+        body:
+          "Approximate recovery requirements are: 5% drawdown needs 5.3% recovery, 10% needs 11.1%, 20% needs 25.0%, 30% needs 42.9%, 40% needs 66.7%, and 50% needs 100.0%.",
+      },
+      {
+        title: "How competition drawdown is measured",
+        body:
+          "Competition drawdown is calculated from the account equity path in chronological order. Closed trades move the realised equity curve, and unrealised P/L from open positions can also affect drawdown when the page represents full account performance.",
       },
       {
         title: "How Turtle Analytics reviews drawdown",
@@ -1480,6 +1510,11 @@ export const seoContentPages: SeoContentPage[] = [
           "Green Turtle Trades can use several data sources depending on the product area: in-house competition orders and executions, trader journal records, imported broker history, MetaTrader-connected history, account balance records, and platform activity logs. Pages should state whether data is from live platform records, imported history, or public competition summaries.",
       },
       {
+        title: "Verification levels",
+        body:
+          "Green Turtle Trades separates data strength into practical labels: Verified - Platform for in-house competition executions, Verified - Connected for broker or platform-connected history, Imported for trader-uploaded files, and Self-reported for manually entered information. CSV imports can support private analytics, but they should not be treated like platform executions for public rankings.",
+      },
+      {
         title: "Public and private information",
         body:
           "Raw trade history, account details, personal information, and private journal notes should remain private unless a user or competition rule explicitly makes a summary public. Public pages should use summary statistics such as score, return, win rate, risk label, trade count, university ranking, and competition activity rather than exposing sensitive account data.",
@@ -1487,7 +1522,7 @@ export const seoContentPages: SeoContentPage[] = [
       {
         title: "Core performance metrics",
         body:
-          "Common metrics include realised return, unrealised return, total return, win rate, average return, profit factor, expectancy, drawdown, holding time, trade count, and risk score. Metrics should be calculated from the relevant account or competition dataset rather than being manually re-entered in the frontend.",
+          "Common metrics include realised return, unrealised return, total return, win rate, average return, profit factor, expectancy, drawdown, holding time, trade count, and risk score. Metrics should be calculated from the relevant backend account or competition dataset rather than being manually re-entered or recalculated differently in the frontend.",
       },
       {
         title: "Return and P/L treatment",
@@ -1495,9 +1530,29 @@ export const seoContentPages: SeoContentPage[] = [
           "Realised P/L should come from closed trades. Unrealised P/L should come from open positions using the latest available market mark. Total P/L combines realised and unrealised values where appropriate. If a page is based only on closed journal trades, it should be labelled as realised or journal-based rather than presented as full account P/L.",
       },
       {
+        title: "Competition account projection",
+        body:
+          "For competition accounts, starting balance is the account starting balance, realised P/L is the sum of deduped closed-trade P/L, unrealised P/L is the sum of open-position P/L, total P/L is realised plus unrealised, equity is starting balance plus total P/L, and return percentage is total P/L divided by starting balance.",
+      },
+      {
+        title: "Win rate and trade count",
+        body:
+          "Competition trade count is based on closed competition trades after duplicate handling. Win rate is calculated from non-zero closed trades only: winning non-zero closed trades divided by all non-zero closed trades. Zero-P/L closed trades can count toward closed-trade sample size but do not distort win-rate percentage.",
+      },
+      {
+        title: "Profit factor and expectancy",
+        body:
+          "Profit factor is gross profit divided by absolute gross loss. Competition expectancy is based on average R-multiple where risk can be estimated, while the broader analytics pages may also discuss currency or percentage expectancy for journal review.",
+      },
+      {
         title: "Risk and drawdown",
         body:
           "Risk analysis should consider drawdown, average risk per trade, leverage where available, missing stop-loss behaviour, open exposure, largest loss, and concentration. Drawdown should measure the fall from a previous equity high to a later low in the relevant dataset. Risk labels are summary indicators, not investment recommendations.",
+      },
+      {
+        title: "Risk score formula inputs",
+        body:
+          "The competition risk score blends average risk per trade, missing stop-loss rate, average leverage, largest loss percentage, and open exposure percentage. The label is Unrated when there is no activity, Low for lower risk scores, Medium for mid-range scores, and High for elevated scores, with provisional labels where sample size is limited.",
       },
       {
         title: "University competition calculations",
@@ -1505,9 +1560,14 @@ export const seoContentPages: SeoContentPage[] = [
           "University competition rankings use in-house competition data and central scoring logic. Individual scores, university scores, active participation, realised and unrealised return, backers, risk labels, and trade activity should come from the central competition calculation source so public pages, the app, and admin views do not drift apart.",
       },
       {
+        title: "Individual competition score inputs",
+        body:
+          "Individual competition scoring blends total return quality, trade quality from expectancy and win rate, participation, risk control, drawdown control, and consistency. Penalties apply for no market activity, negative return, drawdown above 15%, and high risk score.",
+      },
+      {
         title: "Data quality and duplication controls",
         body:
-          "Where trade records can arrive from more than one source, calculations should avoid counting duplicate executions as separate trades. Trade matching should use stable identifiers where available and fall back to consistent fingerprints based on symbol, direction, size, entry time, exit time, and execution details.",
+          "Where trade records can arrive from more than one source, calculations should avoid counting duplicate executions as separate trades. Trade matching should use stable close-order identifiers where available and fall back to consistent fingerprints based on symbol, direction, P/L, return percentage, holding time, and exit date.",
       },
       {
         title: "Limitations",
@@ -1535,6 +1595,16 @@ export const seoContentPages: SeoContentPage[] = [
         question: "How should realised and unrealised P/L be handled?",
         answer:
           "Realised P/L comes from closed trades. Unrealised P/L comes from open positions using the latest available market mark. Total P/L combines them only when the page is representing full account performance.",
+      },
+      {
+        question: "How is competition win rate calculated?",
+        answer:
+          "Competition win rate is calculated from non-zero closed trades: winning non-zero closed trades divided by all non-zero closed trades.",
+      },
+      {
+        question: "What inputs go into the competition risk score?",
+        answer:
+          "The risk score blends average risk per trade, missing stop-loss rate, average leverage, largest loss percentage, and open exposure percentage.",
       },
       {
         question: "Why does methodology matter for trader verification?",

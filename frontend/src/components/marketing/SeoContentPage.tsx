@@ -15,25 +15,79 @@ export function SeoContentPage({ view, onNavigate }: SeoContentPageProps) {
     return null;
   }
 
-  const relatedPages: Array<[string, ViewType]> = [
-    ["About Us", "about"],
-    ["Green Turtle Trades", "seo-green-turtle-trades"],
-    ["Trading Analytics", "seo-trading-analytics"],
-    ["Trading Education", "seo-trading-education"],
+  const defaultRelatedPages: Array<[string, ViewType]> = [
+    ["Turtle Analytics", "turtle-analytics"],
     ["Trading Journal", "seo-trading-journal"],
-    ["Trading Expectancy", "seo-trading-expectancy"],
-    ["Trading Drawdown", "seo-trading-drawdown"],
-    ["Profit Factor", "seo-profit-factor-trading"],
-    ["Risk/Reward Ratio", "seo-risk-reward-ratio-trading"],
-    ["Trader Verification Guide", "seo-trader-verification-guide"],
-    ["Verified Traders", "seo-verified-traders"],
+    ["Trading Education", "seo-trading-education"],
     ["Methodology", "seo-methodology"],
-    ["Trader Marketplace", "seo-trader-marketplace"],
-    ["Copy Trading Platform", "seo-copy-trading-platform"],
-    ["Trader Funding", "seo-trader-funding"],
-    ["Prop Firm Alternative", "seo-prop-firm-alternative"],
-    ["University Competition", "turtle-traders"],
   ];
+  const relatedPagesByView: Partial<Record<ViewType, Array<[string, ViewType]>>> = {
+    "seo-trading-analytics": [
+      ["Turtle Analytics", "turtle-analytics"],
+      ["Trading Journal", "seo-trading-journal"],
+      ["Trading Expectancy", "seo-trading-expectancy"],
+      ["Trading Drawdown", "seo-trading-drawdown"],
+      ["Profit Factor", "seo-profit-factor-trading"],
+      ["Trading Risk Management", "seo-trading-risk-management"],
+    ],
+    "seo-trading-journal": [
+      ["Turtle Analytics", "turtle-analytics"],
+      ["MT4 and MT5 Trading Journal", "seo-mt4-mt5-trading-journal"],
+      ["Trading Analytics", "seo-trading-analytics"],
+      ["Trading Performance Tracker", "seo-trading-performance-tracker"],
+      ["Trading Expectancy", "seo-trading-expectancy"],
+      ["Trading Risk Management", "seo-trading-risk-management"],
+    ],
+    "seo-trading-expectancy": [
+      ["Risk/Reward Ratio", "seo-risk-reward-ratio-trading"],
+      ["Profit Factor", "seo-profit-factor-trading"],
+      ["Trading Journal", "seo-trading-journal"],
+      ["Turtle Analytics", "turtle-analytics"],
+    ],
+    "seo-trading-drawdown": [
+      ["Trading Risk Management", "seo-trading-risk-management"],
+      ["Risk/Reward Ratio", "seo-risk-reward-ratio-trading"],
+      ["Trading Performance Tracker", "seo-trading-performance-tracker"],
+      ["Turtle Analytics", "turtle-analytics"],
+    ],
+    "seo-profit-factor-trading": [
+      ["Trading Expectancy", "seo-trading-expectancy"],
+      ["Risk/Reward Ratio", "seo-risk-reward-ratio-trading"],
+      ["Trading Analytics", "seo-trading-analytics"],
+      ["Turtle Analytics", "turtle-analytics"],
+    ],
+    "seo-risk-reward-ratio-trading": [
+      ["Trading Expectancy", "seo-trading-expectancy"],
+      ["Profit Factor", "seo-profit-factor-trading"],
+      ["Trading Risk Management", "seo-trading-risk-management"],
+      ["Turtle Analytics", "turtle-analytics"],
+    ],
+    "seo-verified-traders": [
+      ["Trader Verification Guide", "seo-trader-verification-guide"],
+      ["Methodology", "seo-methodology"],
+      ["Trading Performance Tracker", "seo-trading-performance-tracker"],
+      ["University Competition", "turtle-traders"],
+    ],
+    "seo-trader-verification-guide": [
+      ["Verified Traders", "seo-verified-traders"],
+      ["Methodology", "seo-methodology"],
+      ["Trading Analytics", "seo-trading-analytics"],
+      ["Trading Risk Management", "seo-trading-risk-management"],
+    ],
+    "seo-methodology": [
+      ["Trader Verification Guide", "seo-trader-verification-guide"],
+      ["Verified Traders", "seo-verified-traders"],
+      ["Trading Analytics", "seo-trading-analytics"],
+      ["University Competition", "turtle-traders"],
+    ],
+    "seo-mt4-mt5-trading-journal": [
+      ["Trading Journal", "seo-trading-journal"],
+      ["Turtle Analytics", "turtle-analytics"],
+      ["Trading Performance Tracker", "seo-trading-performance-tracker"],
+      ["Trader Verification Guide", "seo-trader-verification-guide"],
+    ],
+  };
+  const relatedPages = relatedPagesByView[view] || defaultRelatedPages;
 
   const featureIcons = [ShieldCheck, BarChart3, LineChart, CheckCircle2];
 
@@ -112,6 +166,99 @@ export function SeoContentPage({ view, onNavigate }: SeoContentPageProps) {
           })}
         </div>
       </section>
+
+      {view === "seo-trading-expectancy" ? (
+        <section className="bg-slate-950 px-4 py-14 text-white sm:px-6">
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-8 max-w-3xl">
+              <div className="text-xs font-medium uppercase tracking-[0.18em] text-teal-300">
+                Calculator example
+              </div>
+              <h2 className="mt-2 text-3xl">Trading expectancy calculation</h2>
+              <p className="mt-3 text-sm leading-relaxed text-slate-300">
+                Expectancy combines win rate with average win and average loss. This example uses fixed values so the formula is crawlable and easy to check.
+              </p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-4">
+              {[
+                ["Win rate", "50%"],
+                ["Average win", "£120"],
+                ["Average loss", "£70"],
+                ["Expectancy", "£25 / trade"],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-xl border border-white/10 bg-white/5 p-5">
+                  <p className="text-xs uppercase tracking-[0.14em] text-slate-400">{label}</p>
+                  <p className="mt-2 text-2xl text-white">{value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-5 rounded-xl border border-teal-400/30 bg-teal-400/10 p-5 text-sm text-teal-50">
+              Formula: (0.50 x £120) - (0.50 x £70) = £25 expected average outcome per trade before costs and market changes.
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {view === "seo-trading-drawdown" ? (
+        <section className="bg-slate-950 px-4 py-14 text-white sm:px-6">
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-8 max-w-3xl">
+              <div className="text-xs font-medium uppercase tracking-[0.18em] text-teal-300">
+                Recovery math
+              </div>
+              <h2 className="mt-2 text-3xl">Drawdown recovery table</h2>
+              <p className="mt-3 text-sm leading-relaxed text-slate-300">
+                The deeper the drawdown, the larger the return needed to recover back to the previous equity high.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {[
+                ["5%", "5.3%"],
+                ["10%", "11.1%"],
+                ["20%", "25.0%"],
+                ["30%", "42.9%"],
+                ["40%", "66.7%"],
+                ["50%", "100.0%"],
+              ].map(([drawdown, recovery]) => (
+                <div key={drawdown} className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-4">
+                  <span className="text-sm text-slate-300">{drawdown} drawdown</span>
+                  <span className="text-lg text-white">{recovery} recovery</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {view === "seo-methodology" ? (
+        <section className="bg-slate-950 px-4 py-14 text-white sm:px-6">
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-8 max-w-3xl">
+              <div className="text-xs font-medium uppercase tracking-[0.18em] text-teal-300">
+                Calculation reference
+              </div>
+              <h2 className="mt-2 text-3xl">Core metric formulas</h2>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              {[
+                ["Realised P/L", "Sum of closed-trade P/L after deduplication."],
+                ["Unrealised P/L", "Sum of open-position P/L using the latest available market mark."],
+                ["Total P/L", "Realised P/L plus unrealised P/L."],
+                ["Return %", "Total P/L divided by starting balance, multiplied by 100."],
+                ["Win rate", "Winning non-zero closed trades divided by all non-zero closed trades."],
+                ["Profit factor", "Gross profit divided by absolute gross loss."],
+                ["Max drawdown", "Largest peak-to-trough equity fall in the measured period."],
+                ["Risk score", "Blend of risk per trade, stop coverage, leverage, largest loss, and open exposure."],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-xl border border-white/10 bg-white/5 p-5">
+                  <p className="text-sm font-medium text-white">{label}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-300">{value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section className="bg-slate-50 px-4 py-14 sm:px-6">
         <div className="mx-auto max-w-4xl">
