@@ -1,4 +1,4 @@
-import { ChevronDown, ExternalLink, LogOut, Menu, X, Home, Brain, Trophy, BookOpen } from "lucide-react";
+import { ChevronDown, ExternalLink, LogOut, Menu, X, Home, Brain, Trophy } from "lucide-react";
 import { UserType, ViewType } from "../../App";
 import logoFull from "figma:asset/8db911c3a67b2195489de29cf1364c8b6b381bc4.png";
 import { useState, useEffect } from "react";
@@ -79,17 +79,6 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
                 Home
               </button>
               <button
-                onClick={() => onNavigate("about")}
-                className={`flex items-center gap-2 px-2 lg:px-4 py-2 rounded-lg transition-colors ${
-                  currentView === "about"
-                    ? "bg-teal-100 text-teal-700"
-                    : "text-slate-600 hover:text-teal-600"
-                }`}
-              >
-                <BookOpen className="w-4 h-4" />
-                About Us
-              </button>
-              <button
                 onClick={() => onNavigate("turtle-analytics")}
                 className={`flex items-center gap-2 px-2 lg:px-4 py-2 rounded-lg transition-colors ${
                   currentView === "turtle-analytics" 
@@ -167,17 +156,6 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
                 Home
               </button>
               <button
-                onClick={() => onNavigate("about")}
-                className={`flex items-center gap-2 px-2 lg:px-4 py-2 rounded-lg transition-colors ${
-                  currentView === "about"
-                    ? "bg-teal-100 text-teal-700"
-                    : "text-slate-600 hover:text-teal-600"
-                }`}
-              >
-                <BookOpen className="w-4 h-4" />
-                About Us
-              </button>
-              <button
                 onClick={() => onNavigate("turtle-analytics")}
                 className={`flex items-center gap-2 px-2 lg:px-4 py-2 rounded-lg transition-colors ${
                   currentView === "turtle-analytics" 
@@ -239,17 +217,6 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
                   Home
                 </button>
                 <button
-                  onClick={() => handleNavigation(() => onNavigate("about"))}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
-                    currentView === "about"
-                      ? "bg-teal-100 text-teal-700"
-                      : "text-slate-600 hover:bg-slate-50"
-                  }`}
-                >
-                  <BookOpen className="w-4 h-4" />
-                  About Us
-                </button>
-                <button
                   onClick={() => handleNavigation(() => onNavigate("turtle-analytics"))}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
                     currentView === "turtle-analytics" 
@@ -302,17 +269,6 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
                 >
                   <Home className="w-4 h-4" />
                   Home
-                </button>
-                <button
-                  onClick={() => handleNavigation(() => onNavigate("about"))}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
-                    currentView === "about"
-                      ? "bg-teal-100 text-teal-700"
-                      : "text-slate-600 hover:bg-slate-50"
-                  }`}
-                >
-                  <BookOpen className="w-4 h-4" />
-                  About Us
                 </button>
                 <button
                   onClick={() => handleNavigation(() => onNavigate("turtle-analytics"))}
