@@ -19,6 +19,7 @@ export type ViewType =
   | "seo-prop-firm-alternative"
   | "seo-trading-performance-tracker"
   | "seo-trading-risk-management"
+  | "seo-trading-expectancy"
   | "seo-mt4-mt5-trading-journal"
   | "seo-methodology"
   | "seo-investment-competition"
@@ -50,6 +51,7 @@ export const viewPaths: Partial<Record<ViewType, string>> = {
   "seo-prop-firm-alternative": "/prop-firm-alternative",
   "seo-trading-performance-tracker": "/trading-performance-tracker",
   "seo-trading-risk-management": "/trading-risk-management",
+  "seo-trading-expectancy": "/trading-expectancy",
   "seo-mt4-mt5-trading-journal": "/mt4-mt5-trading-journal",
   "seo-methodology": "/methodology",
   "seo-investment-competition": "/investment-competition",

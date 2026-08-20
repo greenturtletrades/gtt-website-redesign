@@ -72,6 +72,7 @@ const websiteStructuredData = {
     `${siteUrl}/trading-journal`,
     `${siteUrl}/turtle-analytics`,
     `${siteUrl}/trading-analytics`,
+    `${siteUrl}/trading-expectancy`,
     `${siteUrl}/university-competition`,
     competitionAppUrl,
     `${siteUrl}/verified-traders`,
@@ -234,6 +235,7 @@ function buildFallback({ h1, paragraphs }) {
               <li><a href="/trading-journal">Trading Journal</a></li>
               <li><a href="/turtle-analytics">Turtle Analytics</a></li>
               <li><a href="/trading-analytics">Trading Analytics</a></li>
+              <li><a href="/trading-expectancy">Trading Expectancy</a></li>
               <li><a href="/university-competition">University Competition</a></li>
               <li><a href="/verified-traders">Verified Traders</a></li>
               <li><a href="/methodology">Methodology</a></li>
@@ -1163,6 +1165,105 @@ const pages = [
             acceptedAnswer: {
               "@type": "Answer",
               text: "No. Risk labels and analytics are informational summaries. They are not financial advice and do not guarantee future performance.",
+            },
+          },
+        ],
+      },
+    ],
+  }),
+  page({
+    route: "/trading-expectancy",
+    title: "Trading Expectancy Explained | Green Turtle Trades",
+    description:
+      "Trading expectancy explained: formula, examples, win rate, average win, average loss, risk/reward, sample size, and how Turtle Analytics reviews expectancy.",
+    keywords:
+      "trading expectancy, expectancy trading, trading expectancy formula, trade expectancy, expectancy calculator trading, win rate risk reward, trading metrics",
+    h1: "Trading Expectancy",
+    headline: "Understand trading expectancy, win rate, average win, average loss, and risk/reward.",
+    paragraphs: [
+      "Trading expectancy helps traders understand the average expected outcome of a trade over a series of trades.",
+      "Trading expectancy estimates the average result a trader can expect per trade based on historical outcomes. It is useful because it looks beyond whether a trader wins often and asks whether the size of wins is large enough compared with the size of losses.",
+      "A common formula is: expectancy = (win rate x average win) - (loss rate x average loss). For example, if a trader wins 50% of trades, averages £120 on winners, and loses £70 on losers, expectancy is (0.50 x 120) - (0.50 x 70) = £25 per trade.",
+      "A trader can have a high win rate and still lose money if losses are much larger than wins. A trader can also have a lower win rate and still be profitable if average wins are meaningfully larger than average losses.",
+      "Expectancy connects directly to risk/reward. When a trader risks £100 to make £50, the win rate needs to be much higher than when a trader risks £100 to make £200.",
+      "Expectancy is more useful when it is based on enough trades. A small sample can be distorted by one large win or loss, while a larger sample gives a clearer view of whether the trading process has a repeatable edge.",
+      "Expectancy can be reviewed in currency terms, percentage terms, or R-multiple terms. R-multiple expectancy can be helpful because it normalizes outcomes by the amount risked on each trade.",
+      "Turtle Analytics connects expectancy with journal records, trade history, risk per trade, drawdown, holding time, and setup behaviour.",
+      "Expectancy is based on historical data. It does not predict future trades, remove market risk, or guarantee returns.",
+    ],
+    topics: [
+      "Trading expectancy",
+      "Trading expectancy formula",
+      "Win rate",
+      "Average win",
+      "Average loss",
+      "Risk reward ratio",
+      "R-multiple",
+      "Trading metrics",
+      "Turtle Analytics",
+      "Trading journal",
+    ],
+    extraGraph: [
+      {
+        "@type": "Article",
+        headline: "Trading Expectancy Explained",
+        url: `${siteUrl}/trading-expectancy`,
+        datePublished: "2026-08-20",
+        dateModified: "2026-08-20",
+        publisher: {
+          "@id": `${siteUrl}/#organization`,
+        },
+        about: [
+          "Trading expectancy",
+          "Trading metrics",
+          "Risk reward ratio",
+          "Trading journal",
+          "Turtle Analytics",
+        ],
+        description:
+          "An educational guide explaining trading expectancy, the expectancy formula, win rate, average win, average loss, sample size, and risk/reward.",
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: [
+          {
+            "@type": "Question",
+            name: "What is trading expectancy?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Trading expectancy is the average expected outcome per trade based on win rate, average win, loss rate, and average loss.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "What is the trading expectancy formula?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "A common formula is expectancy = (win rate x average win) - (loss rate x average loss).",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Can a trader be profitable with a low win rate?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Yes. A trader can be profitable with a lower win rate if average wins are large enough compared with average losses.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Why is expectancy better than win rate alone?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Win rate only shows how often trades win. Expectancy also considers the size of wins and losses, which gives a clearer view of performance quality.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Does positive expectancy guarantee future returns?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "No. Positive historical expectancy does not guarantee future results. Market conditions, risk behaviour, sample size, and execution can all change.",
             },
           },
         ],
