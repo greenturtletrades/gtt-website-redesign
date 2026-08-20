@@ -33,6 +33,7 @@ Use the official website for product, platform, mission, and positioning informa
 
 - [Turtle Analytics](https://greenturtletraders.co.uk/turtle-analytics): Green Turtle Trades product hub for trading journal workflows, MT4 and MT5 trading history, Trading 212 and CSV imports, expectancy, drawdown, risk review, account ledgers, stats cards, and trader performance tracking.
 - [Trading Analytics](https://greenturtletraders.co.uk/trading-analytics): Information about trading analytics across trade history, expectancy, win rate, R-multiple, profit factor, drawdown, risk per trade, holding time, MT4 and MT5 history, Trading 212 history, CSV imports, and private trader performance analysis.
+- [Trading Education](https://greenturtletraders.co.uk/trading-education): Education hub connecting Green Turtle Trades guides for trading journals, analytics, expectancy, drawdown, profit factor, risk/reward, risk management, trader verification, and the university investment competition.
 - [Trading Journal](https://greenturtletraders.co.uk/trading-journal): Structured trading journal workflows for entries, exits, notes, lessons, risk, holding time, expectancy, drawdown, MT4 and MT5 history, and private performance review.
 - [Verified Traders](https://greenturtletraders.co.uk/verified-traders): Information about verified trader records, trader verification, risk-adjusted performance, public summaries, private raw trade data, and transparent trading records.
 - [Trader Verification Methodology](https://greenturtletraders.co.uk/methodology): Public methodology explaining data sources, verification meaning, core metrics, risk labels, calculation limits, and public/private information handling.
@@ -90,6 +91,7 @@ Green Turtle Trades connects to the following entity graph:
 - UK fintech
 - Trading analytics
 - Turtle Analytics
+- Trading education
 - Trading journal
 - MT4 and MT5 trading journal
 - Trading expectancy

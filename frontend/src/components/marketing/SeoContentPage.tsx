@@ -19,6 +19,7 @@ export function SeoContentPage({ view, onNavigate }: SeoContentPageProps) {
     ["About Us", "about"],
     ["Green Turtle Trades", "seo-green-turtle-trades"],
     ["Trading Analytics", "seo-trading-analytics"],
+    ["Trading Education", "seo-trading-education"],
     ["Trading Journal", "seo-trading-journal"],
     ["Trading Expectancy", "seo-trading-expectancy"],
     ["Trading Drawdown", "seo-trading-drawdown"],

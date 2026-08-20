@@ -10,6 +10,7 @@ export type ViewType =
   | "risk-disclosure"
   | "contact"
   | "seo-trading-analytics"
+  | "seo-trading-education"
   | "seo-trading-journal"
   | "seo-verified-traders"
   | "seo-investor-capital"
@@ -46,6 +47,7 @@ export const viewPaths: Partial<Record<ViewType, string>> = {
   "risk-disclosure": "/risk-disclosure",
   contact: "/contact",
   "seo-trading-analytics": "/trading-analytics",
+  "seo-trading-education": "/trading-education",
   "seo-trading-journal": "/trading-journal",
   "seo-verified-traders": "/verified-traders",
   "seo-investor-capital": "/investor-capital-for-traders",

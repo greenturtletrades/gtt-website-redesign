@@ -199,6 +199,86 @@ export const seoContentPages: SeoContentPage[] = [
     ],
   },
   {
+    view: "seo-trading-education",
+    title: "Trading Education",
+    eyebrow: "Trading Education",
+    description:
+      "Trading education from Green Turtle Trades covering trading journals, analytics, expectancy, drawdown, profit factor, risk/reward, risk management, and trader verification.",
+    keywords:
+      "trading education, trading analytics education, trading journal guide, trading metrics, expectancy trading, drawdown trading, profit factor trading, risk reward trading, trader verification",
+    intro:
+      "Trading education should help traders understand their own decisions, risk, and performance quality. Green Turtle Trades groups its practical guides around trading journals, analytics, risk metrics, performance statistics, trader verification, and the university investment competition.",
+    sections: [
+      {
+        title: "Start with the trading journal",
+        body:
+          "A trading journal is the base layer. It records entries, exits, notes, lessons, risk, holding time, setups, and market context so traders can review decisions as well as outcomes.",
+      },
+      {
+        title: "Turn records into analytics",
+        body:
+          "Trading analytics turns journal and account history into metrics such as win rate, average return, profit factor, expectancy, drawdown, risk per trade, holding time, trade count, and consistency.",
+      },
+      {
+        title: "Understand expectancy",
+        body:
+          "Expectancy helps traders understand the average expected outcome of a trade by combining win rate, average win, average loss, and sample size. It is often more useful than win rate alone.",
+      },
+      {
+        title: "Understand drawdown",
+        body:
+          "Drawdown explains downside risk. It measures how far an account falls from a previous equity high and helps traders judge the risk behind a return figure.",
+      },
+      {
+        title: "Review profit factor and risk/reward",
+        body:
+          "Profit factor compares gross winning outcomes with gross losing outcomes. Risk/reward compares the amount risked with the expected or realised reward. Both metrics help explain payoff quality.",
+      },
+      {
+        title: "Keep risk management central",
+        body:
+          "Risk management is not separate from performance. Traders should review risk per trade, open exposure, leverage where available, stop-loss behaviour, largest loss, drawdown, and consistency.",
+      },
+      {
+        title: "Understand trader verification",
+        body:
+          "Trader verification should make performance harder to misunderstand. Good verification labels data sources, separates public summaries from private raw records, and makes calculation limits clear.",
+      },
+      {
+        title: "Learn through the university competition",
+        body:
+          "The Green Turtle Trades University Investment Competition gives Scottish students a risk-free environment to learn practical investing, portfolio discipline, risk control, and transparent performance review.",
+      },
+    ],
+    faqs: [
+      {
+        question: "What should new traders learn first?",
+        answer:
+          "New traders should start with journaling, risk per trade, drawdown, win rate, expectancy, and the difference between realised and unrealised performance.",
+      },
+      {
+        question: "Which trading metrics matter most?",
+        answer:
+          "Useful metrics include expectancy, win rate, profit factor, average win, average loss, risk/reward, drawdown, risk per trade, holding time, sample size, and consistency.",
+      },
+      {
+        question: "Why is trading education linked to analytics?",
+        answer:
+          "Analytics helps traders see whether their decisions are producing repeatable results or whether performance is being driven by outliers, weak risk control, or small sample size.",
+      },
+      {
+        question: "Does trading education guarantee better returns?",
+        answer:
+          "No. Trading education can improve understanding and review discipline, but it does not guarantee future returns or remove market risk.",
+      },
+      {
+        question: "How does Green Turtle Trades use education in the university competition?",
+        answer:
+          "The competition gives students virtual capital and public rankings so they can learn practical investing, risk control, and performance review without risking personal money.",
+      },
+    ],
+  },
+  {
     view: "seo-trading-journal",
     title: "Trading Journal",
     eyebrow: "Trading Journal",

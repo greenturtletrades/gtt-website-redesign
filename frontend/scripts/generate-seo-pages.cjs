@@ -72,6 +72,7 @@ const websiteStructuredData = {
     `${siteUrl}/trading-journal`,
     `${siteUrl}/turtle-analytics`,
     `${siteUrl}/trading-analytics`,
+    `${siteUrl}/trading-education`,
     `${siteUrl}/trading-expectancy`,
     `${siteUrl}/trading-drawdown`,
     `${siteUrl}/profit-factor-trading`,
@@ -239,6 +240,7 @@ function buildFallback({ h1, paragraphs }) {
               <li><a href="/trading-journal">Trading Journal</a></li>
               <li><a href="/turtle-analytics">Turtle Analytics</a></li>
               <li><a href="/trading-analytics">Trading Analytics</a></li>
+              <li><a href="/trading-education">Trading Education</a></li>
               <li><a href="/trading-expectancy">Trading Expectancy</a></li>
               <li><a href="/trading-drawdown">Trading Drawdown</a></li>
               <li><a href="/profit-factor-trading">Profit Factor in Trading</a></li>
@@ -771,6 +773,129 @@ const pages = [
             acceptedAnswer: {
               "@type": "Answer",
               text: "Open positions can be included when reviewing full account exposure, but unrealised performance should be labelled separately from realised closed-trade performance.",
+            },
+          },
+        ],
+      },
+    ],
+  }),
+  page({
+    route: "/trading-education",
+    title: "Trading Education | Green Turtle Trades",
+    description:
+      "Trading education from Green Turtle Trades covering trading journals, analytics, expectancy, drawdown, profit factor, risk/reward, risk management, and trader verification.",
+    keywords:
+      "trading education, trading analytics education, trading journal guide, trading metrics, expectancy trading, drawdown trading, profit factor trading, risk reward trading, trader verification",
+    h1: "Trading Education",
+    headline: "Practical trading education for journals, analytics, risk, performance metrics, and verification.",
+    paragraphs: [
+      "Trading education should help traders understand their own decisions, risk, and performance quality.",
+      "Green Turtle Trades groups its practical guides around trading journals, analytics, risk metrics, performance statistics, trader verification, and the university investment competition.",
+      "A trading journal is the base layer. It records entries, exits, notes, lessons, risk, holding time, setups, and market context so traders can review decisions as well as outcomes.",
+      "Trading analytics turns journal and account history into metrics such as win rate, average return, profit factor, expectancy, drawdown, risk per trade, holding time, trade count, and consistency.",
+      "Expectancy helps traders understand the average expected outcome of a trade by combining win rate, average win, average loss, and sample size.",
+      "Drawdown explains downside risk by measuring how far an account falls from a previous equity high.",
+      "Profit factor compares gross winning outcomes with gross losing outcomes. Risk/reward compares the amount risked with the expected or realised reward.",
+      "Risk management should include risk per trade, open exposure, leverage where available, stop-loss behaviour, largest loss, drawdown, and consistency.",
+      "Trader verification should label data sources, separate public summaries from private raw records, and make calculation limits clear.",
+      "The Green Turtle Trades University Investment Competition gives Scottish students a risk-free environment to learn practical investing, portfolio discipline, risk control, and transparent performance review.",
+    ],
+    topics: [
+      "Trading education",
+      "Trading journal",
+      "Trading analytics",
+      "Trading expectancy",
+      "Trading drawdown",
+      "Profit factor",
+      "Risk/reward ratio",
+      "Trading risk management",
+      "Trader verification",
+      "University investment competition",
+    ],
+    schemaType: "CollectionPage",
+    extraGraph: [
+      {
+        "@type": "Article",
+        headline: "Trading Education",
+        url: `${siteUrl}/trading-education`,
+        datePublished: "2026-08-20",
+        dateModified: "2026-08-20",
+        publisher: {
+          "@id": `${siteUrl}/#organization`,
+        },
+        about: [
+          "Trading education",
+          "Trading journals",
+          "Trading analytics",
+          "Trading risk management",
+          "Trader verification",
+        ],
+        description:
+          "A Green Turtle Trades education hub for trading journals, analytics, expectancy, drawdown, profit factor, risk/reward, risk management, trader verification, and the university investment competition.",
+      },
+      {
+        "@type": "ItemList",
+        name: "Green Turtle Trades Trading Education Guides",
+        url: `${siteUrl}/trading-education`,
+        itemListElement: [
+          [1, "Trading Journal", `${siteUrl}/trading-journal`],
+          [2, "Trading Analytics", `${siteUrl}/trading-analytics`],
+          [3, "Trading Expectancy", `${siteUrl}/trading-expectancy`],
+          [4, "Trading Drawdown", `${siteUrl}/trading-drawdown`],
+          [5, "Profit Factor in Trading", `${siteUrl}/profit-factor-trading`],
+          [6, "Risk/Reward Ratio in Trading", `${siteUrl}/risk-reward-ratio-trading`],
+          [7, "Trading Risk Management", `${siteUrl}/trading-risk-management`],
+          [8, "Trader Verification Guide", `${siteUrl}/trader-verification-guide`],
+          [9, "Trader Verification Methodology", `${siteUrl}/methodology`],
+          [10, "University Investment Competition", `${siteUrl}/university-competition`],
+        ].map(([position, name, item]) => ({
+          "@type": "ListItem",
+          position,
+          name,
+          item,
+        })),
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: [
+          {
+            "@type": "Question",
+            name: "What should new traders learn first?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "New traders should start with journaling, risk per trade, drawdown, win rate, expectancy, and the difference between realised and unrealised performance.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Which trading metrics matter most?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Useful metrics include expectancy, win rate, profit factor, average win, average loss, risk/reward, drawdown, risk per trade, holding time, sample size, and consistency.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Why is trading education linked to analytics?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Analytics helps traders see whether their decisions are producing repeatable results or whether performance is being driven by outliers, weak risk control, or small sample size.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Does trading education guarantee better returns?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "No. Trading education can improve understanding and review discipline, but it does not guarantee future returns or remove market risk.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "How does Green Turtle Trades use education in the university competition?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "The competition gives students virtual capital and public rankings so they can learn practical investing, risk control, and performance review without risking personal money.",
             },
           },
         ],
