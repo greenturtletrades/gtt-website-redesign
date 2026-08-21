@@ -464,7 +464,7 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
           {liveTrades.length ? (
             <div className="mt-3 space-y-2">
               {liveTrades.map((trade) => (
-                <div key={trade.id} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 p-3">
+                <div key={trade.id} className="flex items-center gap-3 rounded-lg bg-slate-50 p-3">
                   <div className="flex min-w-0 items-center gap-3">
                     <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${trade.side === "SHORT" ? "bg-rose-50 text-rose-700" : "bg-teal-50 text-teal-700"}`}>
                       {trade.side === "SHORT" ? <ArrowDownRight className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
@@ -475,11 +475,6 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
                         {trade.side} · Active trade
                       </p>
                     </div>
-                  </div>
-                  <div className="flex-shrink-0 text-right">
-                    <p className="text-sm font-semibold" style={signedValueTextStyle(trade.pnlPercent)}>
-                      {formatSignedPercent(trade.pnlPercent)}
-                    </p>
                   </div>
                 </div>
               ))}
