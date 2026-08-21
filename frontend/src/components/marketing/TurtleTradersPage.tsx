@@ -496,7 +496,9 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
         </div>
         {recentTrades.length ? (
           <div className="space-y-2">
-            {recentTrades.map((trade) => (
+            {recentTrades.map((trade) => {
+              const displayPercent = trade.accountReturnPercent ?? trade.pnlPercent;
+              return (
               <div key={trade.id} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 p-3">
                 <div className="flex min-w-0 items-center gap-3">
                   <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${trade.side === "SHORT" ? "bg-rose-50 text-rose-700" : "bg-teal-50 text-teal-700"}`}>
@@ -510,12 +512,13 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
                   </div>
                 </div>
                 <div className="flex-shrink-0 text-right">
-                  <p className="text-sm font-semibold" style={signedValueTextStyle(trade.pnlPercent)}>
-                    {formatSignedPercent(trade.pnlPercent)}
+                  <p className="text-sm font-semibold" style={signedValueTextStyle(displayPercent)}>
+                    {formatSignedPercent(displayPercent)}
                   </p>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">

@@ -12,6 +12,9 @@ export interface PublicRecentTrade {
   status: string;
   pnl: number;
   pnlPercent: number;
+  tradeReturnPercent: number;
+  accountReturnPercent: number | null;
+  accountReturnBase: number | null;
   entryTime: string | null;
   exitTime: string | null;
   closeReason: string | null;
