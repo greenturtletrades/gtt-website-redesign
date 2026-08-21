@@ -498,6 +498,7 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
           <div className="space-y-2">
             {recentTrades.map((trade) => {
               const displayPercent = trade.accountReturnPercent ?? trade.pnlPercent;
+              const tradePercent = trade.tradeReturnPercent ?? trade.pnlPercent;
               return (
               <div key={trade.id} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 p-3">
                 <div className="flex min-w-0 items-center gap-3">
@@ -514,6 +515,9 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
                 <div className="flex-shrink-0 text-right">
                   <p className="text-sm font-semibold" style={signedValueTextStyle(displayPercent)}>
                     {formatSignedPercent(displayPercent)}
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Trade {formatSignedPercent(tradePercent)}
                   </p>
                 </div>
               </div>
