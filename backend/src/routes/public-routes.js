@@ -270,6 +270,7 @@ function normalizeCompetitionLeaderboardRow(trader, index) {
   const recentTrades = Array.isArray(data.recentTrades)
     ? data.recentTrades.map(normalizePublicTrade).filter(Boolean).slice(0, 5)
     : [];
+  const publicLiveTrades = liveTrades.map(normalizePublicTrade).filter(Boolean).slice(0, 5);
 
   return {
     rank: index + 1,
@@ -291,6 +292,7 @@ function normalizeCompetitionLeaderboardRow(trader, index) {
     mainAssets,
     performanceData,
     recentTrades,
+    liveTrades: publicLiveTrades,
     lastUpdatedAt: data.updatedAt || data.lastUpdatedAt || null,
   };
 }

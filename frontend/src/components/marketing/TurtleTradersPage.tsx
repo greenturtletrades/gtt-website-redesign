@@ -220,7 +220,9 @@ function buildPerformancePath(points: Array<{ value: number }>) {
 
 function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow; onBack: () => void }) {
   const totalReturnPositive = trader.totalReturnPercent >= 0;
-  const hasOpenTrades = trader.openTrades > 0;
+  const liveTrades = Array.isArray(trader.liveTrades) ? trader.liveTrades : [];
+  const openTradeCount = Math.max(trader.openTrades || 0, liveTrades.length);
+  const hasOpenTrades = openTradeCount > 0;
   const [showAdvancedPrompt, setShowAdvancedPrompt] = useState(false);
   const performancePoints = Array.isArray(trader.performanceData) ? trader.performanceData.filter((point) => Number.isFinite(point.value)) : [];
   const performanceValues = performancePoints.map((point) => point.value).filter(Number.isFinite);
@@ -454,11 +456,35 @@ function PublicTraderProfile({ trader, onBack }: { trader: PublicLeaderboardRow;
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-slate-950">Live Trades</h3>
-            <span className="text-xs text-slate-500">{trader.openTrades} open</span>
+            <span className="text-xs text-slate-500">{openTradeCount} open</span>
           </div>
           <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
-            {trader.openTrades} active competition {trader.openTrades === 1 ? "trade" : "trades"} currently contribute to unrealized return.
+            {openTradeCount} active competition {openTradeCount === 1 ? "trade" : "trades"} currently contribute to unrealized return.
           </div>
+          {liveTrades.length ? (
+            <div className="mt-3 space-y-2">
+              {liveTrades.map((trade) => (
+                <div key={trade.id} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 p-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${trade.side === "SHORT" ? "bg-rose-50 text-rose-700" : "bg-teal-50 text-teal-700"}`}>
+                      {trade.side === "SHORT" ? <ArrowDownRight className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-slate-950">{trade.symbol}</p>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        {trade.side} · Active trade
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex-shrink-0 text-right">
+                    <p className="text-sm font-semibold" style={signedValueTextStyle(trade.pnlPercent)}>
+                      {formatSignedPercent(trade.pnlPercent)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
       ) : null}
 

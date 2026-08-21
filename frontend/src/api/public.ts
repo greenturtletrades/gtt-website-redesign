@@ -17,6 +17,8 @@ export interface PublicRecentTrade {
   closeReason: string | null;
 }
 
+export type PublicLiveTrade = PublicRecentTrade;
+
 export interface PublicLeaderboardRow {
   rank: number;
   id: string;
@@ -37,6 +39,7 @@ export interface PublicLeaderboardRow {
   mainAssets: string[];
   performanceData: PublicPerformancePoint[];
   recentTrades: PublicRecentTrade[];
+  liveTrades: PublicLiveTrade[];
   lastUpdatedAt: string | null;
 }
 
