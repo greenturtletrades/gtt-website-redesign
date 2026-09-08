@@ -616,7 +616,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
     ));
     const sorted = searched.slice();
     if (sortBy === "topPerformers") {
-      sorted.sort((a, b) => b.score - a.score || b.totalReturnPercent - a.totalReturnPercent || b.totalTrades - a.totalTrades);
+      sorted.sort((a, b) => a.rank - b.rank);
     } else if (sortBy === "winRate") {
       sorted.sort((a, b) => b.winRate - a.winRate || b.score - a.score);
     } else if (sortBy === "returns") {
@@ -896,7 +896,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                         >
                           <div className="flex items-start gap-3 sm:gap-4">
                             <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${showRankBadge ? rankBadgeClass(index) : "bg-teal-50 text-teal-700"}`}>
-                              {showRankBadge && index < 3 ? <span className="text-xl">{rankBadge(index + 1)}</span> : showRankBadge ? <span className="text-sm font-semibold">#{index + 1}</span> : <span className="text-base font-semibold">{trader.initials}</span>}
+                              {showRankBadge && trader.rank <= 3 ? <span className="text-xl">{rankBadge(trader.rank)}</span> : showRankBadge ? <span className="text-sm font-semibold">#{trader.rank}</span> : <span className="text-base font-semibold">{trader.initials}</span>}
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="mb-1 flex items-start justify-between gap-2">
