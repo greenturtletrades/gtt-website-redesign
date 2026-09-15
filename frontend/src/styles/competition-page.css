@@ -1,0 +1,47 @@
+.competition-follow {
+  margin: 28px auto 0;
+  text-align: center;
+}
+
+.competition-follow-link {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  border-radius: 8px;
+  color: #0f766e;
+  text-decoration: none;
+}
+
+.competition-follow-link img {
+  display: block;
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+}
+
+.competition-follow-link span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.competition-follow-link:hover span {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.competition-follow-link:focus-visible {
+  outline: 2px solid #0f766e;
+  outline-offset: 5px;
+}
+
+.competition-follow p {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #475569;
+}

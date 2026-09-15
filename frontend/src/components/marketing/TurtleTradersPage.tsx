@@ -17,6 +17,9 @@ import {
   Wallet,
 } from "lucide-react";
 import { Footer } from "./Footer";
+import { InvestmentSocieties } from "./InvestmentSocieties";
+import appLogo from "../../assets/b6c202d5578e49b4e66e1eefc40188c94fca514e.png";
+import "../../styles/competition-page.css";
 import { fetchPublicLeaderboard } from "../../api/public";
 import type { PublicCompetitionOverview, PublicLeaderboardRow, PublicUniversityLeaderboardRow } from "../../api/public";
 import type { ViewType } from "../../seo/routes";
@@ -647,14 +650,32 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
             <h1 className="mx-auto max-w-4xl text-4xl leading-tight text-slate-950 sm:text-5xl md:text-6xl">
               Scotland&apos;s next generation of investors, ranked live.
             </h1>
+          </div>
+
+          <InvestmentSocieties />
+
+          <div className="mx-auto max-w-5xl text-center">
             <p className="mx-auto mt-5 max-w-3xl text-base font-medium leading-8 text-slate-700 sm:text-lg">
               The university competition gives Scottish students a risk-free place to learn practical investing,
               build discipline, and gain market experience before real capital is on the line. The leaderboard below
               is powered by live in-house competition data from the Green Turtle platform.
             </p>
+            <div className="competition-follow">
+              <a
+                className="competition-follow-link"
+                href={competitionAppUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Follow the competition (opens in a new tab)"
+              >
+                <img src={appLogo} alt="Green Turtle Trades app" width={64} height={64} />
+                <span>Follow the competition <ExternalLink size={14} aria-hidden="true" /></span>
+              </a>
+              <p>Not at university? You can still follow the competition.</p>
+            </div>
           </div>
 
-          <div className="mx-auto mt-10 grid max-w-6xl gap-4 md:grid-cols-2">
+          <div className="mx-auto mt-10 grid max-w-6xl gap-4 md:grid-cols-2" style={{ marginTop: 40 }}>
               <div className="relative overflow-hidden rounded-2xl border border-teal-200/80 bg-white/90 p-5 text-left shadow-[0_18px_44px_rgba(15,107,69,0.10)] backdrop-blur">
                 <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-teal-600 via-emerald-500 to-cyan-500" />
                 <div className="flex items-start justify-between gap-4">

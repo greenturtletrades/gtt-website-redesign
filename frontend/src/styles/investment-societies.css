@@ -1,0 +1,93 @@
+.investment-societies {
+  max-width: 1152px;
+  margin: 32px auto;
+}
+
+.investment-societies-heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.investment-societies-heading h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: #475569;
+}
+
+.investment-societies-viewport {
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent, black 4%, black 96%, transparent);
+}
+
+.investment-societies-track {
+  display: flex;
+  width: max-content;
+  animation: society-scroll 65s linear infinite;
+}
+
+.investment-societies-group {
+  display: flex;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.investment-societies-logo {
+  display: grid;
+  place-items: center;
+  flex: 0 0 180px;
+  width: 180px;
+  height: 120px;
+}
+
+.investment-societies-logo img {
+  display: block;
+  width: 104px;
+  height: 104px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+@keyframes society-scroll {
+  to { transform: translateX(-50%); }
+}
+
+@media (max-width: 640px) {
+  .investment-societies-logo {
+    flex-basis: 140px;
+    width: 140px;
+    height: 108px;
+  }
+
+  .investment-societies-logo img {
+    width: 96px;
+    height: 96px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .investment-societies-track {
+    width: 100%;
+    animation: none;
+  }
+
+  .investment-societies-group {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .investment-societies-group[aria-hidden="true"] {
+    display: none;
+  }
+
+  .investment-societies-viewport {
+    mask-image: none;
+  }
+}
