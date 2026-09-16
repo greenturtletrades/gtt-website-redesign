@@ -1,4 +1,5 @@
 import { motion } from "motion/react";
+import { ArrowRight } from "lucide-react";
 
 interface HeroProps {
   onTraderClick: () => void;
@@ -63,10 +64,13 @@ export function Hero({ onTraderClick, onApplyClick, onScrollToWaitingList }: Her
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="text-slate-600 max-w-3xl mx-auto mb-8 sm:mb-12 text-base sm:text-lg md:text-xl leading-relaxed px-4"
+          className="text-slate-600 max-w-3xl mx-auto mb-4 text-base sm:text-lg md:text-xl leading-relaxed px-4"
         >
-          Green Turtle Trades provides trading analytics, trading journal tools, verified performance records, and a Scottish university investment competition while building toward trader-backed investing.
+          Trading talent deserves to be seen. We're building a platform where traders can prove their skill and investors can understand the people behind the performance.
         </motion.p>
+        <p className="text-slate-600 max-w-2xl mx-auto mb-8 sm:mb-12 text-sm sm:text-base leading-relaxed px-4">
+          Explore our trading journal, analytics, and university competition today. Investor-backed trading is in development.
+        </p>
         
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
@@ -75,24 +79,20 @@ export function Hero({ onTraderClick, onApplyClick, onScrollToWaitingList }: Her
           className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-stretch sm:items-center max-w-md sm:max-w-none mx-auto px-4"
         >
           <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
             onClick={onApplyClick}
-            className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl hover:from-teal-700 hover:to-cyan-700 transition-all sm:min-w-[200px] shadow-xl hover:shadow-2xl text-base sm:text-lg"
+            className="home-brand-button"
           >
-            Apply as a Trader
+            Apply as a Trader <ArrowRight size={18} aria-hidden="true" />
           </motion.button>
           <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
             onClick={onScrollToWaitingList}
-            className="border border-slate-300 text-slate-700 px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl hover:border-teal-300 hover:text-teal-700 transition-all sm:min-w-[200px] text-base sm:text-lg"
+            className="home-brand-button home-brand-button-secondary"
           >
-            Investor Waitlist
+            Investor Waitlist <ArrowRight size={18} aria-hidden="true" />
           </motion.button>
         </motion.div>
 
-        {/* Trust indicators */}
+        {/* Product areas */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -101,15 +101,15 @@ export function Hero({ onTraderClick, onApplyClick, onScrollToWaitingList }: Her
         >
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-teal-500 rounded-full animate-pulse"></div>
-            <span>Secure Platform</span>
+            <span>Trading Analytics</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></div>
-            <span>Verified Traders</span>
+            <span>Performance Records</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-            <span>Real-Time Data</span>
+            <span>University Competition</span>
           </div>
         </motion.div>
       </div>

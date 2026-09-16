@@ -1,0 +1,67 @@
+/* This background utility is absent from the checked-in Tailwind stylesheet. */
+.seo-content-page .bg-slate-950 { background-color: #020617; }
+.seo-content-page button.bg-slate-950 { background-color: #a7f3d0; color: #064e3b; }
+.seo-content-page button.bg-slate-950:hover { background-color: #6ee7b7; }
+.seo-content-page button:focus-visible { outline: 2px solid #0891b2; outline-offset: 4px; }
+
+.seo-content-page { color: #142e2b; }
+.seo-content-page h1,
+.seo-content-page h2,
+.seo-content-page h3,
+.seo-content-page p { letter-spacing: 0; }
+.seo-content-page [id] { scroll-margin-top: 110px; }
+.seo-article-header {
+  padding: 64px 24px 56px;
+  background: #f0f8f5;
+  border-bottom: 1px solid #dbe8e3;
+}
+.seo-article-header-inner { max-width: 1152px; margin: 0 auto; }
+.seo-article-header h1 { max-width: 900px; font-weight: 600; }
+.seo-article-header p { max-width: 780px; font-size: 20px; line-height: 1.75; color: #445b56; }
+.seo-content-page > section button { min-height: 46px; font-size: 16px; }
+.seo-reading-layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 72px;
+  max-width: 1200px;
+  padding: 56px 24px 64px;
+  margin: 0 auto;
+}
+.seo-section-index { position: sticky; top: 110px; max-height: calc(100dvh - 134px); overflow-y: auto; }
+.seo-section-index > p { font-size: 14px; font-weight: 600; color: #526962; margin-bottom: 16px; }
+.seo-section-index a {
+  display: flex;
+  gap: 12px;
+  border-left: 2px solid #e1eae6;
+  padding: 11px 14px;
+  color: #445b56;
+  font-size: 15px;
+  line-height: 1.5;
+  text-decoration: none;
+}
+.seo-section-index a span { color: #16816e; font-size: 12px; padding-top: 3px; }
+.seo-section-index a:hover { color: #065f46; border-color: #10b981; background: #f0f8f5; }
+.seo-section-index a:focus-visible { outline: 2px solid #0891b2; outline-offset: 2px; }
+.seo-reading-section { padding: 32px 0; border-bottom: 1px solid #e1eae6; }
+.seo-reading-section:first-child { padding-top: 0; }
+.seo-reading-section:last-child { border-bottom: 0; padding-bottom: 0; }
+.seo-section-heading { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.seo-section-icon { display: grid; place-items: center; flex: 0 0 42px; height: 42px; border-radius: 8px; background: #e9f6f1; color: #087866; }
+.seo-section-heading h2 { font-size: 26px; font-weight: 600; line-height: 1.3; }
+.seo-reading-section > p { font-size: 18px; line-height: 1.85; color: #445b56; }
+.seo-questions { border-top: 1px solid #e1eae6; border-bottom: 1px solid #e1eae6; }
+.seo-content-page > section:not(.seo-article-header) { padding: 56px 24px; }
+.seo-question { padding: 24px 0; border-bottom: 1px solid #dce5e1; }
+.seo-question:last-child { border-bottom: 0; }
+.seo-question h3 { font-size: 20px; font-weight: 600; line-height: 1.5; }
+.seo-question p { font-size: 18px; line-height: 1.8; max-width: 780px; }
+.seo-content-page .rounded-xl { border-radius: 8px; }
+@media (max-width: 800px) {
+  .seo-article-header { padding: 40px 20px; }
+  .seo-article-header h1 { font-size: 36px; overflow-wrap: break-word; }
+  .seo-article-header p { font-size: 18px; }
+  .seo-reading-layout { grid-template-columns: minmax(0, 1fr); gap: 36px; padding: 32px 20px 48px; }
+  .seo-section-index { position: static; max-height: none; overflow: visible; }
+  .seo-section-index a { padding-top: 9px; padding-bottom: 9px; }
+  .seo-section-heading h2 { font-size: 24px; }
+}

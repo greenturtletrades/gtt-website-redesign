@@ -2,12 +2,9 @@ import { Brain, TrendingUp, Target, Zap, BarChart3, RefreshCw, GitBranch, Shield
 import { motion, useInView } from "motion/react";
 import { useRef } from "react";
 
-export function TurtleAnalyticsFeature({ mlEnabled = false }: { mlEnabled?: boolean }) {
+export function TurtleAnalyticsFeature({ mlEnabled = false, onExplore }: { mlEnabled?: boolean; onExplore?: () => void }) {
   const headerRef = useRef(null);
   const headerInView = useInView(headerRef, { once: true, amount: 0.3 });
-
-  const conceptRef = useRef(null);
-  const conceptInView = useInView(conceptRef, { once: true, amount: 0.3 });
 
   const featuresRef = useRef(null);
   const featuresInView = useInView(featuresRef, { once: true, amount: 0.1 });
@@ -16,47 +13,22 @@ export function TurtleAnalyticsFeature({ mlEnabled = false }: { mlEnabled?: bool
   const improvementInView = useInView(improvementRef, { once: true, amount: 0.3 });
 
   return (
-    <section className="w-full bg-gradient-to-br from-slate-900 via-teal-900 to-slate-900 py-16 sm:py-24 px-4 sm:px-6 overflow-hidden relative">
-      {/* Animated background elements */}
-      <motion.div
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0.1, 0.2, 0.1],
-        }}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-        className="absolute top-20 left-10 w-96 h-96 bg-teal-500 rounded-full blur-3xl"
-      />
-      <motion.div
-        animate={{
-          scale: [1.2, 1, 1.2],
-          opacity: [0.1, 0.2, 0.1],
-        }}
-        transition={{
-          duration: 10,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-        className="absolute bottom-20 right-10 w-96 h-96 bg-emerald-500 rounded-full blur-3xl"
-      />
+    <section className="home-analytics">
 
-      <div className="max-w-7xl mx-auto relative z-10">
+      <div className="home-section-inner">
         {/* Header */}
         <motion.div
           ref={headerRef}
           initial={{ opacity: 0, y: 50 }}
           animate={headerInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8 }}
-          className="text-center mb-12 sm:mb-16"
+          className="home-section-heading home-analytics-heading"
         >
           <motion.h2
             initial={{ opacity: 0, y: 30 }}
             animate={headerInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-white mb-4 text-3xl sm:text-4xl md:text-5xl"
+            className="home-analytics-title"
           >
             Turtle Analytics: Trading Analytics and Trading Journal
           </motion.h2>
@@ -64,7 +36,7 @@ export function TurtleAnalyticsFeature({ mlEnabled = false }: { mlEnabled?: bool
             initial={{ opacity: 0, scale: 0.8 }}
             animate={headerInView ? { opacity: 1, scale: 1 } : {}}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="inline-flex items-center gap-2 bg-teal-500/20 text-teal-300 px-4 py-2 rounded-full mb-4 border border-teal-500/30"
+            className="home-analytics-powered"
           >
             <Brain className="w-4 h-4" />
             <span className="text-sm">Powered by Machine Learning</span>
@@ -82,7 +54,7 @@ export function TurtleAnalyticsFeature({ mlEnabled = false }: { mlEnabled?: bool
         </motion.div>
 
         {/* Core Features */}
-        <div ref={featuresRef} className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 mb-12">
+        <div ref={featuresRef} className="home-analytics-grid">
           {[
             {
               icon: GitBranch,
@@ -136,14 +108,12 @@ export function TurtleAnalyticsFeature({ mlEnabled = false }: { mlEnabled?: bool
                 initial={{ opacity: 0, y: 50 }}
                 animate={featuresInView ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.6, delay: i * 0.1 }}
-                whileHover={{ y: -10, scale: 1.02 }}
-                className="bg-white/5 border border-teal-500/30 rounded-2xl p-6 sm:p-8 backdrop-blur-sm hover:bg-white/10 transition-all group"
+                className="home-analytics-feature"
               >
-                <div className="flex items-center gap-3 mb-4">
+                <div className="home-analytics-feature-heading">
                   <motion.div
-                    whileHover={{ rotate: 360 }}
                     transition={{ duration: 0.6 }}
-                    className={`w-12 h-12 bg-gradient-to-br ${feature.gradient} rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform`}
+                    className="home-analytics-icon"
                   >
                     <Icon className="w-6 h-6 text-white" />
                   </motion.div>
@@ -160,7 +130,7 @@ export function TurtleAnalyticsFeature({ mlEnabled = false }: { mlEnabled?: bool
                     feature.description
                   )}
                 </p>
-                <div className="space-y-3">
+                <div className="home-analytics-points">
                   {feature.features.map((item, j) => (
                     <motion.div
                       key={j}
@@ -188,10 +158,10 @@ export function TurtleAnalyticsFeature({ mlEnabled = false }: { mlEnabled?: bool
           initial={{ opacity: 0, y: 50 }}
           animate={improvementInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8 }}
-          className="bg-gradient-to-br from-teal-500/10 to-emerald-500/10 border border-teal-500/30 rounded-2xl p-6 sm:p-8 backdrop-blur-sm"
+          className="home-analytics-improvement"
         >
           <h3 className="text-white mb-6 text-2xl sm:text-3xl text-center">How Turtle Analytics Improves Your Trading</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="home-analytics-outcomes">
             {[
               {
                 icon: Zap,
@@ -219,15 +189,13 @@ export function TurtleAnalyticsFeature({ mlEnabled = false }: { mlEnabled?: bool
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={improvementInView ? { opacity: 1, scale: 1 } : {}}
                   transition={{ duration: 0.6, delay: i * 0.2 }}
-                  whileHover={{ scale: 1.05, y: -10 }}
-                  className="text-center cursor-pointer"
+                  className="home-analytics-outcome"
                 >
                   <motion.div
-                    whileHover={{ rotate: 360 }}
                     transition={{ duration: 0.8 }}
-                    className={`w-16 h-16 bg-${item.color}-500/20 rounded-full flex items-center justify-center mx-auto mb-4`}
+                    className="home-analytics-outcome-icon"
                   >
-                    <Icon className={`w-8 h-8 text-${item.color}-300`} />
+                    <Icon size={25} />
                   </motion.div>
                   <h4 className="text-white mb-2 text-lg">{item.title}</h4>
                   <p className="text-slate-300 text-sm">{item.desc}</p>
@@ -242,17 +210,17 @@ export function TurtleAnalyticsFeature({ mlEnabled = false }: { mlEnabled?: bool
           initial={{ opacity: 0 }}
           animate={improvementInView ? { opacity: 1 } : {}}
           transition={{ duration: 0.8, delay: 0.6 }}
-          className="text-center mt-12"
+          className="home-analytics-cta"
         >
           <p className="text-slate-300 mb-6 text-sm">
             Available exclusively for Green Turtle Traders
           </p>
-          {mlEnabled ? (
+          {mlEnabled || onExplore ? (
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => window.dispatchEvent(new CustomEvent('navigateToTurtleAnalytics'))}
-              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-lg hover:from-teal-600 hover:to-emerald-600 transition-all shadow-lg shadow-teal-500/30"
+              onClick={() => onExplore ? onExplore() : window.dispatchEvent(new CustomEvent('navigateToTurtleAnalytics'))}
+              className="home-brand-button"
             >
               <Brain className="w-5 h-5" />
               Explore Turtle Analytics

@@ -1,0 +1,8 @@
+.analytics-action { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; max-width: 100%; padding: 12px 22px; border: 1px solid transparent; border-radius: 8px; background: linear-gradient(110deg, #0d9488, #0891b2); color: #fff; font-size: 16px; font-weight: 600; line-height: 1.5; letter-spacing: 0; cursor: pointer; box-shadow: 0 5px 16px #0d94881c; transition: box-shadow 180ms, filter 180ms, background-color 180ms; }
+.analytics-action svg { flex-shrink: 0; }
+.analytics-action:hover { filter: brightness(.94); box-shadow: 0 8px 24px #0d948829; }
+.analytics-action:focus-visible { outline: 2px solid #67e8f9; outline-offset: 4px; }
+.analytics-action-secondary { background: transparent; border-color: #7bc7ca; box-shadow: none; }
+.analytics-action-secondary:hover { background: #ffffff12; filter: none; box-shadow: none; }
+@media(max-width:700px) { .analytics-action { font-size: 15px; padding: 12px 18px; } }
+@media(prefers-reduced-motion:reduce) { .analytics-action { transition: none; } }

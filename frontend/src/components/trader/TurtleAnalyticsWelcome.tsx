@@ -1,5 +1,6 @@
 import { Brain, Shield, Lock, Sparkles, GitBranch, Target, BarChart3, Activity, Clock, TrendingUp, Settings, RefreshCw, CheckCircle, LogIn, UserPlus, Calculator, Crown, Check, BookOpen } from "lucide-react";
 import { motion } from "motion/react";
+import "../../styles/analytics-buttons.css";
 
 interface TurtleAnalyticsWelcomeProps {
   onSignUp: () => void;
@@ -56,7 +57,7 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
               {isLoggedIn ? (
                 <button
                   onClick={onSubscribe}
-                  className="px-8 py-4 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-lg hover:from-teal-600 hover:to-cyan-600 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                  className="analytics-action"
                 >
                   <Crown className="w-5 h-5" />
                   Subscribe to Get Access
@@ -65,14 +66,14 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                 <>
                   <button
                     onClick={onSignUp}
-                    className="px-8 py-4 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-lg hover:from-teal-600 hover:to-cyan-600 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                    className="analytics-action"
                   >
                     <UserPlus className="w-5 h-5" />
                     Sign Up - Get Started
                   </button>
                   <button
                     onClick={onSignIn}
-                    className="px-8 py-4 bg-white/10 text-white border border-white/30 rounded-lg hover:bg-white/20 transition-all flex items-center gap-2 backdrop-blur-sm"
+                    className="analytics-action analytics-action-secondary"
                   >
                     <LogIn className="w-5 h-5" />
                     Login
@@ -461,7 +462,7 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                 {isLoggedIn ? (
                   <button
                     onClick={onSubscribe}
-                    className="px-8 py-4 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-lg hover:from-teal-600 hover:to-cyan-600 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                    className="analytics-action"
                   >
                     <Crown className="w-5 h-5" />
                     Subscribe to Get Access
@@ -470,14 +471,14 @@ export function TurtleAnalyticsWelcome({ onSignUp, onSignIn, onSubscribe, isLogg
                   <>
                     <button
                       onClick={onSignUp}
-                      className="px-8 py-4 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-lg hover:from-teal-600 hover:to-cyan-600 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                      className="analytics-action"
                     >
                       <Sparkles className="w-5 h-5" />
                       Sign Up for Turtle Analytics
                     </button>
                     <button
                       onClick={onSignIn}
-                      className="px-8 py-4 bg-white/10 text-white border border-white/30 rounded-lg hover:bg-white/20 transition-all flex items-center gap-2 backdrop-blur-sm"
+                      className="analytics-action analytics-action-secondary"
                     >
                       <LogIn className="w-5 h-5" />
                       Already Have an Account? Login

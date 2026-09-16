@@ -102,7 +102,7 @@ export function Footer({ onNavigate }: FooterProps) {
           {/* Location & Registration */}
           <div>
             <h3 className="text-lg mb-4">Legal</h3>
-            <div className="space-y-3 text-sm text-slate-400">
+            <div className="space-y-1 text-sm text-slate-400">
               <div className="flex items-start gap-2">
                 <BadgeCheck className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <div>
@@ -134,7 +134,7 @@ export function Footer({ onNavigate }: FooterProps) {
           {/* Quick Links */}
           <div>
             <h3 className="text-lg mb-4">Quick Links</h3>
-            <div className="space-y-2 text-sm">
+            <div className="space-y-1 text-sm">
               <button
                 onClick={() => onNavigate && onNavigate("about")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
