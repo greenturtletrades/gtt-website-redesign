@@ -1023,7 +1023,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
           </div>
 
           <section className="mx-auto mt-6 max-w-6xl rounded-lg border border-slate-200/70 bg-white/70 px-3 py-2 text-left">
-            <div className="flex flex-wrap items-baseline gap-x-2 px-1 pb-1.5 text-[9px]">
+            <div className="competition-log-heading">
               <p className="font-semibold text-slate-600">Competition log</p>
               <p className="text-slate-400">Select a competition to view its leaderboard or opening date.</p>
             </div>
@@ -1043,7 +1043,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                       setSelectedArchiveId(archive?.id || "");
                     }}
                     aria-pressed={selected}
-                    className={`flex w-full flex-nowrap items-center gap-2 overflow-x-auto px-1 py-1.5 text-left transition-colors ${index ? "border-t border-slate-100" : ""} ${selected ? "bg-teal-50/40" : "hover:bg-slate-50/60"}`}
+                    className="competition-log-row"
                   >
                     <span className="whitespace-nowrap rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 font-semibold uppercase tracking-[0.06em] text-slate-500">{competitionPhaseLabel(entry.status)}</span>
                     <span className="whitespace-nowrap font-semibold text-slate-700">{entry.name}</span>
