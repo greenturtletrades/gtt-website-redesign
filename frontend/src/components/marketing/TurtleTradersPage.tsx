@@ -75,6 +75,15 @@ function competitionStatusGroup(status: string) {
   return "scheduled";
 }
 
+function competitionPhaseLabel(status: string) {
+  const normalized = status.toLowerCase();
+  if (normalized === "testing") return "Testing competition";
+  if (normalized === "scheduled" || normalized === "draft") return "Scheduled competition";
+  if (normalized === "active") return "Live competition";
+  if (normalized === "finished" || normalized === "archived") return "Archived competition";
+  return "Competition setup";
+}
+
 function rankBadge(rank: number) {
   if (rank === 1) return "🥇";
   if (rank === 2) return "🥈";
@@ -1003,40 +1012,41 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
           </div>
 
           <section className="mx-auto mt-6 max-w-6xl rounded-xl border border-white/80 bg-white/85 px-4 py-3 text-left shadow-[0_12px_30px_rgba(15,23,42,0.07)] backdrop-blur">
-            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
-              <span className="px-1 font-semibold uppercase tracking-[0.14em] text-teal-700">Competition boards</span>
-              <button
-                type="button"
-                onClick={() => setSelectedArchiveId("")}
-                aria-pressed={!selectedArchiveId}
-                className={`rounded-full border px-3 py-1.5 font-semibold transition-colors ${
-                  !selectedArchiveId
-                    ? "border-[#107949] bg-[#107949] text-white"
-                    : "border-[#d9e2e8] bg-white text-slate-700 hover:border-[#107949]/50"
-                }`}
-              >
-                Current leaderboard
-              </button>
-              {(competition?.archives || []).map((archive) => (
-                <button
-                  key={archive.id}
-                  type="button"
-                  onClick={() => setSelectedArchiveId(archive.id)}
-                  aria-pressed={selectedArchiveId === archive.id}
-                  className={`rounded-full border px-3 py-1.5 font-semibold transition-colors ${
-                    selectedArchiveId === archive.id
-                      ? "border-slate-900 bg-slate-900 text-white"
-                      : "border-[#d9e2e8] bg-white text-slate-700 hover:border-slate-400"
-                  }`}
-                >
-                  {archive.archiveLabel}
-                </button>
-              ))}
-              {scheduledCompetitions.map((entry) => (
-                <span key={entry.id} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-slate-600">
-                  {entry.name} {entry.year} · scheduled {formatPublicCompetitionDate(entry.startsAt)}
-                </span>
-              ))}
+            <div className="space-y-2 text-xs text-slate-600">
+              {competitionEntries.map((entry, index) => {
+                const archive = entry.archiveId ? competition?.archives?.find((item) => item.id === entry.archiveId) : null;
+                const archiveCount = (competition?.archives || []).filter((item) => item.competitionId === entry.id).length;
+                return (
+                  <div key={entry.id} className={`flex flex-wrap items-center gap-2 ${index ? "border-t border-slate-100 pt-2" : ""}`}>
+                    <span className="rounded-full border border-[#b9d0c7] bg-[#e8f2ee] px-2.5 py-1 font-semibold text-[#12372b]">
+                      {competitionPhaseLabel(entry.status)}
+                    </span>
+                    <span className="rounded-full bg-white/80 px-2.5 py-1 font-semibold text-slate-950">{entry.name}</span>
+                    <span className="rounded-full bg-white/80 px-2.5 py-1">{entry.region} {entry.year}</span>
+                    <span className="rounded-full bg-white/80 px-2.5 py-1">Starts {formatPublicCompetitionDate(entry.startsAt)}</span>
+                    <span className="rounded-full bg-white/80 px-2.5 py-1">Ends {formatPublicCompetitionDate(entry.endsAt)}</span>
+                    <span className="rounded-full bg-white/80 px-2.5 py-1">{entry.universityCount || universities.length || 0} universities</span>
+                    {archiveCount ? <span className="rounded-full bg-white/80 px-2.5 py-1">{archiveCount} archived {archiveCount === 1 ? "competition" : "competitions"}</span> : null}
+                    {archive ? (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedArchiveId(archive.id)}
+                        className="rounded-full border border-[#107949] bg-[#107949] px-2.5 py-1 font-semibold text-white transition-colors hover:bg-[#0b653d]"
+                      >
+                        View leaderboard
+                      </button>
+                    ) : competitionStatusGroup(entry.status) === "underway" ? (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedArchiveId("")}
+                        className="rounded-full border border-[#107949] bg-[#107949] px-2.5 py-1 font-semibold text-white transition-colors hover:bg-[#0b653d]"
+                      >
+                        View leaderboard
+                      </button>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
           </section>
 
