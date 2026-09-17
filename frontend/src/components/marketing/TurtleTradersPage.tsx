@@ -676,7 +676,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
   const featuredCompetition = activeCompetition || scheduledCompetitions[0] || null;
   const featuredCompetitionLabel = activeCompetition ? "Competition underway" : "Next competition";
   const selectedCompetition = competitionEntries.find((entry) => entry.id === selectedCompetitionId) || null;
-  const scheduledBoardSelected = competitionStatusGroup(selectedCompetition?.status || "") === "scheduled";
+  const scheduledBoardSelected = Boolean(selectedCompetition && competitionStatusGroup(selectedCompetition.status) === "scheduled");
 
   return (
     <div className="min-h-screen bg-white">
@@ -1026,6 +1026,21 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
             <div className="competition-log-heading">
               <p className="font-semibold text-slate-600">Competition log</p>
               <p className="text-slate-400">Select a competition to view its leaderboard or opening date.</p>
+              <button
+                type="button"
+                className="competition-log-live"
+                aria-pressed={!selectedCompetitionId && !selectedArchiveId}
+                onClick={() => {
+                  setSelectedCompetitionId("");
+                  setSelectedTrader(null);
+                  setSelectedUniversity("");
+                  setSearchTerm("");
+                  setSelectedArchiveId("");
+                  if (!selectedArchiveId) void handleRefresh();
+                }}
+              >
+                View live leaderboard
+              </button>
             </div>
             <div className="text-[9px] text-slate-500">
               {competitionEntries.map((entry, index) => {
