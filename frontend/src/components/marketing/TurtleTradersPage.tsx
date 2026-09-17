@@ -21,7 +21,7 @@ import { InvestmentSocieties } from "./InvestmentSocieties";
 import appLogo from "../../assets/b6c202d5578e49b4e66e1eefc40188c94fca514e.png";
 import "../../styles/competition-page.css";
 import { fetchPublicLeaderboard } from "../../api/public";
-import type { PublicCompetitionOverview, PublicLeaderboardRow, PublicUniversityLeaderboardRow } from "../../api/public";
+import type { PublicCompetitionOverview, PublicCompetitionSummary, PublicLeaderboardRow, PublicUniversityLeaderboardRow } from "../../api/public";
 import type { ViewType } from "../../seo/routes";
 
 interface TurtleTradersPageProps {
@@ -68,13 +68,11 @@ function formatPublicCompetitionDate(value: string | null) {
   }).format(date);
 }
 
-function competitionPhaseLabel(status: string) {
+function competitionStatusGroup(status: string) {
   const normalized = status.toLowerCase();
-  if (normalized === "testing") return "Testing competition";
-  if (normalized === "scheduled" || normalized === "draft") return "Scheduled competition";
-  if (normalized === "active") return "Live competition";
-  if (normalized === "finished" || normalized === "archived") return "Archived competition";
-  return "Competition setup";
+  if (normalized === "active" || normalized === "testing") return "underway";
+  if (normalized === "finished" || normalized === "archived") return "finished";
+  return "scheduled";
 }
 
 function rankBadge(rank: number) {
@@ -636,6 +634,37 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
   const topTrader = traders[0] || null;
   const topUniversity = universities[0] || null;
   const selectedArchive = competition?.selectedArchive || null;
+  const competitionEntries = useMemo<PublicCompetitionSummary[]>(() => {
+    const listed = competition?.competitions || [];
+    if (listed.length) return listed;
+    const current = competition ? [{
+      id: competition.id,
+      name: competition.name,
+      year: competition.year,
+      region: competition.region,
+      status: competition.status,
+      startsAt: competition.startsAt,
+      endsAt: competition.endsAt,
+      universityCount: competition.includedUniversities.length || universities.length,
+      archiveId: null,
+    }] : [];
+    const finished = (competition?.archives || []).map((archive) => ({
+      id: archive.competitionId,
+      name: archive.competitionName,
+      year: archive.year,
+      region: archive.region,
+      status: "finished",
+      startsAt: null,
+      endsAt: null,
+      universityCount: 0,
+      archiveId: archive.id,
+    }));
+    return [...current, ...finished].filter((entry, index, all) => all.findIndex((candidate) => candidate.id === entry.id) === index);
+  }, [competition, universities.length]);
+  const scheduledCompetitions = competitionEntries.filter((entry) => competitionStatusGroup(entry.status) === "scheduled");
+  const activeCompetition = competitionEntries.find((entry) => competitionStatusGroup(entry.status) === "underway");
+  const featuredCompetition = activeCompetition || scheduledCompetitions[0] || null;
+  const featuredCompetitionLabel = activeCompetition ? "Competition underway" : "Next competition";
 
   return (
     <div className="min-h-screen bg-white">
@@ -674,6 +703,24 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
               <p>Not at university? You can still follow the competition.</p>
             </div>
           </div>
+
+          {featuredCompetition ? (
+            <section className="mx-auto mt-6 max-w-3xl rounded-xl border border-teal-200/80 bg-white/85 px-5 py-4 text-left shadow-[0_12px_30px_rgba(15,23,42,0.07)] backdrop-blur sm:px-6">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-700">{featuredCompetitionLabel}</p>
+                  <h2 className="mt-1 text-xl font-semibold text-slate-950">{featuredCompetition.name}</h2>
+                  <p className="mt-1 text-sm text-slate-600">{featuredCompetition.region} {featuredCompetition.year} · {featuredCompetition.universityCount} universities</p>
+                </div>
+                <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${activeCompetition ? "border-teal-200 bg-teal-50 text-teal-800" : "border-slate-200 bg-slate-50 text-slate-700"}`}>
+                  {activeCompetition ? "Live now" : "Scheduled"}
+                </span>
+              </div>
+              <p className="mt-3 text-sm text-slate-700">
+                Starts {formatPublicCompetitionDate(featuredCompetition.startsAt)} · Ends {formatPublicCompetitionDate(featuredCompetition.endsAt)}
+              </p>
+            </section>
+          ) : null}
 
           <div className="mx-auto mt-10 grid max-w-6xl gap-4 md:grid-cols-2" style={{ marginTop: 40 }}>
               <div className="relative overflow-hidden rounded-2xl border border-teal-200/80 bg-white/90 p-5 text-left shadow-[0_18px_44px_rgba(15,107,69,0.10)] backdrop-blur">
@@ -955,52 +1002,43 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
             )}
           </div>
 
-          <div className="mx-auto mt-6 max-w-6xl rounded-xl border border-white/80 bg-white/85 px-4 py-3 text-left shadow-[0_12px_30px_rgba(15,23,42,0.07)] backdrop-blur">
+          <section className="mx-auto mt-6 max-w-6xl rounded-xl border border-white/80 bg-white/85 px-4 py-3 text-left shadow-[0_12px_30px_rgba(15,23,42,0.07)] backdrop-blur">
             <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
-              <span className="rounded-full border border-[#b9d0c7] bg-[#e8f2ee] px-2.5 py-1 font-semibold text-[#12372b]">
-                {competition ? competitionPhaseLabel(competition.status) : "Competition setup"}
-              </span>
-              <span className="rounded-full bg-white/80 px-2.5 py-1 font-semibold text-slate-950">{selectedArchive?.archiveLabel || competition?.name || "University Investment Challenge"}</span>
-              <span className="rounded-full bg-white/80 px-2.5 py-1">{competition?.region || "Scotland"} {competition?.year || new Date().getFullYear()}</span>
-              <span className="rounded-full bg-white/80 px-2.5 py-1">Starts {formatPublicCompetitionDate(competition?.startsAt || null)}</span>
-              <span className="rounded-full bg-white/80 px-2.5 py-1">Ends {formatPublicCompetitionDate(competition?.endsAt || null)}</span>
-              <span className="rounded-full bg-white/80 px-2.5 py-1">{competition?.includedUniversities?.length || universities.length || 0} universities</span>
-              {competition?.archives?.length ? (
-                <span className="rounded-full bg-white/80 px-2.5 py-1">{competition.archives.length} archived {competition.archives.length === 1 ? "competition" : "competitions"}</span>
-              ) : null}
-            </div>
-            {competition?.archives?.length ? (
-              <div className="mt-3 flex flex-wrap gap-2">
+              <span className="px-1 font-semibold uppercase tracking-[0.14em] text-teal-700">Competition boards</span>
+              <button
+                type="button"
+                onClick={() => setSelectedArchiveId("")}
+                aria-pressed={!selectedArchiveId}
+                className={`rounded-full border px-3 py-1.5 font-semibold transition-colors ${
+                  !selectedArchiveId
+                    ? "border-[#107949] bg-[#107949] text-white"
+                    : "border-[#d9e2e8] bg-white text-slate-700 hover:border-[#107949]/50"
+                }`}
+              >
+                Current leaderboard
+              </button>
+              {(competition?.archives || []).map((archive) => (
                 <button
+                  key={archive.id}
                   type="button"
-                  onClick={() => setSelectedArchiveId("")}
-                  aria-pressed={!selectedArchiveId}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    !selectedArchiveId
-                      ? "border-[#107949] bg-[#107949] text-white"
-                      : "border-[#d9e2e8] bg-white text-slate-700 hover:border-[#107949]/50"
+                  onClick={() => setSelectedArchiveId(archive.id)}
+                  aria-pressed={selectedArchiveId === archive.id}
+                  className={`rounded-full border px-3 py-1.5 font-semibold transition-colors ${
+                    selectedArchiveId === archive.id
+                      ? "border-slate-900 bg-slate-900 text-white"
+                      : "border-[#d9e2e8] bg-white text-slate-700 hover:border-slate-400"
                   }`}
                 >
-                  Current leaderboard
+                  {archive.archiveLabel}
                 </button>
-                {competition.archives.map((archive) => (
-                  <button
-                    key={archive.id}
-                    type="button"
-                    onClick={() => setSelectedArchiveId(archive.id)}
-                    aria-pressed={selectedArchiveId === archive.id}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                      selectedArchiveId === archive.id
-                        ? "border-slate-900 bg-slate-900 text-white"
-                        : "border-[#d9e2e8] bg-white text-slate-700 hover:border-slate-400"
-                    }`}
-                  >
-                    {archive.archiveLabel}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </div>
+              ))}
+              {scheduledCompetitions.map((entry) => (
+                <span key={entry.id} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-slate-600">
+                  {entry.name} {entry.year} · scheduled {formatPublicCompetitionDate(entry.startsAt)}
+                </span>
+              ))}
+            </div>
+          </section>
 
           <div className="mt-8 grid gap-4 md:grid-cols-3" style={{ marginBottom: "clamp(4.5rem, 7vw, 7rem)" }}>
             <div className="rounded-xl border border-teal-200/80 bg-white/90 p-5 shadow-sm backdrop-blur">

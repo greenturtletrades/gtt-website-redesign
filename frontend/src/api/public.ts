@@ -77,6 +77,18 @@ export interface PublicCompetitionArchive {
   note: string | null;
 }
 
+export interface PublicCompetitionSummary {
+  id: string;
+  name: string;
+  year: number;
+  region: string;
+  status: string;
+  startsAt: string | null;
+  endsAt: string | null;
+  universityCount: number;
+  archiveId: string | null;
+}
+
 export interface PublicCompetitionOverview {
   id: string;
   name: string;
@@ -89,6 +101,7 @@ export interface PublicCompetitionOverview {
   includedUniversities: string[];
   locked: boolean;
   archives: PublicCompetitionArchive[];
+  competitions: PublicCompetitionSummary[];
   selectedArchive?: PublicCompetitionArchive;
 }
 

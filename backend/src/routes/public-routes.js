@@ -330,9 +330,61 @@ function normalizeCompetitionUniversityRow(university, index) {
   };
 }
 
+function buildUniversityRowsFromLeaderboard(leaderboard) {
+  const grouped = new Map();
+  for (const trader of leaderboard) {
+    const universityName = String(trader?.universityName || "").trim();
+    if (!universityName) continue;
+    const summary = grouped.get(universityName) || {
+      universityName,
+      activeTraders: 0,
+      totalTraders: 0,
+      totalReturnPercent: 0,
+      realizedReturnPercent: 0,
+      unrealizedReturnPercent: 0,
+      score: 0,
+      avgTraderScore: 0,
+      winRate: 0,
+      avgRiskScore: null,
+      trades: 0,
+      followers: 0,
+      aum: 0,
+    };
+    summary.totalTraders += 1;
+    if (trader.totalTrades > 0 || trader.openTrades > 0) summary.activeTraders += 1;
+    summary.totalReturnPercent += trader.totalReturnPercent;
+    summary.realizedReturnPercent += trader.realizedReturnPercent;
+    summary.unrealizedReturnPercent += trader.unrealizedReturnPercent;
+    summary.score += trader.score;
+    summary.avgTraderScore += trader.score;
+    summary.winRate += trader.winRate;
+    summary.trades += trader.totalTrades;
+    summary.followers += trader.followers;
+    summary.aum += trader.aum;
+    grouped.set(universityName, summary);
+  }
+
+  return Array.from(grouped.values())
+    .map((summary) => {
+      const divisor = Math.max(1, summary.totalTraders);
+      return normalizeCompetitionUniversityRow({
+        ...summary,
+        totalReturnPercent: summary.totalReturnPercent / divisor,
+        realizedReturnPercent: summary.realizedReturnPercent / divisor,
+        unrealizedReturnPercent: summary.unrealizedReturnPercent / divisor,
+        score: summary.score / divisor,
+        avgTraderScore: summary.avgTraderScore / divisor,
+        winRate: summary.winRate / divisor,
+      }, 0);
+    })
+    .sort((left, right) => right.score - left.score || left.universityName.localeCompare(right.universityName))
+    .map((university, index) => ({ ...university, rank: index + 1 }));
+}
+
 function normalizeCompetitionOverview(competition) {
   const source = competition && typeof competition === "object" ? competition : {};
   const archives = Array.isArray(source.archives) ? source.archives : [];
+  const competitions = Array.isArray(source.competitions) ? source.competitions : [];
   const includedUniversities = Array.isArray(source.includedUniversities)
     ? source.includedUniversities.map((university) => String(university || "").trim()).filter(Boolean)
     : [];
@@ -358,6 +410,17 @@ function normalizeCompetitionOverview(competition) {
       savedAt: archive?.savedAt || null,
       rowCount: Math.max(0, Math.floor(number(archive?.rowCount, 0))),
       note: archive?.note || null,
+    })),
+    competitions: competitions.map((competition, index) => ({
+      id: String(competition?.id || `competition-${index + 1}`),
+      name: String(competition?.name || "University Investment Challenge"),
+      year: Math.max(2000, Math.min(2100, Math.floor(number(competition?.year, new Date().getUTCFullYear())))),
+      region: String(competition?.region || "Scotland"),
+      status: String(competition?.status || "scheduled").toLowerCase(),
+      startsAt: competition?.startsAt || null,
+      endsAt: competition?.endsAt || null,
+      universityCount: Math.max(0, Math.floor(number(competition?.universityCount, 0))),
+      archiveId: competition?.archiveId ? String(competition.archiveId) : null,
     })),
   };
 }
@@ -405,7 +468,7 @@ function fetchJson(url, { timeoutMs = 8000 } = {}) {
 }
 
 async function fetchCompetitionData(env, { archiveId = "" } = {}) {
-  const baseUrl = String(env.COMPETITION_API_BASE_URL || env.COMPETITION_APP_API_BASE_URL || "https://comp.turtletrades.co.uk/api").replace(/\/+$/, "");
+  const baseUrl = String(env.COMPETITION_API_BASE_URL || env.COMPETITION_APP_API_BASE_URL || "https://comp.turtletrades.co.uk").replace(/\/+$/, "");
   const limit = Math.max(1, Math.min(500, number(env.PUBLIC_COMPETITION_LEADERBOARD_LIMIT, 100)));
   const normalizedArchiveId = String(archiveId || "").trim();
 
@@ -476,17 +539,12 @@ async function fetchCompetitionData(env, { archiveId = "" } = {}) {
 
   const traders = Array.isArray(traderResponse.value.payload?.traders) ? traderResponse.value.payload.traders : [];
   const leaderboard = traders.map(normalizeCompetitionLeaderboardRow);
-  if (universityResponse.status !== "fulfilled" || !universityResponse.value.ok) {
-    const status = universityResponse.status === "fulfilled" ? universityResponse.value.status : "network_error";
-    const payload = universityResponse.status === "fulfilled" ? universityResponse.value.payload : {};
-    const message = payload?.error || payload?.message || `Competition universities API returned ${status}`;
-    throw new Error(message);
-  }
-
-  const universityRows = Array.isArray(universityResponse.value.payload?.universities)
+  const universityRows = universityResponse.status === "fulfilled" && universityResponse.value.ok && Array.isArray(universityResponse.value.payload?.universities)
     ? universityResponse.value.payload.universities
     : [];
-  const universities = universityRows.map(normalizeCompetitionUniversityRow);
+  const universities = universityRows.length
+    ? universityRows.map(normalizeCompetitionUniversityRow)
+    : buildUniversityRowsFromLeaderboard(leaderboard);
   return {
     competition: overviewResponse.status === "fulfilled" && overviewResponse.value.ok
       ? normalizeCompetitionOverview(overviewResponse.value.payload?.competition)

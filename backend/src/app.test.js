@@ -497,6 +497,76 @@ test("GET /api/public/leaderboard proxies the university competition leaderboard
   }
 });
 
+test("GET /api/public/leaderboard derives universities if the university endpoint fails", async () => {
+  const originalBaseUrl = process.env.COMPETITION_API_BASE_URL;
+  const upstream = await new Promise((resolve, reject) => {
+    const instance = http.createServer((req, res) => {
+      res.setHeader("Content-Type", "application/json");
+      if (req.url === "/app/competition/overview") {
+        res.end(JSON.stringify({ competition: { id: "uni-investment-2026", status: "testing" } }));
+        return;
+      }
+      if (req.url === "/app/competition/universities?limit=100") {
+        res.statusCode = 500;
+        res.end(JSON.stringify({ error: "university_rollup_failed" }));
+        return;
+      }
+      if (req.url === "/app/competition/traders?limit=100") {
+        res.end(JSON.stringify({
+          traders: [
+            {
+              id: "trader-record-1",
+              userId: "user-1",
+              displayName: "Sean",
+              data: {
+                universityName: "Heriot-Watt University",
+                competitionScore: 39.5,
+                winRate: 70,
+                totalReturnPercent: 0.88,
+                realizedReturnPercent: 0.88,
+                unrealizedReturnPercent: 0,
+                riskLabel: "Low",
+                totalTrades: 10,
+                followers: 1,
+                aum: 100880.58,
+              },
+            },
+          ],
+        }));
+        return;
+      }
+      res.statusCode = 404;
+      res.end(JSON.stringify({ error: "not_found" }));
+    });
+    instance.listen(0, "127.0.0.1", () => resolve(instance));
+    instance.once("error", reject);
+  });
+  process.env.COMPETITION_API_BASE_URL = `http://127.0.0.1:${upstream.address().port}`;
+
+  try {
+    await withServer(async (server) => {
+      const response = await request(server, "/api/public/leaderboard");
+
+      assert.equal(response.status, 200);
+      assert.equal(response.body.ok, true);
+      assert.equal(response.body.leaderboard.length, 1);
+      assert.equal(response.body.universities.length, 1);
+      assert.equal(response.body.universities[0].universityName, "Heriot-Watt University");
+      assert.equal(response.body.universities[0].totalTraders, 1);
+      assert.equal(response.body.universities[0].activeTraders, 1);
+    });
+  } finally {
+    if (originalBaseUrl === undefined) delete process.env.COMPETITION_API_BASE_URL;
+    else process.env.COMPETITION_API_BASE_URL = originalBaseUrl;
+    await new Promise((resolve, reject) => {
+      upstream.close((error) => {
+        if (error) reject(error);
+        else resolve();
+      });
+    });
+  }
+});
+
 test("POST /api/admin/staff/invite rejects trader tokens", async () => {
   await withServer(async (server) => {
     const response = await request(server, "/api/admin/staff/invite", {
