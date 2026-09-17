@@ -734,7 +734,6 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
             </section>
           ) : null}
 
-          {!scheduledBoardSelected ? (
           <div className="mx-auto mt-10 grid max-w-6xl gap-4 md:grid-cols-2" style={{ marginTop: 40 }}>
               <div className="relative overflow-hidden rounded-2xl border border-teal-200/80 bg-white/90 p-5 text-left shadow-[0_18px_44px_rgba(15,107,69,0.10)] backdrop-blur">
                 <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-teal-600 via-emerald-500 to-cyan-500" />
@@ -781,7 +780,6 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                 ) : null}
               </div>
           </div>
-          ) : null}
 
           <div className="mx-auto mt-12 max-w-6xl">
             {scheduledBoardSelected && selectedCompetition ? (
