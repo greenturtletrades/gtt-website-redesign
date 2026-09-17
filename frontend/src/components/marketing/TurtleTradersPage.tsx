@@ -1022,13 +1022,13 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
             )}
           </div>
 
-          <section className="mx-auto mt-6 max-w-5xl text-left">
-            <div className="flex flex-wrap items-baseline gap-x-2 px-1 pb-2 text-[0.6875rem]">
+          <section className="mx-auto mt-6 max-w-6xl rounded-lg border border-slate-200/70 bg-white/70 px-3 py-2 text-left">
+            <div className="flex flex-wrap items-baseline gap-x-2 px-1 pb-1.5 text-[9px]">
               <p className="font-semibold text-slate-600">Competition log</p>
               <p className="text-slate-400">Select a competition to view its leaderboard or opening date.</p>
             </div>
-            <div className="grid gap-3 text-[0.6875rem] text-slate-500 sm:grid-cols-2">
-              {competitionEntries.map((entry) => {
+            <div className="text-[9px] text-slate-500">
+              {competitionEntries.map((entry, index) => {
                 const archive = entry.archiveId ? competition?.archives?.find((item) => item.id === entry.archiveId) : null;
                 const archiveCount = (competition?.archives || []).filter((item) => item.competitionId === entry.id).length;
                 const selected = selectedCompetitionId === entry.id || (!selectedCompetitionId && !selectedArchiveId && competitionStatusGroup(entry.status) === "underway");
@@ -1043,21 +1043,15 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                       setSelectedArchiveId(archive?.id || "");
                     }}
                     aria-pressed={selected}
-                    className={`min-w-0 rounded-lg border px-3 py-3 text-left transition-colors ${selected ? "border-teal-200 bg-teal-50/40" : "border-slate-200/80 bg-white/60 hover:border-slate-300 hover:bg-white/80"}`}
+                    className={`flex w-full flex-nowrap items-center gap-2 overflow-x-auto px-1 py-1.5 text-left transition-colors ${index ? "border-t border-slate-100" : ""} ${selected ? "bg-teal-50/40" : "hover:bg-slate-50/60"}`}
                   >
-                    <span className="block min-w-0">
-                      <span className="block text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-slate-400">{competitionPhaseLabel(entry.status)}</span>
-                      <span className="mt-1 block truncate text-xs font-semibold text-slate-700">{entry.name}</span>
-                    </span>
-                    <span className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 leading-5">
-                      <span>{entry.region} {entry.year}</span>
-                      <span>{entry.universityCount || universities.length || 0} universities</span>
-                    </span>
-                    <span className="mt-1 block leading-5 text-slate-500">
-                      <span className="block">Starts {formatPublicCompetitionDate(entry.startsAt)}</span>
-                      <span className="block">Ends {formatPublicCompetitionDate(entry.endsAt)}</span>
-                    </span>
-                    {archiveCount ? <span className="mt-1 block text-slate-400">{archiveCount} archived {archiveCount === 1 ? "competition" : "competitions"}</span> : null}
+                    <span className="whitespace-nowrap rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 font-semibold uppercase tracking-[0.06em] text-slate-500">{competitionPhaseLabel(entry.status)}</span>
+                    <span className="whitespace-nowrap font-semibold text-slate-700">{entry.name}</span>
+                    <span className="whitespace-nowrap">{entry.region} {entry.year}</span>
+                    <span className="whitespace-nowrap">Starts {formatPublicCompetitionDate(entry.startsAt)}</span>
+                    <span className="whitespace-nowrap">Ends {formatPublicCompetitionDate(entry.endsAt)}</span>
+                    <span className="whitespace-nowrap">{entry.universityCount || universities.length || 0} universities</span>
+                    {archiveCount ? <span className="whitespace-nowrap text-slate-400">{archiveCount} archived {archiveCount === 1 ? "competition" : "competitions"}</span> : null}
                   </button>
                 );
               })}
