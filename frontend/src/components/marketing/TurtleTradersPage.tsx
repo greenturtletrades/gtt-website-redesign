@@ -584,6 +584,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
   const [universities, setUniversities] = useState<PublicUniversityLeaderboardRow[]>([]);
   const [competition, setCompetition] = useState<PublicCompetitionOverview | null>(null);
   const [selectedArchiveId, setSelectedArchiveId] = useState("");
+  const [selectedCompetitionId, setSelectedCompetitionId] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -674,6 +675,8 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
   const activeCompetition = competitionEntries.find((entry) => competitionStatusGroup(entry.status) === "underway");
   const featuredCompetition = activeCompetition || scheduledCompetitions[0] || null;
   const featuredCompetitionLabel = activeCompetition ? "Competition underway" : "Next competition";
+  const selectedCompetition = competitionEntries.find((entry) => entry.id === selectedCompetitionId) || null;
+  const scheduledBoardSelected = competitionStatusGroup(selectedCompetition?.status || "") === "scheduled";
 
   return (
     <div className="min-h-screen bg-white">
@@ -731,6 +734,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
             </section>
           ) : null}
 
+          {!scheduledBoardSelected ? (
           <div className="mx-auto mt-10 grid max-w-6xl gap-4 md:grid-cols-2" style={{ marginTop: 40 }}>
               <div className="relative overflow-hidden rounded-2xl border border-teal-200/80 bg-white/90 p-5 text-left shadow-[0_18px_44px_rgba(15,107,69,0.10)] backdrop-blur">
                 <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-teal-600 via-emerald-500 to-cyan-500" />
@@ -777,9 +781,18 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                 ) : null}
               </div>
           </div>
+          ) : null}
 
           <div className="mx-auto mt-12 max-w-6xl">
-            {selectedTrader ? (
+            {scheduledBoardSelected && selectedCompetition ? (
+              <div className="rounded-xl border border-teal-200 bg-white/90 px-6 py-10 text-center shadow-sm backdrop-blur">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-700">Leaderboard opens soon</p>
+                <h2 className="mt-2 text-2xl font-semibold text-slate-950">{selectedCompetition.name}</h2>
+                <p className="mt-3 text-base leading-7 text-slate-700">
+                  This leaderboard will be available when the competition starts on <span className="font-semibold text-teal-800">{formatPublicCompetitionDate(selectedCompetition.startsAt)}</span>.
+                </p>
+              </div>
+            ) : selectedTrader ? (
               <PublicTraderProfile trader={selectedTrader} onBack={() => setSelectedTrader(null)} />
             ) : (
               <div className="space-y-4">
@@ -1016,8 +1029,20 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
               {competitionEntries.map((entry, index) => {
                 const archive = entry.archiveId ? competition?.archives?.find((item) => item.id === entry.archiveId) : null;
                 const archiveCount = (competition?.archives || []).filter((item) => item.competitionId === entry.id).length;
+                const selected = selectedCompetitionId === entry.id || (!selectedCompetitionId && !selectedArchiveId && competitionStatusGroup(entry.status) === "underway");
                 return (
-                  <div key={entry.id} className={`flex flex-wrap items-center gap-2 ${index ? "border-t border-slate-100 pt-2" : ""}`}>
+                  <button
+                    key={entry.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedCompetitionId(entry.id);
+                      setSelectedTrader(null);
+                      setSelectedUniversity("");
+                      setSelectedArchiveId(archive?.id || "");
+                    }}
+                    aria-pressed={selected}
+                    className={`flex w-full flex-wrap items-center gap-2 rounded-lg px-1 py-1 text-left transition-colors hover:bg-teal-50/60 ${index ? "border-t border-slate-100 pt-3" : ""} ${selected ? "bg-teal-50/70" : ""}`}
+                  >
                     <span className="rounded-full border border-[#b9d0c7] bg-[#e8f2ee] px-2.5 py-1 font-semibold text-[#12372b]">
                       {competitionPhaseLabel(entry.status)}
                     </span>
@@ -1027,24 +1052,7 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                     <span className="rounded-full bg-white/80 px-2.5 py-1">Ends {formatPublicCompetitionDate(entry.endsAt)}</span>
                     <span className="rounded-full bg-white/80 px-2.5 py-1">{entry.universityCount || universities.length || 0} universities</span>
                     {archiveCount ? <span className="rounded-full bg-white/80 px-2.5 py-1">{archiveCount} archived {archiveCount === 1 ? "competition" : "competitions"}</span> : null}
-                    {archive ? (
-                      <button
-                        type="button"
-                        onClick={() => setSelectedArchiveId(archive.id)}
-                        className="rounded-full border border-[#107949] bg-[#107949] px-2.5 py-1 font-semibold text-white transition-colors hover:bg-[#0b653d]"
-                      >
-                        View leaderboard
-                      </button>
-                    ) : competitionStatusGroup(entry.status) === "underway" ? (
-                      <button
-                        type="button"
-                        onClick={() => setSelectedArchiveId("")}
-                        className="rounded-full border border-[#107949] bg-[#107949] px-2.5 py-1 font-semibold text-white transition-colors hover:bg-[#0b653d]"
-                      >
-                        View leaderboard
-                      </button>
-                    ) : null}
-                  </div>
+                  </button>
                 );
               })}
             </div>
