@@ -1022,12 +1022,12 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
             )}
           </div>
 
-          <section className="mx-auto mt-6 max-w-6xl rounded-lg border border-slate-200/70 bg-white/70 px-4 py-3 text-left shadow-sm backdrop-blur">
-            <div className="mb-2 px-1">
-              <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-slate-600">Competition log</p>
-              <p className="mt-0.5 text-[0.6875rem] text-slate-500">Select a competition to view a previous leaderboard or see when the next one begins.</p>
+          <section className="mx-auto mt-6 max-w-5xl border-y border-slate-200/70 py-2 text-left">
+            <div className="flex flex-wrap items-baseline gap-x-2 px-2 pb-1.5 text-[0.6875rem]">
+              <p className="font-semibold text-slate-600">Competition log</p>
+              <p className="text-slate-400">Select a competition to view its leaderboard or opening date.</p>
             </div>
-            <div className="space-y-1 text-[0.6875rem] text-slate-500">
+            <div className="text-[0.6875rem] text-slate-500">
               {competitionEntries.map((entry, index) => {
                 const archive = entry.archiveId ? competition?.archives?.find((item) => item.id === entry.archiveId) : null;
                 const archiveCount = (competition?.archives || []).filter((item) => item.competitionId === entry.id).length;
@@ -1043,17 +1043,21 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                       setSelectedArchiveId(archive?.id || "");
                     }}
                     aria-pressed={selected}
-                    className={`flex w-full flex-wrap items-center gap-x-2 gap-y-1 rounded-md px-1.5 py-2 text-left transition-colors hover:bg-slate-50 ${index ? "border-t border-slate-100" : ""} ${selected ? "bg-teal-50/50" : ""}`}
+                    className={`grid w-full gap-x-6 gap-y-1 px-2 py-2.5 text-left transition-colors sm:grid-cols-[minmax(170px,1.2fr)_minmax(130px,0.8fr)_minmax(250px,1.4fr)_auto] sm:items-center ${index ? "border-t border-slate-100" : ""} ${selected ? "bg-teal-50/40" : "hover:bg-slate-50/70"}`}
                   >
-                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 font-semibold text-slate-600">
-                      {competitionPhaseLabel(entry.status)}
+                    <span>
+                      <span className="block text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-slate-400">{competitionPhaseLabel(entry.status)}</span>
+                      <span className="mt-0.5 block text-xs font-semibold text-slate-700">{entry.name}</span>
                     </span>
-                    <span className="font-semibold text-slate-800">{entry.name}</span>
-                    <span>{entry.region} {entry.year}</span>
-                    <span>Starts {formatPublicCompetitionDate(entry.startsAt)}</span>
-                    <span>Ends {formatPublicCompetitionDate(entry.endsAt)}</span>
-                    <span>{entry.universityCount || universities.length || 0} universities</span>
-                    {archiveCount ? <span>{archiveCount} archived {archiveCount === 1 ? "competition" : "competitions"}</span> : null}
+                    <span className="leading-5">
+                      <span className="block">{entry.region} {entry.year}</span>
+                      <span className="block text-slate-400">{entry.universityCount || universities.length || 0} universities</span>
+                    </span>
+                    <span className="leading-5">
+                      <span className="block">Starts {formatPublicCompetitionDate(entry.startsAt)}</span>
+                      <span className="block">Ends {formatPublicCompetitionDate(entry.endsAt)}</span>
+                    </span>
+                    <span className="text-slate-400 sm:text-right">{archiveCount ? `${archiveCount} archived ${archiveCount === 1 ? "competition" : "competitions"}` : ""}</span>
                   </button>
                 );
               })}
