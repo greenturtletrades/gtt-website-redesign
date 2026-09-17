@@ -1022,8 +1022,12 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
             )}
           </div>
 
-          <section className="mx-auto mt-6 max-w-6xl rounded-xl border border-white/80 bg-white/85 px-4 py-3 text-left shadow-[0_12px_30px_rgba(15,23,42,0.07)] backdrop-blur">
-            <div className="space-y-2 text-xs text-slate-600">
+          <section className="mx-auto mt-6 max-w-6xl rounded-lg border border-slate-200/70 bg-white/70 px-4 py-3 text-left shadow-sm backdrop-blur">
+            <div className="mb-2 px-1">
+              <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-slate-600">Competition log</p>
+              <p className="mt-0.5 text-[0.6875rem] text-slate-500">Select a competition to view a previous leaderboard or see when the next one begins.</p>
+            </div>
+            <div className="space-y-1 text-[0.6875rem] text-slate-500">
               {competitionEntries.map((entry, index) => {
                 const archive = entry.archiveId ? competition?.archives?.find((item) => item.id === entry.archiveId) : null;
                 const archiveCount = (competition?.archives || []).filter((item) => item.competitionId === entry.id).length;
@@ -1039,17 +1043,17 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                       setSelectedArchiveId(archive?.id || "");
                     }}
                     aria-pressed={selected}
-                    className={`flex w-full flex-wrap items-center gap-2 rounded-lg px-1 py-1 text-left transition-colors hover:bg-teal-50/60 ${index ? "border-t border-slate-100 pt-3" : ""} ${selected ? "bg-teal-50/70" : ""}`}
+                    className={`flex w-full flex-wrap items-center gap-x-2 gap-y-1 rounded-md px-1.5 py-2 text-left transition-colors hover:bg-slate-50 ${index ? "border-t border-slate-100" : ""} ${selected ? "bg-teal-50/50" : ""}`}
                   >
-                    <span className="rounded-full border border-[#b9d0c7] bg-[#e8f2ee] px-2.5 py-1 font-semibold text-[#12372b]">
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 font-semibold text-slate-600">
                       {competitionPhaseLabel(entry.status)}
                     </span>
-                    <span className="rounded-full bg-white/80 px-2.5 py-1 font-semibold text-slate-950">{entry.name}</span>
-                    <span className="rounded-full bg-white/80 px-2.5 py-1">{entry.region} {entry.year}</span>
-                    <span className="rounded-full bg-white/80 px-2.5 py-1">Starts {formatPublicCompetitionDate(entry.startsAt)}</span>
-                    <span className="rounded-full bg-white/80 px-2.5 py-1">Ends {formatPublicCompetitionDate(entry.endsAt)}</span>
-                    <span className="rounded-full bg-white/80 px-2.5 py-1">{entry.universityCount || universities.length || 0} universities</span>
-                    {archiveCount ? <span className="rounded-full bg-white/80 px-2.5 py-1">{archiveCount} archived {archiveCount === 1 ? "competition" : "competitions"}</span> : null}
+                    <span className="font-semibold text-slate-800">{entry.name}</span>
+                    <span>{entry.region} {entry.year}</span>
+                    <span>Starts {formatPublicCompetitionDate(entry.startsAt)}</span>
+                    <span>Ends {formatPublicCompetitionDate(entry.endsAt)}</span>
+                    <span>{entry.universityCount || universities.length || 0} universities</span>
+                    {archiveCount ? <span>{archiveCount} archived {archiveCount === 1 ? "competition" : "competitions"}</span> : null}
                   </button>
                 );
               })}
