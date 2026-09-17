@@ -1022,13 +1022,13 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
             )}
           </div>
 
-          <section className="mx-auto mt-6 max-w-5xl border-y border-slate-200/70 py-2 text-left">
-            <div className="flex flex-wrap items-baseline gap-x-2 px-2 pb-1.5 text-[0.6875rem]">
+          <section className="mx-auto mt-6 max-w-5xl text-left">
+            <div className="flex flex-wrap items-baseline gap-x-2 px-1 pb-2 text-[0.6875rem]">
               <p className="font-semibold text-slate-600">Competition log</p>
               <p className="text-slate-400">Select a competition to view its leaderboard or opening date.</p>
             </div>
-            <div className="text-[0.6875rem] text-slate-500">
-              {competitionEntries.map((entry, index) => {
+            <div className="grid gap-3 text-[0.6875rem] text-slate-500 sm:grid-cols-2">
+              {competitionEntries.map((entry) => {
                 const archive = entry.archiveId ? competition?.archives?.find((item) => item.id === entry.archiveId) : null;
                 const archiveCount = (competition?.archives || []).filter((item) => item.competitionId === entry.id).length;
                 const selected = selectedCompetitionId === entry.id || (!selectedCompetitionId && !selectedArchiveId && competitionStatusGroup(entry.status) === "underway");
@@ -1043,21 +1043,21 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
                       setSelectedArchiveId(archive?.id || "");
                     }}
                     aria-pressed={selected}
-                    className={`grid w-full gap-x-6 gap-y-1 px-2 py-2.5 text-left transition-colors sm:grid-cols-[minmax(170px,1.2fr)_minmax(130px,0.8fr)_minmax(250px,1.4fr)_auto] sm:items-center ${index ? "border-t border-slate-100" : ""} ${selected ? "bg-teal-50/40" : "hover:bg-slate-50/70"}`}
+                    className={`min-w-0 rounded-lg border px-3 py-3 text-left transition-colors ${selected ? "border-teal-200 bg-teal-50/40" : "border-slate-200/80 bg-white/60 hover:border-slate-300 hover:bg-white/80"}`}
                   >
-                    <span>
+                    <span className="block min-w-0">
                       <span className="block text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-slate-400">{competitionPhaseLabel(entry.status)}</span>
-                      <span className="mt-0.5 block text-xs font-semibold text-slate-700">{entry.name}</span>
+                      <span className="mt-1 block truncate text-xs font-semibold text-slate-700">{entry.name}</span>
                     </span>
-                    <span className="leading-5">
-                      <span className="block">{entry.region} {entry.year}</span>
-                      <span className="block text-slate-400">{entry.universityCount || universities.length || 0} universities</span>
+                    <span className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 leading-5">
+                      <span>{entry.region} {entry.year}</span>
+                      <span>{entry.universityCount || universities.length || 0} universities</span>
                     </span>
-                    <span className="leading-5">
+                    <span className="mt-1 block leading-5 text-slate-500">
                       <span className="block">Starts {formatPublicCompetitionDate(entry.startsAt)}</span>
                       <span className="block">Ends {formatPublicCompetitionDate(entry.endsAt)}</span>
                     </span>
-                    <span className="text-slate-400 sm:text-right">{archiveCount ? `${archiveCount} archived ${archiveCount === 1 ? "competition" : "competitions"}` : ""}</span>
+                    {archiveCount ? <span className="mt-1 block text-slate-400">{archiveCount} archived {archiveCount === 1 ? "competition" : "competitions"}</span> : null}
                   </button>
                 );
               })}
