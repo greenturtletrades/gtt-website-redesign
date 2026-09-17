@@ -717,20 +717,14 @@ export function TurtleTradersPage({ onNavigate }: TurtleTradersPageProps) {
           </div>
 
           {featuredCompetition ? (
-            <section className="mx-auto mt-6 max-w-3xl rounded-xl border border-teal-200/80 bg-white/85 px-5 py-4 text-left shadow-[0_12px_30px_rgba(15,23,42,0.07)] backdrop-blur sm:px-6">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-700">{featuredCompetitionLabel}</p>
-                  <h2 className="mt-1 text-xl font-semibold text-slate-950">{featuredCompetition.name}</h2>
-                  <p className="mt-1 text-sm text-slate-600">{featuredCompetition.region} {featuredCompetition.year} · {featuredCompetition.universityCount} universities</p>
-                </div>
-                <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${activeCompetition ? "border-teal-200 bg-teal-50 text-teal-800" : "border-slate-200 bg-slate-50 text-slate-700"}`}>
-                  {activeCompetition ? "Live now" : "Scheduled"}
-                </span>
+            <section className="competition-announcement" aria-label={featuredCompetitionLabel}>
+              <p className="competition-announcement-label">{featuredCompetitionLabel}</p>
+              <h2>{featuredCompetition.name}</h2>
+              <p>{featuredCompetition.region} {featuredCompetition.year} · {featuredCompetition.universityCount} universities · {activeCompetition ? "Live now" : "Scheduled"}</p>
+              <div className="competition-announcement-dates">
+                <span>Starts {formatPublicCompetitionDate(featuredCompetition.startsAt)}</span>
+                <span>Ends {formatPublicCompetitionDate(featuredCompetition.endsAt)}</span>
               </div>
-              <p className="mt-3 text-sm text-slate-700">
-                Starts {formatPublicCompetitionDate(featuredCompetition.startsAt)} · Ends {formatPublicCompetitionDate(featuredCompetition.endsAt)}
-              </p>
             </section>
           ) : null}
 

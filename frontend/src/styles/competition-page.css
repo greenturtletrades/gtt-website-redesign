@@ -3,6 +3,49 @@
   text-align: center;
 }
 
+.competition-announcement {
+  max-width: 760px;
+  margin: 28px auto 0;
+  text-align: center;
+}
+
+.competition-announcement p {
+  margin: 5px 0 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.6;
+  letter-spacing: 0;
+}
+
+.competition-announcement .competition-announcement-label {
+  margin: 0 0 5px;
+  color: #0f766e;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.competition-announcement h2 {
+  margin: 0;
+  color: #334155;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+.competition-announcement-dates {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px 16px;
+  margin-top: 5px;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
 .competition-log-heading {
   display: flex;
   flex-wrap: wrap;
