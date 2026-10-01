@@ -31,9 +31,7 @@ export type ViewType =
   | "seo-student-investing-competition"
   | "seo-virtual-trading-competition"
   | "seo-green-turtle-trades"
-  | "admin-dashboard"
-  | "trader-application"
-  | "trader-application-status";
+  | "admin-dashboard";
 
 export const SITE_URL = "https://greenturtletraders.co.uk";
 
@@ -44,6 +42,8 @@ const redirectPaths: Record<string, string> = {
   "/investment-competition": "/university-competition",
   "/student-investing-competition": "/university-competition",
   "/virtual-trading-competition": "/university-competition",
+  "/trader-application": "/",
+  "/trader-application-status": "/",
 };
 
 export const viewPaths: Partial<Record<ViewType, string>> = {
@@ -77,8 +77,6 @@ export const viewPaths: Partial<Record<ViewType, string>> = {
   "seo-student-investing-competition": "/student-investing-competition",
   "seo-virtual-trading-competition": "/virtual-trading-competition",
   "seo-green-turtle-trades": "/green-turtle-trades",
-  "trader-application": "/trader-application",
-  "trader-application-status": "/trader-application-status",
 };
 
 const canonicalViewPaths: Partial<Record<ViewType, string>> = {

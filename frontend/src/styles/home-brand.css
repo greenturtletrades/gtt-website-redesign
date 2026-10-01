@@ -96,7 +96,8 @@
 .home-values .home-section-heading { text-align: left; margin: 0 0 30px; }
 .home-values .home-section-heading h2 { margin-top: 0; margin-bottom: 12px; }
 .home-values .home-section-heading h2 { background: linear-gradient(110deg,#0f172a,#0f766e,#0891b2); background-clip: text; -webkit-background-clip: text; color: transparent; }
-.home-values-grid { display: grid; gap: 24px; }
+.home-values .home-section-heading p { margin: 0; }
+.home-values-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 40px; }
 .home-value { display: grid; grid-template-columns: 46px minmax(0,1fr); gap: 18px; }
 .home-value-icon { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 8px; background: #e8f8f3; border: 1px solid #cce9df; color: #0f766e; }
 .home-value-icon svg { width: 24px; height: 24px; }
@@ -136,6 +137,7 @@
   .home-section-heading { margin-bottom: 36px; }
   .home-section-heading h2 { font-size: 32px; }
   .home-section-heading p { font-size: 17px; line-height: 1.75; }
+  .home-values-grid { grid-template-columns: 1fr; gap: 24px; }
   .home-audiences { grid-template-columns: 1fr; gap: 48px; }
   .home-audience-heading > p { font-size: 22px; }
   .home-benefit { gap: 13px; padding: 22px 0; }

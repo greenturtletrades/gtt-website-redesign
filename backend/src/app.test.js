@@ -1131,3 +1131,25 @@ test("POST /api/auth/reset-password does not call update when token lookup fails
     assert.equal(updateCalled, false, "update must not be called for invalid tokens");
   });
 });
+
+test("POST /api/trader/apply and /api/waitlist are closed", async () => {
+  prismaMock.traderApplication.upsert = async () => {
+    throw new Error("Unexpected prisma.traderApplication.upsert call");
+  };
+  prismaMock.waitlistEntry.upsert = async () => {
+    throw new Error("Unexpected prisma.waitlistEntry.upsert call");
+  };
+
+  await withServer(async (server) => {
+    for (const path of ["/api/trader/apply", "/api/waitlist"]) {
+      const response = await request(server, path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "someone@example.com", fullName: "Some One" }),
+      });
+
+      assert.equal(response.status, 403);
+      assert.equal(response.body.ok, false);
+    }
+  });
+});

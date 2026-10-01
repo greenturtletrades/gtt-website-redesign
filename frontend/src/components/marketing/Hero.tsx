@@ -1,13 +1,6 @@
 import { motion } from "motion/react";
-import { ArrowRight } from "lucide-react";
 
-interface HeroProps {
-  onTraderClick: () => void;
-  onApplyClick: () => void;
-  onScrollToWaitingList: () => void;
-}
-
-export function Hero({ onTraderClick, onApplyClick, onScrollToWaitingList }: HeroProps) {
+export function Hero() {
   return (
     <section className="w-full bg-gradient-to-br from-teal-50 via-cyan-50 to-teal-50 pt-32 pb-20 sm:py-28 md:py-36 px-4 sm:px-6 overflow-hidden relative">
       {/* Subtle background elements */}
@@ -72,26 +65,6 @@ export function Hero({ onTraderClick, onApplyClick, onScrollToWaitingList }: Her
           Explore our trading journal, analytics, and university competition today. Investor-backed trading is in development.
         </p>
         
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
-          className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-stretch sm:items-center max-w-md sm:max-w-none mx-auto px-4"
-        >
-          <motion.button
-            onClick={onApplyClick}
-            className="home-brand-button"
-          >
-            Apply as a Trader <ArrowRight size={18} aria-hidden="true" />
-          </motion.button>
-          <motion.button
-            onClick={onScrollToWaitingList}
-            className="home-brand-button home-brand-button-secondary"
-          >
-            Investor Waitlist <ArrowRight size={18} aria-hidden="true" />
-          </motion.button>
-        </motion.div>
-
         {/* Product areas */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

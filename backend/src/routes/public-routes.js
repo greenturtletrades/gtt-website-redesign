@@ -732,6 +732,8 @@ function registerPublicRoutes(app, {
   });
 
   app.post("/api/trader/apply", async (req, res, next) => {
+    // Closed for FCA regulatory reasons.
+    return res.status(403).json({ ok: false, error: "Trader applications are currently closed." });
     try {
       const {
         fullName,
@@ -971,6 +973,8 @@ function registerPublicRoutes(app, {
   });
 
   app.post("/api/waitlist", async (req, res) => {
+    // Closed for FCA regulatory reasons.
+    return res.status(403).json({ ok: false, error: "Investor waitlist signups are currently closed." });
     try {
       const { email, source } = req.body || {};
 

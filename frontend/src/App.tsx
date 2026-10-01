@@ -6,8 +6,6 @@ import { PlanSelectionModal, type SignupPlanChoice } from "./components/auth/Pla
 import { ResetPasswordModal } from "./components/auth/ResetPasswordModal";
 import { SubscriptionModal } from "./components/auth/SubscriptionModal";
 import { WelcomeScreen } from "./components/auth/WelcomeScreen";
-import { TraderApplicationForm } from "./components/onboarding/TraderApplicationForm";
-import { TraderApplicationStatus } from "./components/onboarding/TraderApplicationStatus";
 import { AboutPage } from "./components/marketing/AboutPage";
 import { ContactPage } from "./components/marketing/ContactPage";
 import { Header } from "./components/marketing/Header";
@@ -27,7 +25,6 @@ import { ApiError, clearStoredToken } from "./api/client";
 import { fetchAccountState } from "./api/settings";
 import { createCheckoutSession, pauseSubscription, resumeSubscription } from "./api/subscription";
 import { getConfig } from "./api/config";
-import { type TraderApplicationStatus as ApplicationStatus } from "./api/traderApplication";
 import { applySeoMetadata } from "./seo/metadata";
 import { getPathForView, getRedirectPathForPath, getViewFromPath, type ViewType } from "./seo/routes";
 
@@ -57,15 +54,6 @@ export default function App() {
   const [selectedSignupPlan, setSelectedSignupPlan] = useState<SignupPlanChoice>("free");
   const [subscriptionStatus, setSubscriptionStatus] = useState<"active" | "paused" | "cancelling" | "not_started">("not_started");
   const [onboardingStage, setOnboardingStage] = useState<"none" | "welcome" | "ea-setup" | "complete">("none");
-  const [applicationLookupToken, setApplicationLookupToken] = useState(() => {
-    try {
-      return window.localStorage.getItem("traderApplicationLookupToken") || "";
-    } catch {
-      return "";
-    }
-  });
-  const [applicationStatus, setApplicationStatus] = useState<ApplicationStatus | null>(null);
-  const [applicationRejectionReason, setApplicationRejectionReason] = useState<string | null>(null);
   const [currentUserName, setCurrentUserName] = useState("");
   const [currentUserEmail, setCurrentUserEmail] = useState("");
   const [currentAdminIsSuperAdmin, setCurrentAdminIsSuperAdmin] = useState(false);
@@ -423,25 +411,6 @@ export default function App() {
     }
   };
 
-  const handleOpenApplication = () => {
-    navigateToView("trader-application");
-  };
-
-  const handleApplicationSubmitted = (
-    statusLookupToken: string,
-    status: ApplicationStatus,
-  ) => {
-    setApplicationLookupToken(statusLookupToken);
-    try {
-      window.localStorage.setItem("traderApplicationLookupToken", statusLookupToken);
-    } catch {
-      // Ignore storage failures and keep the in-memory value.
-    }
-    setApplicationStatus(status);
-    setApplicationRejectionReason(null);
-    navigateToView("trader-application-status");
-  };
-
   const handleWelcomeComplete = () => {
     // Move to EA setup stage
     setOnboardingStage("ea-setup");
@@ -520,8 +489,6 @@ export default function App() {
       
       {!isAdminRoute && currentView === "landing" && (
         <LandingPage
-          onTraderClick={handleTraderClick}
-          onApplyClick={handleOpenApplication}
           onNavigate={navigateToView}
           mlEnabled={mlEnabled}
         />
@@ -648,23 +615,6 @@ export default function App() {
 
       {!isAdminRoute && currentView === "contact" && (
         <ContactPage onBack={() => navigateToView("landing")} />
-      )}
-
-      {!isAdminRoute && currentView === "trader-application" && (
-        <TraderApplicationForm
-          onBack={() => navigateToView("landing")}
-          onSubmitted={handleApplicationSubmitted}
-        />
-      )}
-
-      {!isAdminRoute && currentView === "trader-application-status" && (
-        <TraderApplicationStatus
-          initialToken={applicationLookupToken}
-          initialStatus={applicationStatus}
-          initialRejectionReason={applicationRejectionReason}
-          onBack={() => navigateToView("landing")}
-          onStartNew={() => navigateToView("trader-application")}
-        />
       )}
 
       {/* Onboarding Welcome Screen */}
