@@ -8,9 +8,14 @@ import { SubscriptionModal } from "./components/auth/SubscriptionModal";
 import { WelcomeScreen } from "./components/auth/WelcomeScreen";
 import { AboutPage } from "./components/marketing/AboutPage";
 import { ContactPage } from "./components/marketing/ContactPage";
+import { FaqsPage } from "./components/marketing/FaqsPage";
 import { Header } from "./components/marketing/Header";
+import { InvestorEnquiryPage } from "./components/marketing/InvestorEnquiryPage";
 import { LandingPage } from "./components/marketing/LandingPage";
+import { ProfessionalInvestorsPage } from "./components/marketing/ProfessionalInvestorsPage";
 import { SeoContentPage } from "./components/marketing/SeoContentPage";
+import { TraderApplicationPage } from "./components/marketing/TraderApplicationPage";
+import { TradersPage } from "./components/marketing/TradersPage";
 import { TurtleTradersPage } from "./components/marketing/TurtleTradersPage";
 import { PrivacyPolicy } from "./components/legal/PrivacyPolicy";
 import { RiskDisclosure } from "./components/legal/RiskDisclosure";
@@ -25,6 +30,7 @@ import { ApiError, clearStoredToken } from "./api/client";
 import { fetchAccountState } from "./api/settings";
 import { createCheckoutSession, pauseSubscription, resumeSubscription } from "./api/subscription";
 import { getConfig } from "./api/config";
+import { isInvestorPageLive } from "./featureFlags";
 import { applySeoMetadata } from "./seo/metadata";
 import { getPathForView, getRedirectPathForPath, getViewFromPath, type ViewType } from "./seo/routes";
 
@@ -474,6 +480,10 @@ export default function App() {
     setCurrentView("admin-dashboard");
   };
 
+  // Until the investor page is signed off, its addresses fall back to the homepage.
+  const isInvestorView = currentView === "professional-investors" || currentView === "investor-enquire";
+  const showLanding = currentView === "landing" || (isInvestorView && !isInvestorPageLive);
+
   return (
     <div className="min-h-screen bg-white">
       {!isAdminRoute && (
@@ -487,11 +497,31 @@ export default function App() {
         />
       )}
       
-      {!isAdminRoute && currentView === "landing" && (
+      {!isAdminRoute && showLanding && (
         <LandingPage
           onNavigate={navigateToView}
           mlEnabled={mlEnabled}
         />
+      )}
+
+      {!isAdminRoute && currentView === "traders" && (
+        <TradersPage onNavigate={navigateToView} />
+      )}
+
+      {!isAdminRoute && currentView === "trader-apply" && (
+        <TraderApplicationPage onNavigate={navigateToView} />
+      )}
+
+      {!isAdminRoute && isInvestorPageLive && currentView === "professional-investors" && (
+        <ProfessionalInvestorsPage onNavigate={navigateToView} />
+      )}
+
+      {!isAdminRoute && isInvestorPageLive && currentView === "investor-enquire" && (
+        <InvestorEnquiryPage onNavigate={navigateToView} />
+      )}
+
+      {!isAdminRoute && currentView === "faqs" && (
+        <FaqsPage onNavigate={navigateToView} />
       )}
 
       {!isAdminRoute && currentView === "about" && (

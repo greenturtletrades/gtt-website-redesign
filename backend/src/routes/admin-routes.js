@@ -229,14 +229,23 @@ function registerAdminRoutes(app, {
 
   app.get("/api/admin/trader-applications", authRequired, adminRequired, async (req, res, next) => {
     try {
-      const { status } = req.query;
+      const { status, recordType } = req.query;
 
       if (status && (typeof status !== "string" || !applicationStatuses.has(status))) {
         return res.status(400).json({ ok: false, error: "Invalid status" });
       }
 
+      if (recordType && (typeof recordType !== "string" || !["LIVE", "DEMO", "COMPETITION"].includes(recordType))) {
+        return res.status(400).json({ ok: false, error: "Invalid record type" });
+      }
+
+      const where = {
+        ...(status ? { status } : {}),
+        ...(recordType ? { recordType } : {}),
+      };
+
       const applications = await prisma.traderApplication.findMany({
-        where: status ? { status } : undefined,
+        where: Object.keys(where).length ? where : undefined,
         orderBy: { submittedAt: "desc" },
         select: {
           id: true,
@@ -245,12 +254,25 @@ function registerAdminRoutes(app, {
           country: true,
           platform: true,
           experienceLevel: true,
+          recordType: true,
+          returnPct: true,
+          maxDrawdownPct: true,
+          historyStartDate: true,
           status: true,
           submittedAt: true,
+          _count: { select: { files: true } },
         },
       });
 
-      return res.json({ ok: true, items: applications });
+      const items = applications.map(({ _count, returnPct, maxDrawdownPct, historyStartDate, ...application }) => ({
+        ...application,
+        returnPct: returnPct === null || returnPct === undefined ? null : Number(returnPct),
+        maxDrawdownPct: maxDrawdownPct === null || maxDrawdownPct === undefined ? null : Number(maxDrawdownPct),
+        historyStartDate: historyStartDate ? historyStartDate.toISOString().slice(0, 10) : null,
+        fileCount: _count?.files || 0,
+      }));
+
+      return res.json({ ok: true, items });
     } catch (err) {
       return next(err);
     }
@@ -354,9 +376,12 @@ function registerAdminRoutes(app, {
       const usersByEmail = new Map(
         users.map((user) => [user.email.trim().toLowerCase(), user])
       );
-      const applicationsByEmail = new Map(
-        applications.map((application) => [application.email.trim().toLowerCase(), application])
-      );
+      // Applicants can reapply, so keep the newest application per email (the list is newest first).
+      const applicationsByEmail = new Map();
+      for (const application of applications) {
+        const key = application.email.trim().toLowerCase();
+        if (!applicationsByEmail.has(key)) applicationsByEmail.set(key, application);
+      }
 
       const emails = Array.from(
         new Set([...usersByEmail.keys(), ...applicationsByEmail.keys()])

@@ -33,6 +33,12 @@ For backend source orientation, start with [backend/src/README.md](/Users/sean/G
 
 If you change Prisma models locally, run `npx prisma migrate dev --name trader_application` (or similar) before starting the server.
 
+## Website redesign (Oct 2026)
+
+The trader application and investor enquiry forms need a file bucket and a few new variables. For step-by-step local
+setup (Postgres and a local bucket with Docker), see `../redesign-docs/README.md`, section *How to run it*. For the
+API and database details, see `../redesign-docs/02-backend-build-guide.md`.
+
 ## Runtime Neighbors
 
 - The React frontend in `../frontend/` calls this backend directly.

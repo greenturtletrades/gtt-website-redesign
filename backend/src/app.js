@@ -9,11 +9,13 @@ const Stripe = require("stripe");
 const { prisma } = require("./db/prisma");
 const { createAuthHelpers } = require("./middleware/auth");
 const { sendEmail } = require("./services/email");
+const fileStorage = require("./services/file-storage");
 const { createAccountStateHelpers } = require("./services/account-state");
 const { createBillingReferralHelpers } = require("./services/billing-referrals");
 const { buildTrading212TradesFromHistory } = require("./services/trading212");
 const { registerAccountRoutes } = require("./routes/account-routes");
 const { registerAdminRoutes } = require("./routes/admin-routes");
+const { registerApplicationRoutes } = require("./routes/application-routes");
 const { registerAnalyticsRoutes } = require("./routes/analytics-routes");
 const { registerStripeWebhookRoute, registerBillingRoutes } = require("./routes/billing-routes");
 const { registerIntegrationRoutes } = require("./routes/integrations-routes");
@@ -23,7 +25,6 @@ const { registerPublicRoutes } = require("./routes/public-routes");
 const app = express();
 
 const brokerPlatforms = new Set(["MT4", "MT5", "CTRADER", "TRADING212"]);
-const experienceLevels = new Set(["BEGINNER", "INTERMEDIATE", "ADVANCED"]);
 const applicationStatuses = new Set(["PENDING", "APPROVED", "REJECTED"]);
 const staffPortalRoles = new Set(["ADMIN"]);
 const staffWriteRoles = new Set(["ADMIN"]);
@@ -2347,8 +2348,18 @@ registerPublicRoutes(app, {
   prisma,
   sendEmail,
   env: process.env,
-  brokerPlatforms,
-  experienceLevels,
+});
+
+registerApplicationRoutes(app, {
+  prisma,
+  sendEmail,
+  env: process.env,
+  rateLimit,
+  getClientIp,
+  fileStorage,
+  authRequired,
+  adminRequired,
+  staffWriteRequired,
 });
 
 registerAccountRoutes(app, {

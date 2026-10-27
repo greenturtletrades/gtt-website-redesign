@@ -1,6 +1,11 @@
 export type ViewType =
   | "landing"
   | "about"
+  | "traders"
+  | "trader-apply"
+  | "professional-investors"
+  | "investor-enquire"
+  | "faqs"
   | "turtle-analytics"
   | "turtle-traders"
   | "ea-code"
@@ -42,13 +47,21 @@ const redirectPaths: Record<string, string> = {
   "/investment-competition": "/university-competition",
   "/student-investing-competition": "/university-competition",
   "/virtual-trading-competition": "/university-competition",
-  "/trader-application": "/",
-  "/trader-application-status": "/",
+  "/trader-application": "/traders/apply",
+  "/trader-application-status": "/traders",
+  "/for-traders": "/traders",
+  "/investors": "/professional-investors",
+  "/for-investors": "/professional-investors",
 };
 
 export const viewPaths: Partial<Record<ViewType, string>> = {
   landing: "/",
   about: "/about",
+  traders: "/traders",
+  "trader-apply": "/traders/apply",
+  "professional-investors": "/professional-investors",
+  "investor-enquire": "/professional-investors/enquire",
+  faqs: "/faqs",
   "turtle-analytics": "/turtle-analytics",
   "turtle-traders": "/university-competition",
   terms: "/terms",

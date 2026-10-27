@@ -1,12 +1,10 @@
 import { Hero } from "./Hero";
-import { AppWalkthrough } from "./AppWalkthrough";
-import { HomeNextSteps } from "./HomeNextSteps";
+import { HomeEvidence, HowItWorks, RouteCards, StatusContact } from "./HomeSections";
 import { TurtleAnalyticsFeature } from "./TurtleAnalyticsFeature";
-import { ValuePropositions } from "./ValuePropositions";
 import { Footer } from "./Footer";
 import { ScrollProgress } from "./ScrollProgress";
+import { PageShell } from "./PageBlocks";
 import type { ViewType } from "../../seo/routes";
-import "../../styles/home-brand.css";
 
 interface LandingPageProps {
   onNavigate?: (page: ViewType) => void;
@@ -18,18 +16,15 @@ export function LandingPage({
   mlEnabled = false,
 }: LandingPageProps) {
   return (
-    <div className="home-experience">
+    <PageShell>
       <ScrollProgress />
-      <Hero />
-      <AppWalkthrough onNavigate={onNavigate} />
-      <HomeNextSteps />
+      <Hero onNavigate={onNavigate} />
+      <HowItWorks />
+      <RouteCards onNavigate={onNavigate} />
+      <HomeEvidence onNavigate={onNavigate} />
       <TurtleAnalyticsFeature mlEnabled={mlEnabled} onExplore={() => onNavigate?.("turtle-analytics")} />
-      <div className="home-trust-signup">
-        <div className="home-section-inner">
-          <ValuePropositions />
-        </div>
-      </div>
+      <StatusContact onNavigate={onNavigate} />
       <Footer onNavigate={onNavigate} />
-    </div>
+    </PageShell>
   );
 }

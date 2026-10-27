@@ -20,9 +20,9 @@ const socialImageUrl = `${SITE_URL}/favicon-v2.png`;
 
 const pageMetadata: Partial<Record<ViewType, SeoMetadata>> = {
   landing: {
-    title: "Green Turtle Trades | Trading Analytics & Verified Trader Platform",
+    title: "Green Turtle Trades | Verified Trading Strategies for Professional Investors",
     description:
-      "Green Turtle Trades is a UK trading analytics platform with trader journals, verified performance tools, public trader rankings, and a Scottish university investment competition.",
+      "Green Turtle Trades verifies independent traders and, through a regulated host, copies their strategies into managed accounts for professional clients. In development.",
     keywords:
       "green turtle trades, green turtle traders, trading analytics platform, trading journal, investment competition, university investment competition, student investing competition, trader rankings, verified traders, trader marketplace",
   },
@@ -46,6 +46,33 @@ const pageMetadata: Partial<Record<ViewType, SeoMetadata>> = {
       "Use Turtle Analytics as a trading journal and trading analytics platform for MT4, MT5, Trading 212, CSV history, expectancy, drawdown, risk review, and trader performance tracking.",
     keywords:
       "Turtle Analytics, trading journal, trading analytics, MT4 trading journal, MT5 trading journal, trading performance tracker, expectancy, drawdown analysis, trading risk management",
+  },
+  traders: {
+    title: "For Traders | Apply to Trade for Professional Investors | Green Turtle Trades",
+    description:
+      "Keep trading from your own broker account. Apply with your CV and live trading record to have your verified strategy copied for professional clients.",
+    keywords:
+      "trader application, verified trader, copy trading for traders, trade for professional investors, trader performance fees, MT4 MT5 traders",
+  },
+  "trader-apply": {
+    title: "Apply as a Trader | Green Turtle Trades",
+    description:
+      "Apply as a trader with Green Turtle Trades. Upload your CV, broker statement and trade history for review and record verification.",
+  },
+  "professional-investors": {
+    title: "Professional Investors | Verified Trading Strategies | Green Turtle Trades",
+    description:
+      "For professional clients only. Access independently verified trading strategies through managed accounts under a regulated arrangement. In development.",
+  },
+  "investor-enquire": {
+    title: "Enquire About Access | Professional Investors | Green Turtle Trades",
+    description:
+      "Enquire about access to Green Turtle Trades for professional clients. An enquiry does not establish eligibility.",
+  },
+  faqs: {
+    title: "FAQs | Green Turtle Trades",
+    description:
+      "Answers to common questions about Green Turtle Trades for traders and professional investors: applications, verification, accounts, fees and regulation.",
   },
   contact: {
     title: "Contact Green Turtle Trades",

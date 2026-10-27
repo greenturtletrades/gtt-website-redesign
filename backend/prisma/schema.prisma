@@ -22,6 +22,70 @@ enum BrokerPlatform {
   MT5
   CTRADER
   TRADING212
+  OTHER
+}
+
+enum TradingStyle {
+  DISCRETIONARY
+  AUTOMATED
+  BOTH
+}
+
+enum EquityRange {
+  UNDER_5K
+  FROM_5K_TO_25K
+  FROM_25K_TO_100K
+  FROM_100K_TO_500K
+  OVER_500K
+}
+
+enum HoldingPeriod {
+  INTRADAY
+  DAYS
+  WEEKS
+  MONTHS
+}
+
+enum TradingRecordType {
+  LIVE
+  DEMO
+  COMPETITION
+}
+
+enum TraderApplicationFileKind {
+  CV
+  BROKER_STATEMENT
+  TRADE_HISTORY
+}
+
+enum EnquiringAs {
+  INDIVIDUAL
+  ORGANISATION
+}
+
+enum ProfessionalStatusAnswer {
+  YES
+  NO
+  NOT_SURE
+}
+
+enum AllocationRange {
+  UNDER_50K
+  FROM_50K_TO_250K
+  FROM_250K_TO_1M
+  OVER_1M
+}
+
+enum EnquiryTiming {
+  WITHIN_3_MONTHS
+  FROM_3_TO_12_MONTHS
+  EXPLORING
+}
+
+enum InvestorEnquiryStatus {
+  NEW
+  CONTACTED
+  CLOSED
 }
 
 enum ExperienceLevel {
@@ -184,21 +248,86 @@ model ContactMessage {
 }
 
 model TraderApplication {
-  id              String                 @id @default(cuid())
-  fullName        String
-  email           String                 @unique
-  statusLookupToken String               @unique
-  country         String
-  brokerName      String?
-  platform        BrokerPlatform
-  accountNumber   String
-  experienceLevel ExperienceLevel
-  status          TraderApplicationStatus @default(PENDING)
-  rejectionReason String?
-  submittedAt     DateTime               @default(now())
-  reviewedAt      DateTime?
+  id                String                  @id @default(cuid())
+  fullName          String
+  email             String
+  statusLookupToken String                  @unique
+  country           String
+  phone             String?
+  linkedinUrl       String?
+  brokerName        String?
+  platform          BrokerPlatform
+  platformOther     String?
+  markets           String[]                @default([])
+  tradingStyle      TradingStyle?
+  historyStartDate  DateTime?               @db.Date
+  yearsExperience   Decimal?                @db.Decimal(4, 1)
+  equityRange       EquityRange?
+  verifiedRecordUrl String?
+  returnPct         Decimal?                @db.Decimal(9, 2)
+  maxDrawdownPct    Decimal?                @db.Decimal(5, 2)
+  calcMethod        String?
+  strategySummary   String?
+  holdingPeriod     HoldingPeriod?
+  sizingApproach    String?
+  recordType        TradingRecordType?
+  whyGtt            String?
+  suitability       String?
+  timeCommitment    String?
+  consentAccurateAt DateTime?
+  consentPrivacyAt  DateTime?
+  submittedIp       String?
+  // Legacy columns from the original application form; new rows leave them null.
+  accountNumber     String?
+  experienceLevel   ExperienceLevel?
+  status            TraderApplicationStatus @default(PENDING)
+  rejectionReason   String?
+  submittedAt       DateTime                @default(now())
+  reviewedAt        DateTime?
+  files             TraderApplicationFile[]
 
   @@index([status])
+  @@index([email])
+  @@index([recordType])
+}
+
+model TraderApplicationFile {
+  id            String                    @id @default(cuid())
+  applicationId String
+  application   TraderApplication         @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  kind          TraderApplicationFileKind
+  storageKey    String                    @unique
+  fileName      String
+  size          Int
+  mimeType      String
+  createdAt     DateTime                  @default(now())
+
+  @@index([applicationId])
+}
+
+model InvestorEnquiry {
+  id                 String                   @id @default(cuid())
+  fullName           String
+  email              String
+  phone              String?
+  enquiringAs        EnquiringAs
+  organisation       String?
+  role               String?
+  country            String
+  professionalStatus ProfessionalStatusAnswer
+  allocationRange    AllocationRange
+  objectives         String
+  timing             EnquiryTiming
+  message            String?
+  consentPrivacyAt   DateTime
+  status             InvestorEnquiryStatus    @default(NEW)
+  internalNote       String?
+  submittedIp        String?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+
+  @@index([status])
+  @@index([email])
 }
 
 model ChurnFeedback {

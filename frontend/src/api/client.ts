@@ -53,6 +53,25 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   return data as T;
 }
 
+// Multipart POST for forms with file uploads. The browser sets the boundary header.
+export async function apiPostForm<T>(path: string, body: FormData): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    credentials: "include",
+    headers: getAuthHeaders(),
+    body,
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    const msg = (data && (data.error || data.message)) || "Request failed";
+    throw new ApiError(msg, res.status, data);
+  }
+
+  return data as T;
+}
+
 export async function apiGet<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     method: "GET",

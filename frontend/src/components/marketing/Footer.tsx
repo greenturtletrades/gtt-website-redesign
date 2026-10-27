@@ -1,6 +1,7 @@
 import { BadgeCheck, Instagram, Linkedin, Mail, Youtube } from "lucide-react";
 import logo from "figma:asset/6f4515e0be3e9f42f43c7a32bab7fda8514f9833.png";
 import type { ViewType } from "../../seo/routes";
+import { isInvestorPageLive } from "../../featureFlags";
 
 interface FooterProps {
   onNavigate?: (page: ViewType) => void;
@@ -135,6 +136,26 @@ export function Footer({ onNavigate }: FooterProps) {
           <div>
             <h3 className="text-lg mb-4">Quick Links</h3>
             <div className="space-y-1 text-sm">
+              <button
+                onClick={() => onNavigate && onNavigate("traders")}
+                className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
+              >
+                For Traders
+              </button>
+              {isInvestorPageLive && (
+                <button
+                  onClick={() => onNavigate && onNavigate("professional-investors")}
+                  className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
+                >
+                  For Professional Investors
+                </button>
+              )}
+              <button
+                onClick={() => onNavigate && onNavigate("faqs")}
+                className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
+              >
+                FAQs
+              </button>
               <button
                 onClick={() => onNavigate && onNavigate("about")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"

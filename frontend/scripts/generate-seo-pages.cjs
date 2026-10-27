@@ -275,6 +275,39 @@ const pages = [
     headline: "Building the UK's most transparent platform for trader-backed investing",
   }),
   page({
+    route: "/traders",
+    title: "For Traders | Apply to Trade for Professional Investors | Green Turtle Trades",
+    description:
+      "Keep trading from your own broker account. Apply with your CV and live trading record to have your verified strategy copied for professional clients.",
+    keywords:
+      "trader application, verified trader, copy trading for traders, trade for professional investors, trader performance fees, MT4 MT5 traders",
+    h1: "Trade your strategy. Reach professional capital.",
+    headline: "Apply as a trader with your CV and live trading record.",
+    paragraphs: [
+      "Green Turtle Trades reviews independent traders who have a live trading record they can evidence and a strategy they can explain.",
+      "Traders keep trading from their own broker account. After record review and an authorised read-only connection, the strategy is reviewed and agreed before any client money is linked, and trades are then copied within agreed limits.",
+      "We assess around 12 months of verifiable live history, an explainable strategy, risk and drawdown control, platform competence, and communication and monitoring.",
+      "Applicants upload a CV, a broker statement and a trade history export. We never ask for account passwords, investor passwords or API keys.",
+      "Applying does not guarantee selection, a contract or investor capital.",
+    ],
+    topics: ["Trader application", "Trader verification", "Copy trading", "Performance fees", "MT4 and MT5"],
+  }),
+  page({
+    route: "/faqs",
+    title: "FAQs | Green Turtle Trades",
+    description:
+      "Answers to common questions about Green Turtle Trades for traders and professional investors: applications, verification, accounts, fees and regulation.",
+    keywords: "Green Turtle Trades FAQ, trader application questions, verified trader FAQ",
+    h1: "Frequently asked questions",
+    headline: "Answers for traders and professional investors.",
+    paragraphs: [
+      "Green Turtle Trades is developing a platform that verifies independent traders and, through a regulated host firm, copies their trades into accounts managed for professional clients.",
+      "Traders keep their own broker account, and we never ask for passwords or API keys.",
+      "The investment service is in development and will be available to professional clients only.",
+    ],
+    topics: ["Trader applications", "Verification", "Professional clients", "Regulation"],
+  }),
+  page({
     route: "/turtle-analytics",
     title: "Turtle Analytics by Green Turtle Trades | Trading Analytics & Journal",
     description:
