@@ -1,7 +1,7 @@
-import { ArrowRight, CalendarClock, FileSpreadsheet, FileText, Gauge, Landmark, LineChart, MessagesSquare, MonitorCog, ShieldAlert, UserRound } from "lucide-react";
+import { ArrowRight, CalendarClock, ChartNoAxesCombined, FileSpreadsheet, FileText, FileUser, LineChart, MessagesSquare, MonitorCog, ReceiptText, ShieldAlert } from "lucide-react";
 import type { ViewType } from "../../seo/routes";
 import { Footer } from "./Footer";
-import { CtaBand, FaqList, PageShell, ProposedBadge, SectionHeading, StepTimeline, type FaqItem, type Step } from "./PageBlocks";
+import { CtaBand, FaqList, PageShell, SectionHeading, StepTimeline, type FaqItem, type Step } from "./PageBlocks";
 
 type Navigate = (view: ViewType) => void;
 
@@ -22,10 +22,10 @@ const requirements = [
 ];
 
 const documents = [
-  { icon: UserRound, title: "Your CV", description: "PDF, DOC or DOCX, up to 10 MB." },
-  { icon: Landmark, title: "Broker statement", description: "A PDF statement from your broker covering your live history." },
+  { icon: FileUser, title: "Your CV", description: "PDF, DOC or DOCX, up to 10 MB." },
+  { icon: ReceiptText, title: "Broker statement", description: "A PDF statement from your broker covering your live history." },
   { icon: FileSpreadsheet, title: "Trade history export", description: "CSV or XLSX export of every trade, from MT4, MT5 or your platform." },
-  { icon: Gauge, title: "Balance and equity history", description: "Deposits, withdrawals and equity over time, so returns can be recalculated." },
+  { icon: ChartNoAxesCombined, title: "Balance and equity history", description: "Deposits, withdrawals and equity over time, so returns can be recalculated." },
 ];
 
 const reviewSteps: Step[] = [
@@ -71,7 +71,6 @@ export function TradersPage({ onNavigate }: { onNavigate?: Navigate }) {
       <div className="home-section-inner">
         <div className="gtt-section-toprow">
           <SectionHeading align="left" id="assess-title" kicker="Requirements" title="What we assess" />
-          <ProposedBadge />
         </div>
         <div className="gtt-card-grid">
           {requirements.map(({ icon: Icon, title, description }) => <article className="gtt-card" key={title}>
@@ -93,33 +92,59 @@ export function TradersPage({ onNavigate }: { onNavigate?: Navigate }) {
         <SectionHeading align="left" id="prepare-title" kicker="Before you start" title="What to prepare" intro="Gather these before you begin the application so you can complete it in one go." />
         <ul className="gtt-doc-list">
           {documents.map(({ icon: Icon, title, description }) => <li key={title}>
-            <span className="gtt-card-icon"><Icon size={20} aria-hidden="true" /></span>
+            <span className="gtt-card-icon"><Icon size={24} strokeWidth={1.75} aria-hidden="true" /></span>
             <div><strong>{title}</strong><span>{description}</span></div>
           </li>)}
         </ul>
-        <p className="gtt-fine"><FileText size={14} style={{ display: "inline", verticalAlign: "-2px", marginRight: 6 }} aria-hidden="true" />A link to a verified record (for example Myfxbook) is helpful but optional.</p>
+        <p className="gtt-fine"><FileText size={14} style={{ display: "inline", verticalAlign: "-2px", marginRight: 6 }} aria-hidden="true" />A link to your trading record on Myfxbook, FX Blue, ShowMyTrades or a similar platform that connects to MetaTrader is helpful but optional. We still verify your history against your broker statements.</p>
       </div>
     </section>
 
     <section className="gtt-section gtt-section-tint" aria-labelledby="pay-title">
       <div className="home-section-inner gtt-narrow">
         <div className="gtt-section-toprow">
-          <SectionHeading align="left" id="pay-title" kicker="Remuneration" title="Potential remuneration" />
-          <ProposedBadge>Proposed terms</ProposedBadge>
+          <SectionHeading align="left" id="pay-title" kicker="Remuneration" title="Your share of performance fees" />
         </div>
         <div className="gtt-prose">
           <p>
-            Clients pay a 20% performance fee on eligible profit. That fee is split 60/40 between you and the
-            platform, so you would receive 12% of eligible profit and the platform 8%. Eligible profit is measured
-            above a high-water mark, so losses are recovered before any fee is earned.
+            You receive a share of the performance fees earned on eligible gains in client accounts following
+            your strategy. Your share is 50% of the fee in the first two return bands, rising to 80% in the
+            bands above 10%.
           </p>
         </div>
-        <div className="gtt-figure-row">
-          <div className="gtt-figure-box"><strong>20%</strong><span>Performance fee on eligible profit</span></div>
-          <div className="gtt-figure-box"><strong>12%</strong><span>Your share (60% of the fee)</span></div>
-          <div className="gtt-figure-box"><strong>8%</strong><span>Platform share (40% of the fee)</span></div>
+        <div className="gtt-table-wrap" role="region" aria-label="Proposed trader performance fee bands" tabIndex={0}>
+          <table className="gtt-table">
+            <thead>
+              <tr>
+                <th scope="col">Eligible return band</th>
+                <th scope="col">Client fee on that slice</th>
+                <th scope="col">Your share of the fee</th>
+                <th scope="col">GTT share of the fee</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">Hurdle to 5%</th><td>10%</td><td>50%</td><td>50%</td></tr>
+              <tr><th scope="row">5% to 10%</th><td>12.5%</td><td>50%</td><td>50%</td></tr>
+              <tr><th scope="row">10% to 15%</th><td>15%</td><td>80%</td><td>20%</td></tr>
+              <tr><th scope="row">Above 15%</th><td>20%</td><td>80%</td><td>20%</td></tr>
+            </tbody>
+          </table>
         </div>
-        <p className="gtt-fine">Proposed terms as of October 2026, subject to agreement with the regulated host. Final terms are set out in your agreement.</p>
+        <p className="gtt-fine">Bands are marginal: each rate applies only to the eligible gains within that slice, after both the hurdle and high-water-mark tests are met. Your percentage is a share of the performance fee, rather than of the client’s total profit.</p>
+        <div className="gtt-prose" style={{ marginTop: 28 }}>
+          <h3>When performance fees become eligible</h3>
+          <FaqList items={[
+            {
+              question: "Above the hurdle",
+              answer: "Client returns must exceed the UK risk-free-rate hurdle before performance fees become eligible. Below the hurdle, no performance fee is due and no trader performance-fee share is earned.",
+            },
+            {
+              question: "Above each client’s high-water mark",
+              answer: "Previous losses must be recovered before new performance fees become eligible. Each client’s reference peak is adjusted for deposits and withdrawals. Returning to that peak earns no performance fee, and unrecovered losses carry forward across fee periods so the same gains are never charged twice.",
+            },
+          ]} />
+        </div>
+        <p className="gtt-fine">Proposed terms as of October 2026, subject to agreement with the regulated host. The sterling hurdle benchmark, calculation period and fixing or reset method will be agreed with the host and stated in client terms. Final remuneration terms are set out in your agreement.</p>
       </div>
     </section>
 

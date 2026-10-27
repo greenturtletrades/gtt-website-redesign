@@ -2,7 +2,7 @@ import { useState } from "react";
 import { AlertTriangle, ArrowRight, Building2, Cpu, Landmark } from "lucide-react";
 import type { ViewType } from "../../seo/routes";
 import { Footer } from "./Footer";
-import { CheckList, CtaBand, FaqList, NoticeBanner, PageShell, ProposedBadge, SectionHeading, StepTimeline, type FaqItem, type Step } from "./PageBlocks";
+import { CheckList, CtaBand, FaqList, PageShell, SectionHeading, StepTimeline, type FaqItem, type Step } from "./PageBlocks";
 
 type Navigate = (view: ViewType) => void;
 
@@ -36,9 +36,16 @@ const parties = [
 ];
 
 const fees = [
-  { name: "Management fee", base: "1.25%", vat: "1.50%", basis: "Per year, on the value of your account" },
-  { name: "Performance fee", base: "20%", vat: "24%", basis: "Of eligible profit above a high-water mark" },
+  { name: "Management fee", base: "0.75%", vat: "0.90%", basis: "Per year, on deployed client capital" },
+  { name: "Performance fee", base: "10%–20%", vat: "12%–24%", basis: "Marginal rates on eligible gains, as shown below" },
   { name: "Minimum allocation", base: "£10,000", vat: "£10,000", basis: "Per trader you allocate to" },
+];
+
+const performanceBands = [
+  { band: "Hurdle to 5%", base: "10%", vat: "12%" },
+  { band: "5% to 10%", base: "12.5%", vat: "15%" },
+  { band: "10% to 15%", base: "15%", vat: "18%" },
+  { band: "Above 15%", base: "20%", vat: "24%" },
 ];
 
 const investorFaqs: FaqItem[] = [
@@ -58,7 +65,6 @@ export function ProfessionalInvestorsPage({ onNavigate }: { onNavigate?: Navigat
       <div className="home-section-inner">
         <span className="home-kicker" style={{ color: "#0e7490" }}>For investors</span>
         <h1 id="investors-title">Professional Investors</h1>
-        <NoticeBanner><strong>For professional clients only.</strong> The service is in development and subject to a regulated arrangement.</NoticeBanner>
         <p className="gtt-hero-lead">
           Access trading strategies from independently verified traders, copied into an account held in your name and
           managed under a mandate you agree. Every trader's record is checked against their broker's statements
@@ -132,7 +138,6 @@ export function ProfessionalInvestorsPage({ onNavigate }: { onNavigate?: Navigat
       <div className="home-section-inner gtt-narrow">
         <div className="gtt-section-toprow">
           <SectionHeading align="left" id="fees-title" kicker="Fees" title="What it costs" />
-          <ProposedBadge>Proposed terms, subject to host</ProposedBadge>
         </div>
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 14 }}>
           <div className="gtt-toggle" role="group" aria-label="Show fees">
@@ -148,6 +153,30 @@ export function ProfessionalInvestorsPage({ onNavigate }: { onNavigate?: Navigat
             </tbody>
           </table>
         </div>
+        <div className="gtt-prose" style={{ marginTop: 28 }}>
+          <h3>Performance fee bands</h3>
+          <p>Performance fees apply only to eligible gains above the UK risk-free-rate hurdle, after the management fee, and above your individual high-water mark. Each rate applies only to the gains within that slice of return.</p>
+        </div>
+        <div className="gtt-table-wrap">
+          <table className="gtt-table">
+            <thead><tr><th scope="col">Eligible return band</th><th scope="col">Fee on that slice{includeVat ? " (incl. VAT)" : ""}</th></tr></thead>
+            <tbody>
+              {performanceBands.map((fee) => <tr key={fee.band}><th scope="row">{fee.band}</th><td>{includeVat ? fee.vat : fee.base}</td></tr>)}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ marginTop: 28 }}>
+          <FaqList items={[
+            {
+              question: "How the hurdle works",
+              answer: "The hurdle is the UK risk-free rate. Performance fees apply only to eligible gains above this hurdle after the management fee. Below the hurdle, no performance fee is due; the management fee remains payable. The sterling reference benchmark, calculation period and fixing or reset method will be agreed with the regulated host and stated in client terms.",
+            },
+            {
+              question: "How your high-water mark works",
+              answer: "Your reference peak is adjusted for deposits and withdrawals. Previous losses must be recovered before new performance fees become eligible. A recovery to your previous peak does not itself earn a performance fee. Unrecovered losses carry forward across fee periods, so you do not pay a performance fee twice on the same gains.",
+            },
+          ]} />
+        </div>
         <p className="gtt-fine">Proposed terms as of October 2026, subject to agreement with the regulated host. VAT at 20% applies to management and performance fees. Final fees are set out in your client agreement.</p>
       </div>
     </section>
@@ -162,7 +191,7 @@ export function ProfessionalInvestorsPage({ onNavigate }: { onNavigate?: Navigat
     <CtaBand
       title="Interested in access?"
       text="Start with an enquiry. A member of the team will contact you to discuss the service and next steps."
-      small="Launch status, October 2026: in development with a regulated host. Not yet open to clients."
+      small="We’re open to early conversations with clients."
     >
       {enquireButton}
     </CtaBand>
