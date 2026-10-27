@@ -293,6 +293,22 @@ const pages = [
     topics: ["Trader application", "Trader verification", "Copy trading", "Performance fees", "MT4 and MT5"],
   }),
   page({
+    route: "/professional-investors",
+    title: "Professional Investors | Verified Trading Strategies | Green Turtle Trades",
+    description:
+      "For professional clients only. Access independently verified trading strategies through managed accounts under a regulated arrangement. In development.",
+    keywords:
+      "professional investors, verified trading strategies, managed accounts, professional clients, copy trading for investors",
+    h1: "Professional Investors",
+    headline: "Access independently verified trading strategies through managed accounts.",
+    paragraphs: [
+      "Green Turtle Trades is developing a service, through a regulated host firm, that copies independently verified trading strategies into accounts managed for professional clients.",
+      "Accounts are held at a broker or custodian in the client's name, and trades are sized to each client's mandate and checked against agreed risk limits.",
+      "The service is for professional clients only, as assessed by the regulated firm. An enquiry does not establish eligibility and nothing is committed at that stage.",
+    ],
+    topics: ["Professional clients", "Managed accounts", "Verified strategies", "Regulation"],
+  }),
+  page({
     route: "/faqs",
     title: "FAQs | Green Turtle Trades",
     description:

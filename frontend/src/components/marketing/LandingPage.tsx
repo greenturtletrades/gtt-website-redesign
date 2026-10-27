@@ -1,4 +1,5 @@
 import { Hero } from "./Hero";
+import { AppWalkthrough } from "./AppWalkthrough";
 import { HomeEvidence, HowItWorks, RouteCards, StatusContact } from "./HomeSections";
 import { TurtleAnalyticsFeature } from "./TurtleAnalyticsFeature";
 import { Footer } from "./Footer";
@@ -19,6 +20,7 @@ export function LandingPage({
     <PageShell>
       <ScrollProgress />
       <Hero onNavigate={onNavigate} />
+      <AppWalkthrough onNavigate={onNavigate} />
       <HowItWorks />
       <RouteCards onNavigate={onNavigate} />
       <HomeEvidence onNavigate={onNavigate} />
