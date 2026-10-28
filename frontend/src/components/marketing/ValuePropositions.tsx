@@ -3,7 +3,7 @@ import { Award, Eye, Lock } from "lucide-react";
 const values = [
   { icon: Lock, title: "Security", description: "Protecting your information is a priority as we develop our platform and verification processes." },
   { icon: Eye, title: "Transparency", description: "Clear performance records, understandable risk metrics, and an honest distinction between what is available today and what we are building." },
-  { icon: Award, title: "Regulation", description: "Regulation protects everyone. We are developing the investor product with regulatory requirements in mind, before real-capital access becomes available." },
+  { icon: Award, title: "Regulation", description: "The investment service is in development for professional clients, with investment management intended to sit with a regulated host firm." },
 ];
 
 export function ValuePropositions() {

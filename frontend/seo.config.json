@@ -1,0 +1,262 @@
+{
+  "siteUrl": "https://greenturtletraders.co.uk",
+  "organization": {
+    "@type": "Organization",
+    "@id": "https://greenturtletraders.co.uk/#organization",
+    "name": "Green Turtle Trades",
+    "alternateName": [
+      "Green Turtle Traders",
+      "Green Turtle Trades Limited"
+    ],
+    "legalName": "Green Turtle Trades Limited",
+    "identifier": "SC878660",
+    "url": "https://greenturtletraders.co.uk",
+    "mainEntityOfPage": "https://greenturtletraders.co.uk/",
+    "logo": "https://greenturtletraders.co.uk/favicon-v2.png",
+    "email": "contact@greenturtletraders.co.uk",
+    "foundingDate": "2026-02-11",
+    "foundingLocation": {
+      "@type": "Place",
+      "name": "Edinburgh, Scotland"
+    },
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Edinburgh",
+      "addressRegion": "Scotland",
+      "addressCountry": "GB"
+    },
+    "description": "Green Turtle Trades Limited is an Edinburgh company developing trader verification and trade-copying technology to connect independent traders with professional investors through managed accounts. The proposed investment service is for professional clients only and is in development.",
+    "sameAs": [
+      "https://www.linkedin.com/company/green-turtle-trade/",
+      "https://www.instagram.com/greenturtletrades_/",
+      "https://www.tiktok.com/@greenturtletrades",
+      "https://x.com/GreenTurtleT",
+      "https://www.youtube.com/@GreenTurtleTrades",
+      "https://find-and-update.company-information.service.gov.uk/company/SC878660"
+    ],
+    "knowsAbout": [
+      "Trader verification",
+      "Trading performance analysis",
+      "Trading risk management",
+      "Copy trading technology",
+      "Professional client managed accounts",
+      "Trading analytics"
+    ],
+    "subjectOf": {
+      "@type": "NewsArticle",
+      "headline": "Edinburgh student-led investment competition launches",
+      "url": "https://theedinburghreporter.co.uk/2026/10/edinburgh-student-led-investment-competition-launches/",
+      "datePublished": "2026-10-05",
+      "author": {
+        "@type": "Person",
+        "name": "Ryan Nixon"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "The Edinburgh Reporter"
+      }
+    }
+  },
+  "website": {
+    "@type": "WebSite",
+    "@id": "https://greenturtletraders.co.uk/#website",
+    "name": "Green Turtle Trades",
+    "alternateName": "Green Turtle Traders",
+    "url": "https://greenturtletraders.co.uk",
+    "publisher": {
+      "@id": "https://greenturtletraders.co.uk/#organization"
+    },
+    "description": "Trader verification and copying technology for a proposed professional client service, with supporting analytics and a virtual university competition.",
+    "about": {
+      "@id": "https://greenturtletraders.co.uk/#organization"
+    },
+    "hasPart": [
+      "https://greenturtletraders.co.uk/traders",
+      "https://greenturtletraders.co.uk/professional-investors",
+      "https://greenturtletraders.co.uk/about",
+      "https://greenturtletraders.co.uk/faqs",
+      "https://greenturtletraders.co.uk/turtle-analytics",
+      "https://greenturtletraders.co.uk/university-competition"
+    ]
+  },
+  "routes": {
+    "/about": {
+      "title": "About Green Turtle Trades | Trader Verification & Technology",
+      "description": "An Edinburgh company developing trader verification and copying technology to connect independent traders with professional investors."
+    },
+    "/traders": {
+      "title": "Trade for Professional Investors | Green Turtle Trades",
+      "description": "Apply with your CV and verifiable trading history. Keep your broker account and have your strategy reviewed for professional client accounts. Selection is not guaranteed.",
+      "audience": "Independent traders with verifiable trading records"
+    },
+    "/professional-investors": {
+      "title": "Professional Investors | Verified Strategies | Green Turtle Trades",
+      "description": "Explore verified trading strategies and proposed managed accounts for professional clients. Green Turtle Trades investment service is in development.",
+      "audience": "Professional clients"
+    },
+    "/faqs": {
+      "title": "Trader & Professional Investor FAQs | Green Turtle Trades",
+      "description": "Answers about trader applications, record verification, managed accounts, proposed fees and the professional client service in development."
+    },
+    "/turtle-analytics": {
+      "title": "Turtle Analytics by Green Turtle Trades | Trading Analytics & Journal",
+      "description": "Explore Turtle Analytics for reviewing trade history, journals, expectancy, drawdown and risk. Analytics is distinct from the proposed investment service."
+    },
+    "/university-competition": {
+      "title": "University Investment Competition Leaderboard Scotland | Green Turtle Trades",
+      "description": "Follow the Green Turtle Trades university investment competition, student rankings and virtual portfolios across Scottish universities."
+    },
+    "/methodology": {
+      "title": "Trader Verification Methodology | Green Turtle Trades",
+      "description": "How Green Turtle Trades reviews trading records, data sources and risk metrics. Learn the limits of verification and how competition performance is calculated."
+    },
+    "/green-turtle-trades": {
+      "title": "Green Turtle Trades | Company & Trader Verification",
+      "description": "Green Turtle Trades Limited: Edinburgh trading technology, trader verification and analytics. Developing a managed account service for professional clients."
+    },
+    "/trading-analytics": {
+      "title": "Trading Analytics | Green Turtle Trades",
+      "description": "Trading analytics helps traders review trade history, expectancy, win rate, profit factor, drawdown, risk per trade, holding time, and performance behaviour with clearer data."
+    },
+    "/trading-education": {
+      "title": "Trading Education | Green Turtle Trades",
+      "description": "Trading education from Green Turtle Trades covering trading journals, analytics, expectancy, drawdown, profit factor, risk/reward, risk management, and trader verification."
+    },
+    "/trading-journal": {
+      "title": "Trading Journal | Green Turtle Trades",
+      "description": "A trading journal for recording trades, reviewing decisions, importing MT4 and MT5 history, tracking lessons, measuring expectancy, and understanding trading risk."
+    },
+    "/verified-traders": {
+      "title": "Verified Traders | Green Turtle Trades",
+      "description": "Learn how trading records are checked against data sources and reviewed for performance and risk. Verification does not guarantee future returns or selection."
+    },
+    "/investor-capital-for-traders": {
+      "title": "Investor Capital & Trader Verification | Green Turtle Trades",
+      "description": "Learn how verified trading records and risk review support the proposed route to professional investor capital. Selection and funding are not guaranteed."
+    },
+    "/trader-marketplace": {
+      "title": "Trader Evaluation & Verified Records | Green Turtle Trades",
+      "description": "Explore trader evaluation using verified performance records and risk metrics. Green Turtle Trades professional client investment service is in development."
+    },
+    "/copy-trading-platform": {
+      "title": "Copy Trading & Verified Performance | Green Turtle Trades",
+      "description": "Learn about copying technology, verified trader records and risk review. Green Turtle Trades proposed investment service is for professional clients."
+    },
+    "/trader-funding": {
+      "title": "Trader Funding & Performance Records | Green Turtle Trades",
+      "description": "Explore trader funding through verified performance records, risk review and professional investor capital. Green Turtle Trades service is in development."
+    },
+    "/prop-firm-alternative": {
+      "title": "Beyond Prop Firm Challenges | Green Turtle Trades",
+      "description": "Explore an approach based on verified trader records, risk review and professional investor capital. Applications do not guarantee selection or funding."
+    },
+    "/trading-performance-tracker": {
+      "title": "Trading Performance Tracker | Green Turtle Trades",
+      "description": "Track trading performance with metrics such as win rate, expectancy, R-multiple, profit factor, risk per trade, drawdown, holding time, trade count, and consistency."
+    },
+    "/trading-risk-management": {
+      "title": "Trading Risk Management | Green Turtle Trades",
+      "description": "Trading risk management tools and analytics for reviewing risk per trade, drawdown, exposure, stop-loss behaviour, leverage, expectancy, and trader consistency."
+    },
+    "/trading-expectancy": {
+      "title": "Trading Expectancy Explained | Green Turtle Trades",
+      "description": "Trading expectancy explained: formula, examples, win rate, average win, average loss, risk/reward, sample size, and how Turtle Analytics reviews expectancy."
+    },
+    "/trading-drawdown": {
+      "title": "Trading Drawdown Explained | Green Turtle Trades",
+      "description": "Trading drawdown explained: max drawdown, equity high to low, realised and unrealised drawdown, recovery math, risk control, and how Turtle Analytics reviews drawdown."
+    },
+    "/profit-factor-trading": {
+      "title": "Profit Factor in Trading Explained | Green Turtle Trades",
+      "description": "Profit factor in trading explained: formula, gross profit, gross loss, sample size, win rate, expectancy, drawdown, and how Turtle Analytics reviews profit factor."
+    },
+    "/risk-reward-ratio-trading": {
+      "title": "Risk/Reward Ratio in Trading Explained | Green Turtle Trades",
+      "description": "Risk/reward ratio in trading explained: planned risk, potential reward, realised average win/loss, win rate, expectancy, and how Turtle Analytics reviews risk/reward."
+    },
+    "/trader-verification-guide": {
+      "title": "Trader Verification Guide | Green Turtle Trades",
+      "description": "Trader verification guide explaining verified trading records, data sources, screenshots, public summaries, private raw data, risk metrics, and Green Turtle Trades methodology."
+    },
+    "/mt4-mt5-trading-journal": {
+      "title": "MT4 and MT5 Trading Journal | Green Turtle Trades",
+      "description": "An MT4 and MT5 trading journal for turning MetaTrader account history into structured notes, performance analytics, expectancy, drawdown, and risk review."
+    },
+    "/": {
+      "title": "Green Turtle Trades | Strategies for Professional Investors",
+      "description": "A platform in development connecting verified independent traders with professional investors through managed accounts. Explore the proposed service."
+    },
+    "/contact": {
+      "title": "Contact Green Turtle Trades | Trader & Investor Enquiries",
+      "description": "Contact Green Turtle Trades about trader applications, professional investor enquiries, trading analytics and platform support."
+    },
+    "/traders/apply": {
+      "title": "Trader Application | Green Turtle Trades",
+      "description": "Submit your CV, broker statement and trade history for review. Applying does not guarantee selection or investor capital.",
+      "robots": "noindex, follow"
+    },
+    "/professional-investors/enquire": {
+      "title": "Professional Investor Enquiry | Green Turtle Trades",
+      "description": "Enquire about the proposed service for professional clients. An enquiry does not establish eligibility.",
+      "robots": "noindex, follow"
+    },
+    "/privacy": {
+      "title": "Privacy Policy | Green Turtle Trades",
+      "description": "Read how Green Turtle Trades handles personal information."
+    },
+    "/terms": {
+      "title": "Terms of Service | Green Turtle Trades",
+      "description": "Read the Green Turtle Trades terms of service."
+    },
+    "/risk-disclosure": {
+      "title": "Risk Disclosure | Green Turtle Trades",
+      "description": "Read the Green Turtle Trades trading risk disclosure."
+    }
+  },
+  "indexableRoutes": [
+    "/",
+    "/traders",
+    "/professional-investors",
+    "/faqs",
+    "/university-competition",
+    "/about",
+    "/turtle-analytics",
+    "/green-turtle-trades",
+    "/trading-analytics",
+    "/trading-education",
+    "/trading-journal",
+    "/verified-traders",
+    "/investor-capital-for-traders",
+    "/trader-marketplace",
+    "/copy-trading-platform",
+    "/trader-funding",
+    "/prop-firm-alternative",
+    "/trading-performance-tracker",
+    "/trading-risk-management",
+    "/trading-expectancy",
+    "/trading-drawdown",
+    "/profit-factor-trading",
+    "/risk-reward-ratio-trading",
+    "/trader-verification-guide",
+    "/mt4-mt5-trading-journal",
+    "/methodology",
+    "/contact"
+  ],
+  "companyProfile": {
+    "traders": "Independent traders apply with a CV, broker statements and trade history. They keep their own broker accounts. Records and strategy are reviewed before any copying arrangement; applying does not guarantee selection, a contract or investor capital.",
+    "investors": "The proposed investment service is for professional clients only, with client assessment and investment management intended to sit with a regulated host firm. An enquiry does not establish eligibility. Do not describe GTT itself as the regulated investment manager or the proposed service as already launched.",
+    "supportingProducts": "Turtle Analytics and trading journals support historical performance and risk review. The university competition uses virtual capital; competition results are distinct from a verified live trading record and from selection for the proposed investment service.",
+    "officialPages": {
+      "For traders": "/traders",
+      "Professional investors": "/professional-investors",
+      "Questions and answers": "/faqs",
+      "About the company": "/about",
+      "Turtle Analytics": "/turtle-analytics",
+      "University competition": "/university-competition",
+      "Performance methodology": "/methodology",
+      "Contact": "/contact",
+      "Risk disclosure": "/risk-disclosure"
+    }
+  },
+  "omitLegacyFaqSchemaRoutes": []
+}

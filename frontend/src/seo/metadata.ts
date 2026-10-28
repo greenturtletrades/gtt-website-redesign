@@ -1,5 +1,5 @@
+import seo from "../../seo.config.json";
 import { buildStructuredData } from "./structuredData";
-import { getSeoContentPage } from "./content";
 import { SITE_URL, getCanonicalUrl, type ViewType } from "./routes";
 
 type SeoMetadata = {
@@ -8,89 +8,8 @@ type SeoMetadata = {
   keywords?: string;
 };
 
-const defaultMetadata: SeoMetadata = {
-  title: "Green Turtle Trades | Trading Analytics & Verified Trader Platform",
-  description:
-    "Green Turtle Trades provides trading analytics, trader journals, verified performance tools, and a Scottish university investment competition.",
-  keywords:
-    "green turtle trades, green turtle traders, trading analytics, trading journal, investment competition, trading competition, student investing competition, university competition leaderboard, trader rankings, trading performance",
-};
-
+const defaultMetadata: SeoMetadata = seo.routes["/"];
 const socialImageUrl = `${SITE_URL}/favicon-v2.png`;
-
-const pageMetadata: Partial<Record<ViewType, SeoMetadata>> = {
-  landing: {
-    title: "Green Turtle Trades | Verified Trading Strategies for Professional Investors",
-    description:
-      "Green Turtle Trades verifies independent traders and, through a regulated host, copies their strategies into managed accounts for professional clients. In development.",
-    keywords:
-      "green turtle trades, green turtle traders, trading analytics platform, trading journal, investment competition, university investment competition, student investing competition, trader rankings, verified traders, trader marketplace",
-  },
-  about: {
-    title: "About Green Turtle Trades | UK Trader-Backed Investing Platform",
-    description:
-      "About Green Turtle Trades: a UK trader-backed investing platform for fintech investment, copy trading, trader marketplace, and prop firm alternative searches.",
-    keywords:
-      "about Green Turtle Trades, trader-backed investing platform, fintech investment platform, copy trading platform, trader marketplace, prop firm alternative, verified trader platform, trader performance verification, trading transparency, Turtle Analytics",
-  },
-  "turtle-traders": {
-    title: "University Investment Competition Leaderboard Scotland | Green Turtle Trades",
-    description:
-      "Scotland's next generation of investors, ranked live. Follow the Green Turtle Trades University Investment Competition with Scottish university rankings, student trader scores, returns, win rate, risk, backers, and competition activity.",
-    keywords:
-      "Scotland's next generation of investors, next generation investors Scotland, university investment competition, Scottish university investment competition, student investing competition Scotland, university competition leaderboard, student trader leaderboard, Scottish university trading competition, Green Turtle Trades competition, risk free investing competition, virtual trading competition",
-  },
-  "turtle-analytics": {
-    title: "Turtle Analytics by Green Turtle Trades | Trading Analytics & Journal",
-    description:
-      "Use Turtle Analytics as a trading journal and trading analytics platform for MT4, MT5, Trading 212, CSV history, expectancy, drawdown, risk review, and trader performance tracking.",
-    keywords:
-      "Turtle Analytics, trading journal, trading analytics, MT4 trading journal, MT5 trading journal, trading performance tracker, expectancy, drawdown analysis, trading risk management",
-  },
-  traders: {
-    title: "For Traders | Apply to Trade for Professional Investors | Green Turtle Trades",
-    description:
-      "Keep trading from your own broker account. Apply with your CV and live trading record to have your verified strategy copied for professional clients.",
-    keywords:
-      "trader application, verified trader, copy trading for traders, trade for professional investors, trader performance fees, MT4 MT5 traders",
-  },
-  "trader-apply": {
-    title: "Apply as a Trader | Green Turtle Trades",
-    description:
-      "Apply as a trader with Green Turtle Trades. Upload your CV, broker statement and trade history for review and record verification.",
-  },
-  "professional-investors": {
-    title: "Professional Investors | Verified Trading Strategies | Green Turtle Trades",
-    description:
-      "For professional clients only. Access independently verified trading strategies through managed accounts under a regulated arrangement. In development.",
-  },
-  "investor-enquire": {
-    title: "Enquire About Access | Professional Investors | Green Turtle Trades",
-    description:
-      "Enquire about access to Green Turtle Trades for professional clients. An enquiry does not establish eligibility.",
-  },
-  faqs: {
-    title: "FAQs | Green Turtle Trades",
-    description:
-      "Answers to common questions about Green Turtle Trades for traders and professional investors: applications, verification, accounts, fees and regulation.",
-  },
-  contact: {
-    title: "Contact Green Turtle Trades",
-    description: "Contact Green Turtle Trades about trader analytics, public leaderboard listings, and platform support.",
-  },
-  privacy: {
-    title: "Privacy Policy | Green Turtle Trades",
-    description: "Read the Green Turtle Trades privacy policy.",
-  },
-  terms: {
-    title: "Terms of Service | Green Turtle Trades",
-    description: "Read the Green Turtle Trades terms of service.",
-  },
-  "risk-disclosure": {
-    title: "Risk Disclosure | Green Turtle Trades",
-    description: "Read the Green Turtle Trades trading risk disclosure.",
-  },
-};
 
 function upsertMeta(selector: string, create: () => HTMLMetaElement | HTMLLinkElement) {
   let element = document.head.querySelector(selector) as HTMLMetaElement | HTMLLinkElement | null;
@@ -141,24 +60,14 @@ function setStructuredData(view: ViewType) {
 }
 
 export function applySeoMetadata(view: ViewType) {
-  const contentPage = getSeoContentPage(view);
-  const metadata = contentPage
-    ? {
-        title:
-          view === "seo-green-turtle-trades"
-            ? "Green Turtle Trades | UK Trading Analytics Platform"
-            : `${contentPage.title} | Green Turtle Trades`,
-        description: contentPage.description,
-        keywords: contentPage.keywords,
-      }
-    : pageMetadata[view] || defaultMetadata;
   const canonicalUrl = getCanonicalUrl(view);
-
+  const route = new URL(canonicalUrl).pathname;
+  const configured = (seo.routes as Record<string, SeoMetadata & { robots?: string }>)[route];
+  const metadata = configured || defaultMetadata;
   document.title = metadata.title;
+  setMetaName("robots", view === "admin-dashboard" || view === "settings" || view === "ea-code" ? "noindex, follow" : configured?.robots || "index, follow");
   setMetaName("description", metadata.description);
-  if (metadata.keywords) {
-    setMetaName("keywords", metadata.keywords);
-  }
+  document.head.querySelectorAll('meta[name="keywords"]').forEach(element => element.remove());
   setCanonical(canonicalUrl);
 
   setMetaProperty("og:title", metadata.title);
@@ -169,7 +78,7 @@ export function applySeoMetadata(view: ViewType) {
   setMetaProperty("og:image", socialImageUrl);
   setMetaProperty("og:image:alt", "Green Turtle Trades logo");
 
-  setMetaName("twitter:card", "summary_large_image");
+  setMetaName("twitter:card", "summary");
   setMetaName("twitter:title", metadata.title);
   setMetaName("twitter:description", metadata.description);
   setMetaName("twitter:image", socialImageUrl);

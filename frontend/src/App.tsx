@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { AdminDashboard } from "./components/admin/AdminDashboard";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { AdminLoginModal } from "./components/admin/AdminLoginModal";
 import { AuthModal } from "./components/auth/AuthModal";
 import { PlanSelectionModal, type SignupPlanChoice } from "./components/auth/PlanSelectionModal";
@@ -20,9 +19,6 @@ import { TurtleTradersPage } from "./components/marketing/TurtleTradersPage";
 import { PrivacyPolicy } from "./components/legal/PrivacyPolicy";
 import { RiskDisclosure } from "./components/legal/RiskDisclosure";
 import { TermsOfService } from "./components/legal/TermsOfService";
-import { EACodePage } from "./components/trader/EACodePage";
-import { SettingsPage } from "./components/trader/SettingsPage";
-import { TurtleAnalytics } from "./components/trader/TurtleAnalytics";
 import { TurtleAnalyticsWelcome } from "./components/trader/TurtleAnalyticsWelcome";
 import type { AdminLoginResponse } from "./api/admin";
 import { logout } from "./api/auth";
@@ -33,6 +29,11 @@ import { getConfig } from "./api/config";
 import { isInvestorPageLive } from "./featureFlags";
 import { applySeoMetadata } from "./seo/metadata";
 import { getPathForView, getRedirectPathForPath, getViewFromPath, type ViewType } from "./seo/routes";
+
+const AdminDashboard = lazy(() => import("./components/admin/AdminDashboard").then(module => ({ default: module.AdminDashboard })));
+const EACodePage = lazy(() => import("./components/trader/EACodePage").then(module => ({ default: module.EACodePage })));
+const SettingsPage = lazy(() => import("./components/trader/SettingsPage").then(module => ({ default: module.SettingsPage })));
+const TurtleAnalytics = lazy(() => import("./components/trader/TurtleAnalytics").then(module => ({ default: module.TurtleAnalytics })));
 
 export type UserType = "trader" | "admin" | null;
 export type { ViewType } from "./seo/routes";
@@ -547,7 +548,7 @@ export default function App() {
               onSubscribe={() => setShowSubscriptionModal(true)}
             />
           ) : (
-            <TurtleAnalytics
+            <Suspense fallback={null}><TurtleAnalytics
               userType={userType} 
               subscriptionTier={selectedSubscriptionPlan || "free"}
               subscriptionStatus={subscriptionStatus}
@@ -557,7 +558,7 @@ export default function App() {
               onSettings={handleOpenSettings}
               onPauseSubscription={handlePauseSubscription}
               onResumeSubscription={handleResumeSubscription}
-            />
+            /></Suspense>
           )
         ) : (
           <TurtleAnalyticsWelcome
@@ -611,15 +612,15 @@ export default function App() {
       )}
 
       {!isAdminRoute && currentView === "ea-code" && (
-        <EACodePage 
+        <Suspense fallback={null}><EACodePage
           isOnboarding={onboardingStage === "ea-setup"}
           onComplete={handleEASetupComplete}
           onSkip={handleEASetupSkip}
-        />
+        /></Suspense>
       )}
 
       {!isAdminRoute && currentView === "settings" && selectedSubscriptionPlan && (
-        <SettingsPage
+        <Suspense fallback={null}><SettingsPage
           userName={currentUserName || pendingUserName || "Trader"}
           userEmail={currentUserEmail}
           currentPlan={selectedSubscriptionPlan}
@@ -627,7 +628,7 @@ export default function App() {
           onPauseSubscription={handlePauseSubscription}
           onResumeSubscription={handleResumeSubscription}
           onAccountDeleted={handleAccountDeleted}
-        />
+        /></Suspense>
       )}
 
       {/* Legal Pages */}
@@ -697,10 +698,10 @@ export default function App() {
       )}
 
       {isAdminRoute && userType === "admin" && currentView === "admin-dashboard" && (
-        <AdminDashboard
+        <Suspense fallback={null}><AdminDashboard
           currentAdminIsSuperAdmin={currentAdminIsSuperAdmin}
           onLogout={handleLogout}
-        />
+        /></Suspense>
       )}
 
       {resetToken && (

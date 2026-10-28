@@ -1,3 +1,4 @@
+import { NavigationLink } from "../../seo/NavigationLink";
 import { ChevronDown, ExternalLink, LogOut, Menu, X, Brain, Trophy, TrendingUp, Landmark, type LucideIcon } from "lucide-react";
 import { UserType, ViewType } from "../../App";
 import logoFull from "figma:asset/8db911c3a67b2195489de29cf1364c8b6b381bc4.png";
@@ -67,17 +68,17 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
       isVisible ? 'translate-y-0' : '-translate-y-full'
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-6 flex items-center justify-between gap-4">
-        <button 
+        <NavigationLink view="landing"
           onClick={() => handleNavigation(() => onNavigate("landing"))}
           className="flex flex-shrink-0 items-center gap-2 hover:opacity-80 transition-opacity"
         >
           <img src={logoFull} alt="Green Turtle Trades" className="h-12 md:h-12 lg:h-16" />
-        </button>
+        </NavigationLink>
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-1 lg:gap-3 text-sm lg:text-base">
           {navLinks.map(({ label, view, icon: Icon, activeViews }) => (
-            <button
+            <NavigationLink view={view}
               key={view}
               onClick={() => onNavigate(view)}
               aria-current={activeViews.includes(currentView) ? "page" : undefined}
@@ -89,7 +90,7 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
             >
               <Icon className="w-4 h-4" />
               {label}
-            </button>
+            </NavigationLink>
           ))}
           {!userType ? (
             <div className="relative">
@@ -160,7 +161,7 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
         <div className="absolute right-4 top-full mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-slate-200 bg-white shadow-2xl md:hidden">
           <nav className="space-y-1 p-3">
             {navLinks.map(({ label, view, icon: Icon, activeViews }) => (
-              <button
+              <NavigationLink view={view}
                 key={view}
                 onClick={() => handleNavigation(() => onNavigate(view))}
                 aria-current={activeViews.includes(currentView) ? "page" : undefined}
@@ -172,7 +173,7 @@ export function Header({ userType, onTraderClick, onLogout, onNavigate, currentV
               >
                 <Icon className="w-5 h-5" />
                 {label}
-              </button>
+              </NavigationLink>
             ))}
             {!userType ? (
               <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-2">

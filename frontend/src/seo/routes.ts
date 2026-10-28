@@ -136,5 +136,5 @@ export function getPathForView(view: ViewType): string {
 
 export function getCanonicalUrl(view: ViewType): string {
   const path = canonicalViewPaths[view] || getPathForView(view);
-  return `${SITE_URL}${path === "/" ? "" : path}`;
+  return `${SITE_URL}${path}`;
 }

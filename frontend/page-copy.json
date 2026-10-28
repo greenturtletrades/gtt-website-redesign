@@ -1,0 +1,54 @@
+{
+  "/": {
+    "title": "Verified trading strategies for professional investors",
+    "paragraphs": [
+      "Green Turtle Trades Limited is an Edinburgh company developing trader verification and trade-copying technology to connect independent traders with professional investors through managed accounts. The proposed investment service is for professional clients only and is in development.",
+      "Independent traders apply with a CV, broker statements and trade history. They keep their own broker accounts. Records and strategy are reviewed before any copying arrangement; applying does not guarantee selection, a contract or investor capital.",
+      "Turtle Analytics and trading journals support historical performance and risk review. The university competition uses virtual capital; competition results are distinct from a verified live trading record and from selection for the proposed investment service."
+    ]
+  },
+  "/about": {
+    "title": "Connecting independent traders with professional investors",
+    "paragraphs": [
+      "We are four university founders based in Edinburgh. Green Turtle Trades is developing trader verification and copying technology for professional client managed accounts. Traders keep their broker accounts; records and strategies are reviewed before any copying arrangement. The investment service is in development.",
+      "The proposed model places client assessment and investment management with a regulated host firm, while GTT develops the verification, copying and reporting technology.",
+      "Analytics and journals support historical review. The university competition uses virtual capital and is separate from the proposed investment service."
+    ]
+  },
+  "/traders": {
+    "title": "Trade your strategy. Reach professional capital.",
+    "paragraphs": [
+      "If you have a live trading record you can evidence and a strategy you can explain, we want to hear from you. You keep trading from your own broker account. We verify your record, and once your strategy is agreed, your trades can be copied into accounts managed for professional clients.",
+      "Applying does not guarantee selection, a contract or investor capital."
+    ]
+  },
+  "/professional-investors": {
+    "title": "Professional Investors",
+    "paragraphs": [
+      "Green Turtle Trades Limited is an Edinburgh company developing trader verification and trade-copying technology to connect independent traders with professional investors through managed accounts. The proposed investment service is for professional clients only and is in development.",
+      "The proposed investment service is for professional clients only, with client assessment and investment management intended to sit with a regulated host firm. An enquiry does not establish eligibility. Do not describe GTT itself as the regulated investment manager or the proposed service as already launched."
+    ]
+  },
+  "/faqs": {
+    "title": "Frequently asked questions",
+    "paragraphs": [
+      "Green Turtle Trades Limited is an Edinburgh company developing trader verification and trade-copying technology to connect independent traders with professional investors through managed accounts. The proposed investment service is for professional clients only and is in development.",
+      "Independent traders apply with a CV, broker statements and trade history. They keep their own broker accounts. Records and strategy are reviewed before any copying arrangement; applying does not guarantee selection, a contract or investor capital.",
+      "The proposed investment service is for professional clients only, with client assessment and investment management intended to sit with a regulated host firm. An enquiry does not establish eligibility. Do not describe GTT itself as the regulated investment manager or the proposed service as already launched."
+    ]
+  },
+  "/turtle-analytics": {
+    "title": "Turtle Analytics",
+    "paragraphs": [
+      "Turtle Analytics supports trading journals and historical performance review, including trade history, expectancy, drawdown and risk.",
+      "Analytics is a supporting product, separate from the proposed professional client investment service. Product access and availability are shown on the analytics page."
+    ]
+  },
+  "/university-competition": {
+    "title": "University Investment Competition",
+    "paragraphs": [
+      "Follow the Green Turtle Trades university investment competition, student rankings and virtual portfolios across Scottish universities.",
+      "The student competition uses virtual capital. Its rankings are separate from verified live trader records and do not establish eligibility for the proposed professional client investment service."
+    ]
+  }
+}

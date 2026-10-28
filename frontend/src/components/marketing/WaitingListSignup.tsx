@@ -28,7 +28,7 @@ export function WaitingListSignup() {
   return <section className="home-waitlist" aria-labelledby={`${id}-title`}>
     <span className="home-kicker">Investor Waitlist</span>
     <h2 id={`${id}-title`}>Join the Investor Waitlist</h2>
-    <p className="home-waitlist-intro">Register your interest in the Green Turtle Trades investor product and we will contact you when access becomes available.</p>
+    <p className="home-waitlist-intro">Register interest in the proposed professional client service. It is in development, and joining the list does not establish eligibility.</p>
     <form onSubmit={handleSubmit} aria-busy={isSubmitting}>
       <label htmlFor={`${id}-email`}>Email address</label>
       <div className="home-waitlist-input">
@@ -39,7 +39,7 @@ export function WaitingListSignup() {
         {submitted ? <><CheckCircle size={19} aria-hidden="true" />You're on the list</> : <>{isSubmitting ? "Joining..." : "Join Waitlist"}<ArrowRight size={19} aria-hidden="true" /></>}
       </button>
       <div aria-live="polite" aria-atomic="true">
-        {submitted && <p className="home-waitlist-success">Thank you. We will contact you when investor access becomes available.</p>}
+        {submitted && <p className="home-waitlist-success">Thank you. We will contact you about the proposed service. Access remains subject to assessment.</p>}
         {errorMsg && <p id={`${id}-error`} className="home-waitlist-error" role="alert">{errorMsg}</p>}
       </div>
       <p className="home-waitlist-privacy"><Lock size={15} aria-hidden="true" /><span>Your information remains confidential and will not be shared with third parties.</span></p>

@@ -1,3 +1,4 @@
+import { getPathForView, getViewFromPath } from "../../seo/routes";
 import { ArrowRight, BarChart3, CheckCircle2, LineChart, ShieldCheck } from "lucide-react";
 import { Footer } from "./Footer";
 import { getSeoContentPage } from "../../seo/content";
@@ -16,6 +17,7 @@ export function SeoContentPage({ view, onNavigate }: SeoContentPageProps) {
     return null;
   }
 
+  const commercial = ["seo-green-turtle-trades", "seo-investor-capital", "seo-trader-marketplace", "seo-copy-trading-platform", "seo-trader-funding", "seo-prop-firm-alternative"].includes(view);
   const defaultRelatedPages: Array<[string, ViewType]> = [
     ["Turtle Analytics", "turtle-analytics"],
     ["Trading Journal", "seo-trading-journal"],
@@ -90,6 +92,10 @@ export function SeoContentPage({ view, onNavigate }: SeoContentPageProps) {
   };
   const relatedPages = relatedPagesByView[view] || defaultRelatedPages;
 
+  const relatedLinks: Array<[string, string]> = commercial
+    ? [["For Traders", "https://greenturtletraders.co.uk/traders"], ["For Professional Investors", "https://greenturtletraders.co.uk/professional-investors"], ["Trader Verification Guide", "/trader-verification-guide"], ["Methodology", "/methodology"]]
+    : relatedPages.map(([label, target]) => [label, getPathForView(target)]);
+
   const featureIcons = [ShieldCheck, BarChart3, LineChart, CheckCircle2];
 
   return (
@@ -107,21 +113,21 @@ export function SeoContentPage({ view, onNavigate }: SeoContentPageProps) {
             {page.intro}
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => onNavigate("turtle-analytics")}
+            <a
+              href={commercial ? "https://greenturtletraders.co.uk/traders" : "/turtle-analytics"}
+              onClick={event => { if (!commercial && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); onNavigate("turtle-analytics"); } }}
               className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-teal-700"
             >
-              Open Analytics
+              {commercial ? "For Traders" : "Open Analytics"}
               <ArrowRight className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => onNavigate("turtle-traders")}
+            </a>
+            <a
+              href={commercial ? "https://greenturtletraders.co.uk/professional-investors" : "/university-competition"}
+              onClick={event => { if (!commercial && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); onNavigate("turtle-traders"); } }}
               className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-5 py-3 text-sm font-medium text-slate-900 transition-colors hover:border-teal-500 hover:text-teal-700"
             >
-              View Leaderboard
-            </button>
+              {commercial ? "For Professional Investors" : "View Leaderboard"}
+            </a>
           </div>
           </div>
 
@@ -279,16 +285,16 @@ export function SeoContentPage({ view, onNavigate }: SeoContentPageProps) {
             <h2 className="mt-2 text-3xl text-slate-950">Keep exploring</h2>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            {relatedPages.map(([label, relatedView]) => (
-              <button
-                key={relatedView}
-                type="button"
-                onClick={() => onNavigate(relatedView)}
+            {relatedLinks.map(([label, href]) => (
+              <a
+                key={href}
+                href={href}
+                onClick={event => { if (!commercial && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); onNavigate(getViewFromPath(href)); } }}
                 className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4 text-left text-sm font-medium text-slate-800 transition-colors hover:border-teal-500 hover:text-teal-700"
               >
                 <span>{label}</span>
                 <ArrowRight className="h-4 w-4 flex-shrink-0" />
-              </button>
+              </a>
             ))}
           </div>
         </div>
@@ -299,24 +305,24 @@ export function SeoContentPage({ view, onNavigate }: SeoContentPageProps) {
           <div>
             <h2 className="text-xl text-slate-950">Explore Green Turtle Trades</h2>
             <p className="mt-2 text-sm text-slate-700">
-              Review the university competition leaderboard or open Turtle Analytics to see the platform in context.
+              {commercial ? "Read about trader applications and the proposed service for professional clients. The investment service is in development." : "Explore supporting analytics or the virtual university competition. These are separate from the proposed professional client service."}
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => onNavigate("turtle-traders")}
+            <a
+              href={commercial ? "https://greenturtletraders.co.uk/professional-investors" : "/university-competition"}
+              onClick={event => { if (!commercial && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); onNavigate("turtle-traders"); } }}
               className="rounded-lg bg-teal-600 px-4 py-2 text-sm text-white transition-colors hover:bg-teal-700"
             >
-              University Competition
-            </button>
-            <button
-              type="button"
-              onClick={() => onNavigate("turtle-analytics")}
+              {commercial ? "For Professional Investors" : "University Competition"}
+            </a>
+            <a
+              href={commercial ? "https://greenturtletraders.co.uk/traders" : "/turtle-analytics"}
+              onClick={event => { if (!commercial && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); onNavigate("turtle-analytics"); } }}
               className="rounded-lg border border-teal-300 bg-white px-4 py-2 text-sm text-teal-700 transition-colors hover:bg-teal-50"
             >
-              Trading Analytics
-            </button>
+              {commercial ? "For Traders" : "Trading Analytics"}
+            </a>
           </div>
         </div>
       </section>

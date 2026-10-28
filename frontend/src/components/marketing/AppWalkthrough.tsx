@@ -10,9 +10,9 @@ import "../../styles/app-walkthrough.css";
 const chapters = [
   {
     label: "Discover", icon: Users, title: "Trading talent.\nBacked by evidence.",
-    description: "Bring trading talent and informed investors closer together, with performance and risk in plain view.",
-    investor: "Compare trading styles, returns, and risk before choosing who to follow.",
-    trader: "Give your track record a home where people can discover your approach.", image: marketplace,
+    description: "A preview of the service in development for independent traders and professional client accounts.",
+    investor: "Review strategy and risk in the context of a professional client mandate assessed by the regulated firm.",
+    trader: "Prepare a verifiable trading record and an explainable strategy for review.", image: marketplace,
     alt: "Turtle Trades marketplace with fictional trader profiles and their performance metrics",
   },
   {
@@ -24,9 +24,9 @@ const chapters = [
   },
   {
     label: "Follow", icon: BarChart3, title: "Every allocation.\nOne clear view.",
-    description: "A preview of the portfolio experience we are building, ahead of future real-capital access and shared profits.",
-    investor: "See how planned allocation tools could help you track each trader's contribution.",
-    trader: "Build a visible performance record in preparation for future investor-capital opportunities.", image: portfolio,
+    description: "A proposed reporting experience for professional client managed accounts. The investment service is in development.",
+    investor: "Proposed reports would show the strategies and risks within an agreed mandate.",
+    trader: "Build a verifiable record for review. Applying does not guarantee selection or investor capital.", image: portfolio,
     alt: "Turtle Trades demo portfolio with fictional allocations and a portfolio value chart",
   },
   {

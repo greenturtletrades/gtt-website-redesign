@@ -1,3 +1,4 @@
+/index.html / 301
 /what-is-green-turtle-trades /green-turtle-trades 301
 /green-turtle-traders /green-turtle-trades 301
 /what-is-green-turtle-traders /green-turtle-trades 301
@@ -9,4 +10,6 @@
 /for-traders /traders 301
 /investors /professional-investors 301
 /for-investors /professional-investors 301
+/about-us /about 301
+/traders-leaderboard /university-competition 301
 /* /index.html 200

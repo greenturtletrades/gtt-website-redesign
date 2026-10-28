@@ -35,7 +35,7 @@ const solutionPoints = [
   {
     title: "Decisions need evidence",
     body:
-      "Public summaries and analytics help people compare traders with clearer information while keeping sensitive raw trade data private.",
+      "Verified records and risk review support the proposed professional client service. Sensitive application and account data remain private.",
     icon: Lock,
   },
 ];
@@ -52,9 +52,9 @@ const trustStats = [
     detail: "Green Turtle Trades Limited is registered in Scotland.",
   },
   {
-    value: "Public",
-    label: "performance summaries",
-    detail: "Trader records can be reviewed through clearer analytics and leaderboard data.",
+    value: "Reviewed",
+    label: "trading records",
+    detail: "Broker statements and trade history provide evidence for review.",
   },
 ];
 
@@ -66,42 +66,42 @@ const modelPoints = [
     icon: Users,
   },
   {
-    title: "Investors regain control",
+    title: "Professional client mandates",
     body:
-      "People should have more visibility over where their capital goes and who is managing risk on their behalf.",
+      "The proposed service uses client accounts at a broker or custodian, with investment management intended to sit with a regulated host firm.",
     icon: ShieldCheck,
   },
   {
     title: "Capital follows proof",
     body:
-      "Our long-term aim is a clearer bridge between trading skill and investor capital, built around transparent performance data.",
+      "Record review, strategy assessment and agreements come before any client money is linked. Selection and future performance are not guaranteed.",
     icon: Building2,
   },
 ];
 
 const categoryPoints = [
   {
-    title: "Fintech investment platform",
+    title: "Professional clients",
     body:
-      "For people who want clearer visibility over where capital goes, who is managing risk, and how performance is measured.",
+      "The proposed investment service is for professional clients assessed by the regulated firm. An enquiry does not establish eligibility.",
     icon: Building2,
   },
   {
-    title: "Copy trading platform",
+    title: "Copying within a mandate",
     body:
-      "For comparing traders through records, risk, consistency, and public summaries before capital follows skill.",
+      "Trades would be sized to an agreed client mandate and checked against risk limits. Client results can differ from a trader's account.",
     icon: MessageSquare,
   },
   {
-    title: "Trader marketplace",
+    title: "Independent trader applications",
     body:
-      "For connecting trader skill with investor attention through structured evidence rather than hype.",
+      "Traders apply with a CV, broker statements and trade history. Applying does not guarantee selection, a contract or investor capital.",
     icon: BarChart3,
   },
   {
-    title: "Prop firm alternative",
+    title: "Supporting tools and education",
     body:
-      "For traders who want longer-term performance evidence to matter beyond short-term challenges.",
+      "Analytics and journals support historical review. The university competition uses virtual capital and is separate from the proposed investment service.",
     icon: ShieldCheck,
   },
 ];
@@ -131,13 +131,13 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
               className="mx-auto max-w-5xl text-center"
             >
               <h1 className="text-4xl leading-tight tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
-                We started Green Turtle Trades to make trading, trust, and investing safer and easier.
+                Connecting independent traders with professional investors.
               </h1>
               <p className="mx-auto mt-8 max-w-3xl text-lg leading-relaxed text-slate-700 sm:text-xl lg:mt-10">
-                We are four university students based in Edinburgh. We saw more people being pulled
-                into trading propaganda, signal groups, and performance claims that were difficult
-                to check. Green Turtle Trades is our answer: a secure platform where trader
-                performance can be measured, compared, and understood.
+                We are four university founders based in Edinburgh. Green Turtle Trades is developing
+                trader verification and copying technology for professional client managed accounts.
+                Traders keep their broker accounts; records and strategies are reviewed before any
+                copying arrangement. The investment service is in development.
               </p>
             </motion.div>
 
@@ -273,13 +273,12 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
                   id="trader-backed-investing-category-heading"
                   className="mt-3 text-2xl leading-tight tracking-tight text-slate-950 sm:text-3xl"
                 >
-                  A trader-backed investing platform for people comparing fintech investment,
-                  copy trading, trader marketplaces, and prop firms.
+                  Trader verification and copying technology for professional client accounts.
                 </h2>
                 <p className="mt-5 text-base leading-relaxed text-slate-700">
-                  Green Turtle Trades is a trader performance and transparency layer. It gives
-                  people a clearer way to review records, analytics, and public summaries before
-                  capital follows skill.
+                  Traders keep trading from their own accounts. The proposed model places client
+                  assessment and investment management with a regulated host firm, while GTT
+                  develops the verification, copying and reporting technology.
                 </p>
               </motion.div>
 
@@ -337,9 +336,9 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
                 screenshots without enough context to judge whether the trader is genuinely skilled.
               </p>
               <p>
-                Our idea was simple: centralise the model in a platform where performance can be
-                tracked properly. Instead of asking people to trust noise, give them tools to review
-                risk, consistency, trade history, expectancy, and public summary performance.
+                Our approach starts with broker statements, trading history and a strategy the trader
+                can explain. We review performance, drawdown and risk in context before any
+                copying arrangement is considered for professional client accounts.
               </p>
               <p>
                 We are not trying to remove risk from trading. Trading will always involve risk. We
@@ -407,11 +406,11 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
             >
               <div className="text-xs uppercase tracking-widest text-teal-700 sm:text-sm">The bigger ambition</div>
               <h2 className="mt-3 text-2xl leading-tight tracking-tight text-slate-950 sm:text-4xl">
-                Building the UK's most transparent platform for trader-backed investing.
+                Developing a service for independent traders and professional clients.
               </h2>
               <p className="mt-4 text-base leading-relaxed text-slate-600 sm:text-lg">
-                We believe people should have more control over their investments and more clarity
-                over who is managing risk on their behalf.
+                The investment service is in development. Client eligibility, mandates and investment
+                management are intended to sit with a regulated host; GTT provides technology.
               </p>
             </motion.div>
 
@@ -450,13 +449,14 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
         <section className="w-full bg-white px-4 py-10 sm:px-6 sm:py-12">
           <div className="mx-auto flex max-w-7xl flex-col gap-5 border-t border-slate-200 pt-10 sm:flex-row sm:items-center sm:justify-between">
             <div className="max-w-3xl">
-              <div className="text-sm uppercase tracking-widest text-teal-700">See the platform</div>
+              <div className="text-sm uppercase tracking-widest text-teal-700">Supporting products</div>
               <h2 className="mt-2 text-2xl tracking-tight text-slate-950 sm:text-3xl">
                 Built to make trader claims accountable.
               </h2>
               <p className="mt-3 text-base leading-relaxed text-slate-600">
-                Explore the analytics product or view the public leaderboard to see how Green
-                Turtle Trades turns performance into clearer evidence.
+                Explore historical performance tools or the virtual university competition.
+                These support record review and education; they do not establish eligibility
+                for the proposed investment service.
               </p>
             </div>
 

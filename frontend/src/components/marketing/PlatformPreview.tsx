@@ -155,7 +155,7 @@ export function PlatformPreview() {
                 {[
                   {
                     title: "Flexible Capital Management",
-                    desc: "Scale allocations up or down instantly based on trader performance without penalties"
+                    desc: "Proposed allocation changes would follow the notice and terms of the agreed mandate"
                   },
                   {
                     title: "Portfolio Monitoring",
@@ -167,7 +167,7 @@ export function PlatformPreview() {
                   },
                   {
                     title: "Custom Filters & Preferences",
-                    desc: "Find the perfect traders using advanced filters for strategy, risk level, and performance"
+                    desc: "Review strategies and risk with the regulated host before any client mandate is agreed"
                   }
                 ].map((item, i) => (
                   <motion.div

@@ -57,6 +57,8 @@
       },
       "scripts": {
             "dev": "vite",
-            "build": "vite build && node scripts/generate-seo-pages.cjs"
+            "build": "vite build && node scripts/generate-seo-pages.cjs",
+            "start:seo": "node scripts/serve-seo.cjs",
+            "check:seo": "node scripts/check-seo.cjs && node scripts/check-server.cjs"
       }
 }

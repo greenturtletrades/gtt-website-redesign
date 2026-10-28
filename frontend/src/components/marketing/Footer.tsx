@@ -1,3 +1,4 @@
+import { NavigationLink } from "../../seo/NavigationLink";
 import { BadgeCheck, Instagram, Linkedin, Mail, Youtube } from "lucide-react";
 import logo from "figma:asset/6f4515e0be3e9f42f43c7a32bab7fda8514f9833.png";
 import type { ViewType } from "../../seo/routes";
@@ -91,12 +92,12 @@ export function Footer({ onNavigate }: FooterProps) {
                   contact@greenturtletraders.co.uk
                 </a>
               </div>
-              <button
+              <NavigationLink view="contact"
                 onClick={() => onNavigate && onNavigate("contact")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >
                 Contact Us
-              </button>
+              </NavigationLink>
             </div>
           </div>
 
@@ -111,24 +112,24 @@ export function Footer({ onNavigate }: FooterProps) {
                 </div>
               </div>
               <p>Company No: SC878660</p>
-              <button
+              <NavigationLink view="privacy"
                 onClick={() => onNavigate && onNavigate("privacy")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >
                 Privacy Policy
-              </button>
-              <button
+              </NavigationLink>
+              <NavigationLink view="terms"
                 onClick={() => onNavigate && onNavigate("terms")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >
                 Terms of Service
-              </button>
-              <button
+              </NavigationLink>
+              <NavigationLink view="risk-disclosure"
                 onClick={() => onNavigate && onNavigate("risk-disclosure")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >
                 Risk Disclosure
-              </button>
+              </NavigationLink>
             </div>
           </div>
 
@@ -136,80 +137,80 @@ export function Footer({ onNavigate }: FooterProps) {
           <div>
             <h3 className="text-lg mb-4">Quick Links</h3>
             <div className="space-y-1 text-sm">
-              <button
+              <NavigationLink view="traders"
                 onClick={() => onNavigate && onNavigate("traders")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >
                 For Traders
-              </button>
+              </NavigationLink>
               {isInvestorPageLive && (
-                <button
+                <NavigationLink view="professional-investors"
                   onClick={() => onNavigate && onNavigate("professional-investors")}
                   className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
                 >
                   For Professional Investors
-                </button>
+                </NavigationLink>
               )}
-              <button
+              <NavigationLink view="faqs"
                 onClick={() => onNavigate && onNavigate("faqs")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >
                 FAQs
-              </button>
-              <button
+              </NavigationLink>
+              <NavigationLink view="about"
                 onClick={() => onNavigate && onNavigate("about")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >
                 About Us
-              </button>
-              <button
+              </NavigationLink>
+              <NavigationLink view="seo-green-turtle-trades"
                 onClick={() => onNavigate && onNavigate("seo-green-turtle-trades")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >
                 What is Green Turtle Trades?
-              </button>
-              <button
+              </NavigationLink>
+              <NavigationLink view="seo-trading-journal"
                 onClick={() => onNavigate && onNavigate("seo-trading-journal")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >
                 Trading Journal
-              </button>
-              <button
+              </NavigationLink>
+              <NavigationLink view="turtle-analytics"
                 onClick={() => onNavigate && onNavigate("turtle-analytics")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >
                 Turtle Analytics
-              </button>
-              <button
+              </NavigationLink>
+              <NavigationLink view="turtle-traders"
                 onClick={() => onNavigate && onNavigate("turtle-traders")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >
                 University Competition
-              </button>
-              <button
+              </NavigationLink>
+              <NavigationLink view="seo-verified-traders"
                 onClick={() => onNavigate && onNavigate("seo-verified-traders")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >
                 Verified Traders
-              </button>
-              <button
+              </NavigationLink>
+              <NavigationLink view="seo-methodology"
                 onClick={() => onNavigate && onNavigate("seo-methodology")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >
                 Methodology
-              </button>
-              <button
+              </NavigationLink>
+              <NavigationLink view="seo-trader-funding"
                 onClick={() => onNavigate && onNavigate("seo-trader-funding")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >
                 Trader Funding
-              </button>
-              <button
+              </NavigationLink>
+              <NavigationLink view="seo-copy-trading-platform"
                 onClick={() => onNavigate && onNavigate("seo-copy-trading-platform")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
               >
                 Copy Trading Platform
-              </button>
+              </NavigationLink>
             </div>
           </div>
         </div>

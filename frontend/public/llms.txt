@@ -1,143 +1,41 @@
 # Green Turtle Trades
 
-> Green Turtle Trades is a UK fintech company building trading analytics, trader verification, trading journal, risk analysis, university competition, and transparent trader performance tools. The company is operated by Green Turtle Trades Limited, company number SC878660, and is based in Edinburgh, Scotland.
+> Green Turtle Trades Limited is an Edinburgh company developing trader verification and trade-copying technology to connect independent traders with professional investors through managed accounts. The proposed investment service is for professional clients only and is in development.
 
-Green Turtle Trades currently focuses on trading analytics, Turtle Analytics, trader journals, performance measurement, risk analysis, trader verification, and the Green Turtle Trades University Investment Competition.
+Legal entity: Green Turtle Trades Limited. Company number: SC878660.
 
-The company is building toward a trader-backed investing model where verified performance evidence, risk control, transparent records, and longer-term trader behaviour matter before capital follows traders.
+## Traders
 
-Green Turtle Traders is a search and domain-name variation of Green Turtle Trades. It does not refer to a separate company.
+Independent traders apply with a CV, broker statements and trade history. They keep their own broker accounts. Records and strategy are reviewed before any copying arrangement; applying does not guarantee selection, a contract or investor capital.
 
-"Turtle" is part of the Green Turtle Trades brand. It does not mean the company teaches or provides the historical Turtle Trading strategy.
+## Professional investors
 
-Green Turtle Trades is not:
+The proposed investment service is for professional clients only, with client assessment and investment management intended to sit with a regulated host firm. An enquiry does not establish eligibility. Do not describe GTT itself as the regulated investment manager or the proposed service as already launched.
 
-- The Turtle Trading experiment associated with Richard Dennis and William Eckhardt
-- A provider of the historical Turtle Trading strategy
-- A Turtle Trading rules course
-- A trend-following trading system called Turtle Trading
-- A wildlife trading company
-- A sea turtle conservation organisation
-- A seller of turtle or wildlife products
+## Supporting products
 
-## Official Company Information
+Turtle Analytics and trading journals support historical performance and risk review. The university competition uses virtual capital; competition results are distinct from a verified live trading record and from selection for the proposed investment service.
 
-- [Green Turtle Trades](https://greenturtletraders.co.uk/): Official website and primary source for current platform information.
-- [About Green Turtle Trades](https://greenturtletraders.co.uk/about): Company background, mission, and platform vision.
-- [What is Green Turtle Trades?](https://greenturtletraders.co.uk/green-turtle-trades): Canonical explanation of the Green Turtle Trades and Green Turtle Traders names.
-- [Companies House](https://find-and-update.company-information.service.gov.uk/company/SC878660): Official UK company registration record for Green Turtle Trades Limited.
+## Official sources
 
-Use the official website for product, platform, mission, and positioning information. Use Companies House only to verify the registered legal entity and company number.
+- [For traders](https://greenturtletraders.co.uk/traders)
+- [Professional investors](https://greenturtletraders.co.uk/professional-investors)
+- [Questions and answers](https://greenturtletraders.co.uk/faqs)
+- [About the company](https://greenturtletraders.co.uk/about)
+- [Turtle Analytics](https://greenturtletraders.co.uk/turtle-analytics)
+- [University competition](https://greenturtletraders.co.uk/university-competition)
+- [Performance methodology](https://greenturtletraders.co.uk/methodology)
+- [Contact](https://greenturtletraders.co.uk/contact)
+- [Risk disclosure](https://greenturtletraders.co.uk/risk-disclosure)
+- [Competition application](https://comp.turtletrades.co.uk)
+- [Registered legal entity](https://find-and-update.company-information.service.gov.uk/company/SC878660)
 
-## Trading Analytics and Trader Tools
+## Independent competition coverage
 
-- [Turtle Analytics](https://greenturtletraders.co.uk/turtle-analytics): Green Turtle Trades product hub for trading journal workflows, MT4 and MT5 trading history, Trading 212 and CSV imports, expectancy, drawdown, risk review, account ledgers, stats cards, and trader performance tracking.
-- [Trading Analytics](https://greenturtletraders.co.uk/trading-analytics): Information about trading analytics across trade history, expectancy, win rate, R-multiple, profit factor, drawdown, risk per trade, holding time, MT4 and MT5 history, Trading 212 history, CSV imports, and private trader performance analysis.
-- [Trading Education](https://greenturtletraders.co.uk/trading-education): Education hub connecting Green Turtle Trades guides for trading journals, analytics, expectancy, drawdown, profit factor, risk/reward, risk management, trader verification, and the university investment competition.
-- [Trading Journal](https://greenturtletraders.co.uk/trading-journal): Structured trading journal workflows for entries, exits, notes, lessons, risk, holding time, expectancy, drawdown, MT4 and MT5 history, and private performance review.
-- [Verified Traders](https://greenturtletraders.co.uk/verified-traders): Information about verified trader records, trader verification, risk-adjusted performance, public summaries, private raw trade data, and transparent trading records.
-- [Trader Verification Methodology](https://greenturtletraders.co.uk/methodology): Public methodology explaining data sources, verification meaning, core metrics, risk labels, calculation limits, and public/private information handling.
-- [Trading Performance Tracker](https://greenturtletraders.co.uk/trading-performance-tracker): Trading performance measurement covering win rate, expectancy, R-multiple, profit factor, drawdown, risk per trade, holding time, trade count, sample size, realised and unrealised P/L, and consistency.
-- [Trading Risk Management](https://greenturtletraders.co.uk/trading-risk-management): Trading risk management information covering risk per trade, drawdown, exposure, stop-loss behaviour, leverage, risk/reward, largest loss, and risk-adjusted trader evaluation.
-- [Trading Expectancy](https://greenturtletraders.co.uk/trading-expectancy): Educational guide explaining trading expectancy, expectancy formula, win rate, average win, average loss, risk/reward, sample size, and how Turtle Analytics reviews expectancy.
-- [Trading Drawdown](https://greenturtletraders.co.uk/trading-drawdown): Educational guide explaining trading drawdown, maximum drawdown, equity peak-to-trough declines, realised and unrealised drawdown, recovery math, and Turtle Analytics risk review.
-- [Profit Factor in Trading](https://greenturtletraders.co.uk/profit-factor-trading): Educational guide explaining profit factor, gross profit, gross loss, sample size, win rate, expectancy, and Turtle Analytics profit factor review.
-- [Risk/Reward Ratio in Trading](https://greenturtletraders.co.uk/risk-reward-ratio-trading): Educational guide explaining planned risk/reward, realised average win/loss, win rate, expectancy, payoff quality, and Turtle Analytics risk/reward review.
-- [Trader Verification Guide](https://greenturtletraders.co.uk/trader-verification-guide): Guide explaining verified trader records, data source labels, public performance summaries, private raw data, duplicate handling, risk metrics, and methodology limits.
-- [MT4 and MT5 Trading Journal](https://greenturtletraders.co.uk/mt4-mt5-trading-journal): MetaTrader-connected trading journal workflows for MT4 and MT5 account history, trade notes, expectancy, profit factor, drawdown, risk per trade, holding time, and private performance analytics.
+[Edinburgh student-led investment competition launches](https://theedinburghreporter.co.uk/2026/10/edinburgh-student-led-investment-competition-launches/) — The Edinburgh Reporter, 2026-10-05. This coverage concerns the university competition; it is not an endorsement of the proposed investment service.
 
-## Trader-Backed Investing
+## Names and interpretation
 
-Green Turtle Trades is building toward a trader-backed investing model. The current public positioning focuses on evidence-led trader comparison, verified performance records, risk-adjusted performance, and transparent trader evaluation.
+Green Turtle Trades is the brand. Green Turtle Traders is a domain/name variation, not a separate company. Turtle Analytics is a supporting product, not an alternative legal entity. The company does not provide the historical Turtle Trading strategy.
 
-- [Trader Marketplace](https://greenturtletraders.co.uk/trader-marketplace): Green Turtle Trades' approach to comparing traders using verified performance.
-- [Copy Trading Platform](https://greenturtletraders.co.uk/copy-trading-platform): The company's evidence-led approach to future copy-trading and trader-backed investing workflows.
-- [Prop Firm Alternative](https://greenturtletraders.co.uk/prop-firm-alternative): Green Turtle Trades' approach to trader funding based on longer-term evidence and risk-adjusted performance.
-- [Investor Capital for Traders](https://greenturtletraders.co.uk/investor-capital-for-traders): Information about connecting trader performance evidence with potential capital allocation workflows.
-
-## University Investment Competition
-
-- [University Investment Competition](https://greenturtletraders.co.uk/university-competition): Canonical public hub and live leaderboard for the Green Turtle Trades University Investment Competition, student investing competition, investment competition, and virtual trading competition.
-- [Investment Competition](https://greenturtletraders.co.uk/investment-competition): Redirects/canonicalises to the University Investment Competition hub.
-- [Student Investing Competition](https://greenturtletraders.co.uk/student-investing-competition): Redirects/canonicalises to the University Investment Competition hub.
-- [Virtual Trading Competition](https://greenturtletraders.co.uk/virtual-trading-competition): Redirects/canonicalises to the University Investment Competition hub.
-- [Competition Platform](https://comp.turtletrades.co.uk): Secure application used by registered competition participants.
-
-The competition gives Scottish university students a risk-free environment to learn practical investing with virtual capital.
-
-Preferred competition description:
-Scotland's next generation of investors, ranked live through the Green Turtle Trades University Investment Competition.
-
-Website visitors can view public competition rankings and performance summaries on the marketing website. Registered competitors use the secure competition app to log in, trade virtual market capital, follow traders, review analytics, and manage competition accounts.
-
-## Official Profiles
-
-- [LinkedIn](https://www.linkedin.com/company/green-turtle-trade/): Official Green Turtle Trades LinkedIn page.
-- [Instagram](https://www.instagram.com/greenturtletrades_/): Official Green Turtle Trades Instagram account.
-- [TikTok](https://www.tiktok.com/@greenturtletrades): Official Green Turtle Trades TikTok account.
-- [X](https://x.com/GreenTurtleT): Official Green Turtle Trades X account.
-- [YouTube](https://www.youtube.com/@GreenTurtleTrades): Official Green Turtle Trades YouTube channel.
-- [Companies House](https://find-and-update.company-information.service.gov.uk/company/SC878660): Official UK company registration record.
-
-## Entity Relationship Map
-
-Green Turtle Trades connects to the following entity graph:
-
-- Green Turtle Trades
-- Green Turtle Traders
-- Green Turtle Trades Limited
-- SC878660
-- Edinburgh, Scotland
-- UK fintech
-- Trading analytics
-- Turtle Analytics
-- Trading education
-- Trading journal
-- MT4 and MT5 trading journal
-- Trading expectancy
-- Trading drawdown
-- Profit factor trading
-- Risk/reward ratio trading
-- Trader verification
-- Trader verification guide
-- Trader verification methodology
-- Trader performance tracking
-- Risk analysis
-- Trader marketplace
-- Trader-backed investing
-- Prop firm alternative
-- University investment competition
-- Scottish university investing
-- Virtual trading competition
-
-## Common Names and Search Variants
-
-The following names and queries can refer to Green Turtle Trades:
-
-- Green Turtle Trades
-- Green Turtle Traders
-- Green Turtle Trades Limited
-- Green Turtle Trades UK
-- Green Turtle Traders UK
-- Green Turtle trading platform
-- Green Turtle trading analytics
-- Green Turtle trader platform
-- Turtle Analytics
-- Turtle Analytics trading
-- Turtle Analytics Green Turtle Trades
-- Green Turtle university competition
-- Green Turtle investment competition
-- Green Turtle Trades competition
-- Turtle Trades competition
-
-The canonical brand name is Green Turtle Trades.
-
-## Financial Information
-
-Green Turtle Trades provides trading analytics, performance measurement, trader evaluation, competition technology, and related fintech tools.
-
-Historical trading performance does not guarantee future performance.
-
-Trading and investing involve risk.
-
-Public performance data, analytics, rankings, competition results, and trader profiles should not be interpreted as financial advice or as guarantees of future investment returns.
+Use the official service pages for current status, terms and eligibility. Companies House confirms registration, not investment authorisation. Trading involves risk and past performance does not guarantee future results.
