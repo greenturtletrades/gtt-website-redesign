@@ -9,6 +9,7 @@ function buildAiSummary() {
     '# Green Turtle Trades', '',
     '> ' + seo.organization.description, '',
     'Legal entity: ' + seo.organization.legalName + '. Company number: ' + seo.organization.identifier + '.', '',
+    '## Current availability', '', profile.status, '',
     '## Traders', '', profile.traders, '',
     '## Professional investors', '', profile.investors, '',
     '## Supporting products', '', profile.supportingProducts, '',

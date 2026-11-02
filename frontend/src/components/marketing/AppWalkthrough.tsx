@@ -10,7 +10,7 @@ import "../../styles/app-walkthrough.css";
 const chapters = [
   {
     label: "Discover", icon: Users, title: "Trading talent.\nBacked by evidence.",
-    description: "A preview of the service in development for independent traders and professional client accounts.",
+    description: "A preview of the proposed service connecting independent trading strategies with UK professional investor allocations.",
     investor: "Review strategy and risk in the context of a professional client mandate assessed by the regulated firm.",
     trader: "Prepare a verifiable trading record and an explainable strategy for review.", image: marketplace,
     alt: "Turtle Trades marketplace with fictional trader profiles and their performance metrics",
@@ -24,7 +24,7 @@ const chapters = [
   },
   {
     label: "Follow", icon: BarChart3, title: "Every allocation.\nOne clear view.",
-    description: "A proposed reporting experience for professional client managed accounts. The investment service is in development.",
+    description: "Proposed reporting for investor allocations, broker execution and performance. The investment service is in development.",
     investor: "Proposed reports would show the strategies and risks within an agreed mandate.",
     trader: "Build a verifiable record for review. Applying does not guarantee selection or investor capital.", image: portfolio,
     alt: "Turtle Trades demo portfolio with fictional allocations and a portfolio value chart",

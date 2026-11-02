@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { AlertTriangle, ArrowRight, Building2, Cpu, Landmark } from "lucide-react";
 import type { ViewType } from "../../seo/routes";
+import { NavigationLink } from "../../seo/NavigationLink";
+import seo from "../../../seo.config.json";
+import copy from "../../../page-copy.json";
+import { AudienceResources } from "./AudienceResources";
+import feeTerms from "../../../fee-terms.json";
+import { FeeCalculator } from "./FeeCalculator";
 import { Footer } from "./Footer";
 import { CheckList, CtaBand, FaqList, PageShell, SectionHeading, StepTimeline, type FaqItem, type Step } from "./PageBlocks";
 
@@ -9,17 +15,17 @@ type Navigate = (view: ViewType) => void;
 const journeySteps: Step[] = [
   { title: "Enquiry", description: "Tell us about yourself or your organisation and what you are looking for." },
   { title: "Assessment", description: "The regulated firm assesses your client categorisation and the suitability of the service." },
-  { title: "Account and mandate", description: "An account is opened in your name and a mandate sets the strategies, sizing and risk limits." },
-  { title: "Funding and activation", description: "You fund the account at the broker or custodian. Copying starts once the mandate is active." },
+  { title: "Broker onboarding and mandate", description: "You complete onboarding with the designated broker. The agreed mandate sets the strategies, allocations and risk limits." },
+  { title: "Funding and activation", description: "You fund directly with the designated broker. GTT calculates investor allocations and applies trade filters before approved instructions are sent for execution." },
   { title: "Reporting and changes", description: "You receive regular reports and can change or end your mandate on agreed notice." },
 ];
 
 const parties = [
   {
     icon: Landmark,
-    title: "Client account",
-    sub: "At the broker or custodian",
-    items: ["Held in your name", "Holds your money and positions", "Executes the trades placed for you", "Provides independent statements"],
+    title: "Designated broker",
+    sub: "Client capital and trade execution",
+    items: ["Receives client funding directly", "Provides the execution infrastructure", "Executes approved trade instructions", "Provides broker account records"],
   },
   {
     icon: Building2,
@@ -30,26 +36,22 @@ const parties = [
   {
     icon: Cpu,
     title: "GTT",
-    sub: "Copying technology",
-    items: ["Sources and verifies traders", "Copies trades within the mandate's limits", "Reconciles positions with the broker", "Produces performance reporting"],
+    sub: "Verification, filters and allocations",
+    items: ["Sources and verifies traders", "Filters trades against agreed limits", "Calculates investor allocations per trade", "Reconciles broker execution and reports"],
   },
 ];
 
 const fees = [
-  { name: "Management fee", base: "0.75%", vat: "0.90%", basis: "Per year, on deployed client capital" },
-  { name: "Performance fee", base: "10%–20%", vat: "12%–24%", basis: "Marginal rates on eligible gains, as shown below" },
+  { name: "Management fee", base: `${feeTerms.managementFeePercent.toFixed(2)}%`, vat: `${(feeTerms.managementFeePercent * (1 + feeTerms.vatPercent / 100)).toFixed(2)}%`, basis: "Per year, on the investor’s total capital on the platform" },
+  { name: "Performance fee", base: `${feeTerms.performanceBands[0].clientFeePercent}%–${feeTerms.performanceBands.at(-1)!.clientFeePercent}%`, vat: `${feeTerms.performanceBands[0].clientFeePercent * (1 + feeTerms.vatPercent / 100)}%–${feeTerms.performanceBands.at(-1)!.clientFeePercent * (1 + feeTerms.vatPercent / 100)}%`, basis: "Marginal rates on eligible gains, as shown below" },
   { name: "Minimum allocation", base: "£10,000", vat: "£10,000", basis: "Per trader you allocate to" },
 ];
 
-const performanceBands = [
-  { band: "Hurdle to 5%", base: "10%", vat: "12%" },
-  { band: "5% to 10%", base: "12.5%", vat: "15%" },
-  { band: "10% to 15%", base: "15%", vat: "18%" },
-  { band: "Above 15%", base: "20%", vat: "24%" },
-];
+const performanceBands = feeTerms.performanceBands.map(band => ({ band: band.label, base: `${band.clientFeePercent}%`, vat: `${band.clientFeePercent * (1 + feeTerms.vatPercent / 100)}%` }));
 
 const investorFaqs: FaqItem[] = [
-  { question: "Who holds my money?", answer: "Your money stays in an account in your name at a broker or custodian. Neither GTT nor the traders can withdraw it." },
+  { question: "Who holds my money?", answer: "Clients fund directly with the designated broker; GTT never holds client money. GTT records investor allocations and provides reporting. Account ownership, execution arrangements, permissions and withdrawals are set out in the broker and client agreements before an investor commits." },
+  { question: "How are trades executed?", answer: "The trader keeps their approved source account. GTT filters trade instructions and calculates investor allocations, then sends approved instructions to the designated broker for execution. The service guide explains how allocations and broker execution fit together." },
   { question: "Can I choose which traders I follow?", answer: "Your mandate sets which verified strategies your account follows and how much is allocated to each, subject to the minimum per trader. The investment manager confirms the final allocation." },
   { question: "How are traders selected?", answer: "Traders apply with their CV and live trading records. We verify their history against broker statements, review their strategy and risk control, and the regulated host completes its own assessment before any client money is linked." },
   { question: "Can I stop or change my allocation?", answer: "Yes. You can change or end your mandate on the notice period set out in your agreement. Open positions are closed or transferred as the agreement describes." },
@@ -63,34 +65,20 @@ export function ProfessionalInvestorsPage({ onNavigate }: { onNavigate?: Navigat
   return <PageShell tone="investor">
     <section className="gtt-hero gtt-hero-left" aria-labelledby="investors-title">
       <div className="home-section-inner">
-        <span className="home-kicker" style={{ color: "#0e7490" }}>For investors</span>
-        <h1 id="investors-title">Professional Investors</h1>
+        <span className="home-kicker" style={{ color: "#0e7490" }}>For UK professional clients</span>
+        <h1 id="investors-title">{copy["/professional-investors"].title}</h1>
         <p className="gtt-hero-lead">
-          Access trading strategies from independently verified traders, copied into an account held in your name and
-          managed under a mandate you agree. Every trader's record is checked against their broker's statements
-          before any client money is linked.
+          {copy["/professional-investors"].paragraphs[0]}
         </p>
         <div className="gtt-hero-actions">{enquireButton}</div>
+        <p className="gtt-hero-help">
+          <NavigationLink view="seo-professional-clients" onClick={() => onNavigate?.("seo-professional-clients")} className="gtt-text-link">What is a professional client?</NavigationLink>
+        </p>
+        <p className="gtt-hero-small">{seo.companyProfile.status}</p>
       </div>
     </section>
 
-    <section className="gtt-section" aria-labelledby="access-title">
-      <div className="home-section-inner gtt-narrow">
-        <SectionHeading align="left" id="access-title" kicker="Eligibility" title="Who can access the service" />
-        <div className="gtt-prose">
-          <p>
-            The service is only available to professional clients as defined in the FCA Handbook (COBS 3.5). This
-            includes certain institutions and organisations, and individuals who can be treated as elective
-            professional clients after the regulated firm assesses their expertise, experience and knowledge.
-          </p>
-          <p>
-            Ticking a box on a form or allocating a large amount does not make you a professional client. Your
-            categorisation is decided by the regulated firm during assessment, and you will be told the protections
-            you give up as a professional client before you agree.
-          </p>
-        </div>
-      </div>
-    </section>
+    <AudienceResources section={copy["/professional-investors"].sections[0]} id="investor-evidence-title" onNavigate={onNavigate} />
 
     <section className="gtt-section gtt-section-tint" aria-labelledby="journey-title">
       <div className="home-section-inner">
@@ -102,7 +90,7 @@ export function ProfessionalInvestorsPage({ onNavigate }: { onNavigate?: Navigat
 
     <section className="gtt-section" aria-labelledby="parties-title">
       <div className="home-section-inner">
-        <SectionHeading id="parties-title" kicker="Structure" title="Accounts and responsibilities" intro="Three parties, each with a defined role. Your money stays with the broker or custodian throughout." />
+        <SectionHeading id="parties-title" kicker="Structure" title="Broker, investment manager and GTT" intro="Client capital and trade execution sit with the designated broker. Investment management is intended to sit with the regulated host, while GTT provides trader verification, trade filters, allocation technology and reporting." />
         <div className="gtt-parties">
           {parties.map(({ icon: Icon, title, sub, items }) => <div className="gtt-party" key={title}>
             <div className="gtt-party-head"><span className="gtt-card-icon" style={{ margin: 0 }}><Icon size={22} aria-hidden="true" /></span><h3>{title}</h3></div>
@@ -110,17 +98,20 @@ export function ProfessionalInvestorsPage({ onNavigate }: { onNavigate?: Navigat
             <CheckList items={items} />
           </div>)}
         </div>
-        <div className="gtt-flow" aria-hidden="true"><span>Trader's account</span><ArrowRight size={16} /><span>GTT copies within limits</span><ArrowRight size={16} /><span>Your account at the broker</span></div>
+        <div className="gtt-flow" aria-hidden="true"><span>Trader’s source account</span><ArrowRight size={16} /><span>GTT filters and allocates</span><ArrowRight size={16} /><span>Execution at the broker</span></div>
+        <p className="gtt-fine" style={{ marginTop: 28 }}>
+          <NavigationLink view="seo-alternative-investment-platform" onClick={() => onNavigate?.("seo-alternative-investment-platform")} className="gtt-text-link">Read about our alternative investment approach</NavigationLink>, including strategy evidence, allocation controls and the proposed responsibilities.
+        </p>
       </div>
     </section>
 
     <section className="gtt-section gtt-section-tint" aria-labelledby="risk-title">
       <div className="home-section-inner gtt-narrow">
-        <SectionHeading align="left" id="risk-title" kicker="Copying and risk" title="How trades reach your account" />
+        <SectionHeading align="left" id="risk-title" kicker="Copying and risk" title="How trades and allocations reach the broker" />
         <div className="gtt-two-col gtt-prose">
           <div>
             <h3>Sizing and checks</h3>
-            <p>Each trade is scaled to your allocation and checked against your mandate's limits on position size, exposure and drawdown before it is placed. Trades that would breach a limit are reduced or not copied.</p>
+            <p>GTT captures source trading activity, filters instructions against the agreed risk limits and calculates the investor allocations for each approved trade. Approved instructions are then sent to the designated broker for execution. Trades outside the agreed limits may be reduced or skipped.</p>
           </div>
           <div>
             <h3>Why your results can differ</h3>
@@ -155,7 +146,7 @@ export function ProfessionalInvestorsPage({ onNavigate }: { onNavigate?: Navigat
         </div>
         <div className="gtt-prose" style={{ marginTop: 28 }}>
           <h3>Performance fee bands</h3>
-          <p>Performance fees apply only to eligible gains above the UK risk-free-rate hurdle, after the management fee, and above your individual high-water mark. Each rate applies only to the gains within that slice of return.</p>
+          <p>The annual management fee is a separate charge on your total capital on the platform. Performance fees are calculated on eligible trading gains before that management fee, subject to the UK risk-free-rate hurdle and your individual high-water mark. Each marginal rate applies only to the gains within its slice of return.</p>
         </div>
         <div className="gtt-table-wrap">
           <table className="gtt-table">
@@ -165,15 +156,21 @@ export function ProfessionalInvestorsPage({ onNavigate }: { onNavigate?: Navigat
             </tbody>
           </table>
         </div>
-        <div style={{ marginTop: 28 }}>
+        <div className="gtt-prose" style={{ marginTop: 28 }}>
+          <h3>When performance fees become eligible</h3>
           <FaqList items={[
             {
-              question: "How the hurdle works",
-              answer: "The hurdle is the UK risk-free rate. Performance fees apply only to eligible gains above this hurdle after the management fee. Below the hurdle, no performance fee is due; the management fee remains payable. The sterling reference benchmark, calculation period and fixing or reset method will be agreed with the regulated host and stated in client terms.",
+              question: "Above the hurdle",
+              answer: "The hurdle is the UK risk-free rate. Performance fees apply only to eligible trading gains above this hurdle; the management fee is charged separately on total platform capital and is not deducted when calculating those gains. Below the hurdle, no performance fee is due, while the management fee remains payable. The reference benchmark and calculation period will be agreed with the regulated host and stated in client terms.",
             },
             {
-              question: "How your high-water mark works",
+              question: "Above each client’s high-water mark",
               answer: "Your reference peak is adjusted for deposits and withdrawals. Previous losses must be recovered before new performance fees become eligible. A recovery to your previous peak does not itself earn a performance fee. Unrecovered losses carry forward across fee periods, so you do not pay a performance fee twice on the same gains.",
+            },
+            {
+              id: "investor-fee-calculator",
+              question: "Explore an annual investment fee illustration",
+              answer: <FeeCalculator audience="investor" />,
             },
           ]} />
         </div>
@@ -189,9 +186,9 @@ export function ProfessionalInvestorsPage({ onNavigate }: { onNavigate?: Navigat
     </section>
 
     <CtaBand
-      title="Interested in access?"
-      text="Start with an enquiry. A member of the team will contact you to discuss the service and next steps."
-      small="We’re open to early conversations with clients."
+      title="Open to client discussions"
+      text="We welcome conversations with prospective UK professional clients about their investment interests and the proposed service."
+      small="The investment platform is in development and is not yet available."
     >
       {enquireButton}
     </CtaBand>

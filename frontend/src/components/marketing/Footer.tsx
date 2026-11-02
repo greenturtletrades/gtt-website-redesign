@@ -151,6 +151,18 @@ export function Footer({ onNavigate }: FooterProps) {
                   For Professional Investors
                 </NavigationLink>
               )}
+              <NavigationLink view="seo-alternative-investment-platform"
+                onClick={() => onNavigate && onNavigate("seo-alternative-investment-platform")}
+                className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
+              >
+                Alternative Investment Platform
+              </NavigationLink>
+              <NavigationLink view="seo-professional-clients"
+                onClick={() => onNavigate && onNavigate("seo-professional-clients")}
+                className="block text-slate-400 hover:text-teal-400 transition-colors text-left"
+              >
+                What is a professional client?
+              </NavigationLink>
               <NavigationLink view="faqs"
                 onClick={() => onNavigate && onNavigate("faqs")}
                 className="block text-slate-400 hover:text-teal-400 transition-colors text-left"

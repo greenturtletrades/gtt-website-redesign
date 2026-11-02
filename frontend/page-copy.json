@@ -2,39 +2,104 @@
   "/": {
     "title": "Verified trading strategies for professional investors",
     "paragraphs": [
-      "Green Turtle Trades Limited is an Edinburgh company developing trader verification and trade-copying technology to connect independent traders with professional investors through managed accounts. The proposed investment service is for professional clients only and is in development.",
-      "Independent traders apply with a CV, broker statements and trade history. They keep their own broker accounts. Records and strategy are reviewed before any copying arrangement; applying does not guarantee selection, a contract or investor capital.",
-      "Turtle Analytics and trading journals support historical performance and risk review. The university competition uses virtual capital; competition results are distinct from a verified live trading record and from selection for the proposed investment service."
+      "Based in Edinburgh, Scotland, Green Turtle Trades is developing an alternative investment platform that connects independent trading strategies with UK professional investors. Traders continue using their approved broker accounts, while GTT verifies their trading records, filters trade instructions and calculates investor allocations for execution at our designated broker.",
+      "Approved traders retain their source broker accounts, subject to permission and compatibility. GTT captures trading activity, filters trade instructions and calculates investor allocations for execution at the designated broker. Applying does not guarantee selection, a contract or investor capital.",
+      "Turtle Analytics and trading journals support historical performance and risk review. The university competition uses virtual capital; competition results are distinct from a verified live trading record and from selection for the proposed investment service.",
+      "We are onboarding traders now and welcome discussions with prospective UK professional clients. The investment platform is in development and is not yet available."
     ]
   },
   "/about": {
     "title": "Connecting independent traders with professional investors",
     "paragraphs": [
-      "We are four university founders based in Edinburgh. Green Turtle Trades is developing trader verification and copying technology for professional client managed accounts. Traders keep their broker accounts; records and strategies are reviewed before any copying arrangement. The investment service is in development.",
-      "The proposed model places client assessment and investment management with a regulated host firm, while GTT develops the verification, copying and reporting technology.",
-      "Analytics and journals support historical review. The university competition uses virtual capital and is separate from the proposed investment service."
+      "We are four university founders based in Edinburgh. Green Turtle Trades is developing an alternative investment platform for UK professional clients and copy trading technology for independent traders. GTT reviews records, filters trade instructions and calculates investor allocations for execution at the designated broker.",
+      "Clients fund directly with the designated broker, which holds client capital and executes approved trade instructions. GTT provides trader verification, trade filters, allocation calculations and reporting; it never holds client money. Client assessment and investment management are intended to sit with the regulated host firm. Account permissions, allocation records and withdrawals follow the agreed broker and client terms.",
+      "Analytics and journals support historical review. The university competition uses virtual capital and is separate from the proposed investment service.",
+      "We are onboarding traders now and welcome discussions with prospective UK professional clients. The investment platform is in development and is not yet available."
     ]
   },
   "/traders": {
-    "title": "Trade your strategy. Reach professional capital.",
+    "title": "Copy trading for independent MT4 and MT5 traders",
     "paragraphs": [
-      "If you have a live trading record you can evidence and a strategy you can explain, we want to hear from you. You keep trading from your own broker account. We verify your record, and once your strategy is agreed, your trades can be copied into accounts managed for professional clients.",
-      "Applying does not guarantee selection, a contract or investor capital."
+      "Bring your live trading record and an explainable strategy to GTT’s proposed copy trading platform. Keep trading from an approved MT4 or MT5 broker account while we review your history, strategy and risk. After the required assessments and agreements, GTT can filter your trade instructions and calculate professional investor allocations for execution at our designated broker.",
+      "Applying does not guarantee selection, a contract or investor capital.",
+      "We are onboarding traders now and welcome discussions with prospective UK professional clients. The investment platform is in development and is not yet available."
+    ],
+    "sections": [
+      {
+        "kicker": "For independent traders",
+        "title": "Build a route from your trading record to professional capital",
+        "body": "Trader onboarding focuses on the record, strategy and operating setup behind your trades. It is a separate process from professional investor categorisation. Start with the evidence and understand the proposed copying arrangement before applying.",
+        "links": [
+          {
+            "label": "How the copy trading platform works",
+            "href": "/copy-trading-platform",
+            "description": "Explore source-account connections, trade filters, allocation calculations and broker execution."
+          },
+          {
+            "label": "Prepare a verifiable trading record",
+            "href": "/trader-verification-guide",
+            "description": "Understand the broker statements, trade history and risk evidence used in a trader review."
+          },
+          {
+            "label": "Apply for trader review",
+            "href": "/traders/apply",
+            "description": "Submit your CV and trading records. Applying does not guarantee selection, a contract or capital."
+          }
+        ]
+      },
+      {
+        "title": "Illustrate your annual trader fee share",
+        "body": "Open the trader fee-share dropdown beneath the hurdle and high-water-mark explanations. Choose hypothetical capital and an annual trading return to see your illustrative share of eligible performance fees. It assumes a 3.7% example hurdle and no prior losses to recover. The investor’s management fee is separate and does not reduce this performance-fee calculation. VAT, tax and payment timing are excluded; capital, returns and earnings are not guaranteed.",
+        "kicker": "Illustrative fee share",
+        "links": []
+      }
     ]
   },
   "/professional-investors": {
-    "title": "Professional Investors",
+    "title": "An alternative investment platform for professional clients",
     "paragraphs": [
-      "Green Turtle Trades Limited is an Edinburgh company developing trader verification and trade-copying technology to connect independent traders with professional investors through managed accounts. The proposed investment service is for professional clients only and is in development.",
-      "The proposed investment service is for professional clients only, with client assessment and investment management intended to sit with a regulated host firm. An enquiry does not establish eligibility. Do not describe GTT itself as the regulated investment manager or the proposed service as already launched."
+      "Green Turtle Trades is developing an alternative investment platform for UK professional clients seeking access to reviewed independent trading strategies. We assess trader records and risk, filter trade instructions and calculate investor allocations, with approved orders executed at our designated broker. Investment management is intended to sit with the regulated host firm.",
+      "Clients fund directly with the designated broker, which holds client capital and executes approved trade instructions. GTT provides trader verification, trade filters, allocation calculations and reporting; it never holds client money. Client assessment and investment management are intended to sit with the regulated host firm. Account permissions, allocation records and withdrawals follow the agreed broker and client terms.",
+      "We are onboarding traders now and welcome discussions with prospective UK professional clients. The investment platform is in development and is not yet available."
+    ],
+    "sections": [
+      {
+        "kicker": "Evidence before allocation",
+        "title": "Assess the strategy before the allocation",
+        "body": "Our approach to alternative investment management starts with the evidence behind a strategy: how its record was produced, the risk taken and how it could behave when copied. These guides explain the proposed process before you discuss an allocation.",
+        "links": [
+          {
+            "label": "Alternative investment approach",
+            "href": "/alternative-investment-platform",
+            "description": "Understand strategy assessment, allocation controls and the roles of GTT, the broker and investment manager."
+          },
+          {
+            "label": "Trader verification methodology",
+            "href": "/methodology",
+            "description": "See how broker statements, trade exports, drawdown and exposure inform the record review."
+          },
+          {
+            "label": "Professional client eligibility",
+            "href": "/professional-clients",
+            "description": "Read about client categorisation and assessment, with references to the FCA Handbook."
+          }
+        ]
+      },
+      {
+        "kicker": "Proposed fees",
+        "title": "Illustrate annual investment fees and returns",
+        "body": "Open the detailed fee illustration beneath the hurdle and high-water-mark explanations. Adjust total platform capital, its assumed annual trading return, hurdle and prior losses to recover. The management fee is calculated separately on total platform capital. Performance fees use eligible trading gains before that management charge. Each fee is deducted once to show the final gain, before VAT and tax. The illustration does not model actual quarterly payments or client-level reconciliations.",
+        "links": []
+      }
     ]
   },
   "/faqs": {
     "title": "Frequently asked questions",
     "paragraphs": [
-      "Green Turtle Trades Limited is an Edinburgh company developing trader verification and trade-copying technology to connect independent traders with professional investors through managed accounts. The proposed investment service is for professional clients only and is in development.",
-      "Independent traders apply with a CV, broker statements and trade history. They keep their own broker accounts. Records and strategy are reviewed before any copying arrangement; applying does not guarantee selection, a contract or investor capital.",
-      "The proposed investment service is for professional clients only, with client assessment and investment management intended to sit with a regulated host firm. An enquiry does not establish eligibility. Do not describe GTT itself as the regulated investment manager or the proposed service as already launched."
+      "Green Turtle Trades Limited is an Edinburgh company developing technology that connects independent traders with UK professional investors. GTT reviews trading records, filters trade instructions and calculates investor allocations for execution at its designated broker. The proposed investment service is for professional clients only.",
+      "Approved traders retain their source broker accounts, subject to permission and compatibility. GTT captures trading activity, filters trade instructions and calculates investor allocations for execution at the designated broker. Applying does not guarantee selection, a contract or investor capital.",
+      "Clients fund directly with the designated broker, which holds client capital and executes approved trade instructions. GTT provides trader verification, trade filters, allocation calculations and reporting; it never holds client money. Client assessment and investment management are intended to sit with the regulated host firm. Account permissions, allocation records and withdrawals follow the agreed broker and client terms.",
+      "We are onboarding traders now and welcome discussions with prospective UK professional clients. The investment platform is in development and is not yet available."
     ]
   },
   "/turtle-analytics": {

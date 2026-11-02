@@ -21,6 +21,8 @@ export type ViewType =
   | "seo-investor-capital"
   | "seo-trader-marketplace"
   | "seo-copy-trading-platform"
+  | "seo-professional-clients"
+  | "seo-alternative-investment-platform"
   | "seo-trader-funding"
   | "seo-prop-firm-alternative"
   | "seo-trading-performance-tracker"
@@ -75,6 +77,8 @@ export const viewPaths: Partial<Record<ViewType, string>> = {
   "seo-investor-capital": "/investor-capital-for-traders",
   "seo-trader-marketplace": "/trader-marketplace",
   "seo-copy-trading-platform": "/copy-trading-platform",
+  "seo-professional-clients": "/professional-clients",
+  "seo-alternative-investment-platform": "/alternative-investment-platform",
   "seo-trader-funding": "/trader-funding",
   "seo-prop-firm-alternative": "/prop-firm-alternative",
   "seo-trading-performance-tracker": "/trading-performance-tracker",

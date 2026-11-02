@@ -4,21 +4,21 @@
       "view": "seo-green-turtle-trades",
       "title": "Green Turtle Trades",
       "eyebrow": "Company",
-      "description": "Green Turtle Trades Limited: Edinburgh trading technology, trader verification and analytics. Developing a managed account service for professional clients.",
+      "description": "Green Turtle Trades: Edinburgh alternative investment and copy trading technology for professional clients and independent traders. Platform in development.",
       "keywords": "green turtle trades, green turtle traders, Green Turtle Trades Limited, Green Turtle Traders UK, green turtle trading platform, SC878660, UK trading analytics platform, verified trader platform, Turtle Analytics",
-      "intro": "Green Turtle Trades Limited is an Edinburgh company developing trader verification and trade-copying technology to connect independent traders with professional investors through managed accounts. The proposed investment service is for professional clients only and is in development.",
+      "intro": "Green Turtle Trades Limited is an Edinburgh company developing an alternative investment platform for UK professional clients and copy trading technology for independent traders. GTT reviews trading records, filters trade instructions and calculates investor allocations for execution at its designated broker. Investment management is intended to sit with the regulated host firm. We are onboarding traders now and welcome discussions with prospective UK professional clients. The investment platform is in development and is not yet available.",
       "sections": [
         {
           "title": "Independent traders and professional investors",
-          "body": "Green Turtle Trades is developing a service that connects independent traders with professional investors through managed accounts. Traders keep their own broker accounts. The proposed investment service is for professional clients only and is in development."
+          "body": "Green Turtle Trades is developing a service connecting independent traders with UK professional investors through execution at the designated broker. Approved traders retain their source accounts; GTT filters instructions and calculates investor allocations. The service is in development."
         },
         {
           "title": "Trader applications and record review",
           "body": "Traders apply with a CV, broker statements and trade history. We review the record, strategy and risk control before any copying arrangement. Applying does not guarantee selection, a contract or investor capital."
         },
         {
-          "title": "Managed accounts and responsibilities",
-          "body": "The proposed arrangement places client assessment and investment management with a regulated host firm. Client accounts are held at a broker or custodian. GTT develops the trader verification, copying and reporting technology."
+          "title": "Broker execution and responsibilities",
+          "body": "Clients fund directly with the designated broker, which holds client capital and executes approved trade instructions. GTT provides trader verification, trade filters, allocation calculations and reporting; it never holds client money. Client assessment and investment management are intended to sit with the regulated host firm. Account permissions, allocation records and withdrawals follow the agreed broker and client terms."
         },
         {
           "title": "Professional client access",
@@ -40,7 +40,7 @@
       "faqs": [
         {
           "question": "What is Green Turtle Trades?",
-          "answer": "Green Turtle Trades Limited is an Edinburgh company developing trader verification and trade-copying technology to connect independent traders with professional investors through managed accounts. The proposed investment service is for professional clients only and is in development."
+          "answer": "Green Turtle Trades Limited is an Edinburgh company developing an alternative investment platform for UK professional clients and copy trading technology for independent traders. GTT reviews trading records, filters trade instructions and calculates investor allocations for execution at its designated broker. Investment management is intended to sit with the regulated host firm. We are onboarding traders now and welcome discussions with prospective UK professional clients. The investment platform is in development and is not yet available."
         },
         {
           "question": "Who is the proposed investment service for?",
@@ -48,7 +48,7 @@
         },
         {
           "question": "Is the investment service already available?",
-          "answer": "The proposed investment service is in development. Current information and proposed terms are set out on the official service pages."
+          "answer": "We are onboarding traders now and welcome discussions with prospective UK professional clients. The investment platform is in development and is not yet available."
         },
         {
           "question": "What do traders submit?",
@@ -354,7 +354,11 @@
         },
         {
           "title": "Review for professional client accounts",
-          "body": "The proposed investment service considers verified live records alongside strategy review and the regulated host's assessment. A public profile or competition ranking alone is not approval for client money."
+          "body": "The proposed investment service considers verified live records alongside strategy review and the regulated host's assessment. A public profile or competition ranking alone is not approval for client money. Investors can review the proposed assessment and allocation process; independent traders can prepare their records for onboarding.",
+          "links": [
+            { "label": "Strategy assessment for professional investors", "href": "/alternative-investment-platform" },
+            { "label": "Trader onboarding and record requirements", "href": "/traders" }
+          ]
         },
         {
           "title": "Limits of verification",
@@ -415,7 +419,7 @@
         },
         {
           "title": "Responsibilities and limits",
-          "body": "Client accounts are held at a broker or custodian, with investment management intended to sit with the regulated host. GTT provides technology. Selection, allocation and future returns are not guaranteed."
+          "body": "Client capital stays with the designated broker, which would host the execution infrastructure. GTT filters trades and calculates investor allocations, with investment management intended to sit with the regulated host. Selection, allocation and future returns are not guaranteed."
         }
       ],
       "faqs": [
@@ -440,7 +444,7 @@
       "eyebrow": "Trader review",
       "description": "Explore trader evaluation using verified performance records and risk metrics. Green Turtle Trades professional client investment service is in development.",
       "keywords": "Green Turtle Trades, trader verification, independent traders, professional clients",
-      "intro": "Trader evaluation should begin with evidence, not a public popularity ranking. Green Turtle Trades is developing verification and copying technology for independent traders and professional client managed accounts.",
+      "intro": "Trader evaluation should begin with evidence, not a public popularity ranking. Green Turtle Trades is developing verification, trade filtering and allocation technology connecting independent strategies with professional investors, with execution at the designated broker.",
       "sections": [
         {
           "title": "Verified records for review",
@@ -456,7 +460,7 @@
         },
         {
           "title": "Allocation under a mandate",
-          "body": "The proposed service uses accounts held at a broker or custodian and an agreed mandate managed by a regulated host. It is for professional clients only and remains in development."
+          "body": "The proposed service uses execution at the designated broker, with GTT providing trade filters and allocation technology. Investment management is intended to sit with the regulated host. The service is for professional clients only and remains in development."
         }
       ],
       "faqs": [
@@ -474,52 +478,150 @@
         },
         {
           "question": "Is investment access live?",
-          "answer": "The proposed investment service is in development. An enquiry does not establish eligibility."
+          "answer": "We are onboarding traders now and welcome discussions with prospective UK professional clients. The investment platform is in development and is not yet available. An enquiry does not establish eligibility."
         }
       ],
       "route": "/trader-marketplace"
     },
     {
       "view": "seo-copy-trading-platform",
-      "title": "Copy Trading for Professional Clients",
-      "eyebrow": "Proposed service",
-      "description": "Learn about copying technology, verified trader records and risk review. Green Turtle Trades proposed investment service is for professional clients.",
+      "title": "How GTT’s copy trading platform works",
+      "eyebrow": "Independent traders and professional capital",
+      "description": "How GTT’s proposed copy trading platform connects approved MT4/MT5 accounts to trade filters, investor allocations and broker execution. Now onboarding traders.",
       "keywords": "Green Turtle Trades, trader verification, independent traders, professional clients",
-      "intro": "Green Turtle Trades is developing technology to copy reviewed independent trading strategies into accounts managed for professional clients. Traders retain their own broker accounts; the proposed service is in development.",
+      "intro": "GTT is onboarding independent MT4 and MT5 traders for a copy trading platform in development. Keep an approved source broker account, build a record that can be reviewed and understand how GTT would filter trade instructions and calculate professional investor allocations for execution at the designated broker.",
       "sections": [
         {
-          "title": "Verification before copying",
-          "body": "Traders submit evidence of their trading record and explain their strategy. Record review and the regulated host's assessment come before agreements and any client money being linked."
+          "title": "Who the proposed service is for",
+          "body": "We are onboarding independent traders and welcome discussions with prospective UK professional clients. Trader review considers your history, strategy and risk control; professional client assessment is a separate process. The investment platform is in development and is not yet available. Applying as a trader does not guarantee selection, a contract or investor capital.",
+          "links": [
+            {
+              "label": "Trader onboarding and proposed remuneration",
+              "href": "/traders"
+            },
+            {
+              "label": "Professional investor information",
+              "href": "/professional-investors"
+            },
+            {
+              "label": "What is a professional client?",
+              "href": "/professional-clients"
+            }
+          ]
         },
         {
-          "title": "Risk limits within a mandate",
-          "body": "The proposed copying process scales trades to the client allocation and checks them against agreed exposure, position-size and drawdown limits. Trades outside those limits may be reduced or skipped."
+          "title": "From source trades to broker-hosted execution",
+          "body": "Approved traders keep their existing MT4 or MT5 source broker accounts, subject to permission and compatibility. An authorised connection captures their activity, including manual trades. GTT checks the instructions against the agreed risk rules, calculates investor allocations and sends approved orders to the designated broker for execution. Client trading capital stays with that broker and is separate from the trader’s source account and GTT’s operating funds.",
+          "flow": [
+            {
+              "title": "Trader’s source account",
+              "body": "The trader places trades at their approved existing broker. An authorised connection captures the activity."
+            },
+            {
+              "title": "GTT filters and allocations",
+              "body": "Our system checks instructions against agreed limits and calculates the investor allocations for each approved trade."
+            },
+            {
+              "title": "Execution at the broker",
+              "body": "The designated broker holds client capital and executes approved instructions, with results reconciled for reporting."
+            }
+          ]
         },
         {
-          "title": "Separate accounts and responsibilities",
-          "body": "Client money and positions stay at the broker or custodian. Investment management is intended to sit with the regulated host, while GTT provides trader verification, copying technology and reporting."
+          "title": "How investor allocations are recorded",
+          "body": "GTT’s platform records each client’s allocated share and calculates the investment allocation associated with approved trades. The broker’s execution arrangement uses PAMM infrastructure. Allocation records, the treatment of gains and losses, fees and withdrawals follow the agreed broker and client terms. These details would be explained in the account documentation before an investor commits.",
+          "links": [
+            {
+              "label": "Explore the professional investor service",
+              "href": "/professional-investors"
+            }
+          ]
         },
         {
-          "title": "Results can differ",
-          "body": "Execution prices, timing, fees, minimum trade sizes and risk checks can produce results that differ from a trader's account. Verification and copying do not guarantee future returns."
+          "title": "What verification establishes",
+          "body": "Our review compares a trader’s full trade export with broker statements and recalculates returns and drawdown. We examine deposits, withdrawals, position sizing and the strategy’s explanation to understand how the record was produced. Demo and competition results are labelled separately from live trading. Verification supports a review of historical evidence; it is not an audit opinion, a prediction of future returns or a guarantee against losses. A verified record alone does not establish suitability for a client mandate.",
+          "links": [
+            {
+              "label": "Read our verification methodology",
+              "href": "/methodology"
+            },
+            {
+              "label": "Explore the trader verification guide",
+              "href": "/trader-verification-guide"
+            }
+          ]
+        },
+        {
+          "title": "Who holds capital and who is responsible",
+          "body": "Clients fund directly with the designated broker, which holds client capital and executes approved trade instructions. GTT provides trader verification, trade filters, allocation calculations and reporting; it never holds client money. Client assessment and investment management are intended to sit with the regulated host firm. Account permissions, allocation records and withdrawals follow the agreed broker and client terms.",
+          "responsibilities": [
+            {
+              "title": "Independent trader",
+              "body": "Provides strategy activity from an approved source broker account and supplies evidence for review. Client capital is separate from this source account."
+            },
+            {
+              "title": "Green Turtle Trades",
+              "body": "Verifies records, filters trades, calculates investor allocations and reconciles broker execution for reporting. Does not hold client money."
+            },
+            {
+              "title": "Regulated investment manager",
+              "body": "The proposed host arrangement covers client assessment, mandates, investment management and oversight. Final responsibilities are subject to the agreed documents."
+            },
+            {
+              "title": "Designated broker",
+              "body": "Receives client funding, provides the execution infrastructure and executes approved instructions. Account permissions and withdrawal terms follow the broker and client agreements."
+            }
+          ]
+        },
+        {
+          "title": "Trader approval and professional capital",
+          "body": "A source-account connection does not by itself make a strategy available for client allocations. Record verification, strategy and risk review, technical checks and the regulated host’s assessment come before agreements and any copying arrangement. Allocations depend on approved strategy capacity, client demand and the agreed mandate. Proposed performance-fee sharing is explained on the trader page; onboarding does not guarantee investor capital or earnings.",
+          "links": [
+            {
+              "label": "Trader requirements and proposed fee sharing",
+              "href": "/traders"
+            },
+            {
+              "label": "Alternative investment approach for professional clients",
+              "href": "/alternative-investment-platform"
+            }
+          ]
+        },
+        {
+          "title": "Why investor results can differ from the source record",
+          "body": "Execution at the designated broker should not be expected to reproduce the source trader’s return exactly. Timing, slippage, spreads, fees, minimum trade sizes, investor allocations and rejected or filtered trades can all change the outcome. Connection failures or unavailable instruments may prevent an order from executing. Reporting needs to distinguish the source record, broker execution and each investor’s results after applicable costs and fees. Historical results may not repeat, and risk filters cannot eliminate losses. Proposed fees are explained on the professional-investor page; final terms, allocation mechanics and withdrawals would be confirmed in the relevant agreements.",
+          "links": [
+            {
+              "label": "Review proposed fees and investor information",
+              "href": "/professional-investors"
+            }
+          ]
         }
       ],
       "faqs": [
         {
-          "question": "Who is the proposed copying service for?",
-          "answer": "Professional clients only, following assessment by the regulated firm. The investment service is in development."
+          "question": "How are investor allocations and broker execution connected?",
+          "answer": "GTT records investor allocations, applies the agreed trade filters and sends approved instructions to the designated broker. The broker provides the PAMM execution infrastructure. The account documentation would explain allocation records, gains and losses, fees, permissions and withdrawals before an investor commits."
         },
         {
-          "question": "Do traders move their account to GTT?",
-          "answer": "The proposed model lets traders keep their own broker accounts. Any connection and copying arrangement follows review and agreement."
+          "question": "Does GTT hold or directly manage my broker account?",
+          "answer": "GTT never holds client money. It provides trader review, trade filtering, allocation calculations and reporting technology. Client capital and trade execution sit with the designated broker, while the regulated host is intended to act as investment manager. Final permissions and responsibilities would be confirmed in agreements."
         },
         {
-          "question": "Will a client get exactly the trader's return?",
-          "answer": "No. Execution, fees, sizing and mandate limits can all create differences."
+          "question": "Can traders keep their existing broker accounts?",
+          "answer": "Approved MT4 or MT5 source accounts can be retained, subject to broker permissions and instrument compatibility. Client execution takes place separately at GTT’s designated broker; clients cannot assume an unrelated broker is supported."
         },
         {
-          "question": "Does verification remove investment risk?",
-          "answer": "No. A checked historical record does not guarantee future performance or prevent losses."
+          "question": "Can I invest through GTT today?",
+          "answer": "We are onboarding traders now and welcome discussions with prospective UK professional clients. The investment platform is in development and is not yet available. A discussion does not establish eligibility or commit you to investing."
+        },
+        {
+          "question": "Does verification guarantee my investment result?",
+          "answer": "No. Verification describes checks on historical trading evidence. It is not an audit opinion or a promise of future performance. Source records, broker execution and individual investor results can differ, and invested capital is at risk."
+        },
+        {
+          "question": "Can retail investors use the proposed investment service?",
+          "answer": "The proposed investment service is for UK professional clients only. Trader onboarding is a separate process; submitting a trader application does not establish investor eligibility."
         }
       ],
       "route": "/copy-trading-platform"
@@ -579,7 +681,7 @@
         },
         {
           "title": "Professional client accounts",
-          "body": "The proposed service involves managed accounts for professional clients, with investment management intended to sit with a regulated host. It is not an unrestricted retail investment service."
+          "body": "The proposed service uses execution at the designated broker, with GTT filtering instructions and calculating allocations. Investment management is intended to sit with the regulated host. The service is for professional clients only."
         },
         {
           "title": "An application, not a funding promise",
@@ -589,7 +691,7 @@
       "faqs": [
         {
           "question": "Is Green Turtle Trades a traditional prop firm?",
-          "answer": "The proposed model connects reviewed independent strategies with professional client managed accounts rather than offering a traditional challenge-based funded account."
+          "answer": "The proposed model connects reviewed independent strategies with professional investor allocations and execution at the designated broker, rather than offering a traditional challenge-based funded account."
         },
         {
           "question": "Does passing a review guarantee funding?",
@@ -1098,7 +1200,12 @@
         },
         {
           "title": "How Green Turtle Trades approaches verification",
-          "body": "Green Turtle Trades separates raw records from public summaries, uses central metric logic where possible, and explains calculation rules in the trader verification methodology. The aim is clear evidence, not unsupported performance claims."
+          "body": "Green Turtle Trades separates raw records from public summaries, uses central metric logic where possible, and explains calculation rules in the trader verification methodology. For the proposed professional client service, broker statements and full live trade records are reviewed alongside strategy and risk. Analytics imports and virtual competition results remain distinct from approval for investor allocations.",
+          "links": [
+            { "label": "Read the trader verification methodology", "href": "/methodology" },
+            { "label": "How verification supports the proposed investor service", "href": "/professional-investors" },
+            { "label": "Prepare a trader application", "href": "/traders" }
+          ]
         },
         {
           "title": "Limits of verification",
@@ -1409,6 +1516,148 @@
         }
       ],
       "route": "/virtual-trading-competition"
+    },
+    {
+      "view": "seo-professional-clients",
+      "route": "/professional-clients",
+      "title": "What is a professional client?",
+      "eyebrow": "Investor eligibility",
+      "description": "Understand per se and elective professional clients, the regulated firm’s assessment and investor protections, with references to FCA Handbook COBS 3.5.",
+      "keywords": "professional client, per se professional client, elective professional client, FCA COBS 3.5",
+      "intro": "Professional client is an FCA client category. This guide explains the two routes to professional treatment and how categorisation fits into GTT’s proposed service for UK professional clients.",
+      "sections": [
+        {
+          "title": "Two categories of professional client",
+          "body": "COBS 3.5 distinguishes per se and elective professional clients. The responsible regulated firm determines the appropriate category; submitting an enquiry does not establish eligibility."
+        },
+        {
+          "title": "Per se professional clients",
+          "body": "These include regulated financial institutions, qualifying large organisations and certain institutional investors within the Handbook’s specified categories."
+        },
+        {
+          "title": "Elective professional clients",
+          "body": "Other clients may request professional treatment. The firm assesses expertise, experience and knowledge, applies relevant additional tests where required, and completes the written opt-up process, including explaining protections lost."
+        },
+        {
+          "title": "Assessment and investor protections",
+          "body": "Wealth or an investment amount alone does not establish eligibility. The regulated firm determines categorisation and separately assesses service suitability. Professional treatment can involve fewer protections than retail treatment.",
+          "links": [
+            {
+              "label": "Source: FCA Handbook — COBS 3.5 Professional clients",
+              "href": "https://handbook.fca.org.uk/handbook/cobs3/cobs3s5"
+            }
+          ]
+        },
+        {
+          "title": "How this applies to GTT",
+          "body": "GTT’s proposed investment service is for UK professional clients only. We are onboarding traders now and welcome discussions with prospective UK professional clients. The investment platform is in development and is not yet available. Client assessment and investment management are intended to sit with the regulated host firm before any allocation is accepted.",
+          "links": [
+            {
+              "label": "Explore the proposed investor service",
+              "href": "/professional-investors"
+            }
+          ]
+        }
+      ],
+      "faqs": [
+        {
+          "question": "Can I become a professional client by ticking a box?",
+          "answer": "No. The regulated firm must complete the applicable categorisation process."
+        },
+        {
+          "question": "Does a large allocation make me eligible?",
+          "answer": "No. An investment amount alone does not establish professional-client status."
+        },
+        {
+          "question": "Does categorisation mean the investment is suitable?",
+          "answer": "No. Categorisation and suitability are separate assessments."
+        }
+      ]
+    },
+    {
+      "view": "seo-alternative-investment-platform",
+      "route": "/alternative-investment-platform",
+      "title": "Alternative investment management: GTT’s platform and approach",
+      "eyebrow": "For UK professional clients",
+      "description": "Explore GTT’s proposed platform for alternative trading strategies: record review, allocation controls, broker execution and regulated investment management.",
+      "keywords": "alternative investment platform, alternative investment management, professional clients, independent trading strategies",
+      "intro": "Green Turtle Trades is developing an Edinburgh-based alternative investment platform connecting reviewed independent trading strategies with UK professional investors. This guide explains the proposed assessment, allocation and reporting process. GTT provides the technology, the designated broker holds capital and executes orders, and investment management is intended to sit with the regulated host firm.",
+      "sections": [
+        {
+          "title": "What the proposed platform offers",
+          "body": "The focus is access to selected independent trading strategies through an organised assessment and execution process. Investors would review the available strategy evidence, proposed allocation and fees before agreeing a mandate. The platform is in development; we welcome prospective professional client discussions and are onboarding traders now.",
+          "links": [
+            {
+              "label": "Professional investor service, proposed fees and enquiries",
+              "href": "/professional-investors"
+            }
+          ]
+        },
+        {
+          "title": "How this fits alternative investment management",
+          "body": "Here, alternative investment refers to considering independently traded strategies as a specialist allocation. It does not mean the platform offers every type of alternative asset or fund. Copying technology is the execution mechanism; the allocation decision still requires assessment of the strategy, instruments, risk, costs and fit with the client’s circumstances. A different source of trading activity does not itself establish diversification or lower risk."
+        },
+        {
+          "title": "Evidence behind a strategy",
+          "body": "The proposed review compares broker statements with full trade exports and considers deposits, withdrawals, returns, drawdowns, exposure, position sizing and the trader’s explanation. Live results are distinguished from demo and competition records. Verification supports an assessment of historical evidence; it does not establish future performance, an audit opinion or suitability for every client.",
+          "links": [
+            {
+              "label": "Review the verification methodology",
+              "href": "/methodology"
+            },
+            {
+              "label": "What a verifiable trading record includes",
+              "href": "/trader-verification-guide"
+            }
+          ]
+        },
+        {
+          "title": "Allocations, capacity and execution",
+          "body": "GTT calculates investor allocations and filters source trade instructions against agreed limits before approved orders reach the designated broker. Strategy capacity, instrument compatibility, trading costs, slippage and failed or rejected orders affect how a strategy can be used. Source performance and investor results can differ. The account and mandate documents would explain allocation mechanics and withdrawal terms.",
+          "links": [
+            {
+              "label": "How the copying and allocation technology works",
+              "href": "/copy-trading-platform"
+            }
+          ]
+        },
+        {
+          "title": "GTT, the investment manager and the broker",
+          "body": "GTT develops trader verification, trade filters, allocation calculations, reconciliation and reporting. The designated broker holds client capital and executes approved orders. The regulated host is intended to act as investment manager, assess clients and oversee mandates. GTT never holds client money. Final permissions and responsibilities would be documented before the service becomes available."
+        },
+        {
+          "title": "What to discuss before an allocation",
+          "body": "A prospective client should understand the trading approach, how the record was checked, loss and execution risks, total costs, strategy capacity and the reporting available. Professional client categorisation and suitability assessment are part of the proposed onboarding process. The investment platform is not yet available; a discussion does not commit you to an allocation or establish eligibility.",
+          "links": [
+            {
+              "label": "Professional client categorisation — FCA Handbook references",
+              "href": "/professional-clients"
+            },
+            {
+              "label": "Discuss the proposed service",
+              "href": "/professional-investors/enquire"
+            }
+          ]
+        }
+      ],
+      "faqs": [
+        {
+          "question": "Is the proposed platform available to retail investors?",
+          "answer": "No. The proposed investment service is intended for UK professional clients following the relevant assessment. Trader onboarding is separate from investor eligibility."
+        },
+        {
+          "question": "Does GTT act as the investment manager?",
+          "answer": "GTT provides verification, filtering, allocation and reporting technology. The regulated host is intended to act as investment manager, with client capital and execution at the designated broker."
+        },
+        {
+          "question": "Does alternative mean diversified or lower risk?",
+          "answer": "No. The risk and portfolio effect depend on the actual strategy, instruments, exposures and client allocation. Losses remain possible."
+        },
+        {
+          "question": "Can I discuss the service before launch?",
+          "answer": "We are onboarding traders now and welcome discussions with prospective UK professional clients. The investment platform is in development and is not yet available. An enquiry does not establish eligibility or commit you to investing."
+        }
+      ]
     }
   ]
 }

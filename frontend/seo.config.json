@@ -25,7 +25,7 @@
       "addressRegion": "Scotland",
       "addressCountry": "GB"
     },
-    "description": "Green Turtle Trades Limited is an Edinburgh company developing trader verification and trade-copying technology to connect independent traders with professional investors through managed accounts. The proposed investment service is for professional clients only and is in development.",
+    "description": "Green Turtle Trades Limited is an Edinburgh company developing an alternative investment platform for UK professional clients and copy trading technology for independent traders. GTT reviews trading records, filters trade instructions and calculates investor allocations for execution at its designated broker. Investment management is intended to sit with the regulated host firm. We are onboarding traders now and welcome discussions with prospective UK professional clients. The investment platform is in development and is not yet available.",
     "sameAs": [
       "https://www.linkedin.com/company/green-turtle-trade/",
       "https://www.instagram.com/greenturtletrades_/",
@@ -35,12 +35,13 @@
       "https://find-and-update.company-information.service.gov.uk/company/SC878660"
     ],
     "knowsAbout": [
+      "Alternative investment strategies",
+      "Alternative investment management technology",
       "Trader verification",
-      "Trading performance analysis",
-      "Trading risk management",
       "Copy trading technology",
-      "Professional client managed accounts",
-      "Trading analytics"
+      "MT4 and MT5 source-account connections",
+      "Investor allocation technology",
+      "Trading risk and performance review"
     ],
     "subjectOf": {
       "@type": "NewsArticle",
@@ -66,7 +67,7 @@
     "publisher": {
       "@id": "https://greenturtletraders.co.uk/#organization"
     },
-    "description": "Trader verification and copying technology for a proposed professional client service, with supporting analytics and a virtual university competition.",
+    "description": "An Edinburgh-based alternative investment platform in development for UK professional clients, with trader verification and MT4/MT5 copy trading technology. GTT is onboarding traders and welcoming professional client discussions; the investment platform is not yet available. Analytics and the virtual university competition are supporting products.",
     "about": {
       "@id": "https://greenturtletraders.co.uk/#organization"
     },
@@ -76,27 +77,30 @@
       "https://greenturtletraders.co.uk/about",
       "https://greenturtletraders.co.uk/faqs",
       "https://greenturtletraders.co.uk/turtle-analytics",
-      "https://greenturtletraders.co.uk/university-competition"
+      "https://greenturtletraders.co.uk/university-competition",
+      "https://greenturtletraders.co.uk/copy-trading-platform",
+      "https://greenturtletraders.co.uk/professional-clients",
+      "https://greenturtletraders.co.uk/alternative-investment-platform"
     ]
   },
   "routes": {
     "/about": {
-      "title": "About Green Turtle Trades | Trader Verification & Technology",
-      "description": "An Edinburgh company developing trader verification and copying technology to connect independent traders with professional investors."
+      "title": "Edinburgh Investment Technology & Copy Trading | About GTT",
+      "description": "Meet Edinburgh-based Green Turtle Trades, developing an alternative investment platform for UK professional clients and copy trading technology for independent traders."
     },
     "/traders": {
-      "title": "Trade for Professional Investors | Green Turtle Trades",
-      "description": "Apply with your CV and verifiable trading history. Keep your broker account and have your strategy reviewed for professional client accounts. Selection is not guaranteed.",
+      "title": "Copy Trading for MT4 & MT5 Traders | Green Turtle Trades",
+      "description": "Now onboarding independent MT4 and MT5 traders for record and strategy review. Retain an approved broker account. Selection and professional capital are not guaranteed.",
       "audience": "Independent traders with verifiable trading records"
     },
     "/professional-investors": {
-      "title": "Professional Investors | Verified Strategies | Green Turtle Trades",
-      "description": "Explore verified trading strategies and proposed managed accounts for professional clients. Green Turtle Trades investment service is in development.",
+      "title": "Alternative Investment Platform for Professional Clients | GTT",
+      "description": "Explore independent trading strategies, record verification, allocations and proposed fees for UK professional clients. Open to discussions; platform not yet available.",
       "audience": "Professional clients"
     },
     "/faqs": {
       "title": "Trader & Professional Investor FAQs | Green Turtle Trades",
-      "description": "Answers about trader applications, record verification, managed accounts, proposed fees and the professional client service in development."
+      "description": "Answers about trader review, trade filtering, investor allocations, broker execution and the proposed UK professional client service."
     },
     "/turtle-analytics": {
       "title": "Turtle Analytics by Green Turtle Trades | Trading Analytics & Journal",
@@ -112,7 +116,7 @@
     },
     "/green-turtle-trades": {
       "title": "Green Turtle Trades | Company & Trader Verification",
-      "description": "Green Turtle Trades Limited: Edinburgh trading technology, trader verification and analytics. Developing a managed account service for professional clients."
+      "description": "Green Turtle Trades: Edinburgh alternative investment and copy trading technology for professional clients and independent traders. Platform in development."
     },
     "/trading-analytics": {
       "title": "Trading Analytics | Green Turtle Trades",
@@ -139,8 +143,8 @@
       "description": "Explore trader evaluation using verified performance records and risk metrics. Green Turtle Trades professional client investment service is in development."
     },
     "/copy-trading-platform": {
-      "title": "Copy Trading & Verified Performance | Green Turtle Trades",
-      "description": "Learn about copying technology, verified trader records and risk review. Green Turtle Trades proposed investment service is for professional clients."
+      "title": "Copy Trading Platform: MT4, MT5 & Trader Verification | GTT",
+      "description": "How GTT’s proposed copy trading platform connects approved MT4/MT5 accounts to trade filters, investor allocations and broker execution. Now onboarding traders."
     },
     "/trader-funding": {
       "title": "Trader Funding & Performance Records | Green Turtle Trades",
@@ -183,8 +187,8 @@
       "description": "An MT4 and MT5 trading journal for turning MetaTrader account history into structured notes, performance analytics, expectancy, drawdown, and risk review."
     },
     "/": {
-      "title": "Green Turtle Trades | Strategies for Professional Investors",
-      "description": "A platform in development connecting verified independent traders with professional investors through managed accounts. Explore the proposed service."
+      "title": "Alternative Investment & Copy Trading Platform | Green Turtle Trades",
+      "description": "Edinburgh-based alternative investment platform in development for UK professional clients, with copy trading technology for independent traders. Now onboarding traders."
     },
     "/contact": {
       "title": "Contact Green Turtle Trades | Trader & Investor Enquiries",
@@ -211,6 +215,15 @@
     "/risk-disclosure": {
       "title": "Risk Disclosure | Green Turtle Trades",
       "description": "Read the Green Turtle Trades trading risk disclosure."
+    },
+    "/professional-clients": {
+      "title": "What Is a Professional Client? | Green Turtle Trades",
+      "description": "Understand per se and elective professional clients, the regulated firm’s assessment and investor protections, with references to FCA Handbook COBS 3.5."
+    },
+    "/alternative-investment-platform": {
+      "title": "Alternative Investment Management Platform | GTT’s Approach",
+      "description": "Explore GTT’s proposed platform for alternative trading strategies: record review, allocation controls, broker execution and regulated investment management.",
+      "audience": "Prospective UK professional clients"
     }
   },
   "indexableRoutes": [
@@ -240,11 +253,13 @@
     "/trader-verification-guide",
     "/mt4-mt5-trading-journal",
     "/methodology",
-    "/contact"
+    "/contact",
+    "/professional-clients",
+    "/alternative-investment-platform"
   ],
   "companyProfile": {
-    "traders": "Independent traders apply with a CV, broker statements and trade history. They keep their own broker accounts. Records and strategy are reviewed before any copying arrangement; applying does not guarantee selection, a contract or investor capital.",
-    "investors": "The proposed investment service is for professional clients only, with client assessment and investment management intended to sit with a regulated host firm. An enquiry does not establish eligibility. Do not describe GTT itself as the regulated investment manager or the proposed service as already launched.",
+    "traders": "GTT is onboarding independent traders for its proposed copy trading platform. Approved MT4 and MT5 source broker accounts can be retained, subject to permission and compatibility. Records, strategy and risk are reviewed before any copying arrangement. Applying does not guarantee selection, a contract or investor capital.",
+    "investors": "The proposed alternative investment platform is for UK professional clients only. GTT welcomes prospective client discussions, but the investment platform is not yet available. GTT provides verification, trade filtering, allocation calculations and reporting; client capital and execution sit with the designated broker, with investment management intended to sit with the regulated host firm. An enquiry does not establish eligibility.",
     "supportingProducts": "Turtle Analytics and trading journals support historical performance and risk review. The university competition uses virtual capital; competition results are distinct from a verified live trading record and from selection for the proposed investment service.",
     "officialPages": {
       "For traders": "/traders",
@@ -255,8 +270,12 @@
       "University competition": "/university-competition",
       "Performance methodology": "/methodology",
       "Contact": "/contact",
-      "Risk disclosure": "/risk-disclosure"
-    }
+      "Risk disclosure": "/risk-disclosure",
+      "What is a professional client?": "/professional-clients",
+      "Alternative investment platform": "/alternative-investment-platform",
+      "Copy trading platform": "/copy-trading-platform"
+    },
+    "status": "We are onboarding traders now and welcome discussions with prospective UK professional clients. The investment platform is in development and is not yet available."
   },
   "omitLegacyFaqSchemaRoutes": []
 }

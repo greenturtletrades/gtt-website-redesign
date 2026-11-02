@@ -11,6 +11,10 @@ export type SeoContentPage = {
   sections: Array<{
     title: string;
     body: string;
+    flow?: Array<{ title: string; body: string }>;
+    responsibilities?: Array<{ title: string; body: string }>;
+    comparison?: Array<{ topic: string; retail: string; gtt: string }>;
+    links?: Array<{ label: string; href: string }>;
   }>;
   faqs: Array<{
     question: string;

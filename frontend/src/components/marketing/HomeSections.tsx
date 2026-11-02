@@ -2,14 +2,15 @@ import { ArrowRight, BarChart3, Mail, ShieldCheck, Trophy } from "lucide-react";
 import analyticsPreview from "../../assets/app-preview/analytics-workspace.png";
 import type { ViewType } from "../../seo/routes";
 import { isInvestorPageLive } from "../../featureFlags";
+import seo from "../../../seo.config.json";
 import { RouteCard, SectionHeading, StepTimeline, type Step } from "./PageBlocks";
 
 type Navigate = (view: ViewType) => void;
 
 const howItWorksSteps: Step[] = [
   { title: "Trader verified", description: "We review the trader's CV and live trading records before anything else happens." },
-  { title: "Authorised connection", description: "The trader keeps their own broker account and authorises a read connection to it." },
-  { title: "Copied within limits", description: "Trades are sized to each client's mandate and checked against agreed risk limits." },
+  { title: "Source connected", description: "The trader keeps an approved source broker account. An authorised connection captures their trading activity." },
+  { title: "Filtered and allocated", description: "GTT filters trades and calculates investor allocations before approved instructions execute at the designated broker." },
   { title: "Ongoing reporting", description: "Positions are reconciled with the broker and reported to clients and the regulated host." },
 ];
 
@@ -19,8 +20,8 @@ export function HowItWorks() {
       <SectionHeading
         id="how-it-works-title"
         kicker="How it works"
-        title="From a verified record to a managed account"
-        intro="Four steps connect a trader's strategy to a professional client's account. Each one is checked before the next begins."
+        title="From a verified record to broker-hosted execution"
+        intro="The proposed model connects reviewed trading strategies with professional investor allocations. GTT provides trade filters and reporting; the designated broker executes approved instructions."
       />
       <StepTimeline steps={howItWorksSteps} />
     </div>
@@ -35,10 +36,10 @@ export function RouteCards({ onNavigate }: { onNavigate?: Navigate }) {
         {isInvestorPageLive && <RouteCard
           tone="investor"
           label="For investors"
-          title="Access verified strategies"
-          description="For professional clients and organisations looking for exposure to independently verified trading strategies."
+          title="An alternative investment approach"
+          description="For prospective UK professional clients assessing independent trading strategies, evidence and the proposed allocation process."
           bullets={[
-            "Managed accounts held at a broker or custodian in your name",
+            "Client capital held and approved trades executed at the designated broker",
             "For professional clients only, assessed by the regulated firm",
             "Start with an enquiry. Nothing is committed at this stage",
           ]}
@@ -48,8 +49,8 @@ export function RouteCards({ onNavigate }: { onNavigate?: Navigate }) {
         <RouteCard
           tone="trader"
           label="For traders"
-          title="Trade your strategy. Reach professional capital."
-          description="For independent traders with a live record they can evidence and a strategy they can explain."
+          title="Copy trading for independent traders"
+          description="For MT4 and MT5 traders with verifiable live history and an explainable strategy, using an approved existing broker account."
           bullets={[
             "Keep trading from your own broker account",
             "Apply with your CV and live trading record",
@@ -106,12 +107,9 @@ export function HomeEvidence({ onNavigate }: { onNavigate?: Navigate }) {
 export function StatusContact({ onNavigate }: { onNavigate?: Navigate }) {
   return <section className="gtt-cta" aria-labelledby="status-title">
     <div className="home-section-inner">
-      <span className="home-kicker" style={{ color: "#5eead4" }}><ShieldCheck size={15} style={{ display: "inline", verticalAlign: "-2px", marginRight: 6 }} aria-hidden="true" />Status as of October 2026</span>
-      <h2 id="status-title" style={{ marginTop: 12 }}>In development, with a regulated partner</h2>
-      <p>
-        The investment service is being built with a regulated host firm and is not yet open to clients. We are
-        reviewing trader applications now and taking enquiries from professional investors.
-      </p>
+      <span className="home-kicker" style={{ color: "#5eead4" }}><ShieldCheck size={15} style={{ display: "inline", verticalAlign: "-2px", marginRight: 6 }} aria-hidden="true" />Current availability</span>
+      <h2 id="status-title" style={{ marginTop: 12 }}>Now onboarding traders</h2>
+      <p>{seo.companyProfile.status}</p>
       <div className="gtt-hero-actions">
         {isInvestorPageLive && (
           <button type="button" className="home-brand-button gtt-button-investor" onClick={() => onNavigate?.("professional-investors")}>

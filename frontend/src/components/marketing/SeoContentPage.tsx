@@ -4,6 +4,9 @@ import { Footer } from "./Footer";
 import { getSeoContentPage } from "../../seo/content";
 import type { ViewType } from "../../seo/routes";
 import "../../styles/seo-content.css";
+import { NavigationLink } from "../../seo/NavigationLink";
+import type { MouseEvent } from "react";
+import seo from "../../../seo.config.json";
 
 interface SeoContentPageProps {
   view: ViewType;
@@ -17,7 +20,22 @@ export function SeoContentPage({ view, onNavigate }: SeoContentPageProps) {
     return null;
   }
 
-  const commercial = ["seo-green-turtle-trades", "seo-investor-capital", "seo-trader-marketplace", "seo-copy-trading-platform", "seo-trader-funding", "seo-prop-firm-alternative"].includes(view);
+  const commercial = ["seo-green-turtle-trades", "seo-investor-capital", "seo-trader-marketplace", "seo-copy-trading-platform", "seo-trader-funding", "seo-prop-firm-alternative", "seo-professional-clients", "seo-alternative-investment-platform", "seo-methodology", "seo-trader-verification-guide", "seo-verified-traders"].includes(view);
+  const copyGuide = view === "seo-copy-trading-platform";
+  const eligibilityGuide = view === "seo-professional-clients";
+  const alternativeGuide = view === "seo-alternative-investment-platform";
+  const serviceGuide = copyGuide || eligibilityGuide || alternativeGuide || ["seo-methodology", "seo-trader-verification-guide", "seo-verified-traders"].includes(view);
+  const investorFirst = alternativeGuide || eligibilityGuide;
+  const traderHref = "/traders";
+  const investorHref = "/professional-investors";
+  const primaryHref = commercial ? (investorFirst ? investorHref : traderHref) : "/turtle-analytics";
+  const secondaryHref = commercial ? (investorFirst ? traderHref : investorHref) : "/university-competition";
+  const followLocalLink = (event: MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (href.startsWith("/") && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
+      event.preventDefault();
+      onNavigate(getViewFromPath(href));
+    }
+  };
   const defaultRelatedPages: Array<[string, ViewType]> = [
     ["Turtle Analytics", "turtle-analytics"],
     ["Trading Journal", "seo-trading-journal"],
@@ -92,17 +110,19 @@ export function SeoContentPage({ view, onNavigate }: SeoContentPageProps) {
   };
   const relatedPages = relatedPagesByView[view] || defaultRelatedPages;
 
-  const relatedLinks: Array<[string, string]> = commercial
-    ? [["For Traders", "https://greenturtletraders.co.uk/traders"], ["For Professional Investors", "https://greenturtletraders.co.uk/professional-investors"], ["Trader Verification Guide", "/trader-verification-guide"], ["Methodology", "/methodology"]]
-    : relatedPages.map(([label, target]) => [label, getPathForView(target)]);
+  const relatedLinks: Array<[string, string]> = (commercial
+    ? [["For Professional Investors", investorHref], ["For Traders", traderHref], ["Alternative Investment Platform", "/alternative-investment-platform"], ["Copy Trading Platform", "/copy-trading-platform"], ["Trader Verification Guide", "/trader-verification-guide"], ["Methodology", "/methodology"], ["Professional Client Eligibility", "/professional-clients"]] as Array<[string, string]>
+    : relatedPages.map(([label, target]) => [label, getPathForView(target)] as [string, string]))
+    .filter(([, href]) => href !== getPathForView(view));
 
   const featureIcons = [ShieldCheck, BarChart3, LineChart, CheckCircle2];
 
   return (
-    <div className="seo-content-page min-h-screen bg-white pt-20 text-slate-950">
+    <div className={`seo-content-page${serviceGuide ? " seo-copy-guide" : ""} min-h-screen bg-white pt-20 text-slate-950`}>
       <section className="seo-article-header">
         <div className="seo-article-header-inner">
           <div>
+          {serviceGuide && <NavigationLink view="landing" onClick={() => onNavigate("landing")} className="seo-guide-back">Green Turtle Trades <span aria-hidden="true">/</span> {eligibilityGuide ? "Professional clients" : alternativeGuide ? "Alternative investments" : "How it works"}</NavigationLink>}
           <div className="mb-4 text-xs font-medium uppercase tracking-[0.18em] text-teal-700">
             {page.eyebrow}
           </div>
@@ -112,21 +132,22 @@ export function SeoContentPage({ view, onNavigate }: SeoContentPageProps) {
           <p className="mt-5 max-w-3xl text-lg leading-relaxed text-slate-800">
             {page.intro}
           </p>
+          {serviceGuide && <p className="seo-guide-status"><span className="seo-guide-status-dot" aria-hidden="true" /><span>{seo.companyProfile.status}</span></p>}
           <div className="mt-8 flex flex-wrap gap-3">
             <a
-              href={commercial ? "https://greenturtletraders.co.uk/traders" : "/turtle-analytics"}
-              onClick={event => { if (!commercial && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); onNavigate("turtle-analytics"); } }}
+              href={primaryHref}
+              onClick={event => followLocalLink(event, primaryHref)}
               className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-teal-700"
             >
-              {commercial ? "For Traders" : "Open Analytics"}
+              {commercial ? (investorFirst ? "For Professional Investors" : "For Traders") : "Open Analytics"}
               <ArrowRight className="h-4 w-4" />
             </a>
             <a
-              href={commercial ? "https://greenturtletraders.co.uk/professional-investors" : "/university-competition"}
-              onClick={event => { if (!commercial && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); onNavigate("turtle-traders"); } }}
+              href={secondaryHref}
+              onClick={event => followLocalLink(event, secondaryHref)}
               className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-5 py-3 text-sm font-medium text-slate-900 transition-colors hover:border-teal-500 hover:text-teal-700"
             >
-              {commercial ? "For Professional Investors" : "View Leaderboard"}
+              {commercial ? (investorFirst ? "For Traders" : "For Professional Investors") : "View Leaderboard"}
             </a>
           </div>
           </div>
@@ -158,6 +179,25 @@ export function SeoContentPage({ view, onNavigate }: SeoContentPageProps) {
                 <h2>{section.title}</h2>
               </div>
               <p>{section.body}</p>
+              {section.flow && <ol className="seo-guide-flow" aria-label="Proposed trade copying process">
+                {section.flow.map((step, stepIndex) => <li key={step.title}>
+                  <span className="seo-guide-step-number" aria-hidden="true">{stepIndex + 1}</span>
+                  <h3>{step.title}</h3><p>{step.body}</p>
+                  {stepIndex < section.flow!.length - 1 && <ArrowRight className="seo-guide-flow-arrow" size={20} aria-hidden="true" />}
+                </li>)}
+              </ol>}
+              {section.responsibilities && <div className="seo-guide-roles">
+                {section.responsibilities.map(role => <article key={role.title}><h3>{role.title}</h3><p>{role.body}</p></article>)}
+              </div>}
+              {section.comparison && <div className="seo-guide-comparison" role="region" aria-label="Retail copy trading and the proposed GTT model" tabIndex={0}>
+                <table>
+                  <caption>How the proposed GTT model compares</caption>
+                  <thead><tr><th scope="col">Feature</th><th scope="col">Retail copy trading*</th><th scope="col">Proposed GTT model</th></tr></thead>
+                  <tbody>{section.comparison.map(row => <tr key={row.topic}><th scope="row">{row.topic}</th><td>{row.retail}</td><td>{row.gtt}</td></tr>)}</tbody>
+                </table>
+                <p className="seo-guide-table-note">*An illustrative comparison. Retail platforms vary in eligibility, discretion, account structure and risk controls; check each provider’s actual terms.</p>
+              </div>}
+              {section.links && <div className="seo-guide-links">{section.links.map(link => <a key={link.href} href={link.href} onClick={event => followLocalLink(event, link.href)}>{link.label}<ArrowRight size={16} aria-hidden="true" /></a>)}</div>}
             </section>
             );
           })}
@@ -289,7 +329,7 @@ export function SeoContentPage({ view, onNavigate }: SeoContentPageProps) {
               <a
                 key={href}
                 href={href}
-                onClick={event => { if (!commercial && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); onNavigate(getViewFromPath(href)); } }}
+                onClick={event => followLocalLink(event, href)}
                 className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4 text-left text-sm font-medium text-slate-800 transition-colors hover:border-teal-500 hover:text-teal-700"
               >
                 <span>{label}</span>
@@ -310,15 +350,15 @@ export function SeoContentPage({ view, onNavigate }: SeoContentPageProps) {
           </div>
           <div className="flex flex-wrap gap-3">
             <a
-              href={commercial ? "https://greenturtletraders.co.uk/professional-investors" : "/university-competition"}
-              onClick={event => { if (!commercial && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); onNavigate("turtle-traders"); } }}
+              href={commercial ? investorHref : "/university-competition"}
+              onClick={event => followLocalLink(event, commercial ? investorHref : "/university-competition")}
               className="rounded-lg bg-teal-600 px-4 py-2 text-sm text-white transition-colors hover:bg-teal-700"
             >
               {commercial ? "For Professional Investors" : "University Competition"}
             </a>
             <a
-              href={commercial ? "https://greenturtletraders.co.uk/traders" : "/turtle-analytics"}
-              onClick={event => { if (!commercial && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); onNavigate("turtle-analytics"); } }}
+              href={commercial ? traderHref : "/turtle-analytics"}
+              onClick={event => followLocalLink(event, commercial ? traderHref : "/turtle-analytics")}
               className="rounded-lg border border-teal-300 bg-white px-4 py-2 text-sm text-teal-700 transition-colors hover:bg-teal-50"
             >
               {commercial ? "For Traders" : "Trading Analytics"}

@@ -1,0 +1,16 @@
+{
+  "managementFeePercent": 0.75,
+  "vatPercent": 20,
+  "performanceBands": [
+    { "label": "Hurdle to 5%", "ceilingPercent": 5, "clientFeePercent": 10, "traderSharePercent": 50 },
+    { "label": "5% to 10%", "ceilingPercent": 10, "clientFeePercent": 12.5, "traderSharePercent": 50 },
+    { "label": "10% to 15%", "ceilingPercent": 15, "clientFeePercent": 15, "traderSharePercent": 80 },
+    { "label": "Above 15%", "ceilingPercent": null, "clientFeePercent": 20, "traderSharePercent": 80 }
+  ],
+  "illustrationDefaults": {
+    "allocation": 250000,
+    "annualReturnPercent": 10,
+    "hurdlePercent": 3.7,
+    "lossRecoveryPercent": 0
+  }
+}

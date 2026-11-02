@@ -1,27 +1,28 @@
 import type { ViewType } from "../../seo/routes";
 import { isInvestorPageLive } from "../../featureFlags";
+import seo from "../../../seo.config.json";
 import { Footer } from "./Footer";
 import { FaqList, PageShell, type FaqItem } from "./PageBlocks";
 
 type Navigate = (view: ViewType) => void;
 
 const generalFaqs: FaqItem[] = [
-  { question: "What is Green Turtle Trades?", answer: "Green Turtle Trades is developing a platform that verifies independent traders and, through a regulated host firm, copies their trades into accounts managed for professional clients. We also run Turtle Analytics, a trading journal and analytics tool, and a university investment competition." },
-  { question: "Is the investment service live?", answer: "Not yet. As of October 2026 the service is in development with a regulated host firm. We are reviewing trader applications and taking enquiries from professional investors." },
-  { question: "Is Green Turtle Trades regulated?", answer: "The investment service will be provided under a regulated arrangement with an FCA-authorised host firm, which is responsible for client categorisation, onboarding and the investment mandate. GTT provides the trader verification and copying technology." },
+  { question: "What is Green Turtle Trades?", answer: seo.organization.description },
+  { question: "Is the investment platform available?", answer: seo.companyProfile.status },
+  { question: "Who would oversee investment management?", answer: "The proposed model places client assessment, investment management and oversight with an FCA-authorised host firm. GTT provides trader verification, trade filtering, allocation calculations and reporting technology. The investment platform is in development and is not yet available; final responsibilities would be documented before launch." },
 ];
 
 const traderFaqs: FaqItem[] = [
   { question: "Who can apply as a trader?", answer: "Independent traders with around 12 months of verifiable live history, an explainable strategy and consistent risk control. Demo and competition records are accepted but reviewed separately." },
-  { question: "Do I need to move my account?", answer: "No. You keep trading from your own broker account. Any connection to it is authorised by you and read-only." },
+  { question: "Do I need to move my account?", answer: "You can retain an approved existing MT4 or MT5 source broker account, subject to access permissions and compatibility. GTT captures source activity, filters trade instructions and calculates investor allocations for separate execution at the designated broker." },
   { question: "Will you ask for my password?", answer: "Never. We don't ask for account passwords, investor passwords or API keys." },
   { question: "How long does review take?", answer: "We aim to contact you within 10 working days if we'd like to discuss your strategy. Applying does not guarantee selection, a contract or investor capital." },
 ];
 
 const investorFaqs: FaqItem[] = [
   { question: "Who can invest?", answer: "Only professional clients, as categorised by the regulated firm. Filling in our enquiry form does not establish eligibility." },
-  { question: "Where is my money held?", answer: "In an account in your name at a broker or custodian. Neither GTT nor the traders can withdraw it." },
-  { question: "What are the fees?", answer: "The proposed terms are a 1.25% annual management fee and a 20% performance fee above a high-water mark, plus VAT, with a minimum of £10,000 per trader. These terms are subject to agreement with the host firm." },
+  { question: "Where is my money held?", answer: "Clients fund directly with the designated broker. GTT never holds client money. Investor allocations, execution arrangements, account permissions and withdrawals follow the agreed broker and client terms, explained before an investor commits." },
+  { question: "What are the fees?", answer: "The Professional Investors page sets out the proposed management fee, performance-fee bands, hurdle, high-water mark and minimum allocation. Final terms are subject to agreement with the host firm and will be documented before launch." },
 ];
 
 export function FaqsPage({ onNavigate }: { onNavigate?: Navigate }) {

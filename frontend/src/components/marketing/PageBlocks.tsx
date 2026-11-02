@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { ArrowRight, CheckCircle2, ChevronDown, Info } from "lucide-react";
 import "../../styles/home-brand.css";
 import "../../styles/gtt-pages.css";
@@ -56,13 +56,47 @@ export function RouteCard({ tone, label, title, description, bullets, action, on
 }
 
 export interface FaqItem {
+  id?: string;
   question: string;
   answer: ReactNode;
 }
 
 export function FaqList({ items }: { items: FaqItem[] }) {
-  return <div className="gtt-faq">
-    {items.map((item) => <details key={item.question}>
+  const root = useRef<HTMLDivElement>(null);
+  const targetIds = items.map(item => item.id || "").join("|");
+  useEffect(() => {
+    if (!targetIds.replace(/\|/g, "")) return;
+    let frame = 0;
+    const reveal = (hash: string) => {
+      let id: string;
+      try { id = decodeURIComponent(hash.slice(1)); } catch { return; }
+      const target = Array.from(root.current?.querySelectorAll<HTMLDetailsElement>("details[id]") || []).find(element => element.id === id);
+      if (!target) return;
+      target.open = true;
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        target.querySelector("summary")?.focus({ preventScroll: true });
+        target.scrollIntoView({ block: "start" });
+      });
+    };
+    const handleHash = () => reveal(window.location.hash);
+    const handleClick = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const href = event.target instanceof Element ? event.target.closest("a")?.getAttribute("href") : null;
+      if (href?.startsWith("#")) reveal(href);
+    };
+    handleHash();
+    window.addEventListener("hashchange", handleHash);
+    document.addEventListener("click", handleClick);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("hashchange", handleHash);
+      document.removeEventListener("click", handleClick);
+    };
+  }, [targetIds]);
+
+  return <div className="gtt-faq" ref={root}>
+    {items.map((item) => <details key={item.question} id={item.id}>
       <summary>{item.question}<ChevronDown size={20} aria-hidden="true" /></summary>
       <div>{typeof item.answer === "string" ? <p>{item.answer}</p> : item.answer}</div>
     </details>)}

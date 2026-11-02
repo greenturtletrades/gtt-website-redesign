@@ -14,6 +14,8 @@ import {
 import { Footer } from "./Footer";
 import { ScrollProgress } from "./ScrollProgress";
 import type { ViewType } from "../../seo/routes";
+import seo from "../../../seo.config.json";
+import copy from "../../../page-copy.json";
 
 interface AboutPageProps {
   onNavigate: (view: ViewType) => void;
@@ -68,7 +70,7 @@ const modelPoints = [
   {
     title: "Professional client mandates",
     body:
-      "The proposed service uses client accounts at a broker or custodian, with investment management intended to sit with a regulated host firm.",
+      "The designated broker holds client capital and executes approved instructions. GTT provides trader verification, trade filters and allocation technology; investment management is intended to sit with the regulated host.",
     icon: ShieldCheck,
   },
   {
@@ -134,10 +136,7 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
                 Connecting independent traders with professional investors.
               </h1>
               <p className="mx-auto mt-8 max-w-3xl text-lg leading-relaxed text-slate-700 sm:text-xl lg:mt-10">
-                We are four university founders based in Edinburgh. Green Turtle Trades is developing
-                trader verification and copying technology for professional client managed accounts.
-                Traders keep their broker accounts; records and strategies are reviewed before any
-                copying arrangement. The investment service is in development.
+                {copy["/about"].paragraphs[0]} {seo.companyProfile.status}
               </p>
             </motion.div>
 
@@ -273,7 +272,7 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
                   id="trader-backed-investing-category-heading"
                   className="mt-3 text-2xl leading-tight tracking-tight text-slate-950 sm:text-3xl"
                 >
-                  Trader verification and copying technology for professional client accounts.
+                  Trader verification, trade filters and investor allocation technology.
                 </h2>
                 <p className="mt-5 text-base leading-relaxed text-slate-700">
                   Traders keep trading from their own accounts. The proposed model places client
@@ -409,7 +408,7 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
                 Developing a service for independent traders and professional clients.
               </h2>
               <p className="mt-4 text-base leading-relaxed text-slate-600 sm:text-lg">
-                The investment service is in development. Client eligibility, mandates and investment
+                {seo.companyProfile.status} Client eligibility, mandates and investment
                 management are intended to sit with a regulated host; GTT provides technology.
               </p>
             </motion.div>

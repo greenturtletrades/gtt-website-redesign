@@ -1,16 +1,20 @@
 # Green Turtle Trades
 
-> Green Turtle Trades Limited is an Edinburgh company developing trader verification and trade-copying technology to connect independent traders with professional investors through managed accounts. The proposed investment service is for professional clients only and is in development.
+> Green Turtle Trades Limited is an Edinburgh company developing an alternative investment platform for UK professional clients and copy trading technology for independent traders. GTT reviews trading records, filters trade instructions and calculates investor allocations for execution at its designated broker. Investment management is intended to sit with the regulated host firm. We are onboarding traders now and welcome discussions with prospective UK professional clients. The investment platform is in development and is not yet available.
 
 Legal entity: Green Turtle Trades Limited. Company number: SC878660.
 
+## Current availability
+
+We are onboarding traders now and welcome discussions with prospective UK professional clients. The investment platform is in development and is not yet available.
+
 ## Traders
 
-Independent traders apply with a CV, broker statements and trade history. They keep their own broker accounts. Records and strategy are reviewed before any copying arrangement; applying does not guarantee selection, a contract or investor capital.
+GTT is onboarding independent traders for its proposed copy trading platform. Approved MT4 and MT5 source broker accounts can be retained, subject to permission and compatibility. Records, strategy and risk are reviewed before any copying arrangement. Applying does not guarantee selection, a contract or investor capital.
 
 ## Professional investors
 
-The proposed investment service is for professional clients only, with client assessment and investment management intended to sit with a regulated host firm. An enquiry does not establish eligibility. Do not describe GTT itself as the regulated investment manager or the proposed service as already launched.
+The proposed alternative investment platform is for UK professional clients only. GTT welcomes prospective client discussions, but the investment platform is not yet available. GTT provides verification, trade filtering, allocation calculations and reporting; client capital and execution sit with the designated broker, with investment management intended to sit with the regulated host firm. An enquiry does not establish eligibility.
 
 ## Supporting products
 
@@ -27,6 +31,9 @@ Turtle Analytics and trading journals support historical performance and risk re
 - [Performance methodology](https://greenturtletraders.co.uk/methodology)
 - [Contact](https://greenturtletraders.co.uk/contact)
 - [Risk disclosure](https://greenturtletraders.co.uk/risk-disclosure)
+- [What is a professional client?](https://greenturtletraders.co.uk/professional-clients)
+- [Alternative investment platform](https://greenturtletraders.co.uk/alternative-investment-platform)
+- [Copy trading platform](https://greenturtletraders.co.uk/copy-trading-platform)
 - [Competition application](https://comp.turtletrades.co.uk)
 - [Registered legal entity](https://find-and-update.company-information.service.gov.uk/company/SC878660)
 

@@ -1,5 +1,11 @@
 import { ArrowRight, CalendarClock, ChartNoAxesCombined, FileSpreadsheet, FileText, FileUser, LineChart, MessagesSquare, MonitorCog, ReceiptText, ShieldAlert } from "lucide-react";
 import type { ViewType } from "../../seo/routes";
+import { NavigationLink } from "../../seo/NavigationLink";
+import seo from "../../../seo.config.json";
+import copy from "../../../page-copy.json";
+import { AudienceResources } from "./AudienceResources";
+import { FeeCalculator } from "./FeeCalculator";
+import feeTerms from "../../../fee-terms.json";
 import { Footer } from "./Footer";
 import { CtaBand, FaqList, PageShell, SectionHeading, StepTimeline, type FaqItem, type Step } from "./PageBlocks";
 
@@ -7,9 +13,9 @@ type Navigate = (view: ViewType) => void;
 
 const copySteps: Step[] = [
   { title: "Record review", description: "We review your CV, broker statement and full trade history, and recalculate your performance ourselves." },
-  { title: "Authorised connection", description: "You authorise a read-only connection to your existing broker account. You never share your password with us." },
+  { title: "Authorised connection", description: "You authorise a source connection to an approved MT4 or MT5 broker account. It captures trading activity without requiring you to move your trading setup." },
   { title: "Trading as usual", description: "You keep trading your strategy from your own account, on your own platform, in your own way." },
-  { title: "Controlled copying", description: "Your strategy is reviewed and agreed before any client money is linked. Trades are then copied into client accounts, sized to each mandate and checked against agreed limits." },
+  { title: "Filtered trade execution", description: "After strategy review and agreements, GTT filters your trade instructions and calculates investor allocations. Our designated broker executes the approved instructions." },
   { title: "Monitoring", description: "Positions are reconciled and monitored continuously. If trading moves outside the agreed strategy, copying can be paused." },
 ];
 
@@ -36,9 +42,10 @@ const reviewSteps: Step[] = [
 ];
 
 const traderFaqs: FaqItem[] = [
+  { question: "Is trader onboarding the same as becoming a professional client?", answer: "No. Trader onboarding assesses your record, strategy, source-account permissions and proposed agreements. Investor categorisation is a separate process. Submitting a trader application does not establish professional-client status or guarantee access to investor capital." },
   { question: "What happens to my data?", answer: "Your CV and records are stored privately and only seen by the GTT review team and, if you progress, the regulated host firm. Files are downloaded only through short-lived secure links. You can ask us to delete your application at any time; see our privacy policy for retention periods." },
   { question: "Can I apply with a demo or competition record?", answer: "Yes. Demo and competition records are accepted and reviewed, but they are flagged separately and carry less weight than a live record. Copying client money requires a verified live history." },
-  { question: "Will you ask for my account password?", answer: "No. We never ask for account passwords, investor passwords or API keys during the application. Any connection to your broker account is set up later, through an authorised read-only route." },
+  { question: "Will you ask for my account password?", answer: "No. We never ask for account passwords, investor passwords or API keys during the application. Any source connection is set up later through an authorised process, subject to broker permission and platform compatibility." },
 ];
 
 export function TradersPage({ onNavigate }: { onNavigate?: Navigate }) {
@@ -49,21 +56,26 @@ export function TradersPage({ onNavigate }: { onNavigate?: Navigate }) {
     <section className="gtt-hero gtt-hero-left" aria-labelledby="traders-title">
       <div className="home-section-inner">
         <span className="home-kicker">For traders</span>
-        <h1 id="traders-title">Trade your strategy. Reach professional capital.</h1>
+        <h1 id="traders-title">{copy["/traders"].title}</h1>
         <p className="gtt-hero-lead">
-          If you have a live trading record you can evidence and a strategy you can explain, we want to hear from you.
-          You keep trading from your own broker account. We verify your record, and once your strategy is agreed,
-          your trades can be copied into accounts managed for professional clients.
+          {copy["/traders"].paragraphs[0]}
         </p>
         <div className="gtt-hero-actions">{applyButton}</div>
+        <p className="gtt-hero-help"><a href="#trader-earnings-calculator" className="gtt-text-link">Explore an annual fee-share scenario</a></p>
+        <p className="gtt-hero-small">{seo.companyProfile.status}</p>
         <p className="gtt-hero-small">Applying does not guarantee selection, a contract or investor capital.</p>
       </div>
     </section>
+
+    <AudienceResources section={copy["/traders"].sections[0]} id="trader-platform-title" onNavigate={onNavigate} />
 
     <section className="gtt-section" aria-labelledby="copy-title">
       <div className="home-section-inner gtt-narrow">
         <SectionHeading align="left" id="copy-title" kicker="How it works" title="How we obtain and copy trades" intro="Five stages, from first review to ongoing monitoring." />
         <StepTimeline steps={copySteps} layout="vertical" />
+        <p className="gtt-fine" style={{ marginTop: 28 }}>
+          <NavigationLink view="seo-copy-trading-platform" onClick={() => onNavigate?.("seo-copy-trading-platform")} className="gtt-text-link">Read how the copy trading platform would work</NavigationLink>, including source connections, professional allocations and the limits of verification.
+        </p>
       </div>
     </section>
 
@@ -123,14 +135,13 @@ export function TradersPage({ onNavigate }: { onNavigate?: Navigate }) {
               </tr>
             </thead>
             <tbody>
-              <tr><th scope="row">Hurdle to 5%</th><td>10%</td><td>50%</td><td>50%</td></tr>
-              <tr><th scope="row">5% to 10%</th><td>12.5%</td><td>50%</td><td>50%</td></tr>
-              <tr><th scope="row">10% to 15%</th><td>15%</td><td>80%</td><td>20%</td></tr>
-              <tr><th scope="row">Above 15%</th><td>20%</td><td>80%</td><td>20%</td></tr>
+              {feeTerms.performanceBands.map(band => <tr key={band.label}>
+                <th scope="row">{band.label}</th><td>{band.clientFeePercent}%</td><td>{band.traderSharePercent}%</td><td>{100 - band.traderSharePercent}%</td>
+              </tr>)}
             </tbody>
           </table>
         </div>
-        <p className="gtt-fine">Bands are marginal: each rate applies only to the eligible gains within that slice, after both the hurdle and high-water-mark tests are met. Your percentage is a share of the performance fee, rather than of the client’s total profit.</p>
+        <p className="gtt-fine">Bands are marginal: each rate applies only to eligible trading gains within that slice, once the hurdle and high-water-mark tests are met. Your percentage is a share of the performance fee. The investor’s management fee is separate and does not reduce the trading gains used to calculate your performance-fee share.</p>
         <div className="gtt-prose" style={{ marginTop: 28 }}>
           <h3>When performance fees become eligible</h3>
           <FaqList items={[
@@ -141,6 +152,11 @@ export function TradersPage({ onNavigate }: { onNavigate?: Navigate }) {
             {
               question: "Above each client’s high-water mark",
               answer: "Previous losses must be recovered before new performance fees become eligible. Each client’s reference peak is adjusted for deposits and withdrawals. Returning to that peak earns no performance fee, and unrecovered losses carry forward across fee periods so the same gains are never charged twice.",
+            },
+            {
+              id: "trader-earnings-calculator",
+              question: "Explore your annual trader fee share",
+              answer: <FeeCalculator audience="trader" />,
             },
           ]} />
         </div>

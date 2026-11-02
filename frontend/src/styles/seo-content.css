@@ -56,7 +56,36 @@
 .seo-question h3 { font-size: 20px; font-weight: 600; line-height: 1.5; }
 .seo-question p { font-size: 18px; line-height: 1.8; max-width: 780px; }
 .seo-content-page .rounded-xl { border-radius: 8px; }
+.seo-copy-guide { padding-top: 112px; }
+.seo-guide-back { display: inline-flex; gap: 12px; margin-bottom: 28px; color: #526962; font-size: 14px; text-decoration: none; }
+.seo-guide-back span { color: #9aafa8; }
+.seo-guide-status { display: flex; align-items: flex-start; gap: 10px; margin-top: 24px; color: #526962; font-size: 14px; }
+.seo-guide-status-dot { flex-shrink: 0; height: 8px; width: 8px; margin-top: 7px; border-radius: 50%; background: #16816e; }
+.seo-article-header .seo-guide-status { font-size: 14px; line-height: 1.65; }
+.seo-guide-status > span:last-child { flex: 1; min-width: 0; }
+.seo-guide-flow { list-style: none; padding: 0; margin: 28px 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.seo-guide-flow li { position: relative; padding: 22px 18px; border: 1px solid #cee4db; border-radius: 10px; background: #f0f8f5; }
+.seo-guide-step-number { display: grid; place-items: center; width: 28px; height: 28px; margin-bottom: 16px; background: #087866; color: white; border-radius: 50%; font-size: 13px; font-weight: 600; }
+.seo-guide-flow h3, .seo-guide-roles h3 { font-size: 17px; line-height: 1.5; font-weight: 600; margin: 0 0 10px; }
+.seo-guide-flow p, .seo-guide-roles p { font-size: 15px; line-height: 1.75; color: #445b56; margin: 0; }
+.seo-guide-flow-arrow { position: absolute; right: -20px; top: 26px; z-index: 1; color: #087866; }
+.seo-guide-roles { margin-top: 28px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.seo-guide-roles article { border: 1px solid #dbe8e3; border-radius: 10px; padding: 24px; }
+.seo-guide-links { display: flex; flex-wrap: wrap; gap: 14px 24px; margin-top: 22px; }
+.seo-guide-links a { display: inline-flex; align-items: center; gap: 8px; color: #087866; font-size: 15px; font-weight: 600; text-decoration: underline; text-underline-offset: 4px; }
+.seo-guide-links a:focus-visible, .seo-guide-back:focus-visible { outline: 2px solid #0891b2; outline-offset: 4px; }
+.seo-guide-comparison { max-width: 100%; overflow-x: auto; margin-top: 28px; border: 1px solid #dbe8e3; border-radius: 10px; }
+.seo-guide-comparison:focus-visible { outline: 2px solid #0891b2; outline-offset: 4px; }
+.seo-guide-comparison table { width: 100%; min-width: 560px; border-collapse: collapse; text-align: left; font-size: 15px; }
+.seo-guide-comparison caption { padding: 20px; text-align: left; font-size: 17px; font-weight: 600; color: #142e2b; }
+.seo-guide-comparison th, .seo-guide-comparison td { padding: 18px; border-top: 1px solid #dbe8e3; vertical-align: top; line-height: 1.7; }
+.seo-guide-comparison thead th { background: #f5f8f7; font-weight: 600; }
+.seo-guide-comparison tbody th { width: 22%; font-weight: 600; }
+.seo-guide-comparison td { width: 39%; color: #445b56; }
+.seo-guide-comparison th:last-child, .seo-guide-comparison td:last-child { background: #f0f8f5; }
+.seo-guide-table-note { padding: 18px; margin: 0; border-top: 1px solid #dbe8e3; font-size: 13px; line-height: 1.7; color: #526962; min-width: 0; }
 @media (max-width: 800px) {
+  .seo-copy-guide { padding-top: 88px; }
   .seo-article-header { padding: 40px 20px; }
   .seo-article-header h1 { font-size: 36px; overflow-wrap: break-word; }
   .seo-article-header p { font-size: 18px; }
@@ -64,4 +93,11 @@
   .seo-section-index { position: static; max-height: none; overflow: visible; }
   .seo-section-index a { padding-top: 9px; padding-bottom: 9px; }
   .seo-section-heading h2 { font-size: 24px; }
+}
+@media (max-width: 560px) {
+  .seo-guide-flow, .seo-guide-roles { grid-template-columns: minmax(0, 1fr); }
+  .seo-guide-flow li { padding: 22px; }
+  .seo-guide-flow-arrow { right: 26px; top: auto; bottom: -20px; transform: rotate(90deg); }
+  .seo-guide-back { font-size: 13px; }
+  .seo-section-index a { font-size: 14px; }
 }
