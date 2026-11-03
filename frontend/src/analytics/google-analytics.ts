@@ -16,6 +16,13 @@ let initialised = false;
 let guarded = false;
 let paused = false;
 let sessionConsent: { choice: AnalyticsConsent; expires: number } | null = null;
+const leadDefinitions = {
+  investor_enquiry: { event: "investor_enquiry_submitted", path: "/professional-investors/enquire", title: "Investor enquiry completed" },
+  trader_application: { event: "trader_application_submitted", path: "/traders/apply", title: "Trader application completed" },
+} as const;
+type LeadType = keyof typeof leadDefinitions;
+let confirmationPath: string | null = null;
+const recordedSubmissions = new Set<string>();
 
 export function readAnalyticsConsent(): AnalyticsConsent | null {
   try {
@@ -32,7 +39,8 @@ export function isAnalyticsPage(url: URL) {
 
 function canMeasure(url = new URL(window.location.href)) {
   return import.meta.env.PROD && ["greenturtletraders.co.uk", "www.greenturtletraders.co.uk"].includes(window.location.hostname) &&
-    !paused && readAnalyticsConsent() === "accepted" && isAnalyticsPage(url);
+    !paused && readAnalyticsConsent() === "accepted" && (isAnalyticsPage(url) ||
+      (url.origin === window.location.origin && url.pathname === confirmationPath && !url.search));
 }
 
 function setDisabled(disabled: boolean) {
@@ -72,6 +80,29 @@ export function setAnalyticsPaused(value: boolean) {
   syncAnalytics();
 }
 
+// Called only after a real server acknowledgement and after React removes all form fields.
+export function trackLeadSuccess(type: LeadType, submissionId: string) {
+  const definition = leadDefinitions[type];
+  const url = new URL(window.location.href);
+  if (!definition || typeof submissionId !== "string" || !submissionId.trim() ||
+      url.pathname !== definition.path || url.search || document.querySelector("input, select, textarea")) return false;
+  confirmationPath = definition.path;
+  const key = `${type}:${submissionId}`;
+  if (!canMeasure() || recordedSubmissions.has(key)) return false;
+  try {
+    syncAnalytics();
+    if (!analyticsWindow.gtag) return false;
+    recordedSubmissions.add(key);
+    analyticsWindow.gtag("event", definition.event, {
+      send_to: MEASUREMENT_ID,
+      lead_type: type,
+      page_location: window.location.origin + definition.path,
+      page_title: definition.title,
+    });
+    return true;
+  } catch { return false; } // Measurement must never interrupt a successful submission.
+}
+
 function clearAnalyticsCookies() {
   const domains = ["", window.location.hostname, "." + window.location.hostname];
   const parts = window.location.hostname.split(".");
@@ -105,12 +136,16 @@ export function initialiseAnalyticsGuard() {
     const original = window.history[method].bind(window.history);
     window.history[method] = (data, unused, url) => {
       let enabled = false;
-      try { enabled = canMeasure(new URL(url == null ? window.location.href : String(url), window.location.href)); } catch { /* Invalid destinations remain unmeasured. */ }
+      try {
+        const destination = new URL(url == null ? window.location.href : String(url), window.location.href);
+        if (destination.href !== window.location.href) confirmationPath = null;
+        enabled = canMeasure(destination);
+      } catch { /* Invalid destinations remain unmeasured. */ }
       setDisabled(!enabled);
       return original(data, unused, url);
     };
   }
-  window.addEventListener("popstate", () => setDisabled(!canMeasure()), true);
+  window.addEventListener("popstate", () => { confirmationPath = null; setDisabled(!canMeasure()); }, true);
   window.addEventListener("storage", event => {
     if (event.key === CONSENT_KEY || event.key === null) {
       sessionConsent = null;

@@ -334,7 +334,7 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
                 <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
                   <div className="text-slate-900 text-xs font-medium mb-1">Analytics Cookies (Optional)</div>
                   <p className="text-xs text-slate-600">
-                    With your permission, Google Analytics measures visits and interactions on the public website using browser and device information and pseudonymous cookie identifiers. Analytics is disabled on application and enquiry forms, the contact form, account areas and authentication screens. We do not send application answers, uploaded records or account details as analytics events. Google Analytics loads only after you accept analytics; advertising storage, advertising user data and personalised advertising remain disabled.
+                    With your permission, Google Analytics measures visits and interactions on the public website using browser and device information and pseudonymous cookie identifiers. Analytics is disabled while you complete application and enquiry forms, on the contact form, in account areas and on authentication screens. After a successful application or enquiry, we record the completion and form type on the confirmation screen, subject to your analytics choice. We do not send names, email addresses, application answers, uploaded records, submission identifiers or account details as analytics events. Google Analytics loads only after you accept analytics; advertising storage, advertising user data and personalised advertising remain disabled.
                   </p>
                 </div>
               </div>

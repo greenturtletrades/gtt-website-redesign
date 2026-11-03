@@ -12,6 +12,7 @@ import {
   type TradingStyle,
 } from "../../api/traderApplication";
 import { isFormsDemo } from "../../featureFlags";
+import { trackLeadSuccess } from "../../analytics/google-analytics";
 import { CheckboxField, ChoiceField, FileField, SelectField, TextAreaField, TextField, type FieldErrors } from "../forms/FormControls";
 import { countryOptions } from "../forms/countries";
 import { NoticeBanner, PageShell } from "./PageBlocks";
@@ -200,6 +201,7 @@ export function TraderApplicationPage({ onNavigate }: { onNavigate?: Navigate })
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const successfulSubmission = useRef<string | null>(null);
 
   useEffect(() => {
     if (done) return;
@@ -213,6 +215,7 @@ export function TraderApplicationPage({ onNavigate }: { onNavigate?: Navigate })
   useEffect(() => {
     window.scrollTo(0, 0);
     headingRef.current?.focus();
+    if (done && successfulSubmission.current) trackLeadSuccess("trader_application", successfulSubmission.current);
   }, [step, done]);
 
   const set = <K extends keyof FormState>(key: K) => (value: FormState[K]) => {
@@ -250,7 +253,7 @@ export function TraderApplicationPage({ onNavigate }: { onNavigate?: Navigate })
     setSubmitError(null);
     try {
       if (!isFormsDemo) {
-        await submitTraderApplication({
+        const response = await submitTraderApplication({
           fullName: form.fullName.trim(),
           email: form.email.trim(),
           country: form.country,
@@ -282,6 +285,8 @@ export function TraderApplicationPage({ onNavigate }: { onNavigate?: Navigate })
           brokerStatement: files.brokerStatement as File,
           tradeHistory: files.tradeHistory as File,
         });
+        if (response.ok !== true || typeof response.id !== "string" || !response.id.trim()) throw new ApiError("We couldn't confirm your application. Please try again.", 502);
+        successfulSubmission.current = response.id;
       }
       try {
         localStorage.removeItem(STORAGE_KEY);
@@ -306,7 +311,7 @@ export function TraderApplicationPage({ onNavigate }: { onNavigate?: Navigate })
           <div className="gtt-confirm-icon"><CheckCircle2 size={32} aria-hidden="true" /></div>
           <h1 ref={headingRef} tabIndex={-1}>Thanks, we've received your application</h1>
           <p>We will review your CV and records, verify your trading history and contact you within 10 working days if we'd like to discuss your strategy.</p>
-          <p>A confirmation has been sent to <strong>{form.email}</strong>.</p>
+          <p>A confirmation has been sent to the email address you provided.</p>
           <p className="gtt-fine">Applying does not guarantee selection, a contract or investor capital.</p>
           <div className="gtt-hero-actions">
             <button type="button" className="home-brand-button home-brand-button-secondary" onClick={() => onNavigate?.("landing")}>Back to the homepage</button>

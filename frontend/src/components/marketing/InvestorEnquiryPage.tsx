@@ -4,6 +4,7 @@ import type { ViewType } from "../../seo/routes";
 import { ApiError } from "../../api/client";
 import { submitInvestorEnquiry, type AllocationRange, type EnquiringAs, type EnquiryTiming, type ProfessionalStatus } from "../../api/investorEnquiry";
 import { isFormsDemo } from "../../featureFlags";
+import { trackLeadSuccess } from "../../analytics/google-analytics";
 import { CheckboxField, ChoiceField, SelectField, TextAreaField, TextField, type FieldErrors } from "../forms/FormControls";
 import { countryOptions } from "../forms/countries";
 import { NoticeBanner, PageShell } from "./PageBlocks";
@@ -58,11 +59,13 @@ export function InvestorEnquiryPage({ onNavigate }: { onNavigate?: Navigate }) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const confirmRef = useRef<HTMLHeadingElement>(null);
+  const successfulSubmission = useRef<string | null>(null);
 
   useEffect(() => {
     if (done) {
       window.scrollTo(0, 0);
       confirmRef.current?.focus();
+      if (successfulSubmission.current) trackLeadSuccess("investor_enquiry", successfulSubmission.current);
     }
   }, [done]);
 
@@ -83,7 +86,7 @@ export function InvestorEnquiryPage({ onNavigate }: { onNavigate?: Navigate }) {
     try {
       if (!isFormsDemo) {
         const isOrganisation = form.enquiringAs === "ORGANISATION";
-        await submitInvestorEnquiry({
+        const response = await submitInvestorEnquiry({
           fullName: form.fullName.trim(),
           email: form.email.trim(),
           phone: form.phone.trim() || undefined,
@@ -98,6 +101,8 @@ export function InvestorEnquiryPage({ onNavigate }: { onNavigate?: Navigate }) {
           message: form.message.trim() || undefined,
           consentPrivacy: form.consentPrivacy,
         });
+        if (response.ok !== true || typeof response.id !== "string" || !response.id.trim()) throw new ApiError("We couldn't confirm your enquiry. Please try again.", 502);
+        successfulSubmission.current = response.id;
       }
       setDone(true);
     } catch (error) {

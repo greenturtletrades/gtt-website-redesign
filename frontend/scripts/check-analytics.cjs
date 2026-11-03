@@ -12,7 +12,7 @@ const assert = require("node:assert/strict");
   const id = "G-Y3WJ7KXW9V", flag = `ga-disable-${id}`, key = "gtt-analytics-consent-v1";
   const preference = choice => JSON.stringify({ choice, expires: Date.now() + 100000 });
 
-  function create({ host = "greenturtletraders.co.uk", route = "/", saved, production = true, brokenStorage = false } = {}) {
+  function create({ host = "greenturtletraders.co.uk", route = "/", saved, production = true, brokenStorage = false, inputs = false } = {}) {
     const storage = new Map(saved ? [[key, saved]] : []), listeners = new Map(), scripts = [], navigation = [];
     const cookies = new Map([["_ga", "visitor"], ["_ga_Y3WJ7KXW9V", "session"], ["essential", "keep"]]);
     const window = { location: new URL(`https://${host}${route}`), history: {},
@@ -23,7 +23,7 @@ const assert = require("node:assert/strict");
       navigation.push({ disabled: window[flag], url });
       if (url != null) window.location = new URL(url, window.location.href);
     };
-    const document = { referrer: "https://example.com/private?email=someone@example.com#secret", head: { appendChild: script => scripts.push(script) }, createElement: () => ({}) };
+    const document = { referrer: "https://example.com/private?email=someone@example.com#secret", head: { appendChild: script => scripts.push(script) }, createElement: () => ({}), querySelector: () => inputs ? {} : null };
     Object.defineProperty(document, "cookie", {
       get: () => [...cookies].map(([k, v]) => `${k}=${v}`).join("; "),
       set: value => { if (value.includes("Max-Age=0")) cookies.delete(value.split("=")[0]); },
@@ -37,7 +37,7 @@ const assert = require("node:assert/strict");
       window, document, localStorage, production, URL, Date, Event: class { constructor(type) { this.type = type; } }, console });
     const api = module.exports;
     api.initialiseAnalyticsGuard(); api.syncAnalytics();
-    return { api, window, scripts, navigation, storage, cookies };
+    return { api, window, scripts, navigation, storage, cookies, document };
   }
 
   const visit = create();
@@ -100,5 +100,37 @@ const assert = require("node:assert/strict");
   crossTab.storage.set(key, preference("rejected"));
   crossTab.window.dispatchEvent({ type: "storage", key });
   assert.equal(crossTab.window[flag], true);
-  console.log("Analytics checks passed: consent defaults, one tag, advertising disabled, route/query exclusion before history events, modal pauses, withdrawal, cookie cleanup, persistence, expiry, blocked storage and cross-tab changes.");
+
+  for (const [type, route, event] of [
+    ["investor_enquiry", "/professional-investors/enquire", "investor_enquiry_submitted"],
+    ["trader_application", "/traders/apply", "trader_application_submitted"],
+  ]) {
+    const completion = create({ route, saved: preference("accepted"), inputs: true });
+    assert.equal(completion.scripts.length, 0, "No tag while editing a form");
+    assert.equal(completion.api.trackLeadSuccess(type, "private-record-id"), false, "Cannot enable measurement with inputs still mounted");
+    completion.document.querySelector = () => null;
+    assert.equal(completion.api.trackLeadSuccess(type, ""), false, "A real acknowledgement ID is required");
+    assert.equal(completion.api.trackLeadSuccess(type, "private-record-id"), true);
+    assert.equal(completion.api.trackLeadSuccess(type, "private-record-id"), false, "Repeated confirmation effects do not double count");
+    const events = completion.window.dataLayer.map(args => Array.from(args)).filter(args => args[0] === "event");
+    assert.equal(events.length, 1);
+    assert.equal(events[0][1], event);
+    assert.equal(events[0][2].lead_type, type);
+    assert.equal(events[0][2].page_location, "https://greenturtletraders.co.uk" + route);
+    assert.deepEqual(Object.keys(events[0][2]).sort(), ["lead_type", "page_location", "page_title", "send_to"]);
+    assert(!JSON.stringify(events).includes("private-record-id"), "Submission identifiers never leave the browser");
+    completion.window.history.pushState({}, "", "/traders");
+    completion.window.history.pushState({}, "", route);
+    assert.equal(completion.window[flag], true, "Returning to the form disables measurement again");
+    const rejected = create({ route, saved: preference("rejected") });
+    assert.equal(rejected.api.trackLeadSuccess(type, "private-record-id"), false);
+    assert.equal(rejected.scripts.length, 0);
+    const unknown = create({ route });
+    assert.equal(unknown.api.trackLeadSuccess(type, "private-record-id"), false);
+    const query = create({ route: route + "?email=private@example.com", saved: preference("accepted") });
+    assert.equal(query.api.trackLeadSuccess(type, "private-record-id"), false);
+    const local = create({ route, host: "localhost", saved: preference("accepted") });
+    assert.equal(local.api.trackLeadSuccess(type, "private-record-id"), false);
+  }
+  console.log("Analytics checks passed: consent, one tag, advertising disabled, route/query and form exclusions, modal pauses, withdrawal, cookie cleanup, persistence, expiry, blocked storage, cross-tab changes and deduplicated consented lead completions without personal data.");
 })().catch(error => { console.error(error); process.exit(1); });
