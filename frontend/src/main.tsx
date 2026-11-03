@@ -1,7 +1,8 @@
 
-  import { createRoot } from "react-dom/client";
-  import App from "./App.tsx";
-  import "./index.css";
+import { createRoot } from "react-dom/client";
+import App from "./App.tsx";
+import "./index.css";
+import { initialiseAnalyticsGuard } from "./analytics/google-analytics";
 
-  createRoot(document.getElementById("root")!).render(<App />);
-  
+initialiseAnalyticsGuard();
+createRoot(document.getElementById("root")!).render(<App />);

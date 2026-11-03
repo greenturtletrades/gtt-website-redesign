@@ -23,7 +23,7 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
             </div>
             <div>
               <h1 className="text-slate-900 text-2xl sm:text-3xl">Privacy Policy</h1>
-              <p className="text-slate-600 text-sm">Last Updated: 22 Mar 2026</p>
+              <p className="text-slate-600 text-sm">Last Updated: 3 Nov 2026</p>
             </div>
           </div>
         </div>
@@ -57,7 +57,7 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
                 use, disclose, and safeguard your information when you use our Platform.
               </p>
               <p>
-                By using the Platform, you consent to the data practices described in this policy. If you do not agree with this policy, please do not use the Platform.
+                Optional website analytics requires your separate choice in the cookie controls. You can reject analytics or withdraw your choice later without affecting essential website services.
               </p>
             </div>
           </section>
@@ -334,13 +334,14 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
                 <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
                   <div className="text-slate-900 text-xs font-medium mb-1">Analytics Cookies (Optional)</div>
                   <p className="text-xs text-slate-600">
-                    Help us understand how users interact with the Platform (e.g., which features are most popular). Data is anonymized.
+                    With your permission, Google Analytics measures visits and interactions on the public website using browser and device information and pseudonymous cookie identifiers. Analytics is disabled on application and enquiry forms, the contact form, account areas and authentication screens. We do not send application answers, uploaded records or account details as analytics events. Google Analytics loads only after you accept analytics; advertising storage, advertising user data and personalised advertising remain disabled.
                   </p>
                 </div>
               </div>
               <p className="text-xs mt-3">
-                Most browsers allow you to block or delete cookies through their settings. Note that blocking cookies may affect Platform functionality.
+                Your analytics choice is remembered in this browser for up to 180 days. Selecting Reject analytics stops future measurement and clears the Google Analytics cookies that this website can access. You can also manage cookies through your browser settings.
               </p>
+              <button type="button" onClick={() => window.dispatchEvent(new Event("gtt-open-cookie-settings"))} className="text-teal-700 underline underline-offset-4">Change your cookie settings</button>
             </div>
           </section>
 

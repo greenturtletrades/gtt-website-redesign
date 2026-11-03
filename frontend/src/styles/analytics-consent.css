@@ -1,0 +1,15 @@
+.gtt-cookie-banner { position: fixed; z-index: 100; left: 20px; right: 20px; bottom: 20px; display: flex; align-items: center; gap: 28px; max-width: 1100px; max-height: calc(100dvh - 40px); overflow-y: auto; margin: 0 auto; padding: 24px; border: 1px solid #cbdedb; border-radius: 12px; background: #fff; box-shadow: 0 8px 40px #0f172a26; color: #334155; }
+.gtt-cookie-banner h2 { margin: 0 0 8px; color: #0f172a; font-size: 18px; font-weight: 650; }
+.gtt-cookie-banner p { margin: 6px 0 0; font-size: 14px; line-height: 1.6; }
+.gtt-cookie-banner a { color: #0f766e; text-decoration: underline; text-underline-offset: 3px; }
+.gtt-cookie-actions { display: flex; flex-wrap: wrap; gap: 10px; flex-shrink: 0; max-width: 350px; }
+.gtt-cookie-actions button { min-height: 44px; padding: 10px 14px; border: 1px solid #0f766e; border-radius: 8px; background: #fff; color: #0f766e; font-size: 14px; font-weight: 600; cursor: pointer; }
+.gtt-cookie-actions button:hover { background: #f0fdfa; }
+.gtt-cookie-actions .gtt-cookie-close { flex-basis: 100%; border-color: #cbd5e1; color: #475569; }
+.gtt-cookie-settings { position: fixed; z-index: 60; bottom: 12px; left: 12px; padding: 8px 12px; border: 1px solid #cbdedb; border-radius: 8px; background: #fff; color: #0f766e; font-size: 12px; cursor: pointer; box-shadow: 0 2px 8px #0f172a14; }
+.gtt-cookie-banner :focus-visible, .gtt-cookie-settings:focus-visible { outline: 2px solid #0891b2; outline-offset: 3px; }
+@media (max-width: 700px) {
+  .gtt-cookie-banner { left: 12px; right: 12px; bottom: 12px; flex-direction: column; align-items: stretch; gap: 16px; padding: 18px; }
+  .gtt-cookie-actions { max-width: none; }
+  .gtt-cookie-actions button { flex: 1; }
+}

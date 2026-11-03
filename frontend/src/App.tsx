@@ -1,4 +1,6 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, useLayoutEffect, lazy, Suspense } from "react";
+import { AnalyticsConsent } from "./components/marketing/AnalyticsConsent";
+import { setAnalyticsPaused, syncAnalytics } from "./analytics/google-analytics";
 import { AdminLoginModal } from "./components/admin/AdminLoginModal";
 import { AuthModal } from "./components/auth/AuthModal";
 import { PlanSelectionModal, type SignupPlanChoice } from "./components/auth/PlanSelectionModal";
@@ -100,7 +102,12 @@ export default function App() {
 
   useEffect(() => {
     applySeoMetadata(currentView);
+    syncAnalytics();
   }, [currentView]);
+
+  useLayoutEffect(() => {
+    setAnalyticsPaused(Boolean(userType || isAdminRoute || showAuthModal || showPlanSelectionModal || showAdminLoginModal || showSubscriptionModal || resetToken || onboardingStage !== "none"));
+  }, [userType, isAdminRoute, showAuthModal, showPlanSelectionModal, showAdminLoginModal, showSubscriptionModal, resetToken, onboardingStage]);
 
   useEffect(() => {
     getConfig()
@@ -722,6 +729,8 @@ export default function App() {
           }}
         />
       )}
+
+      {!isAdminRoute && <AnalyticsConsent />}
 
       {isAdminRoute && userType !== "admin" && (
         <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center px-4">

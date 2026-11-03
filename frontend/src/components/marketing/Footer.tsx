@@ -130,6 +130,9 @@ export function Footer({ onNavigate }: FooterProps) {
               >
                 Risk Disclosure
               </NavigationLink>
+              <button type="button" onClick={() => window.dispatchEvent(new Event("gtt-open-cookie-settings"))} className="block text-slate-400 hover:text-teal-400 transition-colors text-left">
+                Cookie settings
+              </button>
             </div>
           </div>
 
